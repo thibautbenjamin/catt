@@ -9,3 +9,7 @@ parser.ml
 lexer.ml
 parser.mli
 catt
+*.aux
+*.log
+*.pdf
+*.conflicts
