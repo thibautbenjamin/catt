@@ -1,0 +1,14 @@
+coh comp C (x : *C) (y : *C) (f : *C | x → y) (z : *C) (g : *C | y → z) : *C| x → z.
+
+coh right C (x : *C) (y : *C) (f : *C | x → y) (z : *C) (g1 : *C | y → z) (g2 : *C | y → z) (a : *C | y → z | g1 → g2) :
+*C | x → z | comp C x y f z g1 → comp C x y f z g2.
+coh left C (x : *C) (y : *C) (f1 : *C | x → y) (f2 : *C | x → y) (a : *C | x → y | f1 → f2) (z : *C) (g : *C | y → z) :
+*C | x → z | comp C x y f1 z g → comp C x y f2 z g.
+
+coh right2 C (x : *C)
+    	     (y : *C) (f : *C | x → y)
+	     (z : *C) (g1 : *C | y → z)
+	     (g2 : *C | y → z) (a : *C | y → z | g1 → g2)
+	     (b : *C | y → z | g1 → g2) (r : *C | y → z | g1 → g2 | a → b)
+	     :
+	     *C | x → z | comp C x y f z g1 → comp C x y f z g2 | right C x y f z g1 g2 a → right C x y f z g1 g2 b.

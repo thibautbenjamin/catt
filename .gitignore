@@ -1,0 +1,11 @@
+*~
+*.annot
+*.cmi
+*.cmx
+*.o
+._d
+._ncdi
+parser.ml
+lexer.ml
+parser.mli
+catt

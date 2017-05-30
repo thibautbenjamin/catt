@@ -1,0 +1,142 @@
+## If we slightly modify the rule for coherences, we might accept as well the two following ones. These would allow us to give a recursive
+## definition of the application of a functor on any cell.
+## This definition might be easier to generalize to any n-cell applied on any k-cell
+
+#### Application of functors to objects
+#coh nul C (x : *C) : *C.
+#fcoh Fapp C D F (x : *C) : *D.
+
+#### Application of functors to arrows
+fcoh Fapp C D F (x : *C) (y : *C) (f : *C | x -> y) : *D | ap(F,x) -> ap(F,y).
+
+#### Application of functors to 2-cells
+fcoh FFapp C D F (x : *C) (y : *C) (f : *C | x → y) (g : *C | x → y) (a : *C | x → y | f → g) :
+*D | ap(F,x) → ap(F,y) | Fapp C D F x y f → Fapp C D F x y g.
+
+#### Application of functors to 3-cells
+fcoh FFFapp C D F (x : *C)
+     	      	  (y : *C) (f : *C | x → y)
+		  (g : *C | x → y) (a : *C | x → y | f → g)
+		  (b : *C | x → y | f → g) (e : *C | x → y | f → g | a → b)
+		  :
+		  *D | ap(F,x) → ap(F,y) | Fapp C D F x y f → Fapp C D F x y g | FFapp C D F x y f g a → FFapp C D F x y f g b.
+
+#### Definition of coherence and transfer for identity
+coh id C (x : *C) : *C | x → x.
+fcoh Fid C D F (x : *C) : *D | ap(F,x) → ap(F,x) | id D ap(F,x) → Fapp C D F x x (id C x).
+fcoh Fid- C D F (x : *C) : *D | ap(F,x) → ap(F,x) | Fapp C D F x x (id C x) →  id D ap(F,x).
+
+#### Definition of coherences and transfer for composition
+coh comp C (x : *C) (y : *C) (f : *C | x → y) (z : *C) (g : *C | y → z) : *C| x → z.
+fcoh Fcomp C D F (x : *C) (y : *C) (f : *C | x → y) (z : *C) (g : *C | y → z) :
+*D | ap(F,x) → ap(F,z) | comp D ap(F,x) ap(F,y) (Fapp C D F x y f) ap(F,z) (Fapp C D F y z g) → Fapp C D F x z (comp C x y f z g).
+fcoh Fcomp- C D F (x : *C) (y : *C) (f : *C | x → y) (z : *C) (g : *C | y → z) :
+*D | ap(F,x) → ap(F,z) | Fapp C D F x z (comp C x y f z g) → comp D ap(F,x) ap(F,y) (Fapp C D F x y f) ap(F,z) (Fapp C D F y z g).
+
+
+#### Definition of coherences and transfer for associativity
+coh assoc C (x : *C) (y : *C) (f : *C | x → y) (z : *C) (g : *C | y → z) (t : *C) (h : *C | z → t) :
+*C | x → t| comp C x z (comp C x y f z g) t h → comp C x y f t (comp C y z g t h).
+## For the transfer, we need some more coherences :
+coh right C (x : *C) (y : *C) (f : *C | x → y) (z : *C) (g1 : *C | y → z) (g2 : *C | y → z) (a : *C | y → z | g1 → g2) :
+*C | x → z | comp C x y f z g1 → comp C x y f z g2.
+coh left C (x : *C) (y : *C) (f1 : *C | x → y) (f2 : *C | x → y) (a : *C | x → y | f1 → f2) (z : *C) (g : *C | y → z) :
+*C | x → z | comp C x y f1 z g → comp C x y f2 z g.
+coh comp3 C (x : *C)
+    	    (y : *C) (f1 : *C | x → y)
+	    (f2 : *C | x → y) (a1 : *C | x → y | f1 → f2)
+	    (f3 : *C | x → y) (a2 : *C | x → y | f2 → f3)
+	    (f4 : *C | x → y) (a3 : *C | x → y | f3 → f4)
+	    :
+	    *C | x → y | f1 → f4.
+
+## transfer for associativity
+fcoh Fassoc C D F (x : *C) (y : *C) (f : *C | x → y) (z : *C) (g : *C | y → z) (t : *C) (h : *C | z → t) :
+*D |
+ap(F,x) → ap(F,t) |
+comp D ap(F,x) ap(F,z) (comp D ap(F,x) ap(F,y) (Fapp C D F x y f) ap(F,z) (Fapp C D F y z g)) ap(F,t) (Fapp C D F z t h)
+→
+Fapp C D F x t (comp C x y f t (comp C y z g t h)) |
+comp3 D ap(F,x)
+      	ap(F,t)
+	  (comp D ap(F,x) ap(F,z) (comp D ap(F,x) ap(F,y) (Fapp C D F x y f) ap(F,z) (Fapp C D F y z g)) ap(F,t) (Fapp C D F z t h))
+	  (comp D ap(F,x) ap(F,y) (Fapp C D F x y f) ap(F,t) (comp D ap(F,y) ap(F,z) (Fapp C D F y z g) ap(F,t) (Fapp C D F z t h)))
+	    (assoc D ap(F,x) ap(F,y) (Fapp C D F x y f) ap(F,z) (Fapp C D F y z g) ap(F,t) (Fapp C D F z t h))
+	  (comp D ap(F,x) ap(F,y) (Fapp C D F x y f) ap(F,t) (Fapp C D F y t (comp C y z g t h)))
+ 	    (right D ap(F,x)
+             	     ap(F,y)
+		       (Fapp C D F x y f)
+	      	     ap(F,t)
+		       (comp D ap(F,y) ap(F,z) (Fapp C D F y z g) ap(F,t) (Fapp C D F z t h))
+	      	       (Fapp C D F y t (comp C y z g t h))
+		         (Fcomp C D F y z g t h))
+	  (Fapp C D F x t (comp C x y f t (comp C y z g t h)))
+	    (Fcomp C D F x y f t (comp C y z g t h))
+→
+comp3 D ap(F,x)
+      	ap(F,t)
+	(comp D ap(F,x) ap(F,z) (comp D ap(F,x) ap(F,y) (Fapp C D F x y f) ap(F,z) (Fapp C D F y z g)) ap(F,t) (Fapp C D F z t h))
+	(comp D ap(F,x) ap(F,z) (Fapp C D F x z (comp C x y f z g)) ap(F,t) (Fapp C D F z t h))
+	  (left D ap(F,x)
+             	  ap(F,z)
+		   (comp D ap(F,x) ap(F,y) (Fapp C D F x y f) ap(F,z) (Fapp C D F y z g)) 
+		   (Fapp C D F x z (comp C x y f z g))
+		     (Fcomp C D F x y f z g)
+		 ap(F,t)
+		   (Fapp C D F z t h))
+        (Fapp C D F x t (comp C x z (comp C x y f z g) t h))
+	  (Fcomp C D F x z (comp C x y f z g) t h)
+	(Fapp C D F x t (comp C x y f t (comp C y z g t h)))
+	  (FFapp C D F x t (comp C x z (comp C x y f z g) t h)
+	  	       	   (comp C x y f t (comp C y z g t h)) (assoc C x y f z g t h)).
+
+#### Applications
+##  Definition of the context
+hyp C : Cat.
+hyp D : Cat.
+hyp F : C ⇒ D.
+hyp a : *C.
+hyp b : *C.
+hyp c : *C.
+hyp f : *C | a → b.
+hyp g : *C | b → c.
+hyp d : *C.
+hyp h : *C | c → d.
+
+## Checking types of coherences
+check id C a.
+check comp C a b f c g.
+check assoc C a b f c g d h.
+
+## Checking types of application of functors
+check Fapp C D F a a (id C a).
+check Fapp C D F a c (comp C a b f c g).
+check FFapp C D F a d (comp C a c (comp C a b f c g) d h) (comp C a b f d (comp C b c g d h)) (assoc C a b f c g d h).
+
+## Checking types of transfers
+check Fid C D F a.
+check Fcomp C D F  a b f c g.
+check Fassoc C D F a b f c g d h.	  
+
+
+
+#### Other coherences with functors
+## Composition
+fcoh Fcomp1 C D F (x : *C)
+     	          (y : *C) (f : *C | x → y)
+		  (z : *C) (g : *C | y → z)
+		  :
+		  *D | ap(F,x) → ap (F,z).
+## Equivalence with the application of the functor on the arrow identity
+fcoh Fcomp_eq C D F (x : *C)
+     	  	    (y : *C) (f : *C | x → y)
+		    (z : *C) (g : *C | y → z)
+		    :
+		    *D | ap(F,x) → ap (F,z) | Fcomp1 C D F x y f z g → Fapp C D F x z (comp C x y f z g).
+
+fcoh Fcomp_eq- C D F (x : *C)
+     	       	     (y : *C) (f : *C | x → y)
+		     (z : *C) (g : *C | y → z)
+		     :
+		     *D | ap(F,x) → ap (F,z) | Fapp C D F x z (comp C x y f z g) → Fcomp1 C D F x y f z g.
+

@@ -1,0 +1,77 @@
+hyp C : Cat.
+hyp D : Cat.
+hyp F : C ⇒ D.
+hyp x : *C.
+hyp y : *C.
+hyp z : *D.
+hyp t : *D.
+hyp f : *C | x → y.
+hyp E : Cat.
+hyp G : D ⇒ E.
+hyp w : *E.
+hyp g : *C | x → y.
+hyp a : *C | x → y | f → g.
+env.
+
+coh id (x : *) : * | x → x.
+coh comp (x : *) (y : *) (f : * | x → y) (z : *) (g : * | y → z) : * | x → z.
+coh assoc (x : *) (y : *) (f : * | x → y) (z : *) (g : * | y → z) (t : *) (h : * | z → t) :
+* | x → t| comp x y f t (comp y z g t h) → comp x z (comp x y f z g) t h.
+
+check id C x.
+check ap(F,x).
+check ap(F,f).
+check ap(F,id C x).
+
+hyp a : *C.
+hyp b : *C.
+hyp c : *C.
+hyp f : *C | a → b.
+hyp g : *C | b → c.
+check ap (F, comp C a b f c g).
+
+hyp d : *C.
+hyp h : *C | c → d.
+check assoc C a b f c g d h.
+
+
+check comp C a b f c g.
+check ap (F, assoc C a b f c g d h).
+
+coh right (x : *) (y : *) (f : * | x → y) (z : *) (g1 : * | y → z) (g2 : * | y → z) (a : * | y → z | g1 → g2) :
+* | x → z | comp x y f z g1 → comp x y f z g2.
+coh left (x : *) (y : *) (f1 : * | x → y) (f2 : * | x → y) (a : * | x → y | f1 → f2) (z : *) (g : * | y → z) :
+* | x → z | comp x y f1 z g → comp x y f2 z g.
+coh comp3 (x : *)
+    	  (y : *) (f1 : * | x → y)
+	  (f2 : * | x → y) (a1 : * | x → y | f1 → f2)
+	  (f3 : * | x → y) (a2 : * | x → y | f2 → f3)
+	  (f4 : * | x → y) (a3 : * | x → y | f3 → f4)
+	  :
+	  * | x → y | f1 → f4.
+
+hyp Fcompf-g : *D | ap(F,a) → ap(F,c) | ap(F,comp C a b f c g) → comp D (ap(F,a)) (ap(F,b)) (ap(F,f)) (ap(F,c)) (ap(F,g)).
+hyp Fcompg-h : *D | ap(F,b) → ap(F,d) | ap(F,comp C b c g d h) → comp D (ap(F,b)) (ap(F,c)) (ap(F,g)) (ap(F,d)) (ap(F,h)).
+hyp Fcompf-gh :*D | ap(F,a) → ap(F,d) |
+ap(F,comp C a b f d (comp C b c g d h)) → comp D (ap(F,a)) (ap(F,b)) (ap(F,f)) (ap(F,d)) (ap(F,comp C b c g d h)).
+hyp Fcompfg-h :*D | ap(F,a) → ap(F,d) |
+ap(F,comp C a c (comp C a b f c g) d h) → comp D (ap(F,a)) (ap(F,c)) (ap(F,(comp C a b f c g))) (ap(F,d)) (ap(F,h)).
+
+
+check (right D (ap(F,a))
+      	       (ap(F,b)) (ap(F,f))
+	       (ap(F,d)) (ap(F,comp C b c g d h))
+	       (comp D (ap(F,b)) (ap(F,c)) (ap(F,g)) (ap(F,d)) (ap(F,h))) (Fcompg-h)).
+
+let le = (left D (ap(F,a))
+      	      (ap(F,c)) (ap(F,comp C a b f c g))
+	      (comp D (ap(F,a)) (ap(F,b)) (ap(F,f)) (ap(F,c)) (ap(F,g))) (Fcompf-g))
+	      (ap(F,d)) (ap(F,h)).
+
+
+check comp3 D (ap (F,a))
+      	      (ap(F,d)) (ap (F,comp C a b f d (comp C b c g d h)))
+	      (ap (F, comp C a c (comp C a b f c g) d h)) (ap (F, assoc C a b f c g d h))
+      	      (comp D (ap(F,a)) (ap(F,c)) (ap(F,(comp C a b f c g))) (ap(F,d)) (ap(F,h))) (Fcompfg-h)
+	      (comp D (ap(F,a)) (ap(F,c)) (comp D (ap(F,a)) (ap(F,b)) (ap(F,f)) (ap(F,c)) (ap(F,g))) (ap(F,d)) (ap(F,h)))
+	      le.

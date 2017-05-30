@@ -1,0 +1,44 @@
+hyp C : Cat.
+hyp D : Cat.
+hyp F : C ⇒ D.
+hyp x : *C.
+hyp y : *C.
+hyp z : *D.
+hyp t : *D.
+
+coh idC (x : *) : * | x → x.
+hyp f : *C | x → y.
+check id C x.
+check ap(F,x).
+check ap(F,f).
+check ap(F,id C x).
+
+hyp E : Cat.
+hyp G : D ⇒ E.
+hyp w : *E.
+check ap(G,ap(F,x)).
+check ap(G,ap(F,f)).
+
+hyp g : * | x → y.
+hyp a : * | x → y | f → g.
+check ap(F,a).
+check ap(G,ap(F,a)).
+
+env.
+#functoriality Fid F idC [x].
+
+hyp a : *C.
+hyp b : *C.
+hyp c : *C.
+hyp f : * | a → b.
+hyp g : * | b → c.
+coh comp (x : *) (y : *) (f : * | x → y) (z : *) (g : * | y → z) : * | x → z.
+
+#functoriality Fcomp F comp [a::b::f::c::g].
+
+coh assoc (x : *) (y : *) (f : * | x → y) (z : *) (g : * | y → z) (t : *) (h : * | z → t) :
+* | x → t| comp x y f t (comp y z g t h) → comp x z (comp x y f z g) t h.
+hyp d : *C.
+hyp h : *C | c → d.
+
+#functoriality Fassoc F assoc [a::b::f::c::g::d::h].

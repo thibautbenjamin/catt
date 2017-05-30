@@ -1,0 +1,57 @@
+
+** Conflict (shift/reduce) in state 36.
+** Token involved: LBRA
+** This state is reached from prog after reading:
+
+EVAL expr PIPE app_expr 
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+cmd prog 
+EVAL expr FS 
+     (?)
+
+** In state 36, looking ahead at LBRA, reducing production
+** expr -> app_expr 
+** is permitted because of the following sub-derivation:
+
+expr PIPE expr LBRA MOR IDENT RBRA expr // lookahead token appears
+          app_expr . 
+
+** In state 36, looking ahead at LBRA, shifting is permitted
+** because of the following sub-derivation:
+
+expr PIPE expr LBRA MOR IDENT RBRA expr 
+          app_expr 
+          app_expr simple_expr 
+                   . LBRA HOMTYPE IDENT RBRA 
+
+** Conflict (shift/reduce) in state 33.
+** Tokens involved: PIPE FUNCT
+** The following explanations concentrate on token PIPE.
+** This state is reached from prog after reading:
+
+EVAL expr PIPE expr LBRA MOR IDENT RBRA expr 
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+cmd prog 
+EVAL expr FS 
+     (?)
+
+** In state 33, looking ahead at PIPE, shifting is permitted
+** because of the following sub-derivation:
+
+expr PIPE expr LBRA MOR IDENT RBRA expr 
+                                   expr . PIPE expr LBRA MOR IDENT RBRA expr 
+
+** In state 33, looking ahead at PIPE, reducing production
+** expr -> expr PIPE expr LBRA MOR IDENT RBRA expr 
+** is permitted because of the following sub-derivation:
+
+expr PIPE expr LBRA MOR IDENT RBRA expr // lookahead token appears
+expr PIPE expr LBRA MOR IDENT RBRA expr . 

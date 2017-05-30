@@ -1,0 +1,305 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathpartir}
+\usepackage{macros}
+
+\title{Notes}
+
+\begin{document}
+\maketitle
+
+\section{Les r\`egles pour les coh\'erences}
+\[
+  \inferrule
+  {
+    \Delta\vdash C:\TCat\\
+    \Gamma\vdashps^C\\
+    C:\TCat,\Gamma\vdash A : \Type \ C
+   }
+  {
+    \Delta,\Gamma\vdash\coh:A
+  }
+\]
+lorsque $\FV(A)=\set{C}\cup\FV(\Gamma)$
+
+\[
+  \inferrule
+  {
+    \Delta\vdash C:\TCat\\
+    \Gamma\vdashps^C\\
+    C:\TCat,\Gamma\vdash t\to^C u : \Type \ C \\
+    C:\TCat,\partial^-(\Gamma)\vdash t \\
+    C:\TCat,\partial^+(\Gamma)\vdash u
+  }
+  {
+    \Delta,\Gamma\vdash\coh:t\to^C u
+  }
+\]
+lorsque $\FV(t)=\set{C}\cup\FV(\partial^-(\Gamma))$ et $\FV(u)=\set{C}\cup\FV(\partial^+(\Gamma))$
+
+
+\[
+  \inferrule
+  {
+    \Delta\vdash C:\TCat\\
+    (x:*C)\vdashps^C\\
+    C:\TCat,(x:*C)\vdash A : \Type \ C \\
+  }
+  {
+    \Delta,\Gamma\vdash\coh:A
+  }
+\]
+lorsque $\FV(A)=\set{C}$
+
+
+\section{Les r\`egles pour les foncteurs}
+\[
+  \inferrule
+  {
+    \Delta\vdash F:C\To D\\
+    \Gamma\vdashps^C\\
+    C:\TCat, D:\TCat, F:C\To D,\Gamma\vdash A : \Type \ D
+   }
+  {
+    \Delta,\Gamma\vdash\coh:A
+  }
+\]
+lorsque $\FV(t\to^Du)=\set{C,D,F}\cup\FV(\Gamma)$
+
+\[
+  \inferrule
+  {
+    \Delta\vdash F:C\To D\\
+    \Gamma\vdashps^C\\
+    \Gamma_F,\Gamma\vdash t\to^D u : \Type \ D \\
+    \Gamma_F,\partial^-(\Gamma)\vdash t \\
+    \Gamma_F,\partial^+(\Gamma)\vdash u
+  }
+  {
+    \Delta,\Gamma\vdash\coh:t\to^D u
+  }
+\]
+avec $\Gamma_F = C:\TCat, D:\TCat, F:C\To D$, et \\
+lorsque $\FV(t)=\set{C,D,F}\cup\FV(\partial^-(\Gamma))$ et $\FV(u)=\set{C,D,F}\cup\FV(\partial^+(\Gamma))$
+
+\[
+  \inferrule
+  {
+    \Delta\vdash F:C\To D\\
+    (x : *C)\vdashps^C\\
+    \Gamma_F,(x : *C)\vdash A : \Type \ D \\
+    \Gamma_{\target(F)}, (x : *C) \vdash A
+  }
+  {
+    \Delta,\Gamma\vdash\coh:A
+  }
+\]
+lorsque $\FV(A)=\FV(\target F)\cup\set{x}$
+
+\section{Les r\`egles pour les transformations naturelles}
+
+\[
+  \inferrule
+  {
+    \Delta\vdash \tau:C\To D|F \to G\\
+    \Gamma\vdashps^C\\
+    \Gamma_\tau,\Gamma\vdash A : \Type \ D
+   }
+  {
+    \Delta,\Gamma\vdash\coh:A
+  }
+\]
+lorsque $\FV(t\to^Du)=\set{C,D,F,G,\tau}\cup\FV(\Gamma)$
+
+\[
+  \inferrule
+  {
+    \Delta\vdash \tau:C\To D|F \to G\\
+    \Gamma\vdashps^C\\
+    \Gamma_\tau,\Gamma\vdash t\to^D u : \Type \ D \\
+    \Gamma_\tau,\partial^-(\Gamma)\vdash t \\
+    \Gamma_\tau,\partial^+(\Gamma)\vdash u
+  }
+  {
+    \Delta,\Gamma\vdash\coh:t\to^D u
+  }
+\]
+lorsque $\FV(t)=\set{C,D,F,G,\tau}\cup\FV(\partial^-(\Gamma))$ et $\FV(u)=\set{C,D,F,G,\tau}\cup\FV(\partial^+(\Gamma))$
+
+\[
+  \inferrule
+  {
+    \Delta\vdash \tau:C\To D|F \to G\\
+    (x : *C)\vdashps^C\\
+    \Gamma_F,(x : *C)\vdash t\to^D u :  \Type \ D \\
+    \Gamma_{\source (\tau)},(x : *C)\vdash t \\
+    \Gamma_{\target(\tau)},(x : *C)\vdash u
+  }
+  {
+    \Delta,\Gamma\vdash\coh:t\to^D u
+  }
+\]
+lorsque $\FV(t)=\FV(\source(\tau)) \cup\set{x}$ et $\FV(u)=\FV(\target(\tau)) \cup\set{x}$
+
+\section{Les règles générales}
+\subsection{structure}
+Pour tout entier n,
+
+\[
+  \inferrule
+  { }
+  {
+   \vdash\TCat\ n : \TCat\ n+1
+  }
+\]
+
+\[
+  \inferrule
+  {
+    \Gamma\vdash C : \TCat\ n
+  }
+  {
+    \Gamma\vdash \Hom\ C : \TCat\ n+1
+  }
+\]
+
+
+\[
+  \inferrule
+  {  }
+  {
+    \vdash \Hom\ (\TCat\ n+1) \equiv \TCat\ n+1
+  }
+\]
+
+
+\[
+  \inferrule
+  {
+    \Gamma\vdash \Hom\ C
+  }
+  {
+    \Gamma\vdash *_C: \Hom\ C
+  }
+\]
+
+
+\[
+  \inferrule
+  { }
+  {
+    \vdash *_{\TCat\ n+1} \equiv \TCat\ n
+  }
+\]
+
+\[
+  \inferrule
+  {
+    \Gamma\vdash C : \TCat\ n\\     
+    \Gamma\vdash u : *_C \\
+    \Gamma\vdash v : *_C
+  }
+  {
+    \Gamma\vdash *_C\ |\ u\to v: \Hom\ C
+  }
+\]
+\[
+  \inferrule
+  {
+    \Gamma\vdash t\ |\ a \to b : \Hom\ C\\
+    \Gamma\vdash u : t\ |\ a \to b\\
+    \Gamma\vdash v : t\ |\ a \to b
+  }
+  {
+    \Gamma\vdash t\ |\ a \to b\ |\ u\to v: \Hom\ C
+  }
+\]
+
+
+  
+\subsection{cohérences}
+\[
+  \inferrule
+{
+    \Xi\vdash \Hom\ \mathfrak{C}\\
+    \Delta\vdashps^\mathfrak{C} \\
+    \Xi,\Delta\vdash C : *_\mathfrak{C}\\
+    \Xi,\Delta\vdash D : *_\mathfrak{C}\\
+    \Gamma\vdashps^C\\
+    \Xi,\Delta,\Gamma\vdash A :\Hom \ D \\
+  }
+  {
+    \Xi,\Delta,\Gamma\vdash\coh : A
+  }
+  \]
+  Lorsque \FV(\Delta)\cup\FV(\Gamma) = \FV(A)
+
+\[
+  \inferrule
+  {
+    \Xi\vdash \Hom\ \mathfrak{C}\\
+    \Delta\vdashps^\mathfrak{C} \\
+    \Xi,\Delta\vdash C : *_\mathfrak{C}\\
+    \Xi,\Delta\vdash D : *_\mathfrak{C}\\
+    \Gamma\vdashps^C\\
+    \Xi,\Delta,\Gamma\vdash t\ |\ u \to v :  \Hom\ D \\
+    \Xi,\Delta,\partial^-(\Gamma)\vdash u\\
+    \Xi,\Delta,\partial^+(\Gamma)\vdash v
+  }
+  {
+    \Xi,\Delta,\Gamma\vdash\coh : t\ |\ u \to v
+  }
+  \]
+  Lorsque \FV(\Delta)\cup\FV(\partial^-(\Gamma)) = \FV(u) \text{ et } \FV(\Delta)\cup\FV(\partial^+(\Gamma)) = \FV(v)
+
+
+  \[
+  \inferrule
+  {
+    \Delta\vdashps^\TCat \\
+    \Delta\vdash C : *_\TCat\\
+    \Delta\vdash D : *_\TCat\\
+    \Gamma\vdashps^C\\
+    \Delta,\Gamma\vdash t\ |\ u \to v :  \Hom\ D \\
+    \partial^-(\Delta),\Gamma\vdash u\\
+    \partial^-(\Delta),\Gamma\vdash v
+  }
+  {
+    \Delta,\Gamma\vdash\coh : t\ |\ u \to v
+  }
+  \]
+  Lorsque \FV(\partial^-(\Delta))\cup\FV(\Gamma) = \FV(u) \text{ et } \FV(\partial^+(\Delta))\cup\FV(\Gamma) = \FV(v)
+
+\[
+  \inferrule
+  {
+    \Delta\vdashps^\TCat \\
+    \Delta\vdash C : *_\TCat\\
+    \Delta\vdash D : *_\TCat\\
+    \Delta\vdash *_D :  \Hom\ D \\
+  }
+  {
+    \Delta,(x : *_C)\vdash\coh : *_D
+  }
+\]
+  Lorsque \FV(\partial^-(\Delta)) = \FV(*_D) \text{ et } \FV(\partial^+(\Delta)) = \FV(*_D)
+ 
+
+\section{Idées de choses à faire}
+\begin{itemize}
+\item automatisation (de l'associativité), possibilité de traduire les preuve
+  de/vers Globular
+\item formalisation de l'implémentation avec arguments implicites
+\item comment faire des preuves dans le système (e.g. ajouter de la coinduction,
+  etc.). Exemple 0 de preuve : montrer que $coh f$ (= cohérence unaire) est
+  équivalent à $f$.
+\item comment ajouter des $\Pi$ et $\Sigma$ au système de preuve
+\item faire la preuve du lien avec la définition de Grothendieck-Maltsiniotis
+\item définition des foncteurs
+\item généraliser à la catégorie des catégories
+\end{itemize}
+
+\end{document}
