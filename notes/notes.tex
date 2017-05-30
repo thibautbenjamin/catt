@@ -10,8 +10,8 @@
 
 \begin{document}
 \maketitle
-
-\section{Les r\`egles pour les coh\'erences}
+\section{La structure implémentée}
+\subsection{Les règles pour les cohérences}
 \[
   \inferrule
   {
@@ -40,22 +40,19 @@ lorsque $\FV(A)=\set{C}\cup\FV(\Gamma)$
 \]
 lorsque $\FV(t)=\set{C}\cup\FV(\partial^-(\Gamma))$ et $\FV(u)=\set{C}\cup\FV(\partial^+(\Gamma))$
 
-
+\subsection{Les règles pour les foncteurs}
 \[
   \inferrule
   {
-    \Delta\vdash C:\TCat\\
-    (x:*C)\vdashps^C\\
-    C:\TCat,(x:*C)\vdash A : \Type \ C \\
-  }
+    \Delta\vdash F:C\To D\\
+    \Delta\vdash x : *_C
+   }
   {
-    \Delta,\Gamma\vdash\coh:A
+    \Delta\vdash\ ap(F,x) : *_D
   }
 \]
-lorsque $\FV(A)=\set{C}$
 
 
-\section{Les r\`egles pour les foncteurs}
 \[
   \inferrule
   {
@@ -64,7 +61,7 @@ lorsque $\FV(A)=\set{C}$
     C:\TCat, D:\TCat, F:C\To D,\Gamma\vdash A : \Type \ D
    }
   {
-    \Delta,\Gamma\vdash\coh:A
+    \Delta,\Gamma\vdash\fcoh:A
   }
 \]
 lorsque $\FV(t\to^Du)=\set{C,D,F}\cup\FV(\Gamma)$
@@ -79,72 +76,13 @@ lorsque $\FV(t\to^Du)=\set{C,D,F}\cup\FV(\Gamma)$
     \Gamma_F,\partial^+(\Gamma)\vdash u
   }
   {
-    \Delta,\Gamma\vdash\coh:t\to^D u
+    \Delta,\Gamma\vdash\fcoh:t\to^D u
   }
 \]
 avec $\Gamma_F = C:\TCat, D:\TCat, F:C\To D$, et \\
 lorsque $\FV(t)=\set{C,D,F}\cup\FV(\partial^-(\Gamma))$ et $\FV(u)=\set{C,D,F}\cup\FV(\partial^+(\Gamma))$
 
-\[
-  \inferrule
-  {
-    \Delta\vdash F:C\To D\\
-    (x : *C)\vdashps^C\\
-    \Gamma_F,(x : *C)\vdash A : \Type \ D \\
-    \Gamma_{\target(F)}, (x : *C) \vdash A
-  }
-  {
-    \Delta,\Gamma\vdash\coh:A
-  }
-\]
-lorsque $\FV(A)=\FV(\target F)\cup\set{x}$
-
-\section{Les r\`egles pour les transformations naturelles}
-
-\[
-  \inferrule
-  {
-    \Delta\vdash \tau:C\To D|F \to G\\
-    \Gamma\vdashps^C\\
-    \Gamma_\tau,\Gamma\vdash A : \Type \ D
-   }
-  {
-    \Delta,\Gamma\vdash\coh:A
-  }
-\]
-lorsque $\FV(t\to^Du)=\set{C,D,F,G,\tau}\cup\FV(\Gamma)$
-
-\[
-  \inferrule
-  {
-    \Delta\vdash \tau:C\To D|F \to G\\
-    \Gamma\vdashps^C\\
-    \Gamma_\tau,\Gamma\vdash t\to^D u : \Type \ D \\
-    \Gamma_\tau,\partial^-(\Gamma)\vdash t \\
-    \Gamma_\tau,\partial^+(\Gamma)\vdash u
-  }
-  {
-    \Delta,\Gamma\vdash\coh:t\to^D u
-  }
-\]
-lorsque $\FV(t)=\set{C,D,F,G,\tau}\cup\FV(\partial^-(\Gamma))$ et $\FV(u)=\set{C,D,F,G,\tau}\cup\FV(\partial^+(\Gamma))$
-
-\[
-  \inferrule
-  {
-    \Delta\vdash \tau:C\To D|F \to G\\
-    (x : *C)\vdashps^C\\
-    \Gamma_F,(x : *C)\vdash t\to^D u :  \Type \ D \\
-    \Gamma_{\source (\tau)},(x : *C)\vdash t \\
-    \Gamma_{\target(\tau)},(x : *C)\vdash u
-  }
-  {
-    \Delta,\Gamma\vdash\coh:t\to^D u
-  }
-\]
-lorsque $\FV(t)=\FV(\source(\tau)) \cup\set{x}$ et $\FV(u)=\FV(\target(\tau)) \cup\set{x}$
-
-\section{Les règles générales}
+\section{Les règles générales à implémenter}
 \subsection{structure}
 Pour tout entier n,
 
