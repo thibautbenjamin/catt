@@ -162,15 +162,14 @@ Pour tout entier n,
 \[
   \inferrule
 {
-    \Xi\vdash \Hom\ \mathfrak{C}\\
-    \Delta\vdashps^\mathfrak{C} \\
-    \Xi,\Delta\vdash C : *_\mathfrak{C}\\
-    \Xi,\Delta\vdash D : *_\mathfrak{C}\\
+    \Delta\vdashps^{\TCat\ n+1} \\
+    \Delta\vdash C : \TCat\ n\\
+    \Delta\vdash D : \TCat\ n\\
     \Gamma\vdashps^C\\
-    \Xi,\Delta,\Gamma\vdash A :\Hom \ D \\
+    \Delta,\Gamma\vdash A :\Hom \ D \\
   }
   {
-    \Xi,\Delta,\Gamma\vdash\coh : A
+    \Delta,\Gamma\vdash\coh : A
   }
   \]
   Lorsque \FV(\Delta)\cup\FV(\Gamma) = \FV(A)
@@ -178,17 +177,16 @@ Pour tout entier n,
 \[
   \inferrule
   {
-    \Xi\vdash \Hom\ \mathfrak{C}\\
-    \Delta\vdashps^\mathfrak{C} \\
-    \Xi,\Delta\vdash C : *_\mathfrak{C}\\
-    \Xi,\Delta\vdash D : *_\mathfrak{C}\\
+    \Delta\vdashps^{\Tcat n+1} \\
+    \Delta\vdash C : \TCat\ n\\
+    \Delta\vdash D : \TCat\ n\\
     \Gamma\vdashps^C\\
-    \Xi,\Delta,\Gamma\vdash t\ |\ u \to v :  \Hom\ D \\
-    \Xi,\Delta,\partial^-(\Gamma)\vdash u\\
-    \Xi,\Delta,\partial^+(\Gamma)\vdash v
+    \Delta,\Gamma\vdash t\ |\ u \to v :  \Hom\ D \\
+    \Delta,\partial^-(\Gamma)\vdash u\\
+    \Delta,\partial^+(\Gamma)\vdash v
   }
   {
-    \Xi,\Delta,\Gamma\vdash\coh : t\ |\ u \to v
+    \Delta,\Gamma\vdash\coh : t\ |\ u \to v
   }
   \]
   Lorsque \FV(\Delta)\cup\FV(\partial^-(\Gamma)) = \FV(u) \text{ et } \FV(\Delta)\cup\FV(\partial^+(\Gamma)) = \FV(v)
@@ -197,9 +195,9 @@ Pour tout entier n,
   \[
   \inferrule
   {
-    \Delta\vdashps^\TCat \\
-    \Delta\vdash C : *_\TCat\\
-    \Delta\vdash D : *_\TCat\\
+    \Delta\vdashps^{\TCat\ n+1} \\
+    \Delta\vdash C : \TCat\ n\\
+    \Delta\vdash D : \TCat\ n\\
     \Gamma\vdashps^C\\
     \Delta,\Gamma\vdash t\ |\ u \to v :  \Hom\ D \\
     \partial^-(\Delta),\Gamma\vdash u\\
@@ -214,9 +212,9 @@ Pour tout entier n,
 \[
   \inferrule
   {
-    \Delta\vdashps^\TCat \\
-    \Delta\vdash C : *_\TCat\\
-    \Delta\vdash D : *_\TCat\\
+    \Delta\vdashps^{\TCat\ n+1} \\
+    \Delta\vdash C :\TCat\ n\\
+    \Delta\vdash D :\TCat\ n\\
     \Delta\vdash *_D :  \Hom\ D \\
   }
   {
