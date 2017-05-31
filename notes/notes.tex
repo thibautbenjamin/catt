@@ -156,6 +156,45 @@ Pour tout entier n,
   }
 \]
 
+\subsection{pasting schemes}
+\[
+  \inferrule
+{
+    \Gamma\vdashps^C x : *_C
+}
+{
+    \Gamma\vdashps^C
+}
+\]
+
+\[
+  \inferrule
+{
+    \Gamma\vdashps^C x : A
+}
+{
+    \Gamma,y : A, f : A\ |\ x \to y, \vdashps^C f : A\ |\ x \to y
+}
+\]
+
+\[
+  \inferrule
+{ }
+{
+    (x : *_C)\vdashps^C (x : *_C)
+}
+\]
+
+\[
+  \inferrule
+{
+    \Gamma\vdashps^C f : A\ |\ x \to y
+}
+{
+    \Gamma\vdashps^C y : A
+}
+\]
+
 
   
 \subsection{cohérences}
