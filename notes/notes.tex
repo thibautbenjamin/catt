@@ -83,7 +83,9 @@ avec $\Gamma_F = C:\TCat, D:\TCat, F:C\To D$, et \\
 lorsque $\FV(t)=\set{C,D,F}\cup\FV(\partial^-(\Gamma))$ et $\FV(u)=\set{C,D,F}\cup\FV(\partial^+(\Gamma))$
 
 \section{Les règles générales à implémenter}
-\subsection{structure}
+
+\subsection{les cohérences partiellement généralisées}
+\subsubsection{structure}
 Pour tout entier n,
 
 \[
@@ -156,7 +158,7 @@ Pour tout entier n,
   }
 \]
 
-\subsection{pasting schemes}
+\subsubsection{pasting schemes}
 \[
   \inferrule
 {
@@ -197,7 +199,7 @@ Pour tout entier n,
 
 
   
-\subsection{cohérences}
+\subsubsection{cohérences}
 \[
   \inferrule
 {
@@ -261,6 +263,137 @@ Pour tout entier n,
   }
 \]
   Lorsque \FV(\partial^-(\Delta)) = \FV(*_D) \text{ et } \FV(\partial^+(\Delta)) = \FV(*_D)
+ 
+\subsection{les cohérences totalement généralisées}
+\subsubsection{structure}
+Pour tout entier n,
+
+\[
+  \inferrule
+  { }
+  {
+   \vdash\TCat\ n : \TCat\ n+1
+  }
+\]
+
+\[
+  \inferrule
+  {
+    \Gamma\vdash C : \TCat\ n+1
+  }
+  {
+    \Gamma\vdash *_C: \TCat\ n
+  }
+\]
+
+
+\[
+  \inferrule
+  { }
+  {
+    \vdash *_{\TCat\ n+1} \equiv \TCat\ n
+  }
+\]
+
+\[
+  \inferrule
+  {
+    \Gamma\vdash C : \TCat\ n+1\\     
+    \Gamma\vdash u : *_C \\
+    \Gamma\vdash v : *_C
+  }
+  {
+    \Gamma\vdash *_C\ |\ u\to^C v: \TCat\ n
+  }
+\]
+\[
+  \inferrule
+  {
+    \Gamma\vdash t\ |\ a \to^C b : \TCat\ n+1\\
+    \Gamma\vdash u : t\ |\ a \to^C b\\
+    \Gamma\vdash v : t\ |\ a \to^C b
+  }
+  {
+    \Gamma\vdash t\ |\ a \to^C b\ |\ u\to^C v: \TCat\ n
+  }
+\]
+
+\subsubsection{les listes de contextes}
+\begin{itemize}
+\item On note :
+  $[\Gamma]^k = [\Gamma_k,\cdots,\Gamma_0]$
+  Les listes de contextes à $k$ éléments
+\item La concaténation est notée \Delta::[\Gamma]
+
+\item Etant donnée une liste de contextes, on définit un prédicat $\vdashps^{[C]}$ inductivement par : 
+\[
+  \inferrule
+  {
+    \Gamma_0\vdashps^C
+  }
+  {      
+    [\Gamma_0]\vdashps^{[C]}
+  }
+\]
+
+\[
+  \inferrule
+  {
+    \Delta\vdashps^D\\
+    \Delta\vdash C\\
+    [\Gamma]\vdashps^{[C]}
+  }
+  {      
+    \Delta::[\Gamma]\vdashps^{D::[C]}
+  }
+  \]
+
+\item \partial_i^\pm([\Gamma]) = [\Gamma_k,\cdots,\Gamma_{k-i+2},\partial^\pm(\Gamma_{k-i+1}),\Gamma_{k-i},\cdots,\Gamma_0]
+\end{itemize}
+
+  
+\subsubsection{les règles de cohérences}
+\[
+\inferrule
+  {
+    [\Gamma]^k\vdashps^{(\TCat\ n+k)::[C]^{k-1}}\\
+    [\Gamma]\vdash A : \Hom\ n
+  }
+  {
+    [\Gamma]\vdash\coh : A
+  }
+\]
+Lorsque \FV([\Gamma]) = \FV(A)
+
+
+\[
+  \inferrule
+  {
+    [\Gamma]^k\vdashps^{(\TCat\ n+k)::[C]^{k-1}}\\
+    [\Gamma]\vdash t\ |\ u \to v :  \Hom\ n \\
+    \partial_i^-([\Gamma])\vdash u\\
+    \partial_i^+([\Gamma])\vdash v
+  }
+  {
+    [\Gamma]\vdash\coh : t\ |\ u \to v
+  }
+  \]
+  Lorsque \FV(\partial_i^-([\Gamma])) = \FV(u) \text{ et } \FV(\partial_i^+(\Gamma)) = \FV(v)
+
+
+\[
+  \inferrule
+  {
+    \Delta\vdashps^{\TCat\ n+1} \\
+    \Delta\vdash C :\TCat\ n\\
+    \Delta\vdash D :\TCat\ n\\
+    \Delta\vdash *_D :  \Hom\ D \\
+  }
+  {
+    \Delta,(x : *_C)\vdash\coh : *_D
+  }
+\]
+Lorsque \FV(\partial^-(\Delta)) = \FV(*_D) \text{ et } \FV(\partial^+(\Delta)) = \FV(*_D)
  
 
 \section{Idées de choses à faire}
