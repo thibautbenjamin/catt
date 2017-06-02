@@ -270,19 +270,11 @@ Pour tout entier n,
 
 \[
   \inferrule
-  { }
   {
-   \vdash\TCat\ n : \TCat\ n+1
-  }
-\]
-
-\[
-  \inferrule
-  {
-    \Gamma\vdash C : \TCat\ n+1
+    \Gamma\vdash C : *_{\TCat\ n}
   }
   {
-    \Gamma\vdash *_C: \TCat\ n
+     \Gamma\vdash *_C : \Type\ n
   }
 \]
 
@@ -291,30 +283,31 @@ Pour tout entier n,
   \inferrule
   { }
   {
-    \vdash *_{\TCat\ n+1} \equiv \TCat\ n
+   \vdash\TCat\ n : *_{\TCat\ n+1}
   }
 \]
 
+
 \[
   \inferrule
-  {
-    \Gamma\vdash C : \TCat\ n+1\\     
+ {
+    \Gamma\vdash *_C : \Type\ n\\
     \Gamma\vdash u : *_C \\
     \Gamma\vdash v : *_C
   }
   {
-    \Gamma\vdash *_C\ |\ u\to^C v: \TCat\ n
+    \Gamma\vdash *_C\ |\ u\to^C v : \Type\ n
   }
 \]
 \[
   \inferrule
   {
-    \Gamma\vdash t\ |\ a \to^C b : \TCat\ n+1\\
+    \Gamma\vdash t\ |\ a \to^C b : \Type\ n\\
     \Gamma\vdash u : t\ |\ a \to^C b\\
     \Gamma\vdash v : t\ |\ a \to^C b
   }
   {
-    \Gamma\vdash t\ |\ a \to^C b\ |\ u\to^C v: \TCat\ n
+    \Gamma\vdash t\ |\ a \to^C b\ |\ u\to^C v : \Type\ n
   }
 \]
 
@@ -357,7 +350,7 @@ Pour tout entier n,
 \inferrule
   {
     [\Gamma]^k\vdashps^{(\TCat\ n+k)::[C]^{k-1}}\\
-    [\Gamma]\vdash A : \Hom\ n
+    [\Gamma]\vdash A : \Type\ n
   }
   {
     [\Gamma]\vdash\coh : A
@@ -370,7 +363,7 @@ Lorsque \FV([\Gamma]) = \FV(A)
   \inferrule
   {
     [\Gamma]^k\vdashps^{(\TCat\ n+k)::[C]^{k-1}}\\
-    [\Gamma]\vdash t\ |\ u \to v :  \Hom\ n \\
+    [\Gamma]\vdash t\ |\ u \to v :  \Type\ n \\
     \partial_i^-([\Gamma])\vdash u\\
     \partial_i^+([\Gamma])\vdash v
   }
@@ -380,20 +373,19 @@ Lorsque \FV([\Gamma]) = \FV(A)
   \]
   Lorsque \FV(\partial_i^-([\Gamma])) = \FV(u) \text{ et } \FV(\partial_i^+(\Gamma)) = \FV(v)
 
-
+%%%%%% Quelle règle ajouter pour gérer le cas où le but est un objet?
 \[
   \inferrule
   {
-    \Delta\vdashps^{\TCat\ n+1} \\
-    \Delta\vdash C :\TCat\ n\\
-    \Delta\vdash D :\TCat\ n\\
-    \Delta\vdash *_D :  \Hom\ D \\
+    [\Gamma]^k\vdashps^{(\TCat\ n+k)::[C]^{k-1}}\\
+    [\Gamma]\vdash *_\_ :  \Type\ n \\
+    \partial_{k-1}^+([\Gamma])\vdash *
   }
   {
     \Delta,(x : *_C)\vdash\coh : *_D
   }
 \]
-Lorsque \FV(\partial^-(\Delta)) = \FV(*_D) \text{ et } \FV(\partial^+(\Delta)) = \FV(*_D)
+Lorsque \FV(\partial^-(\Delta)) = \FV(*_C) \text{ et } \FV(\partial^+(\Delta)) = \FV(*_D)
  
 
 \section{Idées de choses à faire}
