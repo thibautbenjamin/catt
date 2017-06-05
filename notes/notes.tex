@@ -333,7 +333,7 @@ Pour tout entier n,
   \inferrule
   {
     \Delta\vdashps^D\\
-    \Delta\vdash C\\
+    \partial^-(\Delta)\vdash C\\
     [\Gamma]\vdashps^{[C]}
   }
   {      
@@ -342,6 +342,8 @@ Pour tout entier n,
   \]
 
 \item \partial_i^\pm([\Gamma]) = [\Gamma_k,\cdots,\Gamma_{k-i+2},\partial^\pm(\Gamma_{k-i+1}),\Gamma_{k-i},\cdots,\Gamma_0]
+  
+\item Si $\Gamma$ est une liste, $\Gamma!$ est la liste obtenue en retirant le dernier élément. 
 \end{itemize}
 
   
@@ -373,20 +375,20 @@ Lorsque \FV([\Gamma]) = \FV(A)
   \]
   Lorsque \FV(\partial_i^-([\Gamma])) = \FV(u) \text{ et } \FV(\partial_i^+(\Gamma)) = \FV(v)
 
-%%%%%% Quelle règle ajouter pour gérer le cas où le but est un objet?
 \[
   \inferrule
   {
     [\Gamma]^k\vdashps^{(\TCat\ n+k)::[C]^{k-1}}\\
-    [\Gamma]\vdash *_\_ :  \Type\ n \\
-    \partial_{k-1}^+([\Gamma])\vdash *
+    [\Gamma]\vdash D \\
+    [\Gamma]\vdash *_D :  \Type\ n \\
   }
   {
-    \Delta,(x : *_C)\vdash\coh : *_D
+    \Gamma\vdash\coh : *_D
   }
 \]
-Lorsque \FV(\partial^-(\Delta)) = \FV(*_C) \text{ et } \FV(\partial^+(\Delta)) = \FV(*_D)
- 
+Lorsque \FV((\partial^+_i(\Gamma))!) = \FV(*_D) \text{ et }\height(\Gamma_0) = 1 
+
+
 
 \section{Idées de choses à faire}
 \begin{itemize}
