@@ -1,0 +1,204 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathpartir}
+\usepackage{macros}
+
+\title{théorie des types dont les modèles sont les foncteurs faibles entre catégories faibles}
+
+\begin{document}
+\maketitle
+
+\section{Règles d'inférences}
+\subsection{Règles structure pour les catégoriess}
+\[
+\inferrule
+    { }
+    {
+      \vdash\TCat
+    }
+\]
+
+\[
+\inferrule
+    {
+      \Gamma\vdash C : \TCat
+    }
+    {
+      \Gamma\vdash\Ty C
+    }
+\]
+
+\[
+\inferrule
+    {
+      \Gamma\vdash C : \TCat
+    }
+    {
+      \Gamma\vdash\Ob C : \Ty C
+    }
+\]
+
+\[
+\inferrule
+    {
+      \Gamma\vdash t : \Ty C\\
+      \Gamma\vdash u : t\\
+      \Gamma\vdash v : t
+    }
+    {
+      \Gamma\vdash\ |u \to_t v :\Ty C 
+    }
+\]
+
+
+\[
+\inferrule
+    {
+    }
+    {
+      \vdash \C : \TCat
+    }
+\]
+\[
+\inferrule
+    {
+    }
+    {
+      \vdash \D : \TCat
+    }
+\]
+
+\subsection{règles pour les pasting schemes}
+\[
+\inferrule
+    {
+      \vdash C : \TCat\\
+    }
+    {
+      x : \Ob C\vdashps^C x : \Ob C
+    }
+\]
+
+\[
+\inferrule
+    {
+      \Gamma\vdashps^C x : A\\
+    }
+    {
+      \Gamma,(y : A),(f : x \to_A y)\vdashps f : x \to_A y
+    }
+\]
+    
+\[
+\inferrule
+  {
+    \Gamma\vdashps^C f : x \to_A y
+  }
+  {
+    \Gamma\vdashps^C y :A
+  }
+\]
+
+\[
+\inferrule
+  {
+    \Gamma\vdashps^C x : \Ob C
+  }
+  {
+    \Gamma\vdashps^C 
+  }
+\]
+
+\subsection{règles pour les cohérences}
+
+\[
+\inferrule
+  {
+    \Gamma\vdashps^\C\\
+    \Gamma\vdash A
+  }
+  {
+    \Gamma\vdash \coh_{\Gamma,A} : A
+  }
+\]
+  Lorsque $\FV(A) = \FV(\Gamma)$ 
+
+\[
+\inferrule
+    {
+      \Gamma\vdashps^\C\\
+      \Gamma\vdash u\to_A v \\
+      \partial^-(\Gamma)\vdash u\\
+      \partial^+(\Gamma)\vdash v
+    }
+    {
+      \Gamma\vdash\coh_{\Gamma,u\to_A v} : u \to_A v
+    }
+\]
+Lorsque $\FV(u) = \FV(\partial^-(\Gamma))$ et $\FV (v) = \FV(\partial^+(\Gamma))$
+
+
+
+\subsection{règles pour les foncteurs}
+\[
+\inferrule
+    {
+      \Gamma\vdash C : \TCat\\
+      \Gamma\vdash D : \TCat
+    }
+    {
+      \Gamma\vdash\ \Funct C D
+    }
+\]
+
+\[
+\inferrule
+    {
+      \Gamma\vdash F : \Funct C D\\
+      \Gamma\vdash x : \Ob C
+    }
+    {
+      \Gamma\vdash\ \ap F x : \Ob D
+    }
+\]
+
+\[
+\inferrule
+    {
+    }
+    {
+      \vdash \F : \Funct \C \D
+    }
+\]
+    
+\subsection{règles pour les ``fcohérences``}
+\[
+\inferrule
+    {
+      \Gamma\vdashps^\C\\
+      \Gamma\vdash A : \Ty \D
+    }
+    {
+      \Gamma\fcoh_{\Gamma,A} : A
+    }
+\]
+Lorsque $\FV(A) = \FV(\Gamma)\cup\set{\C,\D,\F}$ 
+
+\[
+\inferrule
+    {
+      \Gamma\vdashps^\C\\
+      \Gamma\vdash u\to_A v : \Ty \D\\
+      \partial^-(\Gamma)\vdash u\\
+      \partial^+(\Gamma)\vdash v
+    }
+    {
+      \Gamma\vdash\fcoh_{\Gamma,u\to_A v} : u \to_A v
+    }
+\]
+Lorsque $\FV(u) = \FV(\partial^-(\Gamma))\cup\set{\C,\D,\F}$ et $\FV (v) = \FV(\partial^+(\Gamma))\cup\set{\C,\D,\F}$
+
+\end{document}
