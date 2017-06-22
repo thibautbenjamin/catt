@@ -2,9 +2,25 @@
     open Common
     open Syntax
     open Command
-    open PS
-    open Infer
-    
+
+
+   let defpos () = Parsing.symbol_start_pos (), Parsing.symbol_end_pos ()
+
+    let mk ?pos ?show e =
+      let pos = match pos with
+      | None -> defpos ()
+      | Some pos -> pos
+      in
+      let show = match show with
+      | None -> false
+      | Some show -> show
+      in
+      mk ~pos ~show e
+
+    let hide e =
+      mk ~pos:e.pos ~show:false (e.desc)
+      
+
 %}
 
 %token COH OBJ PIPE MOR
@@ -26,13 +42,13 @@ prog:
 
 cmd:
     |HYP IDENT COL expr FS { Hyp (Name $2, $4) }
-    |COH IDENT args COL expr FS { Decl (Name $2, mk (Coh($3,$5))) }
+    |COH IDENT args COL expr FS { Decl (Name $2, mk (Coh($3, hide $5))) }
     |CHECK expr FS { Check $2 }
     |EVAL expr FS { Eval $2 }
     |ENV FS { Env }
 
 args:
-    |LPAR IDENT COL expr RPAR args { (Name $2,$4)::$6 }
+    |LPAR IDENT COL expr RPAR args { (Name $2, hide $4)::$6 }
     |{ [] }
 
 vars:
