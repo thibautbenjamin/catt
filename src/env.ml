@@ -13,7 +13,18 @@ module Env = struct
   let to_string = string_of_env
 
   let add (env:t) x ?value t : t = (x,(value,t))::env                      
-                    
+
+  let rec add_rec (env1:t) (env2:t) : t =
+    match env2 with
+    |[] -> env1 
+    |(x,(Some a,b))::env2 -> add_rec (add env1 x ~value:a b) env2
+    |(x,(None, b))::env2 -> add_rec (add env1 x b) env2
+      
+  let rec env_of_ps ps  : t =
+    match ps with
+    |[] -> []
+    |(x,t)::ps -> (x,(None,t))::(env_of_ps ps)
+                                                    
   let ty_var x env =
     try
       snd (List.assoc x env)

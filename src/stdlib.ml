@@ -13,5 +13,3 @@ module List = struct
   let diff l1 l2 =
     filter (fun x  -> not (mem x l2)) l1
 end
-                
-         

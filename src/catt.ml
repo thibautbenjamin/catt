@@ -1,4 +1,5 @@
 (** Main for CATT. *)
+open Common
 
 let parse_file f =
   let sin =
@@ -24,4 +25,3 @@ let () =
     | [f] -> Command.exec (parse_file f)
   | _ -> ()
   in ()
-  (* in Prover.loop *)

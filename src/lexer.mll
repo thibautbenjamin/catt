@@ -7,33 +7,20 @@ let space = ' ' | '\t' | '\r'
 
 rule token = parse
   | "coh" { COH }
-  | "fcoh" { FCOH }
-  | "let" { LET }
   | "hyp" { HYP }
   | "check" { CHECK }
   | "eval" { EVAL }
   | "env" { ENV }
-  | "Type" { TYPE }
-  | "HomType" { HOMTYPE }
-  | "Cat" { CAT }
   | "(" { LPAR }
   | ")" { RPAR }
   | ":" { COL }
   | "->" { MOR }
-  | "=>" { FUNCT }
-  | "→" { MOR }
-  | "⇒" { FUNCT }
   | "." { FS }
   | "*" { OBJ }
-  | "=" { EQ }
   | "|" { PIPE }
-  | "," { COMMA }
   | "[" { LBRA }
   | "]" { RBRA }
-  | "fun" { FUN }
-  | "ap" { APTOR }
-  | "forall" { FORALL }
-  | (['_''a'-'z''A'-'Z''0'-'9']['-''+''a'-'z''A'-'Z''0'-'9''_']* as str) { IDENT str }
+  | (['a'-'z''A'-'Z''0'-'9']['-''+''a'-'z''A'-'Z''0'-'9''_']* as str) { IDENT str }
   | space+ { token lexbuf }
   | "#"[^'\n']* { token lexbuf }
   | '"'([^'"']* as str)'"' { STRING str }

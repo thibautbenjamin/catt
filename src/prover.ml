@@ -1,5 +1,4 @@
 (** Interaction with user. *)
-
 open Syntax
 open Common
        
@@ -35,11 +34,3 @@ let exec s =
     exit 0
   else
     Command.exec (parse s)
-(*
-let loop =
-  while true do
-    init ();
-    let s = read_line () in
-    exec s
-  done
- *)
