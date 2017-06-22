@@ -1,5 +1,7 @@
 open Common
 open Stdlib
+open Common
+open Stdlib
 
 let abbrev_mode = true
 let show_category = false
