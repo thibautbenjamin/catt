@@ -17,7 +17,6 @@ type expr =
   }
 and desc =
   |Var of var
-  |Evar of var
   |Obj
   |Arr of expr * expr * expr
   |Coh of ps * expr
