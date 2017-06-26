@@ -125,5 +125,5 @@ let infer e env = normalize (type_inference (normalize e env) env) env
 let renew_vars e env =
   match e.desc with
   |Coh(ps,t) -> let ps,s = PS.rename_vars ps in
-                (mk ~pos:e.pos ~show:e.show (Coh(ps, substitute t s)), Env.add_rec env (PS.env_of_ps ps)) 
+                (mk ~pos:e.pos ~show:e.show (Coh(ps, substitute t s)), List.append (PS.env_of_ps ps) env) 
   |_ -> (e,env)

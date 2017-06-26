@@ -190,6 +190,5 @@ module PS = struct
        let s = f x s in
        fold_right f ps s
     | PDrop ps -> fold_right f ps s
-
 end
                            

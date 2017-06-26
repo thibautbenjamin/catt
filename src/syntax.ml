@@ -17,15 +17,16 @@ type expr =
   }
 and desc =
   |Var of var
+  |Evar of var
   |Obj
   |Arr of expr * expr * expr
   |Coh of ps * expr
   |Sub of expr * sub
   |Badsub of expr * var list
 and ps =
-    |PNil of (var * expr)
-    |PCons of ps* (var * expr) * (var * expr)
-    |PDrop of ps
+  |PNil of (var * expr)
+  |PCons of ps* (var * expr) * (var * expr)
+  |PDrop of ps
 and sub = (var * expr) list
 
 (** Maker for expressions *)     
@@ -87,7 +88,7 @@ and string_of_ps ps =
 and string_of_sub s =
   match s with
   |[] -> ""
-  |(x,t)::c -> Printf.sprintf "(%s/%s) %s" (string_of_var x) (to_string t) (string_of_sub c)
+  |(x,t)::c -> Printf.sprintf "%s (%s/%s)" (string_of_sub c) (string_of_var x) (to_string t)
 
 
 (** Manipulations on variables *)
