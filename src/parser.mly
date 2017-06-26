@@ -2,7 +2,7 @@
     open Common
     open Syntax
     open Command
-
+    open PS
 
    let defpos () = Parsing.symbol_start_pos (), Parsing.symbol_end_pos ()
 
@@ -42,7 +42,7 @@ prog:
 
 cmd:
     |HYP IDENT COL expr FS { Hyp (Name $2, $4) }
-    |COH IDENT args COL expr FS { Decl (Name $2, mk (Coh($3, hide $5))) }
+    |COH IDENT args COL expr FS { Decl (Name $2, mk (Coh(PS.make $3, hide $5))) }
     |CHECK expr FS { Check $2 }
     |EVAL expr FS { Eval $2 }
     |ENV FS { Env }
@@ -67,4 +67,4 @@ subst_expr:
 expr:
     |subst_expr { $1 }
     |expr PIPE expr MOR expr { mk (Arr ($1,$3,$5)) }
-    |COH STRING args COL simple_expr { mk (Coh ($3,$5)) }
+    |COH STRING args COL simple_expr { mk (Coh (PS.make $3,$5)) }

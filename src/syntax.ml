@@ -22,7 +22,10 @@ and desc =
   |Coh of ps * expr
   |Sub of expr * sub
   |Badsub of expr * var list
-and ps = (var * expr) list
+and ps =
+    |PNil of (var * expr)
+    |PCons of ps* (var * expr) * (var * expr)
+    |PDrop of ps
 and sub = (var * expr) list
 
 (** Maker for expressions *)     
@@ -52,8 +55,9 @@ let rec free_vars e =
   |Badsub _ -> assert false
 and ps_vars ps =
   match ps with
-  |[] -> []
-  |(x,t)::ps -> x::(ps_vars ps)
+  |PNil(x,t) -> [x]
+  |PCons(ps,(x1,t1),(x2,t2)) -> x1::x2::(ps_vars ps)
+  |PDrop ps -> ps_vars ps
 
 (** Printing of an expression *)                     
 let string_of_var = function
@@ -76,9 +80,10 @@ let rec to_string e =
   |Badsub _ -> assert false
 and string_of_ps ps =
   match ps with
-  |[] -> ""
-  |(x,t)::ps ->
-    Printf.sprintf "(%s,%s) %s" (string_of_var x) (to_string t) (string_of_ps ps)
+  |PNil (x,t) -> Printf.sprintf "(%s,%s)" (string_of_var x) (to_string t)
+  |PCons(ps,(x1,t1),(x2,t2)) ->
+    Printf.sprintf "%s (%s,%s) (%s,%s)" (string_of_ps ps) (string_of_var x1) (to_string t1) (string_of_var x2) (to_string t2)
+  |PDrop ps -> Printf.sprintf "%s!" (string_of_ps ps)
 and string_of_sub s =
   match s with
   |[] -> ""
@@ -121,3 +126,14 @@ let substitute t s pos show=
     |[] -> s
     |(x,t)::ss -> (x,(subst t s))::(compose_sub ss s)
 in subst t s
+
+let substitute ?pos ?show t s =
+  let pos = match pos with
+    |Some pos -> pos
+    |None -> t.pos
+  in
+  let show = match show with
+    |Some show -> show
+    |None -> t.show
+  in
+  substitute t s pos show
