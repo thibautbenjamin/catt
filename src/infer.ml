@@ -79,9 +79,9 @@ let checkEqual e1 e2 env =
                                             (to_string e1) (to_string e2)
 
 
-(*let rec print_vars l = match l with
+let rec print_vars l = match l with
   |[] -> ";"
-  |t::q -> Printf.sprintf "%s %s" (string_of_var t) (print_vars q)*)
+  |t::q -> Printf.sprintf "%s %s" (string_of_var t) (print_vars q)
                                             
 (** Type inference *)
 let rec type_inference e env =
@@ -90,9 +90,9 @@ let rec type_inference e env =
                   with Not_found -> error "unknown identifier %s" (string_of_var x)
             end
   |Coh (c,u) -> checkT u (Env.add_rec env (PS.env_of_ps c));
-                (*debug "ps_vars : %s" (print_vars (ps_vars c));
-                debug "free_vars : %s" (print_vars (free_vars u));*)
-                if List.included (free_vars u) (ps_vars c) then u
+                debug "ps_vars : %s" (print_vars (ps_vars c));
+                debug "free_vars : %s" (print_vars (free_vars u));
+                if List.included (ps_vars c) (free_vars u) then u
                 (** TODO : write the second condition *)
                 else error "not algebraic" 
   |Sub(t,s) -> begin match t.desc with
