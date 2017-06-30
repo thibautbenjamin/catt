@@ -89,12 +89,20 @@ let rec type_inference e env =
   |Var x -> begin try Env.ty_var x env
                   with Not_found -> error "unknown identifier %s" (string_of_var x)
             end
-  |Coh (c,u) -> checkT u (Env.add_rec env (PS.env_of_ps c));
-                debug "ps_vars : %s" (print_vars (ps_vars c));
-                debug "free_vars : %s" (print_vars (free_vars u));
+  |Coh (c,u) -> checkT u (PS.env_of_ps c);
+                (*debug "ps_vars : %s" (print_vars (ps_vars c));
+                debug "free_vars : %s" (print_vars (free_vars u));*)
                 if List.included (ps_vars c) (free_vars u) then u
-                (** TODO : write the second condition *)
-                else error "not algebraic" 
+                else
+                  let f,g = match u.desc with
+                  |Arr(a,f,g) -> (f,g)  
+                  |_ -> error "nor algebraic"
+                  in
+                  let i = PS.dim c in
+                  let pss = PS.source (i-1) c and pst = PS.target (i-1) c in
+                  (checkT f (PS.env_of_ps pss); checkT g (PS.env_of_ps pst);
+                  if List.included (ps_vars pss) (free_vars f) && List.included (ps_vars pst) (free_vars g) then u
+                  else error "not algebraic" )
   |Sub(t,s) -> begin match t.desc with
                |Coh(c,_) -> check_sub s (PS.env_of_ps c) env;
                             let ty = type_inference t env in mk ~pos:e.pos ~show:e.show (Sub (ty,s))
