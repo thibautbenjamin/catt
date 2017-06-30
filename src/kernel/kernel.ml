@@ -404,6 +404,5 @@ end
     |_ -> raise NotValid
   and checkType env ctx e1 e2  =
     Expr.checkEqual env (infer env ctx e1) e2 
-                    
-  
 end
+

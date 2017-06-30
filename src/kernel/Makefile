@@ -1,4 +1,4 @@
-SOURCES =  typ.ml stdlib.ml syntax.ml pS.ml normalize.ml infer.ml
+SOURCES =  stdlib.ml kernel.ml
 RESULT = kernel
 ANNOTATE = true
 
