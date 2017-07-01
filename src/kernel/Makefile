@@ -1,4 +1,4 @@
-SOURCES =  stdlib.ml kernel.ml
+SOURCES =  stdlib.ml kernel.mli kernel.ml
 RESULT = kernel
 ANNOTATE = true
 

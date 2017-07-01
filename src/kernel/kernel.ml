@@ -5,58 +5,7 @@ exception UnknownId
 exception NotAlgebraic
 type var = string * int
 
-module rec Ctx
-: sig
-  type t = private ((var * Expr.t) list)
-  val value : t -> ((var * Expr.t) list)      
-  val ty_var : t -> var -> Expr.t
-  val empty : t
-  val add : t * Env.t -> var -> Expr.t -> (Ctx.t * Env.t) 
-  val of_ps : PS.t -> t
-  val normalize : Env.t -> t -> t
-  val checkEqual : Env.t -> t -> t -> unit
-  val tail : t -> t
-end
-= struct
-  type t = (var * Expr.t) list
-                        
-  let ty_var ctx x = try List.assoc x ctx with Not_found -> raise UnknownId
-
-  let empty = []
-                                                                  
-  let add ((ctx :Ctx.t),env) x u = Infer.checkT env ctx u;
-                          let ctx = (x,u)::(ctx :> t) in (ctx, Env.add_var env x)
-
-                                                                  
-  let value ctx = ctx
-    
-  let rec of_ps ps =
-    let open PS in
-    match ps with
-    |PNil (x,t) ->  [(x,t)]
-    |PCons (ps,(x1,t1),(x2,t2)) -> (x2,t2)::(x1,t1)::(of_ps ps)
-    |PDrop ps -> of_ps ps
-
-  let normalize env ctx =
-    List.map (fun (v,x) -> (v, Expr.normalize env x)) ctx
-
-  let checkEqual env ctx1 ctx2 =
-    let rec equal ctx1 ctx2 =
-      match ctx1, ctx2 with
-      |[],[] -> ()
-      |(v1,x1)::ctx1, (v2,x2)::ctx2 -> if not (v1 = v2) then raise NotValid;
-                                       Expr.checkEqual env x1 x2;
-                                       equal ctx1 ctx2
-      |_,_ -> raise NotValid
-    in equal (normalize env ctx1) (normalize env ctx2)
-             
-  let tail s = match s with
-    |[] -> assert(false)
-    |_::s -> s
-end
-
-
-and Sub 
+module rec Sub 
 : sig
   type t = private (Expr.t list * Ctx.t * Ctx.t)
   val list : t -> Expr.t list
@@ -115,6 +64,59 @@ end
     check_list env s delta gamma; (s,delta,gamma)            
 end
 
+                      
+and Ctx
+: sig
+  type t = private ((var * Expr.t) list)
+  val value : t -> ((var * Expr.t) list)      
+  val ty_var : t -> var -> Expr.t
+  val empty : t
+  val add : (Env.t * t) -> var -> Expr.t -> (Env.t * t) 
+  val of_ps : PS.t -> t
+  val normalize : Env.t -> t -> t
+  val checkEqual : Env.t -> t -> t -> unit
+  val tail : t -> t
+end
+= struct
+  type t = (var * Expr.t) list
+                        
+  let ty_var ctx x = try List.assoc x ctx with Not_found -> raise UnknownId
+
+  let empty = []
+                                                                  
+  let add (env,(ctx :Ctx.t)) x u = Infer.checkT env ctx u;
+                          let ctx = (x,u)::(ctx :> t) in (Env.add_var env x, ctx)
+
+                                                                  
+  let value ctx = ctx
+    
+  let rec of_ps ps =
+    let open PS in
+    match ps with
+    |PNil (x,t) ->  [(x,t)]
+    |PCons (ps,(x1,t1),(x2,t2)) -> (x2,t2)::(x1,t1)::(of_ps ps)
+    |PDrop ps -> of_ps ps
+
+  let normalize env ctx =
+    List.map (fun (v,x) -> (v, Expr.normalize env x)) ctx
+
+  let checkEqual env ctx1 ctx2 =
+    let rec equal ctx1 ctx2 =
+      match ctx1, ctx2 with
+      |[],[] -> ()
+      |(v1,x1)::ctx1, (v2,x2)::ctx2 -> if not (v1 = v2) then raise NotValid;
+                                       Expr.checkEqual env x1 x2;
+                                       equal ctx1 ctx2
+      |_,_ -> raise NotValid
+    in equal (normalize env ctx1) (normalize env ctx2)
+             
+  let tail s = match s with
+    |[] -> assert(false)
+    |_::s -> s
+end
+
+
+
     
 and PS
 : sig
@@ -124,7 +126,7 @@ and PS
           |PDrop of t
                       
   val free_vars : t -> var list
-  val make : Ctx.t -> t
+  val mk : Ctx.t -> t
   val height : t -> int
   val dim : t -> int
   val source : int -> t -> t
@@ -173,7 +175,7 @@ end
 
 
   (** Create pasting scheme from a context. *)
-  let make l : t =
+  let mk l : t =
     let open Expr in 
     let x0,l =
       match l with
@@ -277,7 +279,8 @@ end
 and Env
 : sig
   type t = private (var * Expr.t) list
-  val value : t -> (var * Expr.t) list
+  (*a function is required here for the safe module condition*)
+  val empty : unit -> t
   val val_var : t -> var -> Expr.t
   val add_var : t -> var -> t
   val add_expr : t -> var -> Expr.t -> t 
@@ -286,6 +289,8 @@ end
   type t = (var * Expr.t) list
 
   let value env = env
+
+  let empty a = []
                     
   let val_var env x = try List.assoc x env with Not_found -> raise UnknownId
 
@@ -392,9 +397,10 @@ end
                     (checkT env (Ctx.of_ps pss) f; checkT env (Ctx.of_ps pst) g;
                      if List.included (PS.free_vars pss) (free_vars f) && List.included (PS.free_vars pst) (free_vars g) then u
                      else raise NotAlgebraic)
-    |Sub (e,s) -> let ctx = (Sub.target s) in
-                  let ty = infer env ctx e in
-                  checkT env ctx ty; (Sub (ty,s))
+    |Sub (e,s) -> let c1 = (Sub.source s) in Ctx.checkEqual env ctx c1;
+                                             let c2 = (Sub.target s) in
+                                             let ty = infer env c2 e in
+                                             checkT env ctx ty; (Sub (ty,s))
     |(Obj |Arr _) -> assert (false)
   and checkT env ctx e =
     let open Expr in
@@ -406,3 +412,16 @@ end
     Expr.checkEqual env (infer env ctx e1) e2 
 end
 
+type env = Env.t
+type ctx = Ctx.t
+type sub = Sub.t
+type ps = PS.t
+type expr = Expr.t
+            
+let empty_ctx = Ctx.empty
+let empty_env = Env.empty ()
+let mk_ps = PS.mk
+let mk_sub = Sub.mk
+let add_env = Env.add_expr
+let add_ctx = Ctx.add
+                  
