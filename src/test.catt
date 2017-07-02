@@ -1,0 +1,14 @@
+coh id (x : *) : * | x -> x.
+coh idd (x : *) (y : *) (f : * | x -> y) : * | x -> y | f -> f.
+coh iddd (x : *) (y : *) (f : *| x -> y) (g : * | x -> y) (a : * | x -> y | f -> g) : * | x -> y | f -> g | a -> a.
+
+coh id_id (x : *) : * | x -> x | id [x] -> id [x].
+
+coh comp (x : *) (y : *) (f : * | x -> y) (z : *) (g : * | y -> z) : * | x -> z.
+coh assoc (x : *)
+    	  (y : *) (f : * | x -> y)
+	  (z : *) (g : * | y -> z)
+	  (t : *) (h : * | z -> t)
+	  : * | x -> t | comp [x z (comp [x y f z g]) t h] -> comp [x y f t (comp [y z g t h]) ].
+coh unitl (x : *) (y : *) (f : * | x -> y) : * | x -> y | f -> comp [x x (id [x]) y f].
+coh unitr (x : *) (y : *) (f : * | x -> y) : * | x -> y | f -> comp [x y f y (id [y])].
