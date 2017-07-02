@@ -5,6 +5,10 @@ exception UnknownId
 exception NotAlgebraic
 type var = string * int
 
+let string_of_var v abbrev show_instances =
+  match v with
+  |(s,i) -> if show_instances || abbrev then s else Printf.sprintf "%s.%d" s i
+                      
 module rec Sub 
 : sig
   type t = private (Expr.t list * Ctx.t * Ctx.t)
@@ -15,6 +19,7 @@ module rec Sub
   val normalize : Env.t -> t -> t
   val checkEqual : Env.t -> t -> t -> unit
   val mk : Env.t -> Expr.t list -> Ctx.t -> Ctx.t -> t
+  val to_string : t -> bool -> bool -> string
 end
 = struct
   type t = (Expr.t list * Ctx.t * Ctx.t)
@@ -62,6 +67,25 @@ end
     |_ -> raise NotValid
   and mk env s delta gamma : t =
     check_list env s delta gamma; (s,delta,gamma)            
+
+  let rec string_of_assoc s abbrev show_instances =
+    match s with
+    |[] -> ""
+    |(x,u)::s -> Printf.sprintf "(%s,%s) %s" (string_of_var x abbrev show_instances)
+                                             (Expr.to_string u abbrev show_instances)
+                                             (string_of_assoc s abbrev show_instances)
+
+  let rec string_of_list s abbrev show_instances =
+    match s with
+    |[] -> ""
+    |u::s -> Printf.sprintf "%s; %s" (Expr.to_string u abbrev show_instances)
+                                     (string_of_list s abbrev show_instances)
+                                             
+  let to_string s abbrev show_instances =
+    if abbrev then Printf.sprintf "[%s]" (string_of_assoc (assoc_list s) abbrev show_instances)
+    else Printf.sprintf "(%s |- %s : %s)" (Ctx.to_string (source s) abbrev show_instances)
+                                         (string_of_list (list s) abbrev show_instances)
+                                         (Ctx.to_string (target s) abbrev show_instances)  
 end
 
                       
@@ -76,6 +100,7 @@ and Ctx
   val normalize : Env.t -> t -> t
   val checkEqual : Env.t -> t -> t -> unit
   val tail : t -> t
+  val to_string : t -> bool -> bool -> string
 end
 = struct
   type t = (var * Expr.t) list
@@ -110,9 +135,18 @@ end
       |_,_ -> raise NotValid
     in equal (normalize env ctx1) (normalize env ctx2)
              
-  let tail s = match s with
+ let tail ctx = match ctx with
     |[] -> assert(false)
-    |_::s -> s
+    |_::ctx -> ctx
+
+ let rec to_string ctx abbrev show_instances =
+   let to_string = (fun c -> to_string c abbrev show_instances) in
+   match ctx with
+   |[] -> ""
+   |(x,t)::c -> Printf.sprintf "(%s,%s) %s" (string_of_var x abbrev show_instances)
+                                            (Expr.to_string t abbrev show_instances)
+                                            (to_string c)
+     
 end
 
 
@@ -132,7 +166,8 @@ and PS
   val source : int -> t -> t
   val target : int -> t -> t
   val normalize : Env.t -> t -> t
-  val checkEqual : Env.t -> t -> t -> unit 
+  val checkEqual : Env.t -> t -> t -> unit
+  val to_string : t -> bool -> bool -> string
 end
 = struct
   exception Invalid
@@ -271,6 +306,9 @@ end
       |(PNil _|PCons _|PDrop _),_ -> raise NotValid
     in equal (normalize env ps1) (normalize env ps2)
 
+
+  let to_string ps abbrev show_instances =
+    Ctx.to_string (Ctx.of_ps ps) abbrev show_instances
 end
 
 
@@ -317,6 +355,7 @@ and Expr
   val free_vars : t -> var list
   val normalize : Env.t -> t -> t
   val checkEqual : Env.t -> t -> t -> unit
+  val to_string : t -> bool -> bool  -> string
 end
 = struct
   type  t =
@@ -370,6 +409,17 @@ end
       |Sub(t1,s1),Sub(t2,s2) -> equal t1 t2; Sub.checkEqual env s1 s2
       |(Var _|Obj |Arr _|Coh _|Sub _),_ -> raise NotValid
     in equal (normalize env e1) (normalize env e2) 
+
+  let to_string expr abbrev show_instances =
+    let to_string  = fun u -> Expr.to_string u abbrev show_instances in 
+    match expr with
+    |Var x -> string_of_var x abbrev show_instances
+    |Obj -> "*"
+    |Arr (t,u,v) -> if abbrev then
+                      Printf.sprintf "%s -> %s" (to_string u) (to_string v)
+                    else Printf.sprintf "%s | %s -> %s" (to_string t) (to_string u) (to_string v)
+    |Coh (c,t) -> Printf.sprintf "Coh {%s |- %s}" (PS.to_string c abbrev show_instances) (to_string t)
+    |Sub (t,s) -> Printf.sprintf "%s.%s" (Sub.to_string s abbrev show_instances) (to_string t)
 end
 
 
@@ -424,4 +474,4 @@ let mk_ps = PS.mk
 let mk_sub = Sub.mk
 let add_env = Env.add_expr
 let add_ctx = Ctx.add
-                  
+let to_string = Expr.to_string                  

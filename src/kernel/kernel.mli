@@ -21,3 +21,5 @@ val mk_ps : ctx -> ps
 val mk_sub : env -> expr list -> ctx -> ctx -> sub
 val add_env : env -> var -> expr -> env
 val add_ctx : (env * ctx) -> var -> expr -> (env * ctx)
+val to_string : expr -> bool -> bool -> string
+                                              
