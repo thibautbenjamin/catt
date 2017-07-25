@@ -1,6 +1,8 @@
 exception UnknownId of string
 exception IsNotType of string	      
+exception HasNoType of string	      
 
+			 
 module Var : sig
   type t =
     |Name of string

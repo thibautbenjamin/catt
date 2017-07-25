@@ -4,6 +4,8 @@ exception NotValid
 exception NotAlgebraic
 exception UnknownId of string
 exception IsNotType of string
+exception HasNoType of string
+
 			 
 module Var = struct
   type t =
@@ -455,7 +457,8 @@ end
                                              let ty = infer env c2 e in
                                              let () = checkT env c2 ty in
 					     Expr.subst ty s
-    |(Obj |Arr _|PArr _) -> assert (false)
+    |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e true false))
+    |PArr _ -> assert (false)
   and checkT env ctx e =
     let open Expr in
     match e with
