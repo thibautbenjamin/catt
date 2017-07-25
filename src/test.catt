@@ -1,14 +1,29 @@
-coh id (x : *) : * | x -> x.
-coh idd (x : *) (y : *) (f : * | x -> y) : * | x -> y | f -> f.
-coh iddd (x : *) (y : *) (f : *| x -> y) (g : * | x -> y) (a : * | x -> y | f -> g) : * | x -> y | f -> g | a -> a.
+coh id (x : *) : x -> x.
+coh idd (x : *) (y : *) (f : x -> y) : f -> f.
+coh iddd (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) : a -> a.
 
-coh id_id (x : *) : * | x -> x | id [x] -> id [x].
+coh id_id (x : *) : id [x] -> id [x].
 
-coh comp (x : *) (y : *) (f : * | x -> y) (z : *) (g : * | y -> z) : * | x -> z.
+coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z.
 coh assoc (x : *)
-    	  (y : *) (f : * | x -> y)
-	  (z : *) (g : * | y -> z)
-	  (t : *) (h : * | z -> t)
-	  : * | x -> t | comp [x z (comp [x y f z g]) t h] -> comp [x y f t (comp [y z g t h]) ].
-coh unitl (x : *) (y : *) (f : * | x -> y) : * | x -> y | f -> comp [x x (id [x]) y f].
-coh unitr (x : *) (y : *) (f : * | x -> y) : * | x -> y | f -> comp [x y f y (id [y])].
+    	  (y : *) (f : x -> y)
+	  (z : *) (g : y -> z)
+	  (t : *) (h : z -> t)
+	  : comp [x z (comp [x y f z g]) t h] -> comp [x y f t (comp [y z g t h]) ].
+coh unitl (x : *) (y : *) (f : x -> y) : f -> comp [x x (id [x]) y f].
+coh unitr (x : *) (y : *) (f : x -> y) : f -> comp [x y f y (id [y])].
+
+coh id_comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : comp[x y f z g] -> comp[x y f z g].
+coh comp2 (x : *)
+    	  (y : *) (f1 : x -> y)
+	  (f2 : x -> y) (a : f1 -> f2)
+	  (z : *) (g1 : y -> z)
+	  (g2 : y -> z) (b : g1 -> g2)
+	  : comp[x y f1 z g1] -> comp[x y f2 z g2].
+coh unit  (x : *)
+    	  (y : *) (f1 : x -> y)
+	  (f2 : x -> y) (a : f1 -> f2)
+	  (z : *) (g1 : y -> z)
+	  (g2 : y -> z) (b : g1 -> g2)
+	  : comp[x y f1 z g1] -> comp[x y f2 z g2].
+

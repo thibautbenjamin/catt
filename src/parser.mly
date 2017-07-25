@@ -43,5 +43,5 @@ subst_expr:
 
 expr:
     |subst_expr { $1 }
-    |expr PIPE expr MOR expr { Arr ($1,$3,$5) }
+    |expr MOR expr { Arr ($1,$3) }
     |COH args COL simple_expr { Coh ($2,$4) }
