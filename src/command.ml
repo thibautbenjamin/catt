@@ -16,7 +16,8 @@ let exec_cmd kenv env cmd =
        try
 	 Kernel.add_env kenv (kvar_of_var x) ke
        with
-       |Kernel.UnknownId s  -> error "Unknown Identifier %s" s
+       |Kernel.UnknownId s  -> error "unknown identifier %s" s
+       |Kernel.IsNotType s -> error "got %s, but a type was expected" s 
      in 
      let () = info "%s is defined" (Kernel.to_string ke true true) in
      (kenv,((x,e)::env))

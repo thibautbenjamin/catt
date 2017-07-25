@@ -1,4 +1,6 @@
 exception UnknownId of string
+exception IsNotType of string	      
+
 module Var : sig
   type t =
     |Name of string
@@ -22,6 +24,7 @@ end
 
 type expr = Expr.t
 
+	      
 val empty_ctx : ctx
 val empty_env : env
 val mk_ps : ctx -> ps

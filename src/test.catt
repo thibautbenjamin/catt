@@ -20,10 +20,3 @@ coh comp2 (x : *)
 	  (z : *) (g1 : y -> z)
 	  (g2 : y -> z) (b : g1 -> g2)
 	  : comp[x y f1 z g1] -> comp[x y f2 z g2].
-coh unit  (x : *)
-    	  (y : *) (f1 : x -> y)
-	  (f2 : x -> y) (a : f1 -> f2)
-	  (z : *) (g1 : y -> z)
-	  (g2 : y -> z) (b : g1 -> g2)
-	  : comp[x y f1 z g1] -> comp[x y f2 z g2].
-

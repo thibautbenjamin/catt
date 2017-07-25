@@ -3,6 +3,7 @@ open Stdlib
 exception NotValid
 exception NotAlgebraic
 exception UnknownId of string
+exception IsNotType of string
 			 
 module Var = struct
   type t =
@@ -52,7 +53,7 @@ end
 let mk env s delta gamma =                       
   let rec check_list env s delta gamma =
     match s,(Ctx.value gamma) with
-    |([],c) when c = Ctx.value (Ctx.empty) -> ()
+    |([],c) when c = Ctx.value (Ctx.empty ()) -> ()
     |(t::s, (x,u)::_) -> let gamma = Ctx.tail gamma in
                          Infer.checkT env gamma u;
                          let s = Sub.mk env s delta gamma in
@@ -89,7 +90,7 @@ and Ctx
   type t = private ((Var.t * Expr.t) list)
   val value : t -> ((Var.t * Expr.t) list)      
   val ty_var : t -> Var.t -> Expr.t
-  val empty : t
+  val empty : unit -> t
   val add : (Env.t * t) -> Var.t -> Expr.t -> (Env.t * t) 
   val of_ps : PS.t -> t
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
@@ -102,7 +103,7 @@ end
                         
   let ty_var ctx x = try List.assoc x ctx with Not_found -> raise (UnknownId (Var.to_string x true false))
 
-  let empty = []
+  let empty _ = []
 
 		
   let add (env,(ctx :Ctx.t)) x u = let u = Infer.normalize env ctx u in
@@ -381,6 +382,7 @@ and Infer
   val normalize : Env.t -> Ctx.t -> Expr.t -> Expr.t
 end
 = struct
+    
 (** Normalization of an expression *)
   let rec normalize env ctx e =
     let open Expr in
@@ -451,14 +453,16 @@ end
     |Sub (e,s) -> let c1 = (Sub.source s) in Ctx.checkEqual env ctx ctx c1;
                                              let c2 = (Sub.target s) in
                                              let ty = infer env c2 e in
-                                             checkT env c2 ty; (Sub (ty,s))
+                                             let () = checkT env c2 ty in
+					     Expr.subst ty s
     |(Obj |Arr _|PArr _) -> assert (false)
   and checkT env ctx e =
     let open Expr in
     match e with
     |Obj -> ()
     |Arr (t,u,v) -> checkT env ctx t; checkType env ctx u t; checkType env ctx v t
-    |(Var _ |Coh _ |Sub _|PArr _) -> raise NotValid
+    |(Var _ |Coh _ |Sub _) -> raise (IsNotType (Expr.to_string e true false))
+    |PArr _ -> assert (false)
   and checkType env ctx e1 e2  =
     checkEqual env ctx (infer env ctx e1) e2 
 end
@@ -469,8 +473,8 @@ type ctx = Ctx.t
 type sub = Sub.t
 type ps = PS.t
 type expr = Expr.t
-            
-let empty_ctx = Ctx.empty
+	      
+let empty_ctx = Ctx.empty ()
 let empty_env = Env.empty ()
 let mk_ps = PS.mk
 let mk_sub = Sub.mk
