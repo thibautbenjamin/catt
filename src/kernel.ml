@@ -430,40 +430,12 @@ end
     |Arr(t1,u1,v1),Arr(t2,u2,v2) -> equal t1 t2; equal u1 u2; equal v1 v2
     |Coh(c1,t1),Coh(c2,t2) -> Ctx.checkEqual env (Ctx.of_ps c1) (Ctx.of_ps c2); equal t1 t2
     |Sub(t1,s1),Sub(t2,s2) -> equal t1 t2; Sub.checkEqual env s1 s2
-    |(Var _|Obj |Arr _|PArr _|Coh _|Sub _),_ -> raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false))
-
-    
+    |(PArr _, _ |_, PArr _) -> assert (false)
+    |(Var _|Obj |Arr _|Coh _|Sub _),_ -> raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false))
+						      
   let checkEqual env ctx e1 e2 =
     checkEqual_norm env ctx (normalize env ctx e1) (normalize env ctx e2) 
     
-(*    let open Expr in
-    let rec equal e1 e2 =
-      match e2, e2 with
-      |Var x,Var y -> if not (x = y) then raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false)) else ()
-      |Obj,Obj -> ()
-      |Arr(t1,u1,v1),Arr(t2,u2,v2) -> equal t1 t2; equal u1 u2; equal v1 v2
-      |Coh(c1,t1),Coh(c2,t2) -> equal_ctx (Ctx.of_ps c1) (Ctx.of_ps c2); equal t1 t2
-      |Sub(t1,s1),Sub(t2,s2) -> equal t1 t2; equal_sub s1 s2
-      |(Var _|Obj |Arr _|PArr _|Coh _|Sub _),_ -> raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false))
-    and equal_ctx ctx1 ctx2 =
-      match Ctx.value ctx1, Ctx.value ctx2 with
-      |[],[] -> ()
-      |(v1,x1)::_, (v2,x2)::_ -> if not (v1 = v2) then raise (NotEqual (Var.to_string v1 true false, Var.to_string v2 true false));
-                                       equal x1 x2;
-                                       equal_ctx (Ctx.tail ctx1) (Ctx.tail ctx2)
-      |_,_ -> raise NotValid
-    and equal_sub s1 s2 =
-      let rec equal_list s1 s2 = 
-	match s1,s2 with
-	|[],[] -> ()
-	|t1::s1,t2::s2 -> equal t1 t2; equal_list s1 s2
-	|_,_ -> raise NotValid
-      in equal_list (Sub.list s1) (Sub.list s2);
-	 equal_ctx (Sub.source s1) (Sub.source s2);
-	 equal_ctx (Sub.target s1) (Sub.target s2)
-    in equal (normalize env ctx e1) (normalize env ctx e2) 
- *)
-
 		    
   let rec infer env ctx e =
     let open Expr in
