@@ -106,11 +106,12 @@ and Ctx
   val value : t -> ((Var.t * Expr.t) list)      
   val ty_var : t -> Var.t -> Expr.t
   val empty : unit -> t
-  val add : (Env.t * t) -> Var.t -> Expr.t -> (Env.t * t) 
+  val add : Env.t -> t -> Var.t -> Expr.t -> t 
   val of_ps : PS.t -> t
   val checkEqual : Env.t -> t -> t -> unit
   val tail : t -> t
   val free_vars : t -> Var.t list
+  val mem : t -> Var.t -> bool
   val to_string : t -> bool -> bool -> string
 end
 = struct
@@ -121,9 +122,9 @@ end
   let empty _ = []
 
 		
-  let add (env,(ctx :Ctx.t)) x u = let u = Infer.normalize env ctx u in
-				   Infer.checkT env ctx u;
-				   let ctx = (ctx :> t)@[(x,u)] in (Env.add_var env x, ctx)
+  let add env (ctx :Ctx.t) x u = let u = Infer.normalize env ctx u in
+			     let () = Infer.checkT env ctx u in
+			     (ctx :> t)@[(x,u)] 
 						 
   let value ctx = ctx
     
@@ -141,7 +142,7 @@ end
       |[],[] -> ()
       |(v1,x1)::ctx1, (v2,x2)::ctx2 -> if not (v1 = v2) then raise NotValid;
                                        Infer.checkEqual_norm env c x1 x2;
-                                       equal (snd (Ctx.add (env,c) v1 x1)) ctx1 ctx2
+                                       equal (Ctx.add env c v1 x1) ctx1 ctx2
       |_,_ -> raise NotValid
     in equal (Ctx.empty ()) ctx1 ctx2
 
@@ -152,7 +153,12 @@ end
    |a::ctx -> a::(tail ctx)
 
  let free_vars ctx = List.map fst ctx
-		   
+
+ let rec mem c v = match c with
+   |[] -> false
+   |(x,u)::c when x = v -> true
+   |_::c -> mem c v
+			      
  let rec to_string ctx abbrev show_instances =
    let to_string = (fun c -> to_string c abbrev show_instances) in
    match ctx with
@@ -197,7 +203,7 @@ end
     | PDrop ps ->
        let f,tf = marker ps in
        match tf with
-       | Expr.Arr (_,x,Expr.Var y) ->
+       | Expr.Arr (_,x,Expr.CVar y) ->
           let t =
             let rec aux = function
               | PNil (x,t) -> assert (x = y); t
@@ -225,7 +231,7 @@ end
       | (y,ty)::(f,tf)::l ->
          begin
            match tf with
-           | Arr (_, Var fx, Var fy) ->
+           | Arr (_, CVar fx, CVar fy) ->
               if (y <> fy) then raise Invalid;
               let x,tx = marker ps in
               if x = fx then
@@ -306,8 +312,7 @@ and Env
   (*a function is required here for the safe module condition*)
   val empty : unit -> t
   val val_var : t -> Var.t -> Expr.t
-  val add_var : t -> Var.t -> t
-  val add_expr : t -> Var.t -> Expr.t -> t 
+  val add : t -> Var.t -> Expr.t -> t 
 end
 = struct
   type t = (Var.t * Expr.t) list
@@ -317,10 +322,8 @@ end
   let empty a = []
                     
   let val_var env x = try List.assoc x env with Not_found -> raise (UnknownId (Var.to_string x true false))
-
-  let add_var env x = (x,Expr.Var x)::env
 					
-  let add_expr (env : Env.t) x u =
+  let add (env : Env.t) x u =
     match u with
     |Expr.Coh(ps,v) -> let ctx = (Ctx.of_ps ps) in
 		       let u = Infer.normalize env ctx u  in
@@ -333,7 +336,8 @@ end
 and Expr
 : sig
   type t = 
-    |Var of Var.t
+    |CVar of Var.t
+    |EVar of Var.t
     |Obj
     |Arr of t * t * t
     |PArr of t * t
@@ -346,7 +350,8 @@ and Expr
 end
 = struct
   type  t =
-    |Var of Var.t
+    |CVar of Var.t
+    |EVar of Var.t
     |Obj
     |Arr of t * t * t
     |PArr of t * t
@@ -355,7 +360,8 @@ end
 
     let rec free_vars e =
       match e with
-      |Var x -> [x]
+      |EVar x -> (*[x]*) assert (false) (** If we don't allow the cut rule, this case should be excluded *)
+      |CVar x -> [x]
       |Obj -> []
       |Arr (t,u,v) -> List.unions [(free_vars t);(free_vars u);(free_vars v)]
       |PArr (u,v) -> print_string ((Expr.to_string u true false)^" -> "); print_string ((Expr.to_string v true false)^"\n") ; assert(false)
@@ -367,7 +373,8 @@ end
 (** Performs all possible substitutions *)
   let rec subst t s =
     match t with
-    |Var x -> List.assoc x (Sub.assoc_list s)
+    |CVar x -> List.assoc x (Sub.assoc_list s)
+    |EVar x -> EVar x
     |Obj -> Obj
     |Arr (a,u,v) -> Arr (subst a s, subst u s, subst v s)
     |PArr(u,v) -> PArr (subst u s, subst v s)
@@ -378,7 +385,7 @@ end
   let to_string expr abbrev show_instances =
     let to_string  = fun u -> Expr.to_string u abbrev show_instances in 
     match expr with
-    |Var x -> Var.to_string x abbrev show_instances
+    |(CVar x| EVar x) -> Var.to_string x abbrev show_instances
     |Obj -> "*"
     |Arr (t,u,v) -> if abbrev then
                       Printf.sprintf "%s -> %s" (to_string u) (to_string v)
@@ -404,7 +411,8 @@ end
   let rec normalize env ctx e =
     let open Expr in
     match e with
-    |Var x -> Env.val_var env x 
+    |EVar x -> Env.val_var env x
+    |CVar x -> CVar x
     |Obj -> e
     |Arr (t,u,v) ->
       Arr (normalize env ctx t, normalize env ctx u, normalize env ctx v)
@@ -425,13 +433,17 @@ end
     let open Expr in
     let equal = checkEqual_norm env ctx in
     match e2, e2 with
-    |Var x,Var y -> if not (x = y) then raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false)) else ()
+    |CVar x,CVar y -> if not (x = y) then raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false)) else ()
     |Obj,Obj -> ()
     |Arr(t1,u1,v1),Arr(t2,u2,v2) -> equal t1 t2; equal u1 u2; equal v1 v2
     |Coh(c1,t1),Coh(c2,t2) -> Ctx.checkEqual env (Ctx.of_ps c1) (Ctx.of_ps c2); equal t1 t2
     |Sub(t1,s1),Sub(t2,s2) -> equal t1 t2; Sub.checkEqual env s1 s2
     |(PArr _, _ |_, PArr _) -> assert (false)
-    |(Var _|Obj |Arr _|Coh _|Sub _),_ -> raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false))
+    |(EVar _, _ |_, EVar _) -> assert (false) (** If we don't allow the cut rule, this case should be excluded *)
+    (** allowing cut rule : this case should be
+	|EVar x, y -> checkEqual_norm (val_var x) y 
+	and its symmetric case*)
+    |(CVar _|Obj |Arr _|Coh _|Sub _),_ -> raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false))
 						      
   let checkEqual env ctx e1 e2 =
     checkEqual_norm env ctx (normalize env ctx e1) (normalize env ctx e2) 
@@ -440,7 +452,7 @@ end
   let rec infer env ctx e =
     let open Expr in
     match e with
-    |Var x -> Ctx.ty_var ctx x
+    |CVar x -> Ctx.ty_var ctx x
     |Coh (c,u) ->
       Ctx.checkEqual env ctx (Ctx.of_ps c);
       checkT env (ctx) u;
@@ -463,13 +475,15 @@ end
 					     Expr.subst ty s
     |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e true false))
     |PArr _ -> assert (false)
+    |EVar _ -> assert (false) (** again excluded without cut rule *)
   and checkT env ctx e =
     let open Expr in
     match e with
     |Obj -> ()
     |Arr (t,u,v) -> checkT env ctx t; checkType env ctx u t; checkType env ctx v t
-    |(Var _ |Coh _ |Sub _) -> raise (IsNotType (Expr.to_string e true false))
+    |(CVar _ |Coh _ |Sub _) -> raise (IsNotType (Expr.to_string e true false))
     |PArr _ -> assert (false)
+    |EVar _ -> assert (false)
   and checkType env ctx e1 e2  =
     checkEqual env ctx (infer env ctx e1) e2 
 end
@@ -485,8 +499,9 @@ let empty_ctx = Ctx.empty ()
 let empty_env = Env.empty ()
 let mk_ps = PS.mk
 let mk_sub = Sub.mk
-let add_env = Env.add_expr
+let add_env = Env.add
 let add_ctx = Ctx.add
+let in_ctx = Ctx.mem
 let to_string = Expr.to_string                  
 		  
 (** To be removed, for debugging purposes *)

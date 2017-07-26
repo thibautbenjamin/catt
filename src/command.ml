@@ -11,7 +11,7 @@ let exec_cmd kenv env cmd =
   match cmd with
   | Decl (x,e) ->
      let () = command "let %s = %s" (string_of_var x) (to_string e) in
-     let kenv,ke = kexpr_of_expr kenv env e in
+     let ke = kexpr_of_expr kenv env e in
      let kenv =
        try
 	 Kernel.add_env kenv (kvar_of_var x) ke

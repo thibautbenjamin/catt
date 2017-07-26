@@ -16,7 +16,8 @@ type ps
       
 module Expr : sig
   type t =
-    |Var of var
+    |CVar of var
+    |EVar of var
     |Obj
     |Arr of t * t * t
     |PArr of t * t
@@ -32,7 +33,8 @@ val empty_env : env
 val mk_ps : ctx -> ps
 val mk_sub : env -> expr list -> ctx -> ctx -> sub
 val add_env : env -> var -> expr -> env
-val add_ctx : (env * ctx) -> var -> expr -> (env * ctx)
+val add_ctx : env -> ctx -> var -> expr -> ctx
+val in_ctx : ctx -> var -> bool 
 val to_string : expr -> bool -> bool -> string
 					  
 (** To be removed : For debugging purposes*)
