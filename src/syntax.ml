@@ -57,45 +57,41 @@ let rec replace_env_vars e env =
                                                                      
 
 
-let rec mk_ctx  kenv (env:env) l =
-  let rec aux l ctx = 
-    match l with
-    |[] -> ctx
-    |(x,t)::l -> let t = kexpr_of_expr kenv env t in
-                 let ctx = Kernel.add_ctx kenv ctx (kvar_of_var x) t in
-                 aux l ctx
-  in aux l (Kernel.empty_ctx)
-and kexpr_of_expr kenv (env:env) (e:expr) : Kernel.expr =
-  let e = replace_env_vars e env in
-  let find_ctx t =
+let kexpr_of_expr kenv (env:env) (e:expr) : Kernel.expr =
+  let rec mk_ctx  l =
+    let rec aux (l : (var * expr) list) ctx = 
+      match l with
+      |[] -> ctx
+      |(x,t)::l -> let t = translate t ctx in
+                   let ctx = Kernel.add_ctx kenv ctx (kvar_of_var x) t in
+                   aux l ctx
+    in aux l (Kernel.empty_ctx)
+  and find_ctx t =
     match t with
-    |Coh(ps,u) -> mk_ctx kenv env ps
-    |_ -> empty_ctx
-  in
-  let rec aux e (c:Kernel.ctx) =
+    |Coh(ps,u) -> mk_ctx ps
+    |_ -> empty_ctx	   
+  and translate (e:expr) (c:Kernel.ctx) =
     match e with
     |Var v -> let v = kvar_of_var v in
 	      if Kernel.in_ctx c v
 	      then Kernel.Expr.CVar v
 	      else Kernel.Expr.EVar v
     |Obj -> Kernel.Expr.Obj
-    |Arr (u,v) -> let u = aux u c in
-                  let v = aux v c in 
+    |Arr (u,v) -> let u = translate u c in
+                  let v = translate v c in 
                   Kernel.Expr.PArr (u,v)
-    |Coh (ps,u) ->  let c = mk_ctx kenv env ps in
-                    let u = aux u c in
+    |Coh (ps,u) ->  let c = mk_ctx ps in
+                    let u = translate u c in
                     Kernel.Expr.Coh (Kernel.mk_ps c,u)
     |Sub (t,s) -> let tar = find_ctx t in
-                  let t = aux t tar in
+                  let t = translate t tar in
                   let s = map_kexpr_of_expr c s in
                   Kernel.Expr.Sub (t,Kernel.mk_sub kenv s c tar)
   and map_kexpr_of_expr c l =
-  match l with
-  |[] -> []
-  |e::l -> let l = map_kexpr_of_expr c l in
-           let e = aux e c
-           in (e::l) 
-
-		     
-  in aux e (find_ctx e)
+    match l with
+    |[] -> []
+    |e::l -> let l = map_kexpr_of_expr c l in
+             let e = translate e c
+             in (e::l) 
+  in let e = replace_env_vars e env in translate e (find_ctx e)
          
