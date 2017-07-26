@@ -5,7 +5,7 @@ exception NotAlgebraic
 exception UnknownId of string
 exception IsNotType of string
 exception HasNoType of string
-
+exception NotEqual of string*string
 			 
 module Var = struct
   type t =
@@ -27,6 +27,7 @@ module rec Sub
   val target : t -> Ctx.t
   val assoc_list : t -> ((Var.t * Expr.t) list)
   val mk : Env.t -> Expr.t list -> Ctx.t -> Ctx.t -> t
+  val checkEqual : Env.t -> t -> t -> unit
   val to_string : t -> bool -> bool -> string
 end
 = struct
@@ -78,7 +79,19 @@ in make env (List.map (Infer.normalize env gamma) s) delta gamma
     |[] -> ""
     |u::s -> Printf.sprintf "%s; %s" (Expr.to_string u abbrev show_instances)
                                      (string_of_list s abbrev show_instances)
-                                             
+
+  let checkEqual env s1 s2 =
+    let () = Ctx.checkEqual env (source s1) (source s2) in
+    let () = Ctx.checkEqual env (target s1) (target s2) in
+    let ctx = source s1 in
+    let rec equal_list s1 s2 = 
+      match s1,s2 with
+      |[],[] -> ()
+      |t1::s1,t2::s2 -> Infer.checkEqual_norm env ctx t1 t2; equal_list s1 s2
+      |_,_ -> raise NotValid
+    in equal_list (list s1) (list s2)
+    
+				     
   let to_string s abbrev show_instances =
     if abbrev then Printf.sprintf "[%s]" (string_of_assoc (assoc_list s) abbrev show_instances)
     else Printf.sprintf "(%s |- %s : %s)" (Ctx.to_string (source s) abbrev show_instances)
@@ -95,7 +108,7 @@ and Ctx
   val empty : unit -> t
   val add : (Env.t * t) -> Var.t -> Expr.t -> (Env.t * t) 
   val of_ps : PS.t -> t
-  val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
+  val checkEqual : Env.t -> t -> t -> unit
   val tail : t -> t
   val free_vars : t -> Var.t list
   val to_string : t -> bool -> bool -> string
@@ -122,15 +135,16 @@ end
     |PDrop ps -> of_ps ps
 
 
-  let checkEqual env ctx ctx1 ctx2 =
-    let rec equal ctx1 ctx2 =
+  let rec checkEqual env ctx1 ctx2 =
+    let rec equal c ctx1 ctx2 = 
       match ctx1, ctx2 with
       |[],[] -> ()
       |(v1,x1)::ctx1, (v2,x2)::ctx2 -> if not (v1 = v2) then raise NotValid;
-                                       Infer.checkEqual env ctx x1 x2;
-                                       equal ctx1 ctx2
+                                       Infer.checkEqual_norm env c x1 x2;
+                                       equal (snd (Ctx.add (env,c) v1 x1)) ctx1 ctx2
       |_,_ -> raise NotValid
-    in equal ctx1 ctx2
+    in equal (Ctx.empty ()) ctx1 ctx2
+
              
  let rec tail ctx = match ctx with 
    |[] -> assert(false)
@@ -379,6 +393,7 @@ and Infer
 : sig
   val checkT : Env.t -> Ctx.t -> Expr.t -> unit
   val infer : Env.t -> Ctx.t -> Expr.t -> Expr.t
+ val checkEqual_norm : Env.t -> Ctx.t -> Expr.t -> Expr.t -> unit
   val checkEqual : Env.t -> Ctx.t -> Expr.t -> Expr.t -> unit
   val checkType : Env.t -> Ctx.t -> Expr.t -> Expr.t -> unit
   val normalize : Env.t -> Ctx.t -> Expr.t -> Expr.t
@@ -405,20 +420,35 @@ end
 
   (** Checks the equality of two terms *)
   (** Here we should never try to compare PArr because it is not a normal form*)
-  let checkEqual env ctx e1 e2 =
+
+  let rec checkEqual_norm env ctx e1 e2 =
     let open Expr in
+    let equal = checkEqual_norm env ctx in
+    match e2, e2 with
+    |Var x,Var y -> if not (x = y) then raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false)) else ()
+    |Obj,Obj -> ()
+    |Arr(t1,u1,v1),Arr(t2,u2,v2) -> equal t1 t2; equal u1 u2; equal v1 v2
+    |Coh(c1,t1),Coh(c2,t2) -> Ctx.checkEqual env (Ctx.of_ps c1) (Ctx.of_ps c2); equal t1 t2
+    |Sub(t1,s1),Sub(t2,s2) -> equal t1 t2; Sub.checkEqual env s1 s2
+    |(Var _|Obj |Arr _|PArr _|Coh _|Sub _),_ -> raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false))
+
+    
+  let checkEqual env ctx e1 e2 =
+    checkEqual_norm env ctx (normalize env ctx e1) (normalize env ctx e2) 
+    
+(*    let open Expr in
     let rec equal e1 e2 =
       match e2, e2 with
-      |Var x,Var y -> if not (x = y) then raise NotValid else ()
+      |Var x,Var y -> if not (x = y) then raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false)) else ()
       |Obj,Obj -> ()
       |Arr(t1,u1,v1),Arr(t2,u2,v2) -> equal t1 t2; equal u1 u2; equal v1 v2
       |Coh(c1,t1),Coh(c2,t2) -> equal_ctx (Ctx.of_ps c1) (Ctx.of_ps c2); equal t1 t2
       |Sub(t1,s1),Sub(t2,s2) -> equal t1 t2; equal_sub s1 s2
-      |(Var _|Obj |Arr _|PArr _|Coh _|Sub _),_ -> raise NotValid
+      |(Var _|Obj |Arr _|PArr _|Coh _|Sub _),_ -> raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false))
     and equal_ctx ctx1 ctx2 =
       match Ctx.value ctx1, Ctx.value ctx2 with
       |[],[] -> ()
-      |(v1,x1)::_, (v2,x2)::_ -> if not (v1 = v2) then raise NotValid;
+      |(v1,x1)::_, (v2,x2)::_ -> if not (v1 = v2) then raise (NotEqual (Var.to_string v1 true false, Var.to_string v2 true false));
                                        equal x1 x2;
                                        equal_ctx (Ctx.tail ctx1) (Ctx.tail ctx2)
       |_,_ -> raise NotValid
@@ -432,13 +462,15 @@ end
 	 equal_ctx (Sub.source s1) (Sub.source s2);
 	 equal_ctx (Sub.target s1) (Sub.target s2)
     in equal (normalize env ctx e1) (normalize env ctx e2) 
-	     	     
+ *)
+
+		    
   let rec infer env ctx e =
     let open Expr in
     match e with
     |Var x -> Ctx.ty_var ctx x
     |Coh (c,u) ->
-      Ctx.checkEqual env ctx ctx (Ctx.of_ps c);
+      Ctx.checkEqual env ctx (Ctx.of_ps c);
       checkT env (ctx) u;
       if List.included (PS.free_vars c) (free_vars u) then u
       else
@@ -452,7 +484,7 @@ end
         (checkT env (Ctx.of_ps pss) tf; checkT env (Ctx.of_ps pst) tg;
          if List.included (PS.free_vars pss) (free_vars f) && List.included (PS.free_vars pst) (free_vars g) then u
          else raise NotAlgebraic)
-    |Sub (e,s) -> let c1 = (Sub.source s) in Ctx.checkEqual env ctx ctx c1;
+    |Sub (e,s) -> let c1 = (Sub.source s) in Ctx.checkEqual env ctx c1;
                                              let c2 = (Sub.target s) in
                                              let ty = infer env c2 e in
                                              let () = checkT env c2 ty in

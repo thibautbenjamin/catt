@@ -19,6 +19,7 @@ let exec_cmd kenv env cmd =
        |Kernel.UnknownId s  -> error "unknown identifier %s" s
        |Kernel.IsNotType s -> error "got %s, but a type was expected" s
        |Kernel.HasNoType s -> error "the term %s has no type" s
+       |Kernel.NotEqual (s1,s2) -> error "got %s, but %s was expected" s1 s2
      in 
      let () = info "%s is defined" (Kernel.to_string ke true true) in
      (kenv,((x,e)::env))
