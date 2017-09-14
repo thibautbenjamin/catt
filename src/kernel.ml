@@ -13,24 +13,20 @@ exception NotEqual of string*string
 module Var = struct
   type t =
   |Name of string
-  |New of string * int
 
-  let to_string v abbrev show_instances =
+  let to_string v =
   match v with
   |Name s -> s
-  |New (s,i) -> if not(abbrev)&&show_instances then Printf.sprintf "%s.%d" s i else s
 end
 
 
 module EVar = struct
   type t =
   |Name of string
-  |New of string * int
 
-  let to_string v abbrev show_instances =
+  let to_string v =
   match v with
   |Name s -> s
-  |New (s,i) -> if not(abbrev)&&show_instances then Printf.sprintf "%s.%d" s i else s
 end
 
 	       
@@ -45,7 +41,7 @@ module rec Sub
   val normalize : Env.t -> Ctx.t -> t -> t 
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
   val check : Env.t -> t -> Ctx.t -> Ctx.t -> unit
-  val to_string : t -> bool -> bool -> string
+  val to_string : t -> bool -> string
 end
 = struct
     type t = Expr.t list
@@ -53,7 +49,7 @@ end
     let rec apply (s:t) (tar:Ctx.t) (x : Var.t) =
       match s,tar with
       |_,_ when Ctx.isEmpty tar ->
-	raise (UnknownId (Var.to_string x true false))
+	raise (UnknownId (Var.to_string x))
       |t::l, _ ->
 	let ((y,_),tar) = (Ctx.head tar, Ctx.tail tar) in
 	if y = x
@@ -61,13 +57,13 @@ end
 	else apply l tar x
       |[], _ -> assert (false)
 
-    let rec to_string s abbrev show_instances =
+    let rec to_string s abbrev =
       match s with
       |[] -> ""
       |u::s ->
 	Printf.sprintf "(%s) %s"
-		       (Expr.to_string u abbrev show_instances)
-                       (to_string s abbrev show_instances)
+		       (Expr.to_string u abbrev)
+                       (to_string s abbrev)
 
     (** checks the equality of two substitutions in the common target context ctx*)
     let rec checkEqual env ctx s1 s2 =
@@ -112,19 +108,19 @@ and Ctx
   val ty_var : t -> Var.t -> Expr.t
   val empty : unit -> t
   val isEmpty : t -> bool
-  val add : Env.t -> t -> Var.t -> Expr.t -> t 
+  val add : Env.t -> t -> Var.t -> Expr.t -> t
   val of_ps : PS.t -> t
   val checkEqual : Env.t -> t -> t -> unit
   val head : t -> Var.t * Expr.t
   val tail : t -> t
   val free_vars : t -> Var.t list
   val mem : t -> Var.t -> bool
-  val to_string : t -> bool -> bool -> string
+  val to_string : t -> bool -> string
 end
 = struct
   type t = (Var.t * Expr.t) list
                         
-  let ty_var ctx x = try List.assoc x ctx with Not_found -> raise (UnknownId (Var.to_string x true false))
+  let ty_var ctx x = try List.assoc x ctx with Not_found -> raise (UnknownId (Var.to_string x))
 
   let empty _ = []
 
@@ -174,12 +170,12 @@ end
    |(x,u)::c when x = v -> true
    |_::c -> mem c v
 			      
- let rec to_string ctx abbrev show_instances =
-   let to_string = (fun c -> to_string c abbrev show_instances) in
+ let rec to_string ctx abbrev =
+   let to_string = (fun c -> to_string c abbrev) in
    match ctx with
    |[] -> ""
-   |(x,t)::c -> Printf.sprintf "(%s,%s) %s" (Var.to_string x abbrev show_instances)
-                                            (Expr.to_string t abbrev show_instances)
+   |(x,t)::c -> Printf.sprintf "(%s,%s) %s" (Var.to_string x)
+                                            (Expr.to_string t abbrev)
                                             (to_string c)
 end
 
@@ -196,7 +192,7 @@ and PS
   val dim : t -> int
   val source : int -> t -> t
   val target : int -> t -> t
-  val to_string : t -> bool -> bool -> string
+  val to_string : t -> bool -> string
 end
 = struct
   exception Invalid
@@ -317,8 +313,8 @@ end
        PCons (ps,x,y)
     | PDrop ps -> PDrop (map f ps)
         
-  let to_string ps abbrev show_instances =
-    Ctx.to_string (Ctx.of_ps ps) abbrev show_instances
+  let to_string ps abbrev =
+    Ctx.to_string (Ctx.of_ps ps) abbrev 
 end
 
 and Env
@@ -336,7 +332,7 @@ end
 
   let empty a = []
                     
-  let val_var env x = try List.assoc x env with Not_found -> raise (UnknownCoh (EVar.to_string x true false))
+  let val_var env x = try List.assoc x env with Not_found -> raise (UnknownCoh (EVar.to_string x))
 					
   let add env x u =
     (x,u)::env
@@ -357,7 +353,7 @@ and Expr
 
   val free_vars : t -> Var.t list
   val subst : t -> Ctx.t -> Sub.t -> t
-  val to_string : t -> bool -> bool  -> string
+  val to_string : t -> bool  -> string
 end
 = struct
   type  t =
@@ -393,20 +389,20 @@ end
     |Sub _ -> assert (false)
   (** We are not supposed to perform mutliple substitutions on one term*)
   
-  let rec to_string expr abbrev show_instances =
-    let to_string  = fun u -> Expr.to_string u abbrev show_instances in 
+  let rec to_string expr abbrev =
+    let to_string  = fun u -> Expr.to_string u abbrev in 
     match expr with
-    |CVar x -> Var.to_string x abbrev show_instances
+    |CVar x -> Var.to_string x
     |Obj -> "*"
     |Arr (t,u,v) -> if abbrev then
                       Printf.sprintf "%s -> %s" (to_string u) (to_string v)
                     else Printf.sprintf "%s | %s -> %s" (to_string t) (to_string u) (to_string v)
     |PArr (u,v) -> Printf.sprintf "%s -> %s" (to_string u) (to_string v)
-    |Sub (t,s) -> Printf.sprintf "%s.%s" (Sub.to_string s abbrev show_instances) (ecoh_to_string t abbrev show_instances)
-  and ecoh_to_string coh abbrev show_instances=
+    |Sub (t,s) -> Printf.sprintf "%s.%s" (Sub.to_string s abbrev) (ecoh_to_string t abbrev)
+  and ecoh_to_string coh abbrev =
     match coh with
-    |Fold x -> EVar.to_string x abbrev show_instances
-    |Unfold coh -> Coh.to_string coh abbrev show_instances
+    |Fold x -> EVar.to_string x
+    |Unfold coh -> Coh.to_string coh abbrev
 end
 
 (** -- Module with a specific type for well-defined coherences
@@ -417,7 +413,7 @@ and Coh
 
   val mk : Env.t -> PS.t -> Expr.t -> t
   val free_vars : t -> Var.t list
-  val to_string : t -> bool -> bool -> string
+  val to_string : t -> bool -> string
   val checkEqual : Env.t -> t -> t -> Ctx.t
   val ps : t -> PS.t
   val target : t -> Expr.t
@@ -457,10 +453,10 @@ end
   let free_vars (ps,t) =
     List.union (PS.free_vars ps) (Expr.free_vars t)
 
-  let to_string (ps,t) abbrev show_instances=
+  let to_string (ps,t) abbrev =
     Printf.sprintf "Coh {%s |- %s}"
-		   (PS.to_string ps abbrev show_instances)
-		   (Expr.to_string t abbrev show_instances)
+		   (PS.to_string ps abbrev)
+		   (Expr.to_string t abbrev)
 
   let checkEqual env (ps1,t1) (ps2,t2) =
     let c1 = Ctx.of_ps ps1 and c2 = Ctx.of_ps ps2 in
@@ -514,7 +510,7 @@ end
     let open Expr in
     let equal = checkEqual_norm env ctx in
     match e2, e2 with
-    |CVar x,CVar y -> if not (x = y) then raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false)) else ()
+    |CVar x,CVar y -> if not (x = y) then raise (NotEqual (Expr.to_string e1 true, Expr.to_string e2 true)) else ()
     |Obj,Obj -> ()
     |Arr(t1,u1,v1),Arr(t2,u2,v2) ->
       equal t1 t2;
@@ -526,7 +522,7 @@ end
     |(PArr _, _ |_, PArr _) -> assert (false)
     (** Not a normal form*)
     |(CVar _|Obj |Arr _|Sub _),_ ->
-      raise (NotEqual (Expr.to_string e1 true false, Expr.to_string e2 true false)) 
+      raise (NotEqual (Expr.to_string e1 true, Expr.to_string e2 true)) 
   and checkEqual_ecoh env e1 e2 =
     let open Expr in
     match e1, e2 with
@@ -552,7 +548,7 @@ end
       checkT env tar ty;
       (** Useless? *)
       Expr.subst ty tar s
-    |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e true false))
+    |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e true))
     |PArr _ -> assert (false)
   and infer_ecoh env coh =
     let open Expr in
@@ -565,7 +561,7 @@ end
     match e with
     |Obj -> ()
     |Arr (t,u,v) -> checkT env ctx t; checkType env ctx u t; checkType env ctx v t
-    |(CVar _ |Sub _) -> raise (IsNotType (Expr.to_string e true false))
+    |(CVar _ |Sub _) -> raise (IsNotType (Expr.to_string e true))
     |PArr _ -> assert (false)
   and checkType env ctx e1 e2  =
     checkEqual env ctx (infer env ctx e1) e2 
@@ -592,4 +588,4 @@ let expr_to_string = Expr.to_string
 let coh_to_string = Coh.to_string                  
 
 (** To be removed, for debugging purposes *)
-let string_of_ctx = fun x -> Ctx.to_string x false true
+let string_of_ctx = fun x -> Ctx.to_string x false

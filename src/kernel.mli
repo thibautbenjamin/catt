@@ -7,13 +7,11 @@ exception NotEqual of string * string
 module Var : sig
   type t =
     |Name of string
-    |New of string * int
   end
 
 module EVar : sig
   type t =
     |Name of string
-    |New of string * int
   end
 			       
 type var = Var.t
@@ -48,8 +46,8 @@ val mk_coh : env -> ps -> expr -> coh
 val add_env : env -> evar -> coh -> env
 val add_ctx : env -> ctx -> var -> expr -> ctx
 val in_ctx : ctx -> var -> bool 
-val expr_to_string : expr -> bool -> bool -> string
-val coh_to_string : coh -> bool -> bool -> string
+val expr_to_string : expr -> bool -> string
+val coh_to_string : coh -> bool -> string
 					  
 (** To be removed : For debugging purposes*)
 val string_of_ctx : ctx -> string                                             

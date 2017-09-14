@@ -3,23 +3,18 @@ open Common
 
 type var =
   |Name of string
-  |New of string * int
 
 let kvar_of_var v =
   match v with
   |Name s -> Kernel.Var.Name s
-  |New (s,i) -> Kernel.Var.New (s,i)
 
 let kevar_of_var v =
   match v with
   |Name s -> Kernel.EVar.Name s
-  |New (s,i) -> Kernel.EVar.New (s,i)
-
 			       
 let string_of_var v =
   match v with
   |Name s -> s
-  |New (s,i) -> Printf.sprintf "%s.%d" s i
                                
 type expr =
   |Var of var
@@ -28,12 +23,6 @@ type expr =
   |Coh of ((var * expr) list) * expr
   |Sub of expr * (expr list)
                    
-let refresh =
-  let k = ref 0 in
-  function
-  | Name x | New(x,_) -> incr k; New(x, !k)
-
-
 let rec to_string e =
   match e with
   |Var x -> string_of_var x

@@ -23,7 +23,7 @@ let exec_cmd kenv cmd =
      in
      let kenv = Kernel.add_env kenv (kevar_of_var x) ke
      in 
-     let () = info "%s is defined" (Kernel.coh_to_string ke true true) in
+     let () = info "%s is defined" (Kernel.coh_to_string ke true) in
      kenv
                                        
 let exec prog =
