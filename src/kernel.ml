@@ -37,82 +37,71 @@ end
 
 module rec Sub 
 : sig
-  type t = private (Expr.t list * Ctx.t * Ctx.t)
-  val list : t -> Expr.t list
-  val source : t -> Ctx.t
-  val target : t -> Ctx.t
-  val assoc_list : t -> ((Var.t * Expr.t) list)
-  val mk : Env.t -> Expr.t list -> Ctx.t -> Ctx.t -> t
-  val checkEqual : Env.t -> t -> t -> unit
+  type t = private (Expr.t list)
+  val apply : t -> Ctx.t -> Var.t -> Expr.t
+  val mk : Env.t ->  Expr.t list -> t
+  val tail : t -> t
+  val free_vars : t -> Var.t list
+  val normalize : Env.t -> Ctx.t -> t -> t 
+  val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
+  val check : Env.t -> t -> Ctx.t -> Ctx.t -> unit
   val to_string : t -> bool -> bool -> string
 end
 = struct
-    type t = (Expr.t list * Ctx.t * Ctx.t)
-	     
-  let list (s:t) =
-    match s with 
-    |l,_,_ -> l
+    type t = Expr.t list
 
-  let source (s:t) = 
-    match s with
-    |_,src,_ -> src
+    let rec apply (s:t) (tar:Ctx.t) (x : Var.t) =
+      match s,tar with
+      |_,_ when Ctx.isEmpty tar ->
+	raise (UnknownId (Var.to_string x true false))
+      |t::l, _ ->
+	let ((y,_),tar) = (Ctx.head tar, Ctx.tail tar) in
+	if y = x
+	then t
+	else apply l tar x
+      |[], _ -> assert (false)
 
-  let target (s:t) =
-    match s with
-    |_,_,targ -> targ
-    
-  let assoc_list (s:t) = 
-    let rec build l ctx =
-      match l,ctx with
-      |t::l,(x,_)::ctx -> (x,t)::(build l ctx)
-      |[],[] -> []
-      |_,_ -> assert (false)
-    in build (list s) (Ctx.value (target s))
-    	     
-  let mk env s delta gamma =                       
-    let rec check_list env s delta gamma =
-      match s,(Ctx.value gamma) with
-      |([],c) when c = Ctx.value (Ctx.empty ()) -> ()
-      |(t::s, (x,u)::_) -> let gamma = Ctx.tail gamma in
-                           Infer.checkT env gamma u;
-                           let s = Sub.mk env s delta gamma in
-                           Infer.checkType env delta t (Expr.subst u s)
-      |_ -> raise NotValid
-    and make env s delta gamma : t =
-      check_list env s delta gamma; (s,delta,gamma)            
-    in make env (List.map (Infer.normalize env gamma) s) delta gamma
+    let rec to_string s abbrev show_instances =
+      match s with
+      |[] -> ""
+      |u::s ->
+	Printf.sprintf "(%s) %s"
+		       (Expr.to_string u abbrev show_instances)
+                       (to_string s abbrev show_instances)
 
-				    
-  let rec string_of_assoc s abbrev show_instances =
-    match s with
-    |[] -> ""
-    |(x,u)::s -> Printf.sprintf "(%s,%s) %s" (Var.to_string x abbrev show_instances)
-                                             (Expr.to_string u abbrev show_instances)
-                                             (string_of_assoc s abbrev show_instances)
-
-  let rec string_of_list s abbrev show_instances =
-    match s with
-    |[] -> ""
-    |u::s -> Printf.sprintf "%s; %s" (Expr.to_string u abbrev show_instances)
-                                     (string_of_list s abbrev show_instances)
-
-  let checkEqual env s1 s2 =
-    let () = Ctx.checkEqual env (source s1) (source s2) in
-    let () = Ctx.checkEqual env (target s1) (target s2) in
-    let ctx = source s1 in
-    let rec equal_list s1 s2 = 
+    (** checks the equality of two substitutions in the common target context ctx*)
+    let rec checkEqual env ctx s1 s2 =
       match s1,s2 with
       |[],[] -> ()
-      |t1::s1,t2::s2 -> Infer.checkEqual_norm env ctx t1 t2; equal_list s1 s2
+      |t1::s1,t2::s2 ->
+	Infer.checkEqual_norm env ctx t1 t2;
+	checkEqual env ctx s1 s2
       |_,_ -> raise NotValid
-    in equal_list (list s1) (list s2)
-    
-				     
-  let to_string s abbrev show_instances =
-    if abbrev then Printf.sprintf "[%s]" (string_of_assoc (assoc_list s) abbrev show_instances)
-    else Printf.sprintf "(%s |- %s : %s)" (Ctx.to_string (source s) abbrev show_instances)
-                                         (string_of_list (list s) abbrev show_instances)
-                                         (Ctx.to_string (target s) abbrev show_instances)  
+
+    let mk env (l: Expr.t list) = l
+
+    let tail s =
+      match s with
+      |_::s -> s
+      |[] -> assert(false)
+
+    let free_vars s =
+      List.concat (List.map Expr.free_vars s)
+		   
+    let rec check env (s:Sub.t) src (tar:Ctx.t) =
+      match (s:> Expr.t list),(tar :> (Var.t * Expr.t) list)
+      with
+      |[],[] -> ()
+      |(_::_,[] |[],_::_) -> raise NotValid
+      |t::_,_ ->
+	let s = Sub.tail s in
+	let ((x,u),tar) = (Ctx.head tar, Ctx.tail tar) in
+	check env s src tar;
+	Infer.checkT env tar u;
+	Infer.checkType env src t (Expr.subst u tar s)
+
+    let normalize env ctx sub =
+      List.map (Infer.normalize env ctx) sub
 end
 
                       
@@ -122,9 +111,11 @@ and Ctx
   val value : t -> ((Var.t * Expr.t) list)      
   val ty_var : t -> Var.t -> Expr.t
   val empty : unit -> t
+  val isEmpty : t -> bool
   val add : Env.t -> t -> Var.t -> Expr.t -> t 
   val of_ps : PS.t -> t
   val checkEqual : Env.t -> t -> t -> unit
+  val head : t -> Var.t * Expr.t
   val tail : t -> t
   val free_vars : t -> Var.t list
   val mem : t -> Var.t -> bool
@@ -137,6 +128,10 @@ end
 
   let empty _ = []
 
+  let isEmpty c =
+    match c with
+    |[] -> true
+    |_ -> false
 		
   let add env (ctx :Ctx.t) x u = let u = Infer.normalize env ctx u in
 			     let () = Infer.checkT env ctx u in
@@ -162,7 +157,11 @@ end
       |_,_ -> raise NotValid
     in equal (Ctx.empty ()) ctx1 ctx2
 
-             
+  let rec head ctx = match ctx with
+    |[] -> assert(false)
+    |a::[] -> a
+    |_::ctx -> head ctx
+	     
  let rec tail ctx = match ctx with 
    |[] -> assert(false)
    |_::[] -> []
@@ -357,7 +356,7 @@ and Expr
     |Unfold of Coh.t
 
   val free_vars : t -> Var.t list
-  val subst : t -> Sub.t -> t
+  val subst : t -> Ctx.t -> Sub.t -> t
   val to_string : t -> bool -> bool  -> string
 end
 = struct
@@ -377,7 +376,7 @@ end
     |Obj -> []
     |Arr (t,u,v) -> List.unions [(free_vars t);(free_vars u);(free_vars v)]
     |PArr (u,v) -> assert(false)
-    |Sub (_,sub) -> Ctx.free_vars (Sub.source sub)
+    |Sub (_,sub) -> Sub.free_vars sub
   (** We should check that the target of the substitution is the pasting scheme of the EVar at some point*)
   and free_vars_ecoh coh =
     match coh with
@@ -385,12 +384,12 @@ end
      |Unfold coh -> Coh.free_vars coh 
    		       
 (** Performs all possible substitutions *)
-  let rec subst t s =
+  let rec subst t tar s =
     match t with
-    |CVar x -> List.assoc x (Sub.assoc_list s)
+    |CVar x -> Sub.apply s tar x
     |Obj -> Obj
-    |Arr (a,u,v) -> Arr (subst a s, subst u s, subst v s)
-    |PArr(u,v) -> PArr (subst u s, subst v s)
+    |Arr (a,u,v) -> Arr (subst a tar s, subst u tar s, subst v tar s)
+    |PArr(u,v) -> PArr (subst u tar s, subst v tar s)
     |Sub _ -> assert (false)
   (** We are not supposed to perform mutliple substitutions on one term*)
   
@@ -419,7 +418,7 @@ and Coh
   val mk : Env.t -> PS.t -> Expr.t -> t
   val free_vars : t -> Var.t list
   val to_string : t -> bool -> bool -> string
-  val checkEqual : Env.t -> t -> t -> unit
+  val checkEqual : Env.t -> t -> t -> Ctx.t
   val ps : t -> PS.t
   val target : t -> Expr.t
 end
@@ -443,10 +442,8 @@ end
       and pst = PS.target (i-1) ps in
       let ctxs = Ctx.of_ps pss
       and ctxt = Ctx.of_ps pst in
-      let tf = Infer.infer env ctx f in
-      (** Replace ctx by ctxs => handle substitutions better*)
-      let tg = Infer.infer env ctx g in
-      (** Replace ctx by ctxt => handle substitutions better*)
+      let tf = Infer.infer env ctxs f in
+      let tg = Infer.infer env ctxt g in
       begin
 	Infer.checkT env ctxs tf;
 	Infer.checkT env ctxt tg;
@@ -468,7 +465,7 @@ end
   let checkEqual env (ps1,t1) (ps2,t2) =
     let c1 = Ctx.of_ps ps1 and c2 = Ctx.of_ps ps2 in
     Ctx.checkEqual env c1 c2;
-    Infer.checkEqual env c1 t1 t2
+    Infer.checkEqual env c1 t1 t2; c1
 
   let ps (ps,t) = ps
 
@@ -500,8 +497,10 @@ end
       let t = Infer.infer env ctx u and t' = Infer.infer env ctx v in
       let _ = Infer.checkEqual env ctx t t' in
        Arr (normalize env ctx t,u,v)
-    |Sub (t,s) -> let t = unfold env t in
-                  Sub (t,s)
+    |Sub (t,s) ->
+      let s = Sub.normalize env ctx s in
+      let t = unfold env t in
+      Sub (t,s)
   and unfold env coh =
     let open Expr in
     match coh with
@@ -522,8 +521,8 @@ end
       equal u1 u2;
       equal v1 v2
     |Sub(t1,s1),Sub(t2,s2) ->
-      checkEqual_ecoh env t1 t2;
-      Sub.checkEqual env s1 s2
+      let tar = checkEqual_ecoh env t1 t2 in
+      Sub.checkEqual env tar s1 s2
     |(PArr _, _ |_, PArr _) -> assert (false)
     (** Not a normal form*)
     |(CVar _|Obj |Arr _|Sub _),_ ->
@@ -548,21 +547,19 @@ end
     match e with
     |CVar x -> Ctx.ty_var ctx x
     |Sub (e,s) ->
-      let c1 = (Sub.source s) in Ctx.checkEqual env ctx c1;
-      let c2 = (Sub.target s) in
-      let ty = infer_ecoh env c2 e in
-      let () = checkT env c2 ty in
+      let tar,ty = infer_ecoh env e in
+      Sub.check env s ctx tar;
+      checkT env tar ty;
       (** Useless? *)
-      Expr.subst ty s
+      Expr.subst ty tar s
     |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e true false))
     |PArr _ -> assert (false)
-  and infer_ecoh env ctx coh =
+  and infer_ecoh env coh =
     let open Expr in
     match coh with
     |Fold _ -> assert (false) (** No cut rule yet *)
     |Unfold coh ->
-      Ctx.checkEqual env ctx (Ctx.of_ps (Coh.ps coh));
-      Coh.target coh
+      (Ctx.of_ps (Coh.ps coh), Coh.target coh)
   and checkT env ctx e =
     let open Expr in
     match e with

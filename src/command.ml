@@ -7,13 +7,13 @@ type cmd =
 
 type prog = cmd list
 
-let exec_cmd kenv env cmd =
+let exec_cmd kenv cmd =
   match cmd with
   | Decl (x,e) ->
      let () = command "let %s = %s" (string_of_var x) (to_string e) in
      let ke = 
      try
-       coh_of_expr kenv env e 
+       coh_of_expr kenv e 
      with
      |Kernel.UnknownId s  -> error "unknown identifier %s" s
      |Kernel.UnknownCoh s  -> error "unknown coherence name %s" s
@@ -24,10 +24,10 @@ let exec_cmd kenv env cmd =
      let kenv = Kernel.add_env kenv (kevar_of_var x) ke
      in 
      let () = info "%s is defined" (Kernel.coh_to_string ke true true) in
-     (kenv,((x,e)::env))
+     kenv
                                        
 let exec prog =
-  let rec aux (kenv,env) = function
+  let rec aux kenv = function
     |[] -> ()
-    |(t::l)  -> aux (exec_cmd kenv env t) l
-in aux (Kernel.empty_env,[]) prog
+    |(t::l)  -> aux (exec_cmd kenv t) l
+in aux Kernel.empty_env prog
