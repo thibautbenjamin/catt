@@ -10,6 +10,12 @@ let kvar_of_var v =
   |Name s -> Kernel.Var.Name s
   |New (s,i) -> Kernel.Var.New (s,i)
 
+let kevar_of_var v =
+  match v with
+  |Name s -> Kernel.EVar.Name s
+  |New (s,i) -> Kernel.EVar.New (s,i)
+
+			       
 let string_of_var v =
   match v with
   |Name s -> s
@@ -47,6 +53,7 @@ and string_of_sub s =
   |[] -> ""
   |t::s -> Printf.sprintf"%s; %s" (to_string t) (string_of_sub s)
 
+			 
 let rec replace_env_vars e env =
   match e with
   |Var x -> (try List.assoc x env with Not_found -> e)
@@ -54,10 +61,9 @@ let rec replace_env_vars e env =
   |Arr (u,v) -> Arr (replace_env_vars u env, replace_env_vars v env)
   |Coh (ps,t) -> Coh (ps, replace_env_vars t env)
   |Sub (t,s) -> Sub (replace_env_vars t env, List.map (fun x -> replace_env_vars x env) s)  
-                                                                     
 
-
-let kexpr_of_expr kenv (env:env) (e:expr) : Kernel.expr =
+		    
+let coh_of_expr kenv (env:env) (e:expr) : Kernel.coh =
   let rec mk_ctx  l =
     let rec aux (l : (var * expr) list) ctx = 
       match l with
@@ -72,26 +78,38 @@ let kexpr_of_expr kenv (env:env) (e:expr) : Kernel.expr =
     |_ -> empty_ctx	   
   and translate (e:expr) (c:Kernel.ctx) =
     match e with
-    |Var v -> let v = kvar_of_var v in
-	      if Kernel.in_ctx c v
-	      then Kernel.Expr.CVar v
-	      else Kernel.Expr.EVar v
+    |Var v -> let kv = kvar_of_var v in
+	      Kernel.Expr.CVar kv
     |Obj -> Kernel.Expr.Obj
     |Arr (u,v) -> let u = translate u c in
                   let v = translate v c in 
                   Kernel.Expr.PArr (u,v)
-    |Coh (ps,u) ->  let c = mk_ctx ps in
-                    let u = translate u c in
-                    Kernel.Expr.Coh (Kernel.mk_ps c,u)
     |Sub (t,s) -> let tar = find_ctx t in
-                  let t = translate t tar in
-                  let s = map_kexpr_of_expr c s in
+                  let t = translate_ecoh t in
+                  let s = map_translate c s in
                   Kernel.Expr.Sub (t,Kernel.mk_sub kenv s c tar)
-  and map_kexpr_of_expr c l =
+    |Coh _ -> failwith "unsubstituted coherence" 
+  and translate_ecoh (e:expr) =
+    match e with
+    |Var v ->
+      let kv = kevar_of_var v in
+      Kernel.Expr.Fold kv
+    |Coh (ps,u) ->
+      let c = mk_ctx ps in
+      let u = translate u c in
+      Kernel.Expr.Unfold (Kernel.mk_coh kenv (Kernel.mk_ps c) u)
+    |(Obj |Arr _ |Sub _) -> failwith "wrong term under substitution"
+  and map_translate c l =
     match l with
     |[] -> []
-    |e::l -> let l = map_kexpr_of_expr c l in
+    |e::l -> let l = map_translate c l in
              let e = translate e c
              in (e::l) 
-  in let e = replace_env_vars e env in translate e (find_ctx e)
+  in let e = replace_env_vars e env in
+     match e with
+     |Coh (ps,u) ->
+       let c = mk_ctx ps in
+       let u = translate u c in
+       Kernel.mk_coh kenv (Kernel.mk_ps c) u
+     |_ -> failwith "can only declare coherences"
          
