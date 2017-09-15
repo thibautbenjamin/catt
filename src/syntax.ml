@@ -40,41 +40,42 @@ and string_of_sub s =
   |t::s -> Printf.sprintf"%s; %s" (to_string t) (string_of_sub s)
 
 		    
-let coh_of_expr kenv (e:expr) : Kernel.coh =
-  let rec mk_ctx  l =
-    let rec aux (l : (var * expr) list) ctx = 
-      match l with
-      |[] -> ctx
-      |(x,t)::l -> let t = translate ctx t in
-                   let ctx = Kernel.add_ctx kenv ctx (kvar_of_var x) t in
-                   aux l ctx
-    in aux l (Kernel.empty_ctx)
-  and translate (c:Kernel.ctx) (e:expr) =
-    match e with
-    |Var v -> let kv = kvar_of_var v in
-	      Kernel.Expr.CVar kv
-    |Obj -> Kernel.Expr.Obj
-    |Arr (u,v) -> let u = translate c u in
-                  let v = translate c v in 
-                  Kernel.Expr.PArr (u,v)
-    |Sub (t,s) -> let t = translate_ecoh t in
+let rec translate kenv (c:Kernel.ctx) (e:expr) =
+  let translate = translate kenv in
+  match e with
+  |Var v -> let kv = kvar_of_var v in
+	    Kernel.Expr.CVar kv
+  |Obj -> Kernel.Expr.Obj
+  |Arr (u,v) -> let u = translate c u in
+                let v = translate c v in 
+                Kernel.Expr.PArr (u,v)
+  |Sub (t,s) -> let t = translate_ecoh kenv t in
                   let s = List.map (translate c) s in
                   Kernel.Expr.Sub (t,Kernel.mk_sub kenv s)
-    |Coh _ -> failwith "unsubstituted coherence" 
-  and translate_ecoh (e:expr) =
-    match e with
-    |Var v ->
+  |Coh _ -> failwith "unsubstituted coherence" 
+and translate_ecoh kenv (e:expr) =
+  match e with
+  |Var v ->
       let kv = kevar_of_var v in
       Kernel.Expr.Fold kv
     |Coh (ps,u) ->
-      let c = mk_ctx ps in
-      let u = translate c u in
+      let c = mk_ctx kenv ps in
+      let u = translate kenv c u in
       Kernel.Expr.Unfold (Kernel.mk_coh kenv (Kernel.mk_ps c) u)
     |(Obj |Arr _ |Sub _) -> failwith "wrong term under substitution"
-  in match e with
-     |Coh (ps,u) ->
-       let c = mk_ctx ps in
-       let u = translate c u in
-       Kernel.mk_coh kenv (Kernel.mk_ps c) u
-     |_ -> failwith "can only declare coherences"
-         
+and mk_ctx kenv l =
+  let rec aux (l : (var * expr) list) ctx = 
+    match l with
+    |[] -> ctx
+    |(x,t)::l -> let t = translate kenv ctx t in
+                 let ctx = Kernel.add_ctx kenv ctx (kvar_of_var x) t in
+                 aux l ctx
+  in aux l (Kernel.empty_ctx)
+
+let coh_of_expr kenv e = 
+  match e with
+  |Coh (ps,u) ->
+    let c = mk_ctx kenv ps in
+    let u = translate kenv c u in
+    Kernel.mk_coh kenv (Kernel.mk_ps c) u
+  |_ -> failwith "can only declare coherences"
