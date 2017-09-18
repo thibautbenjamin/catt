@@ -37,6 +37,7 @@ module rec Sub
   val apply : t -> Ctx.t -> Var.t -> Expr.t
   val mk : Env.t ->  Expr.t list -> t
   val tail : t -> t
+  val head : t -> Expr.t
   val free_vars : t -> Var.t list
   val normalize : Env.t -> Ctx.t -> t -> t 
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
@@ -46,11 +47,25 @@ end
 = struct
     type t = Expr.t list
 
+   let rec tail s =
+      match s with
+      |_::[] -> []
+      |a::s -> a::(tail s)
+      |[] -> assert(false)
+
+    let rec head s =
+      match s with
+      |a::[] -> a
+      |_::s -> head s
+      |[] -> assert(false)
+
+		    
     let rec apply (s:t) (tar:Ctx.t) (x : Var.t) =
       match s,tar with
       |_,_ when Ctx.isEmpty tar ->
 	raise (UnknownId (Var.to_string x))
-      |t::l, _ ->
+      |_::_, _ ->
+	let (t,l) = (head s, tail s) in
 	let ((y,_),tar) = (Ctx.head tar, Ctx.tail tar) in
 	if y = x
 	then t
@@ -76,26 +91,26 @@ end
 
     let mk env (l: Expr.t list) = l
 
-    let tail s =
-      match s with
-      |_::s -> s
-      |[] -> assert(false)
-
+ 
     let free_vars s =
       List.concat (List.map Expr.free_vars s)
 		   
     let rec check env (s:Sub.t) src (tar:Ctx.t) =
+      debug "checking substitution %s with target %s"
+	    (Sub.to_string s true) (Ctx.to_string tar true);
       match (s:> Expr.t list),(tar :> (Var.t * Expr.t) list)
       with
       |[],[] -> ()
       |(_::_,[] |[],_::_) -> raise NotValid
-      |t::_,_ ->
-	let s = Sub.tail s in
-	let ((x,u),tar) = (Ctx.head tar, Ctx.tail tar) in
+      |_,_ ->
+	let t,s = (Sub.head s, Sub.tail s) in
+	let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	check env s src tar;
 	Infer.checkT env tar u;
-	Infer.checkType env src t (Expr.subst u tar s)
-
+	debug "checking type of %s to be %s" (Expr.to_string t true) (Expr.to_string (Expr.subst u tar s) true);
+	Infer.checkType env src t (Expr.subst u tar s);
+	debug "checked"
+			
     let normalize env ctx sub =
       List.map (Infer.normalize env ctx) sub
 end
@@ -113,6 +128,7 @@ and Ctx
   val checkEqual : Env.t -> t -> t -> unit
   val head : t -> Var.t * Expr.t
   val tail : t -> t
+  val ext : t -> (Var.t * Expr.t) * t
   val free_vars : t -> Var.t list
   val mem : t -> Var.t -> bool
   val to_string : t -> bool -> string
@@ -163,6 +179,10 @@ end
    |_::[] -> []
    |a::ctx -> a::(tail ctx)
 
+ let rec ext ctx = match ctx with 
+   |[] -> assert(false)
+   |a::ctx -> (a,ctx)
+		   
  let free_vars ctx = List.map fst ctx
 
  let rec mem c v = match c with
@@ -438,16 +458,19 @@ end
       and pst = PS.target (i-1) ps in
       let ctxs = Ctx.of_ps pss
       and ctxt = Ctx.of_ps pst in
-      let tf = Infer.infer env ctxs f in
-      let tg = Infer.infer env ctxt g in
-      begin
-	Infer.checkT env ctxs tf;
-	Infer.checkT env ctxt tg;
-       if List.included (PS.free_vars pss) (free_vars f) && List.included (PS.free_vars pst) (free_vars g)
-       then () 
-       else raise NotAlgebraic
-      end;
-      (ps,t)
+      try
+	let tf = Infer.infer env ctxs f in
+	let tg = Infer.infer env ctxt g in
+	begin
+	  Infer.checkT env ctxs tf;
+	  Infer.checkT env ctxt tg;
+	  if List.included (PS.free_vars pss) (free_vars f) && List.included (PS.free_vars pst) (free_vars g)
+	  then (ps,t) 
+	  else raise NotAlgebraic
+	end;
+      with
+      |UnknownId _ -> raise NotAlgebraic
+
 	
 
   let free_vars (ps,t) =
@@ -507,9 +530,9 @@ end
 			  
   (** Checks the equality of two terms *)
    let rec checkEqual_norm env ctx e1 e2 =
-    let open Expr in
+     let open Expr in
     let equal = checkEqual_norm env ctx in
-    match e2, e2 with
+    match e1, e2 with
     |CVar x,CVar y -> if not (x = y) then raise (NotEqual (Expr.to_string e1 true, Expr.to_string e2 true)) else ()
     |Obj,Obj -> ()
     |Arr(t1,u1,v1),Arr(t2,u2,v2) ->
@@ -533,12 +556,13 @@ end
 	|Fold x, y -> checkEqual_norm (val_var x) y 
 	and its symmetric case*)
 						      
-  let checkEqual env ctx e1 e2 =
+   let checkEqual env ctx e1 e2 =
     checkEqual_norm env ctx
 		    (normalize env ctx e1)
-		    (normalize env ctx e2) 
+		    (normalize env ctx e2)
+
     		    
-  let rec infer env ctx e =
+   let rec infer env ctx e =
     let open Expr in
     match e with
     |CVar x -> Ctx.ty_var ctx x

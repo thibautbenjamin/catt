@@ -20,3 +20,8 @@ coh comp2 (x : *)
 	  (z : *) (g1 : y -> z)
 	  (g2 : y -> z) (b : g1 -> g2)
 	  : comp[x y f1 z g1] -> comp[x y f2 z g2].
+
+coh wrong (x : *) (y : *) (f : x -> y)
+    	       	  (z : *) (g : y -> z)
+		  (t : *) (h : z -> t) :
+		  comp [x y f t h] -> comp[x y f t h].
