@@ -11,11 +11,10 @@ let parse s =
   with
   | Failure s when s = "lexing: empty token" ->
      let pos = Lexing.lexeme_end_p lexbuf in
-     failwith "lexing error"
-     (*error "lexing error in file %s at line %d, character %d"
+     error "lexing error in file %s at line %d, character %d"
      pos.Lexing.pos_fname
      pos.Lexing.pos_lnum
-     (pos.Lexing.pos_cnum - pos.Lexing.pos_bol)  *)    
+     (pos.Lexing.pos_cnum - pos.Lexing.pos_bol) 
   | Parsing.Parse_error ->
      let pos = (Lexing.lexeme_end_p lexbuf) in
      failwith (Printf.sprintf "parsing error in file %s at word \"%s\", line %d, character %d"

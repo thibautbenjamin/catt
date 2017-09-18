@@ -30,57 +30,73 @@ module EVar = struct
 end
 
 	       
-
+(** --Substitutions are lists of terms, they come with 	    
+	 - maker
+	 - normal form 
+	 - equality decision procedure
+	 - well-definedness checking procedure 
+	 - application on a term 
+*)
 module rec Sub 
 : sig
   type t = private (Expr.t list)
-  val apply : t -> Ctx.t -> Var.t -> Expr.t
+
+  (** Structural functions *)
   val mk : Env.t ->  Expr.t list -> t
-  val tail : t -> t
-  val head : t -> Expr.t
+
+  (** Syntactic properties *)		    
   val free_vars : t -> Var.t list
+  val apply : t -> Ctx.t -> Expr.t -> Expr.t
+
+  (** Typing procedures *)
   val normalize : Env.t -> Ctx.t -> t -> t 
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
   val check : Env.t -> t -> Ctx.t -> Ctx.t -> unit
+
+  (** Printing *)	
   val to_string : t -> bool -> string
 end
 = struct
     type t = Expr.t list
 
-   let rec tail s =
-      match s with
-      |_::[] -> []
-      |a::s -> a::(tail s)
-      |[] -> assert(false)
-
-    let rec head s =
-      match s with
-      |a::[] -> a
-      |_::s -> head s
-      |[] -> assert(false)
-
 		    
-    let rec apply (s:t) (tar:Ctx.t) (x : Var.t) =
+    (** --------------------
+	Structural functions
+        --------------------  *) 
+    let mk env (l: Expr.t list) = List.rev l
+
+					   
+    (** --------------------
+	Syntactic properties
+        --------------------  *) 
+    let free_vars s =
+      List.concat (List.map Expr.free_vars s)
+			   
+    let rec apply_var (s:t) (tar:Ctx.t) (x : Var.t) =
       match s,tar with
       |_,_ when Ctx.isEmpty tar ->
 	raise (UnknownId (Var.to_string x))
-      |_::_, _ ->
-	let (t,l) = (head s, tail s) in
+      |t::l, _ ->
 	let ((y,_),tar) = (Ctx.head tar, Ctx.tail tar) in
 	if y = x
 	then t
-	else apply l tar x
+	else apply_var l tar x
       |[], _ -> assert (false)
 
-    let rec to_string s abbrev =
-      match s with
-      |[] -> ""
-      |u::s ->
-	Printf.sprintf "(%s) %s"
-		       (Expr.to_string u abbrev)
-                       (to_string s abbrev)
+    let rec apply (s:t) tar e =
+      let open Expr in
+      match e with
+      |CVar x -> apply_var s tar x
+      |Obj -> Obj
+      |Arr (a,u,v) ->
+	Arr (apply s tar a, apply s tar u, apply s tar v)
+      |PArr(u,v) ->
+	PArr (apply s tar u, apply s tar v)
+      |Sub _ -> assert (false)
 
-    (** checks the equality of two substitutions in the common target context ctx*)
+    (** -----------------
+	Typing procedures
+        -----------------  *) 
     let rec checkEqual env ctx s1 s2 =
       match s1,s2 with
       |[],[] -> ()
@@ -89,30 +105,31 @@ end
 	checkEqual env ctx s1 s2
       |_,_ -> raise NotValid
 
-    let mk env (l: Expr.t list) = l
+    let normalize env ctx sub =
+      List.map (Infer.normalize env ctx) sub
 
- 
-    let free_vars s =
-      List.concat (List.map Expr.free_vars s)
-		   
-    let rec check env (s:Sub.t) src (tar:Ctx.t) =
-      debug "checking substitution %s with target %s"
-	    (Sub.to_string s true) (Ctx.to_string tar true);
-      match (s:> Expr.t list),(tar :> (Var.t * Expr.t) list)
+    let rec check env s src (tar:Ctx.t) =
+      match s,(tar :> (Var.t * Expr.t) list)
       with
       |[],[] -> ()
       |(_::_,[] |[],_::_) -> raise NotValid
-      |_,_ ->
-	let t,s = (Sub.head s, Sub.tail s) in
+      |t::s,_ ->
 	let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	check env s src tar;
 	Infer.checkT env tar u;
-	debug "checking type of %s to be %s" (Expr.to_string t true) (Expr.to_string (Expr.subst u tar s) true);
-	Infer.checkType env src t (Expr.subst u tar s);
-	debug "checked"
+	Infer.checkType env src t (apply s tar u)
+
 			
-    let normalize env ctx sub =
-      List.map (Infer.normalize env ctx) sub
+    (** --------
+	Printing
+        --------  *)        
+    let rec to_string s abbrev =
+      match s with
+      |[] -> ""
+      |u::s ->
+	Printf.sprintf "%s (%s)"
+		       (to_string s abbrev)
+		       (Expr.to_string u abbrev)
 end
 
                       
@@ -372,7 +389,6 @@ and Expr
     |Unfold of Coh.t
 
   val free_vars : t -> Var.t list
-  val subst : t -> Ctx.t -> Sub.t -> t
   val to_string : t -> bool  -> string
 end
 = struct
@@ -398,17 +414,7 @@ end
     match coh with
      |Fold x -> assert (false) (** Ignore this case for now*)
      |Unfold coh -> Coh.free_vars coh 
-   		       
-(** Performs all possible substitutions *)
-  let rec subst t tar s =
-    match t with
-    |CVar x -> Sub.apply s tar x
-    |Obj -> Obj
-    |Arr (a,u,v) -> Arr (subst a tar s, subst u tar s, subst v tar s)
-    |PArr(u,v) -> PArr (subst u tar s, subst v tar s)
-    |Sub _ -> assert (false)
-  (** We are not supposed to perform mutliple substitutions on one term*)
-  
+   		         
   let rec to_string expr abbrev =
     let to_string  = fun u -> Expr.to_string u abbrev in 
     match expr with
@@ -571,7 +577,7 @@ end
       Sub.check env s ctx tar;
       checkT env tar ty;
       (** Useless? *)
-      Expr.subst ty tar s
+      Sub.apply s tar ty
     |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e true))
     |PArr _ -> assert (false)
   and infer_ecoh env coh =
