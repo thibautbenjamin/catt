@@ -22,6 +22,7 @@ type sub
 type ctx
 type ps
 type coh
+type cut
       
 module Expr : sig
   type t =
@@ -29,10 +30,7 @@ module Expr : sig
     |Obj
     |Arr of t * t * t
     |PArr of t * t
-    |Sub of ecoh * sub
-   and ecoh =
-    |Fold of evar
-    |Unfold of coh
+    |Sub of cut * sub
 end
 
 type expr = Expr.t
@@ -43,11 +41,15 @@ val empty_env : env
 val mk_ps : ctx -> ps
 val mk_sub : env -> expr list -> sub
 val mk_coh : env -> ps -> expr -> coh
+val mk_fold : EVar.t -> cut
+val mk_unfold : coh -> cut
 val add_env : env -> evar -> coh -> env
 val add_ctx : env -> ctx -> var -> expr -> ctx
 val in_ctx : ctx -> var -> bool 
 val expr_to_string : expr -> bool -> string
 val coh_to_string : coh -> bool -> string
-					  
+
+
+				     
 (** To be removed : For debugging purposes*)
 val string_of_ctx : ctx -> string                                             

@@ -57,11 +57,11 @@ and translate_ecoh kenv (e:expr) =
   match e with
   |Var v ->
       let kv = kevar_of_var v in
-      Kernel.Expr.Fold kv
+      Kernel.mk_fold kv
     |Coh (ps,u) ->
       let c = mk_ctx kenv ps in
       let u = translate kenv c u in
-      Kernel.Expr.Unfold (Kernel.mk_coh kenv (Kernel.mk_ps c) u)
+      Kernel.mk_unfold (Kernel.mk_coh kenv (Kernel.mk_ps c) u)
     |(Obj |Arr _ |Sub _) -> failwith "wrong term under substitution"
 and mk_ctx kenv l =
   let rec aux (l : (var * expr) list) ctx = 
