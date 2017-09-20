@@ -67,9 +67,10 @@ and mk_ctx kenv l =
   let rec aux (l : (var * expr) list) ctx = 
     match l with
     |[] -> ctx
-    |(x,t)::l -> let t = translate kenv ctx t in
-                 let ctx = Kernel.add_ctx kenv ctx (kvar_of_var x) t in
-                 aux l ctx
+    |(x,t)::l ->
+      let t = translate kenv ctx t in
+      let ctx = Kernel.add_ctx kenv ctx (kvar_of_var x) t in
+      aux l ctx
   in aux l (Kernel.empty_ctx)
 
 let coh_of_expr kenv e = 

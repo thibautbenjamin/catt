@@ -33,6 +33,7 @@ type expr = Expr.t
 val empty_ctx : ctx
 val empty_env : env
 val mk_ps : ctx -> ps
+(*val mk_sub : env -> expr list -> ctx -> ctx -> sub*)
 val mk_sub : env -> expr list -> sub
 val mk_coh : env -> ps -> expr -> coh
 val mk_fold : EVar.t -> cut

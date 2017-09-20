@@ -1,8 +1,6 @@
 open Stdlib
 open Common
 
-       
-			 
 module Var = struct
   type t =
   |Name of string
@@ -25,9 +23,7 @@ end
 	       
 (** --Substitutions are lists of terms, they come with 	    
 	 - maker
-	 - normal form 
 	 - equality decision procedure
-	 - well-definedness checking procedure 
 	 - application on a term 
 *)
 module rec Sub 
@@ -35,30 +31,27 @@ module rec Sub
   type t = private (Expr.t list)
 		     
   (** Structural functions *)
-  val mk : Env.t ->  Expr.t list -> t
-
+  (*val mk : Env.t ->  Expr.t list -> Ctx.t -> Ctx.t -> t*)
+  val mk : Env.t -> Expr.t list -> t
+		     
   (** Syntactic properties *)		    
   val free_vars : t -> Var.t list
   val apply : t -> Ctx.t -> Expr.t -> Expr.t
 
-  (** Typing procedures *)
-  val normalize : Env.t -> Ctx.t -> t -> t 
+  (** Equality procedures *)
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
-  val check : Env.t -> t -> Ctx.t -> Ctx.t -> unit
 
   (** Printing *)	
   val to_string : t -> bool -> string
+				 
+  (** Temporary *)
+  val normalize : Env.t -> Ctx.t -> t -> t
+  val check : Env.t -> t  -> Ctx.t -> Ctx.t -> unit
 end
 = struct
     type t = Expr.t list
 
 		    
-    (** --------------------
-	Structural functions
-        --------------------  *) 
-    let mk env (l: Expr.t list) = List.rev l
-
-					   
     (** --------------------
 	Syntactic properties
         --------------------  *) 
@@ -112,6 +105,15 @@ end
 	Expr.checkT env tar u;
 	Expr.checkType env src t (apply s tar u)
 
+    (** --------------------
+	Structural functions
+        --------------------  *) 
+    (*let mk env l src tar =
+      let l = normalize env tar l in
+      let () = check env l src tar in 
+      List.rev l*)
+    let mk env l =
+      List.rev l
 			
     (** --------
 	Printing
@@ -125,22 +127,34 @@ end
 		       (Expr.to_string u abbrev)
 end
 
-                      
+(** -- Contexts are association lists of variables and terms in normal form.
+   -- They are provided with 	    
+	 - maker (normalization and well-definedness)
+	 - equality decision procedure
+*)
 and Ctx
 : sig
   type t = private ((Var.t * Expr.t) list)
-  val value : t -> ((Var.t * Expr.t) list)      
-  val ty_var : t -> Var.t -> Expr.t
+
+  (** Makers *)
   val empty : unit -> t
-  val isEmpty : t -> bool
   val add : Env.t -> t -> Var.t -> Expr.t -> t
   val of_ps : PS.t -> t
-  val checkEqual : Env.t -> t -> t -> unit
+					       
+  (** Structural operations *)
   val head : t -> Var.t * Expr.t
   val tail : t -> t
-  val ext : t -> (Var.t * Expr.t) * t
+
+  (** Syntactic properties *)
+  val ty_var : t -> Var.t -> Expr.t
   val free_vars : t -> Var.t list
   val mem : t -> Var.t -> bool
+
+  (** Equality procedure *)
+  val isEmpty : t -> bool
+  val checkEqual : Env.t -> t -> t -> unit
+
+  (** Printing *)
   val to_string : t -> bool -> string
 end
 = struct
@@ -148,95 +162,131 @@ end
                         
   let ty_var ctx x = try List.assoc x ctx with Not_found -> raise (UnknownId (Var.to_string x))
 
+  (** ------
+      Makers
+      ------ *)
   let empty _ = []
 
-  let isEmpty c =
-    match c with
-    |[] -> true
-    |_ -> false
-		
   let add env (ctx :Ctx.t) x u =
     let u = Expr.normalize env ctx u in
     let () = Expr.checkT env ctx u in
-    (ctx :> t)@[(x,u)] 
-						 
-  let value ctx = ctx
-    
+    (ctx :> t)@[(x,u)]
+
   let rec of_ps ps =
     let open PS in
     match ps with
     |PNil (x,t) ->  [(x,t)]
-    |PCons (ps,(x1,t1),(x2,t2)) -> (of_ps ps)@[(x1,t1);(x2,t2)]
+    |PCons (ps,(x1,t1),(x2,t2)) ->
+      (of_ps ps)@[(x1,t1);(x2,t2)]
     |PDrop ps -> of_ps ps
 
-
-  let rec checkEqual env ctx1 ctx2 =
-    let rec equal c ctx1 ctx2 = 
-      match ctx1, ctx2 with
-      |[],[] -> ()
-      |(v1,x1)::ctx1, (v2,x2)::ctx2 -> if not (v1 = v2) then raise NotValid;
-                                       Expr.checkEqual_norm env c x1 x2;
-                                       equal (Ctx.add env c v1 x1) ctx1 ctx2
-      |_,_ -> raise NotValid
-    in equal (Ctx.empty ()) ctx1 ctx2
-
+		       
+  (** ---------------------
+      Structural operations
+      --------------------- *)
   let rec head ctx = match ctx with
     |[] -> assert(false)
     |a::[] -> a
     |_::ctx -> head ctx
-	     
- let rec tail ctx = match ctx with 
-   |[] -> assert(false)
-   |_::[] -> []
-   |a::ctx -> a::(tail ctx)
+  	     
+  let rec tail ctx = match ctx with 
+    |[] -> assert(false)
+    |_::[] -> []
+    |a::ctx -> a::(tail ctx)
 
- let rec ext ctx = match ctx with 
-   |[] -> assert(false)
-   |a::ctx -> (a,ctx)
-		   
+
+
+  (** --------------------
+      Syntactic properties
+      -------------------- *)
  let free_vars ctx = List.map fst ctx
 
  let rec mem c v = match c with
    |[] -> false
    |(x,u)::c when x = v -> true
    |_::c -> mem c v
-			      
+
+		    
+  (** --------------------
+      Syntactic properties
+      -------------------- *)
+ let isEmpty c =
+    match c with
+    |[] -> true
+    |_ -> false
+		
+  let rec checkEqual env ctx1 ctx2 =
+    let rec equal c ctx1 ctx2 = 
+      match ctx1, ctx2 with
+      |[],[] -> ()
+      |(v1,x1)::ctx1, (v2,x2)::ctx2 ->
+	if not (v1 = v2) then raise NotValid;
+	Expr.checkEqual_norm env c x1 x2;
+        equal (Ctx.add env c v1 x1) ctx1 ctx2
+      |_,_ -> raise NotValid
+    in equal (Ctx.empty ()) ctx1 ctx2
+						 
+		   
+  (** --------
+      Printing
+      -------- *)	      
  let rec to_string ctx abbrev =
    let to_string = (fun c -> to_string c abbrev) in
    match ctx with
    |[] -> ""
-   |(x,t)::c -> Printf.sprintf "(%s,%s) %s" (Var.to_string x)
-                                            (Expr.to_string t abbrev)
-                                            (to_string c)
+   |(x,t)::c ->
+     Printf.sprintf "(%s,%s) %s"
+		    (Var.to_string x)
+                    (Expr.to_string t abbrev)
+                    (to_string c)
 end
 
+
+(** -- Pasting schemes are specific contexts
+    -- They are provided with 	    
+	 - makers (normalization and well-definedness)
+	 - equality decision procedure
+	 - specific operations (height, dimension, source, target)
+*)
 and PS
 : sig
   type t = private
           |PNil of (Var.t * Expr.t)
           |PCons of t * (Var.t * Expr.t) * (Var.t * Expr.t)
           |PDrop of t
-                      
-  val free_vars : t -> Var.t list
+
+  (** Maker *)
   val mk : Ctx.t -> t
+
+  (** Syntactic properties *)
+  val free_vars : t -> Var.t list
+
+  (** Structural operations *)
   val height : t -> int
   val dim : t -> int
   val source : int -> t -> t
   val target : int -> t -> t
+
+  (** Printing *)
   val to_string : t -> bool -> string
 end
 = struct
   exception Invalid
   
-  (** --Syntactic properties-- *)
   type t =
     |PNil of (Var.t * Expr.t)
     |PCons of PS.t * (Var.t * Expr.t) * (Var.t * Expr.t)
     |PDrop of PS.t
 
+
+  (** --------------------
+      Syntactic properties
+      -------------------- *)
   let free_vars ps = Ctx.free_vars (Ctx.of_ps ps)
 		
-  (** --Maker-- *)
+  (** -----
+      Maker
+      ----- *)
   (** Dangling variable. *)
   let rec marker ps =
     match ps with
@@ -261,7 +311,6 @@ end
        | _ -> raise Invalid
 
 
-  (** Create pasting scheme from a context. *)
   let mk l : t =
     let open Expr in 
     let x0,l =
@@ -290,22 +339,21 @@ end
       | [] -> ps
     in
     aux (PNil(x0,Obj)) l
-
 	
-  (** --Manipulations-- *)
-  (** Height of a pasting scheme. *)
+	
+  (** ---------------------
+      Structural operations
+      --------------------- *)
   let rec height = function
     | PNil _ -> 0
     | PCons (ps,_,_) -> height ps + 1
     | PDrop ps -> height ps - 1
 
-  (** Dimension of a pasting scheme. *)
   let rec dim = function
     | PNil _ -> 0
     | PCons (ps,_,_) -> max (dim ps) (height ps + 1)
     | PDrop ps -> dim ps
 
-  (** Source of a pasting scheme. *)
   let source i ps =
     assert (i >= 0);
     let rec aux = function
@@ -317,7 +365,6 @@ end
     in
     aux ps
 
-  (** Target of a pasting scheme. *)
   let target i ps =
     assert (i >= 0);
     let replace g = function
@@ -335,38 +382,48 @@ end
     in
     aux ps
 
-  let rec map f = function
-    | PNil x -> PNil (f x)
-    | PCons (ps,x,y) ->
-       let ps = map f ps in
-       let x = f x in
-       let y = f y in
-       PCons (ps,x,y)
-    | PDrop ps -> PDrop (map f ps)
-        
+  (** --------
+      Printing
+      -------- *)        
   let to_string ps abbrev =
     Ctx.to_string (Ctx.of_ps ps) abbrev 
 end
 
+(** -- Environnement is a association list of variable and coherences
+    -- It is provided with 	    
+	 - maker 
+	 - association
+*)    
 and Env
 : sig
   type t = private (EVar.t * Coh.t) list
+
+  (** Makers *)
   (*a function is required here for the safe module condition*)
   val empty : unit -> t
+  val add : t -> EVar.t -> Coh.t -> t
+
+  (** Structural operation *)
   val val_var : t -> EVar.t -> Coh.t
-  val add : t -> EVar.t -> Coh.t -> t 
 end
 = struct
   type t = (EVar.t * Coh.t) list
 
-  let value env = env
-
+  (** ------
+      Makers
+      ------ *)
   let empty a = []
-                    
-  let val_var env x = try List.assoc x env with Not_found -> raise (UnknownCoh (EVar.to_string x))
-					
+
   let add env x u =
     (x,u)::env
+
+
+  (** --------------------
+      Structural operation
+      -------------------- *)	     
+  let val_var env x =
+    try List.assoc x env
+    with Not_found -> raise (UnknownCoh (EVar.to_string x))
 end
 
     
