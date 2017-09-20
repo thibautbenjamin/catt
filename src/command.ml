@@ -22,11 +22,11 @@ let exec_cmd kenv cmd =
 	 try
 	   coh_of_expr kenv e 
 	 with
-	 |Kernel.UnknownId s  -> error "unknown identifier %s" s
-	 |Kernel.UnknownCoh s  -> error "unknown coherence name %s" s
-	 |Kernel.IsNotType s -> error "got %s, but a type was expected" s
-	 |Kernel.HasNoType s -> error "the term %s has no type" s
-	 |Kernel.NotEqual (s1,s2) -> error "got %s, but %s was expected" s1 s2
+	 |UnknownId s  -> error "unknown identifier %s" s
+	 |UnknownCoh s  -> error "unknown coherence name %s" s
+	 |IsNotType s -> error "got %s, but a type was expected" s
+	 |HasNoType s -> error "the term %s has no type" s
+	 |NotEqual (s1,s2) -> error "got %s, but %s was expected" s1 s2
      in
      let kenv = Kernel.add_env kenv (kevar_of_var x) ke
      in 

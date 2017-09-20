@@ -1,9 +1,3 @@
-exception UnknownId of string
-exception UnknownCoh of string
-exception IsNotType of string	      
-exception HasNoType of string	      
-exception NotEqual of string * string
-			 
 module Var : sig
   type t =
     |Name of string

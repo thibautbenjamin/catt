@@ -2,13 +2,6 @@ open Stdlib
 open Common
 
        
-exception NotValid
-exception NotAlgebraic
-exception UnknownId of string
-exception UnknownCoh of string
-exception IsNotType of string
-exception HasNoType of string
-exception NotEqual of string*string
 			 
 module Var = struct
   type t =

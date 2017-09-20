@@ -1,3 +1,12 @@
+exception NotValid
+exception NotAlgebraic
+exception UnknownId of string
+exception UnknownCoh of string
+exception IsNotType of string
+exception HasNoType of string
+exception NotEqual of string*string
+
+
 let print_string_fun = ref print_string
 let print_string s = !print_string_fun s
 let print_newline () = print_string "\n"
