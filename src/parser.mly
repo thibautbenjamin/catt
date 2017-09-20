@@ -1,6 +1,6 @@
 %{
     open Common
-    open Syntax
+    open Kernel
     open Command
 %}
 

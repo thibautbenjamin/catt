@@ -1,6 +1,7 @@
 open Stdlib
 open Common
 
+(* TODO  - Externalize this part *)
 module Var = struct
   type t =
   |Name of string
@@ -10,6 +11,47 @@ module Var = struct
   |Name s -> s
 end
 
+type var = Var.t
+type expr =
+  |Var of var
+  |Obj
+  |Arr of expr * expr
+  |Coh of ((var * expr) list) * expr
+  |Sub of expr * (expr list)
+       
+let rec string_of_expr e =
+  match e with
+  |Var x -> Var.to_string x
+  |Obj -> "*"
+  |Arr (u,v) ->
+    Printf.sprintf "%s -> %s"
+		   (string_of_expr u)
+		   (string_of_expr v)
+  |Coh (ps,u) ->
+    Printf.sprintf "Coh{%s |- %s}"
+		   (string_of_ps ps)
+		   (string_of_expr u)
+  |Sub (t,s) ->
+    Printf.sprintf "Sub(%s,%s)"
+		   (string_of_sub s)
+		   (string_of_expr t)
+and string_of_ps ps =
+  match ps with
+  |[] -> ""
+  |(x,t)::ps ->
+    Printf.sprintf "(%s:%s) %s"
+		   (Var.to_string x)
+		   (string_of_expr t)
+		   (string_of_ps ps)
+and string_of_sub s =
+  match s with
+  |[] -> ""
+  |t::s -> Printf.sprintf"%s; %s"
+			 (string_of_expr t)
+			 (string_of_sub s)
+
+		   
+		   
 
 module EVar = struct
   type t =
@@ -18,6 +60,10 @@ module EVar = struct
   let to_string v =
   match v with
   |Name s -> s
+
+  let mk v =
+    match v with
+    |Var.Name x -> Name x
 end
 
 	       
@@ -31,9 +77,8 @@ module rec Sub
   type t = private (Expr.t list)
 		     
   (** Structural functions *)
-  (*val mk : Env.t ->  Expr.t list -> Ctx.t -> Ctx.t -> t*)
-  val mk : Env.t -> Expr.t list -> t
-		     
+  val mk : Env.t -> expr list -> Ctx.t -> Ctx.t -> t
+
   (** Syntactic properties *)		    
   val free_vars : t -> Var.t list
   val apply : t -> Ctx.t -> Expr.t -> Expr.t
@@ -45,7 +90,6 @@ module rec Sub
   val to_string : t -> bool -> string
 				 
   (** Temporary *)
-  val normalize : Env.t -> Ctx.t -> t -> t
   val check : Env.t -> t  -> Ctx.t -> Ctx.t -> unit
 end
 = struct
@@ -76,8 +120,6 @@ end
       |Obj -> Obj
       |Arr (a,u,v) ->
 	Arr (apply s tar a, apply s tar u, apply s tar v)
-      |PArr(u,v) ->
-	PArr (apply s tar u, apply s tar v)
       |Sub _ -> assert (false)
 
     (** -----------------
@@ -87,12 +129,9 @@ end
       match s1,s2 with
       |[],[] -> ()
       |t1::s1,t2::s2 ->
-	Expr.checkEqual_norm env ctx t1 t2;
+	Expr.checkEqual env ctx t1 t2;
 	checkEqual env ctx s1 s2
       |_,_ -> raise NotValid
-
-    let normalize env ctx sub =
-      List.map (Expr.normalize env ctx) sub
 
     let rec check env s src (tar:Ctx.t) =
       match s,(tar :> (Var.t * Expr.t) list)
@@ -105,16 +144,6 @@ end
 	Expr.checkT env tar u;
 	Expr.checkType env src t (apply s tar u)
 
-    (** --------------------
-	Structural functions
-        --------------------  *) 
-    (*let mk env l src tar =
-      let l = normalize env tar l in
-      let () = check env l src tar in 
-      List.rev l*)
-    let mk env l =
-      List.rev l
-			
     (** --------
 	Printing
         --------  *)        
@@ -125,6 +154,25 @@ end
 	Printf.sprintf "%s (%s)"
 		       (to_string s abbrev)
 		       (Expr.to_string u abbrev)
+
+		       
+    (** --------------------
+	Structural functions
+        --------------------  *) 
+    let mk env l src tar =
+      let rec aux l (tar : Ctx.t) =
+	match l,(tar :> (Var.t * Expr.t) list) with
+	|[],[] -> []
+	|(_::_,[] |[],_::_) -> raise NotValid
+	|t::s,_ ->
+	  let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
+	  let s = aux s tar in
+	  let t = Expr.mk env src t in
+	  let () = Expr.checkT env tar u in
+	  let () = Expr.checkType env src t (apply s tar u)
+	  in t::s
+      in aux (List.rev l) tar
+ 			
 end
 
 (** -- Contexts are association lists of variables and terms in normal form.
@@ -138,7 +186,8 @@ and Ctx
 
   (** Makers *)
   val empty : unit -> t
-  val add : Env.t -> t -> Var.t -> Expr.t -> t
+  val add : Env.t -> t -> Var.t -> expr -> t
+  val mk : Env.t -> (var * expr) list -> t
   val of_ps : PS.t -> t
 					       
   (** Structural operations *)
@@ -168,9 +217,17 @@ end
   let empty _ = []
 
   let add env (ctx :Ctx.t) x u =
-    let u = Expr.normalize env ctx u in
-    let () = Expr.checkT env ctx u in
+    let u = Expr.mk env ctx u in 
     (ctx :> t)@[(x,u)]
+
+  let rec mk env  l =
+    let rec aux l ctx =
+      match l with
+      |[] -> ctx
+      |(x,t)::l ->
+	let ctx = Ctx.add env ctx x t in
+	aux l ctx
+    in aux l (Ctx.empty ()) 
 
   let rec of_ps ps =
     let open PS in
@@ -195,7 +252,6 @@ end
     |a::ctx -> a::(tail ctx)
 
 
-
   (** --------------------
       Syntactic properties
       -------------------- *)
@@ -207,22 +263,25 @@ end
    |_::c -> mem c v
 
 		    
-  (** --------------------
-      Syntactic properties
-      -------------------- *)
+  (** -------------------
+      Equality procedures
+      ------------------- *)
  let isEmpty c =
     match c with
     |[] -> true
     |_ -> false
 		
   let rec checkEqual env ctx1 ctx2 =
-    let rec equal c ctx1 ctx2 = 
-      match ctx1, ctx2 with
+    let rec equal c (ctx1 : Ctx.t) (ctx2 : Ctx.t) = 
+      match ((ctx1 :> (Var.t * Expr.t) list),
+	     (ctx2 :> (Var.t * Expr.t) list)) with
       |[],[] -> ()
-      |(v1,x1)::ctx1, (v2,x2)::ctx2 ->
+      |_::_, _::_ ->
+	let ((v1,x1),t1) = (Ctx.head ctx1, Ctx.tail ctx1) in
+	let ((v2,x2),t2) = (Ctx.head ctx2, Ctx.tail ctx2) in
 	if not (v1 = v2) then raise NotValid;
-	Expr.checkEqual_norm env c x1 x2;
-        equal (Ctx.add env c v1 x1) ctx1 ctx2
+	Expr.checkEqual env c x1 x2;
+        equal ctx1 t1 t2
       |_,_ -> raise NotValid
     in equal (Ctx.empty ()) ctx1 ctx2
 						 
@@ -433,7 +492,6 @@ and Expr
     |CVar of Var.t
     |Obj
     |Arr of t * t * t
-    |PArr of t * t
     |Sub of Cut.t * Sub.t
   
   val free_vars : t -> Var.t list
@@ -441,17 +499,15 @@ and Expr
 
   val checkT : Env.t -> Ctx.t -> t -> unit
   val infer : Env.t -> Ctx.t -> t -> t
-  val checkEqual_norm : Env.t -> Ctx.t -> t -> t -> unit
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
   val checkType : Env.t -> Ctx.t -> t -> t -> unit
-  val normalize : Env.t -> Ctx.t -> t -> t
+  val mk : Env.t -> Ctx.t -> expr -> t
   end
 = struct
   type  t =
     |CVar of Var.t
     |Obj
     |Arr of t * t * t
-    |PArr of t * t
     |Sub of Cut.t * Sub.t
 
   let rec free_vars e =
@@ -459,7 +515,6 @@ and Expr
     |CVar x -> [x]
     |Obj -> []
     |Arr (t,u,v) -> List.unions [(free_vars t);(free_vars u);(free_vars v)]
-    |PArr (u,v) -> assert(false)
     |Sub (_,sub) -> Sub.free_vars sub
   (* to be modified to include Cut.free_vars *)
    		         
@@ -472,29 +527,16 @@ and Expr
       if abbrev then
         Printf.sprintf "%s -> %s" (to_string u) (to_string v)
       else Printf.sprintf "%s | %s -> %s" (to_string t) (to_string u) (to_string v)
-    |PArr (u,v) -> Printf.sprintf "%s -> %s" (to_string u) (to_string v)
     |Sub (t,s) -> Printf.sprintf "%s.%s" (Sub.to_string s abbrev) (Cut.to_string t abbrev)
-
-  let rec normalize env ctx e =
-    match e with
-    |CVar x -> CVar x
-    |Obj -> e
-    |Arr (t,u,v) ->
-      Arr (normalize env ctx t, normalize env ctx u, normalize env ctx v)
-    |PArr (u,v) ->
-      let u = normalize env ctx u and v = normalize env ctx v in
-      let t = infer env ctx u and t' = infer env ctx v in
-      let _ = checkEqual env ctx t t' in
-       Arr (normalize env ctx t,u,v)
-    |Sub (t,s) ->
-      let s = Sub.normalize env ctx s in
-      let t = Cut.normalize env t in
-      Sub (t,s)
 			  
-  and checkEqual_norm env ctx e1 e2 =
-    let equal = checkEqual_norm env ctx in
+  let rec checkEqual env ctx e1 e2 =
+    let equal = checkEqual env ctx in
     match e1, e2 with
-    |CVar x,CVar y -> if not (x = y) then raise (NotEqual (to_string e1 true, to_string e2 true)) else ()
+    |CVar x,CVar y ->
+      if not (x = y)
+      then
+	raise (NotEqual (to_string e1 true, to_string e2 true))
+      else ()
     |Obj,Obj -> ()
     |Arr(t1,u1,v1),Arr(t2,u2,v2) ->
       equal t1 t2;
@@ -503,63 +545,77 @@ and Expr
     |Sub(t1,s1),Sub(t2,s2) ->
       let tar = Cut.checkEqual env t1 t2 in
       Sub.checkEqual env tar s1 s2
-    |(PArr _, _ |_, PArr _) -> assert (false)
-    (** Not a normal form*)
     |(CVar _|Obj |Arr _|Sub _),_ ->
-      raise (NotEqual (Expr.to_string e1 true, Expr.to_string e2 true)) 
-				      
-  and checkEqual env ctx e1 e2 =
-    checkEqual_norm env ctx
-		    (normalize env ctx e1)
-		    (normalize env ctx e2)		    
+      raise (NotEqual (to_string e1 true, to_string e2 true)) 
+  (** TODO : prove that infer produces only normal forms 
+       that are also valid types *)
   and infer env ctx e =
     match e with
     |CVar x -> Ctx.ty_var ctx x
     |Sub (e,s) ->
       let tar,ty = Cut.infer env e in
       Sub.check env s ctx tar;
-      checkT env tar ty;
-      (** Useless? *)
       Sub.apply s tar ty
     |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e true))
-    |PArr _ -> assert (false)
   and checkT env ctx e =
     match e with
     |Obj -> ()
-    |Arr (t,u,v) -> checkT env ctx t; checkType env ctx u t; checkType env ctx v t
-    |(CVar _ |Sub _) -> raise (IsNotType (Expr.to_string e true))
-    |PArr _ -> assert (false)
+    |Arr (t,u,v) ->
+      checkT env ctx t;
+      checkType env ctx u t;
+      checkType env ctx v t
+    |(CVar _ |Sub _) ->
+      raise (IsNotType (Expr.to_string e true))
   and checkType env ctx e1 e2  =
     checkEqual env ctx (infer env ctx e1) e2 
-  end
+
+  let mk env c (e:expr) =
+    let rec translate  e = 
+      match e with
+      |Var v -> CVar v
+      |Obj -> Obj
+      |Arr (u,v) ->
+	let u = translate u in
+	let v = translate v in 
+	let t = infer env c u in
+	let t' = infer env c v in
+	let () = checkEqual env c t t' in
+	Arr (t,u,v)
+      |Sub (t,s) ->
+	let t,tar = Cut.mk env t in
+	let s = Sub.mk env s c tar in
+	Sub (t,s)
+      |Coh _ -> failwith "unsubstituted coherence"
+    in
+    let check e  =
+      match e with
+      |(CVar _ |Sub _) ->
+	let _ = infer env c e in ()
+      |Arr _ -> checkT env c e
+      |Obj -> ()
+    in
+    let e = translate e
+    in
+    check e;
+    e    
+end
     
 and Cut
 : sig
 
   type t =
     |Fold of EVar.t
-    |Unfold of Coh.t
-
-  val mk_fold : EVar.t -> t
-  val mk_unfold : Coh.t -> t
-		 
+    |Unfold of Coh.t		 
   val free_vars : t -> Var.t list
   val to_string : t -> bool -> string
-  val normalize : Env.t -> t -> t
   val checkEqual : Env.t -> t -> t -> Ctx.t
   val infer : Env.t -> t -> Ctx.t * Expr.t
-    
+  val mk : Env.t -> expr -> (t * Ctx.t)
 end
 = struct
   type t = 
     |Fold of EVar.t
     |Unfold of Coh.t
-
-  let mk_fold x =
-    Fold x
-
-  let mk_unfold coh =
-    Unfold coh
 		 
   let free_vars coh =
     match coh with
@@ -571,11 +627,6 @@ end
     |Fold x -> EVar.to_string x
     |Unfold coh -> Coh.to_string coh abbrev
 				  
-  let normalize env coh =
-    match coh with
-    |Fold x -> Unfold (Env.val_var env x)
-    |Unfold coh -> Unfold coh
-
   let checkEqual env e1 e2 =
     match e1, e2 with
     |Unfold coh1, Unfold coh2 -> Coh.checkEqual env coh1 coh2
@@ -588,7 +639,17 @@ end
     match coh with
     |Fold _ -> assert (false) (** No cut rule yet *)
     |Unfold coh ->
-      (Ctx.of_ps (Coh.ps coh), Coh.target coh)    
+      (Ctx.of_ps (Coh.ps coh), Coh.target coh)
+
+  let mk env e =
+    match e with
+    |Var v ->
+      let coh = Env.val_var env (EVar.mk v) in
+      (Unfold coh, Ctx.of_ps(Coh.ps coh))
+    |Coh (ps,t) ->
+      let c = Ctx.mk env ps in
+      (Unfold (Coh.mk env c t), c)
+    |(Obj |Arr _|Sub _) -> failwith "problem"
 end
 
 (** -- Module with a specific type for well-defined coherences
@@ -597,7 +658,7 @@ and Coh
 : sig
   type t = private (PS.t * Expr.t)   
 
-  val mk : Env.t -> PS.t -> Expr.t -> t
+  val mk : Env.t -> Ctx.t -> expr -> t
   val free_vars : t -> Var.t list
   val to_string : t -> bool -> string
   val checkEqual : Env.t -> t -> t -> Ctx.t
@@ -607,10 +668,9 @@ end
 = struct
   type t = PS.t * Expr.t
 		    
-  let mk env ps t =
-    let ctx = Ctx.of_ps ps in
-    let t = Expr.normalize env ctx t in
-    Expr.checkT env ctx t;
+  let mk env ctx t =
+    let ps = PS.mk ctx in
+    let t = Expr.mk env ctx t in
     if List.included (PS.free_vars ps) (Expr.free_vars t)
     then  (ps,t)
     else
@@ -656,29 +716,29 @@ end
 
 end    
         
-type var = Var.t
 type evar = EVar.t
 type env = Env.t
 type ctx = Ctx.t
 type sub = Sub.t
 type ps = PS.t
-type expr = Expr.t
 type coh = Coh.t
 type cut = Cut.t
+type nexpr = Expr.t
      	     
 let empty_ctx = Ctx.empty ()
 let empty_env = Env.empty ()
 let mk_ps = PS.mk
 let mk_sub = Sub.mk
 let mk_coh = Coh.mk
-let mk_fold = Cut.mk_fold
-let mk_unfold = Cut.mk_unfold
+let mk_ctx = Ctx.mk
+let mk_nexpr = Expr.mk
 let add_env = Env.add
 let add_ctx = Ctx.add
 let in_ctx = Ctx.mem
-let expr_to_string = Expr.to_string                  
+let nexpr_to_string = Expr.to_string                  
 let coh_to_string = Coh.to_string                  
 
+		      
 (** To be removed, for debugging purposes *)
 let string_of_ctx = fun x -> Ctx.to_string x false
 

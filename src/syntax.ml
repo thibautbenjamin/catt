@@ -1,4 +1,4 @@
-open Kernel
+(* open Kernel
 open Common
 
 type var =
@@ -80,3 +80,4 @@ let coh_of_expr kenv e =
     let u = translate kenv c u in
     Kernel.mk_coh kenv (Kernel.mk_ps c) u
   |_ -> failwith "can only declare coherences"
+ *)

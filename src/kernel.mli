@@ -1,14 +1,26 @@
 module Var : sig
   type t =
     |Name of string
-  end
 
+  val to_string : t -> string
+  end
+type var = Var.t
+	       
+type expr =
+  |Var of var
+  |Obj
+  |Arr of expr * expr
+  |Coh of ((var * expr) list) * expr
+  |Sub of expr * (expr list)
+val string_of_expr : expr -> string
+	       
 module EVar : sig
   type t =
     |Name of string
-  end
+
+  val mk : var -> t
+end
 			       
-type var = Var.t
 type evar = EVar.t
 
 type env
@@ -17,31 +29,21 @@ type ctx
 type ps
 type coh
 type cut
-      
-module Expr : sig
-  type t =
-    |CVar of var
-    |Obj
-    |Arr of t * t * t
-    |PArr of t * t
-    |Sub of cut * sub
-end
+type nexpr
 
-type expr = Expr.t
 
 	      
 val empty_ctx : ctx
 val empty_env : env
 val mk_ps : ctx -> ps
-(*val mk_sub : env -> expr list -> ctx -> ctx -> sub*)
-val mk_sub : env -> expr list -> sub
-val mk_coh : env -> ps -> expr -> coh
-val mk_fold : EVar.t -> cut
-val mk_unfold : coh -> cut
+val mk_sub : env -> expr list -> ctx -> ctx -> sub
+val mk_coh : env -> ctx -> expr -> coh
+val mk_ctx : env -> (var * expr) list -> ctx
+val mk_nexpr : env -> ctx -> expr -> nexpr
 val add_env : env -> evar -> coh -> env
 val add_ctx : env -> ctx -> var -> expr -> ctx
 val in_ctx : ctx -> var -> bool 
-val expr_to_string : expr -> bool -> string
+val nexpr_to_string : nexpr -> bool -> string
 val coh_to_string : coh -> bool -> string
 
 
