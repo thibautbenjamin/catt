@@ -1,5 +1,6 @@
 open Stdlib
 open Common
+open PShape
 open ExtSyntax
 		   
 		   
@@ -48,7 +49,8 @@ module rec Sub
   type t = private (Expr.t list)
 		     
   (** Structural functions *)
-  val mk : Env.t -> expr list -> Ctx.t -> Ctx.t -> t
+  val mk : Env.t -> expr list -> Ctx.t -> PS.t -> t
+  (*val mk : Env.t -> expr list -> Ctx.t -> Ctx.t -> t*)
 
   (** Syntactic properties *)		    
   val free_vars : t -> cvar list
@@ -129,7 +131,50 @@ end
 		       
     (** --------------------
 	Structural functions
-        --------------------  *) 
+        --------------------  *)
+    let elaborate env l src tar =
+      let rec complete l x a ps =
+	(string_of_pshape ps); 
+	match ps with
+	|PNil ->
+	  [x]
+	|PCons ps->
+	  let a',x',y' =
+	    match (a:Expr.t) with
+	    |Arr(a',x',y') -> a',x',y'
+	    |_ -> assert(false)
+	  in
+	  x::y'::(complete l x' a' ps)
+	|(PDrop _) as ps -> find_max l ps 
+      and find_max l ps =
+	(string_of_pshape ps);
+	match l,ps with
+	|x::[], PNil ->
+	  let x = Expr.mk env src x in
+	  [x]
+	|[],_ -> raise NotValid
+	| _, PNil -> raise NotValid
+	|f::l, PDrop(PCons(ps)) ->
+	  let f = Expr.mk env src f in
+	  let a,x,y =
+	    match (Expr.infer env src f) with
+	    |Arr(a,x,y) -> a,x,y
+	    |_ -> assert(false)
+	  in
+	  let s = complete l x a ps in
+	  f::y::s
+	|s,PDrop ps -> find_max s ps
+	|s, PCons _ -> assert(false)
+      in
+      let s = find_max (List.rev l) (PS.shape tar) in
+      let () = check env s src (Ctx.of_ps tar) in
+      s
+			   
+    let mk env l src tar =
+      
+      elaborate env l src tar
+      
+(*
     let mk env l src tar =
       let rec aux l (tar : Ctx.t) =
 	match l,(tar :> (cvar * Expr.t) list) with
@@ -139,10 +184,9 @@ end
 	  let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	  let s = aux s tar in
 	  let t = Expr.mk env src t in
-	  let () = Expr.checkT env tar u in
 	  let () = Expr.checkType env src t (apply s tar u)
 	  in t::s
-      in aux (List.rev l) tar
+      in aux (List.rev l) tar *)
  			
 end
 
@@ -301,7 +345,8 @@ and PS
   val dim : t -> int
   val source : int -> t -> t
   val target : int -> t -> t
-
+  val shape : t -> pshape
+			     
   (** Printing *)
   val to_string : t -> bool -> string
 end
@@ -348,6 +393,12 @@ end
 
   let mk l : t =
     let open Expr in 
+    let rec close ps tx =
+      match tx with
+      | Obj -> ps
+      | Arr (tx,_,_) -> close (PDrop ps) tx
+      | _ -> assert(false)
+    in
     let x0,l =
       match l with
       | (x,Obj)::l -> x,l
@@ -371,7 +422,8 @@ end
            | _ -> raise Invalid
          end
       | [x,tx] -> raise Invalid
-      | [] -> ps
+      | [] ->
+	 let x,tx = marker ps in close ps tx 
     in
     aux (PNil(x0,Obj)) l
 	
@@ -417,12 +469,38 @@ end
     in
     aux ps
 
+  let rec shape ps =
+    match ps with
+    |PNil _ -> PShape.PNil
+    |PCons (ps,_,_) -> PShape.PCons (shape ps)
+    |PDrop ps -> PShape.PDrop (shape ps)
+			     
   (** --------
       Printing
       -------- *)        
   let to_string ps abbrev =
-    Ctx.to_string (Ctx.of_ps ps) abbrev 
-end
+    if abbrev
+    then
+      Ctx.to_string (Ctx.of_ps ps) abbrev
+    else
+      let rec print ps = 
+	match ps with
+	|PNil (x,t) ->
+	  Printf.sprintf "[(%s,%s)]"
+			 (CVar.to_string x)
+			 (Expr.to_string t abbrev)
+	|PCons (ps,(x1,t1),(x2,t2)) ->
+	  Printf.sprintf "%s [(%s,%s) (%s,%s)]"
+			 (print ps)
+			 (CVar.to_string x1)
+			 (Expr.to_string t1 abbrev)
+			 (CVar.to_string x2)
+			 (Expr.to_string t2 abbrev)
+	|PDrop ps ->
+	  Printf.sprintf " %s ! "
+			 (print ps)
+      in print ps
+  end
 
 (** -- Environnement is a association list of variable and coherences
     -- It is provided with 	    
@@ -564,7 +642,7 @@ and Expr
 	Arr (t,u,v)
       |Sub (t,s) ->
 	let t,tar = Cut.mk env t in
-	let s = Sub.mk env s c tar in
+	let s = Sub.mk env s c (PS.mk tar) in
 	Sub (t,s)
       |Coh _ -> failwith "unsubstituted coherence"
     in

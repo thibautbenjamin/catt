@@ -1,4 +1,4 @@
-SOURCES = stdlib.ml common.ml extSyntax.ml kernel.ml lexer.mll parser.mly command.ml prover.ml catt.ml
+SOURCES = stdlib.ml common.ml extSyntax.ml pShape.ml kernel.ml lexer.mll parser.mly command.ml prover.ml catt.ml
 RESULT = catt
 ANNOTATE = true
 
