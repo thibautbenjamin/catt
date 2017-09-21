@@ -5,9 +5,12 @@ module Var = struct
   let to_string v =
   match v with
   |Name s -> s
+
+  let mk s = Name s
 end
 
 type var = Var.t
+	     
 type expr =
   |Var of var
   |Obj

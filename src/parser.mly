@@ -22,10 +22,10 @@ prog:
     |EOF { [] }
 
 cmd:
-    |COH IDENT args COL expr FS { Decl (Name $2, Coh($3,$5)) }
+    |COH IDENT args COL expr FS { Decl (Var.mk $2, Coh($3,$5)) }
 
 args:
-    |LPAR IDENT COL expr RPAR args { (Name $2, $4)::$6 }
+    |LPAR IDENT COL expr RPAR args { (Var.mk $2, $4)::$6 }
     |{ [] }
 
 sub:
@@ -35,7 +35,7 @@ sub:
 simple_expr:
     |LPAR expr RPAR { $2 }
     |OBJ { Obj }
-    |IDENT { Var (Name $1) }
+    |IDENT { Var (Var.mk $1) }
 
 subst_expr:
     |simple_expr { $1 }

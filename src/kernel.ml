@@ -36,8 +36,7 @@ end
 
 type evar = EVar.t
 type cvar = CVar.t
-    
-    
+        
 	       
 (** --Substitutions are lists of terms, they come with 	    
 	 - maker
@@ -52,7 +51,7 @@ module rec Sub
   val mk : Env.t -> expr list -> Ctx.t -> Ctx.t -> t
 
   (** Syntactic properties *)		    
-  val free_vars : t -> Var.t list
+  val free_vars : t -> cvar list
   val apply : t -> Ctx.t -> Expr.t -> Expr.t
 
   (** Equality procedures *)
@@ -74,10 +73,10 @@ end
     let free_vars s =
       List.concat (List.map Expr.free_vars s)
 			   
-    let rec apply_var (s:t) (tar:Ctx.t) (x : Var.t) =
+    let rec apply_var (s:t) (tar:Ctx.t) x =
       match s,tar with
       |_,_ when Ctx.isEmpty tar ->
-	raise (UnknownId (Var.to_string x))
+	raise (UnknownId (CVar.to_string x))
       |t::l, _ ->
 	let ((y,_),tar) = (Ctx.head tar, Ctx.tail tar) in
 	if y = x
@@ -106,7 +105,7 @@ end
       |_,_ -> raise NotValid
 
     let rec check env s src (tar:Ctx.t) =
-      match s,(tar :> (Var.t * Expr.t) list)
+      match s,(tar :> (cvar * Expr.t) list)
       with
       |[],[] -> ()
       |(_::_,[] |[],_::_) -> raise NotValid
@@ -133,7 +132,7 @@ end
         --------------------  *) 
     let mk env l src tar =
       let rec aux l (tar : Ctx.t) =
-	match l,(tar :> (Var.t * Expr.t) list) with
+	match l,(tar :> (cvar * Expr.t) list) with
 	|[],[] -> []
 	|(_::_,[] |[],_::_) -> raise NotValid
 	|t::s,_ ->
@@ -154,22 +153,22 @@ end
 *)
 and Ctx
 : sig
-  type t = private ((Var.t * Expr.t) list)
+  type t = private ((cvar * Expr.t) list)
 
   (** Makers *)
   val empty : unit -> t
-  val add : Env.t -> t -> Var.t -> expr -> t
+  val add : Env.t -> t -> var -> expr -> t
   val mk : Env.t -> (var * expr) list -> t
   val of_ps : PS.t -> t
 					       
   (** Structural operations *)
-  val head : t -> Var.t * Expr.t
+  val head : t -> cvar * Expr.t
   val tail : t -> t
 
   (** Syntactic properties *)
-  val ty_var : t -> Var.t -> Expr.t
-  val free_vars : t -> Var.t list
-  val mem : t -> Var.t -> bool
+  val ty_var : t -> cvar -> Expr.t
+  val free_vars : t -> cvar list
+  val mem : t -> cvar -> bool
 
   (** Equality procedure *)
   val isEmpty : t -> bool
@@ -179,9 +178,13 @@ and Ctx
   val to_string : t -> bool -> string
 end
 = struct
-  type t = (Var.t * Expr.t) list
+  type t = (cvar * Expr.t) list
                         
-  let ty_var ctx x = try List.assoc x ctx with Not_found -> raise (UnknownId (Var.to_string x))
+  let ty_var ctx x =
+    try
+      List.assoc x ctx
+    with
+    | Not_found -> raise (UnknownId (CVar.to_string x))
 
   (** ------
       Makers
@@ -189,7 +192,8 @@ end
   let empty _ = []
 
   let add env (ctx :Ctx.t) x u =
-    let u = Expr.mk env ctx u in 
+    let u = Expr.mk env ctx u in
+    let x = CVar.mk x in
     (ctx :> t)@[(x,u)]
 
   let rec mk env  l =
@@ -245,8 +249,8 @@ end
 		
   let rec checkEqual env ctx1 ctx2 =
     let rec equal c (ctx1 : Ctx.t) (ctx2 : Ctx.t) = 
-      match ((ctx1 :> (Var.t * Expr.t) list),
-	     (ctx2 :> (Var.t * Expr.t) list)) with
+      match ((ctx1 :> (cvar * Expr.t) list),
+	     (ctx2 :> (cvar * Expr.t) list)) with
       |[],[] -> ()
       |_::_, _::_ ->
 	let ((v1,x1),t1) = (Ctx.head ctx1, Ctx.tail ctx1) in
@@ -267,7 +271,7 @@ end
    |[] -> ""
    |(x,t)::c ->
      Printf.sprintf "(%s,%s) %s"
-		    (Var.to_string x)
+		    (CVar.to_string x)
                     (Expr.to_string t abbrev)
                     (to_string c)
 end
@@ -282,15 +286,15 @@ end
 and PS
 : sig
   type t = private
-          |PNil of (Var.t * Expr.t)
-          |PCons of t * (Var.t * Expr.t) * (Var.t * Expr.t)
+          |PNil of (cvar * Expr.t)
+          |PCons of t * (cvar * Expr.t) * (cvar * Expr.t)
           |PDrop of t
 
   (** Maker *)
   val mk : Ctx.t -> t
 
   (** Syntactic properties *)
-  val free_vars : t -> Var.t list
+  val free_vars : t -> cvar list
 
   (** Structural operations *)
   val height : t -> int
@@ -305,8 +309,8 @@ end
   exception Invalid
   
   type t =
-    |PNil of (Var.t * Expr.t)
-    |PCons of PS.t * (Var.t * Expr.t) * (Var.t * Expr.t)
+    |PNil of (cvar * Expr.t)
+    |PCons of PS.t * (cvar * Expr.t) * (cvar * Expr.t)
     |PDrop of PS.t
 
 
@@ -434,10 +438,10 @@ and Env
   val add : t -> var -> expr -> t
 
   (** Structural operation *)
-  val val_var : t -> EVar.t -> Coh.t
+  val val_var : t -> evar -> Coh.t
 end
 = struct
-  type t = (EVar.t * Coh.t) list
+  type t = (evar * Coh.t) list
 
   (** ------
       Makers
@@ -466,12 +470,12 @@ end
 and Expr
 : sig
   type t = 
-    |CVar of Var.t
+    |CVar of cvar
     |Obj
     |Arr of t * t * t
     |Sub of Cut.t * Sub.t
   
-  val free_vars : t -> Var.t list
+  val free_vars : t -> cvar list
   val to_string : t -> bool  -> string
 
   val checkT : Env.t -> Ctx.t -> t -> unit
@@ -482,7 +486,7 @@ and Expr
   end
 = struct
   type  t =
-    |CVar of Var.t
+    |CVar of cvar
     |Obj
     |Arr of t * t * t
     |Sub of Cut.t * Sub.t
@@ -498,7 +502,7 @@ and Expr
   let rec to_string expr abbrev =
     let to_string  = fun u -> Expr.to_string u abbrev in 
     match expr with
-    |CVar x -> Var.to_string x
+    |CVar x -> CVar.to_string x
     |Obj -> "*"
     |Arr (t,u,v) ->
       if abbrev then
@@ -549,7 +553,7 @@ and Expr
   let mk env c (e:expr) =
     let rec translate  e = 
       match e with
-      |Var v -> CVar v
+      |Var v -> CVar (CVar.mk v)
       |Obj -> Obj
       |Arr (u,v) ->
 	let u = translate u in
@@ -581,9 +585,9 @@ and Cut
 : sig
 
   type t =
-    |Fold of EVar.t
+    |Fold of evar
     |Unfold of Coh.t		 
-  val free_vars : t -> Var.t list
+  val free_vars : t -> cvar list
   val to_string : t -> bool -> string
   val checkEqual : Env.t -> t -> t -> Ctx.t
   val infer : Env.t -> t -> Ctx.t * Expr.t
@@ -591,7 +595,7 @@ and Cut
 end
 = struct
   type t = 
-    |Fold of EVar.t
+    |Fold of evar
     |Unfold of Coh.t
 		 
   let free_vars coh =
@@ -636,7 +640,7 @@ and Coh
   type t = private (PS.t * Expr.t)   
 
   val mk : Env.t -> Ctx.t -> expr -> t
-  val free_vars : t -> Var.t list
+  val free_vars : t -> cvar list
   val to_string : t -> bool -> string
   val checkEqual : Env.t -> t -> t -> Ctx.t
   val ps : t -> PS.t
