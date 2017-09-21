@@ -1,7 +1,7 @@
 %{
     open Common
-    open Kernel
     open Command
+    open ExtSyntax
 %}
 
 %token COH OBJ PIPE MOR

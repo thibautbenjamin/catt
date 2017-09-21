@@ -1,6 +1,6 @@
 open Kernel
 open Common
-open Syntax
+open ExtSyntax
 
 let debug = true
        
