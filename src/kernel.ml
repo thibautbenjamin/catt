@@ -4,19 +4,40 @@ open ExtSyntax
 		   
 		   
 
-module EVar = struct
-  type t =
-  |Name of string
+(** TODO : write both of them in one go*)       
+module EVar
+: sig 
+    type t
+    val to_string : t -> string
+    val mk : var -> t
+  end
+= struct
+  type t = var
 
-  let to_string v =
-  match v with
-  |Name s -> s
+  let to_string v = Var.to_string v
 
-  let mk v =
-    match v with
-    |Var.Name x -> Name x
+  let mk v = v
 end
 
+
+module CVar
+: sig 
+    type t
+    val to_string : t -> string
+    val mk : var -> t
+  end
+= struct
+  type t = var
+
+  let to_string v = Var.to_string v
+
+  let mk v = v
+end
+
+type evar = EVar.t
+type cvar = CVar.t
+    
+    
 	       
 (** --Substitutions are lists of terms, they come with 	    
 	 - maker
@@ -406,12 +427,11 @@ end
 *)    
 and Env
 : sig
-  type t = private (EVar.t * Coh.t) list
+  type t = private (evar * Coh.t) list
 
   (** Makers *)
-  (*a function is required here for the safe module condition*)
   val empty : unit -> t
-  val add : t -> EVar.t -> Coh.t -> t
+  val add : t -> var -> expr -> t
 
   (** Structural operation *)
   val val_var : t -> EVar.t -> Coh.t
@@ -425,7 +445,13 @@ end
   let empty a = []
 
   let add env x u =
-    (x,u)::env
+    let u = match u with
+    |Coh (ps,u) ->
+      let c = Ctx.mk env ps in
+      Coh.mk env c u
+    |_ -> assert (false)
+    in
+    (EVar.mk x,u)::(env :> (evar * Coh.t) list)
 
 
   (** --------------------
@@ -667,19 +693,9 @@ end
 
 end    
         
-type evar = EVar.t
 type env = Env.t
-type ctx = Ctx.t
-type coh = Coh.t
-     	     
-let empty_env = Env.empty ()
-let mk_coh = Coh.mk
-let mk_ctx = Ctx.mk
-let add_env = Env.add
-let coh_to_string = Coh.to_string                  
 
-		      
-(** To be removed, for debugging purposes *)
-let string_of_ctx = fun x -> Ctx.to_string x false
+let empty_env = Env.empty ()
+let add_env = Env.add
 
 					   
