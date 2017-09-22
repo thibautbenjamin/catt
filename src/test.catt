@@ -11,14 +11,21 @@ coh assoc (x : *)
 	  (z : *) (g : y -> z)
 	  (t : *) (h : z -> t)
 	  : comp [(comp [f g]) h] -> comp [f (comp [g h]) ].
+	  
 coh unitl (x : *) (y : *) (f : x -> y) : f -> comp [(id [x]) f].
 coh unitr (x : *) (y : *) (f : x -> y) : f -> comp [f (id [y])].
 
 coh id_comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : comp[f g] -> comp[f g].
-coh comp2 (x : *)
-    	  (y : *) (f1 : x -> y)
-	  (f2 : x -> y) (a : f1 -> f2)
-	  (z : *) (g1 : y -> z)
-	  (g2 : y -> z) (b : g1 -> g2)
-	  : comp[f1 g1] -> comp[f2 g2].
+coh comp2h (x : *)
+    	   (y : *) (f1 : x -> y)
+	   (f2 : x -> y) (a : f1 -> f2)
+	   (z : *) (g1 : y -> z)
+	   (g2 : y -> z) (b : g1 -> g2)
+	   : comp[f1 g1] -> comp[f2 g2].
+
+coh comp2v (x : *)
+    	   (y : *) (f1 : x -> y)
+	   (f2 : x -> y) (a : f1 -> f2)
+	   (f3 : x -> y) (b : f2 -> f3)
+	   : f1 -> f3.
 

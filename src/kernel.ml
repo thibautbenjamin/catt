@@ -1,4 +1,5 @@
 open Stdlib
+open Settings
 open Common
 open PShape
 open ExtSyntax
@@ -62,7 +63,7 @@ module rec Sub
   (** Printing *)	
   val to_string : t -> bool -> string
 				 
-  (** Temporary *)
+  (** Well-definedness procedure *)
   val check : Env.t -> t  -> Ctx.t -> Ctx.t -> unit
 end
 = struct
@@ -134,7 +135,6 @@ end
         --------------------  *)
     let elaborate env l src tar =
       let rec complete l x a ps =
-	(string_of_pshape ps); 
 	match ps with
 	|PNil ->
 	  [x]
@@ -147,7 +147,6 @@ end
 	  x::y'::(complete l x' a' ps)
 	|(PDrop _) as ps -> find_max l ps 
       and find_max l ps =
-	(string_of_pshape ps);
 	match l,ps with
 	|x::[], PNil ->
 	  let x = Expr.mk env src x in
@@ -171,24 +170,22 @@ end
       s
 			   
     let mk env l src tar =
-      
-      elaborate env l src tar
-      
-(*
-    let mk env l src tar =
-      let rec aux l (tar : Ctx.t) =
-	match l,(tar :> (cvar * Expr.t) list) with
-	|[],[] -> []
-	|(_::_,[] |[],_::_) -> raise NotValid
-	|t::s,_ ->
-	  let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
-	  let s = aux s tar in
-	  let t = Expr.mk env src t in
-	  let () = Expr.checkType env src t (apply s tar u)
-	  in t::s
-      in aux (List.rev l) tar *)
- 			
-end
+      if !partial_substitutions then
+	elaborate env l src tar
+      else
+        let rec aux l (tar : Ctx.t) =
+	  match l,(tar :> (cvar * Expr.t) list) with
+	  |[],[] -> []
+	  |(_::_,[] |[],_::_) -> raise NotValid
+	  |t::s,_ ->
+	    let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
+	    let s = aux s tar in
+	    let t = Expr.mk env src t in
+	    let () = Expr.checkType env src t (apply s tar u)
+	    in t::s
+	in aux (List.rev l) (Ctx.of_ps tar)
+ 	       
+  end
 
 (** -- Contexts are association lists of variables and terms in normal form.
    -- They are provided with 	    
@@ -561,6 +558,7 @@ and Expr
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
   val checkType : Env.t -> Ctx.t -> t -> t -> unit
   val mk : Env.t -> Ctx.t -> expr -> t
+
   end
 = struct
   type  t =
@@ -576,7 +574,8 @@ and Expr
     |Arr (t,u,v) -> List.unions [(free_vars t);(free_vars u);(free_vars v)]
     |Sub (_,sub) -> Sub.free_vars sub
   (* to be modified to include Cut.free_vars *)
-   		         
+
+    
   let rec to_string expr abbrev =
     let to_string  = fun u -> Expr.to_string u abbrev in 
     match expr with
@@ -587,7 +586,7 @@ and Expr
         Printf.sprintf "%s -> %s" (to_string u) (to_string v)
       else Printf.sprintf "%s | %s -> %s" (to_string t) (to_string u) (to_string v)
     |Sub (t,s) -> Printf.sprintf "%s.%s" (Sub.to_string s abbrev) (Cut.to_string t abbrev)
-			  
+
   let rec checkEqual env ctx e1 e2 =
     let equal = checkEqual env ctx in
     match e1, e2 with
@@ -734,8 +733,8 @@ end
     then  (ps,t)
     else
       let open Expr in
-      let f,g = match t with
-        |Arr(a,f,g) -> (f,g)  
+      let a,f,g = match t with
+        |Arr(a,f,g) -> (a,f,g)  
         |_ -> raise NotAlgebraic
       in
       let i = PS.dim ps in
@@ -743,13 +742,18 @@ end
       and pst = PS.target (i-1) ps in
       let ctxs = Ctx.of_ps pss
       and ctxt = Ctx.of_ps pst in
+      let fvf = List.union (free_vars f) (free_vars a)
+      and fvg = List.union (free_vars g) (free_vars a) in
       try
 	let tf = Expr.infer env ctxs f in
 	let tg = Expr.infer env ctxt g in
 	begin
 	  Expr.checkT env ctxs tf;
 	  Expr.checkT env ctxt tg;
-	  if List.included (PS.free_vars pss) (free_vars f) && List.included (PS.free_vars pst) (free_vars g)
+	  if List.included (PS.free_vars pss)
+			    fvf &&
+	     List.included (PS.free_vars pst)
+			   fvg
 	  then (ps,t) 
 	  else raise NotAlgebraic
 	end;

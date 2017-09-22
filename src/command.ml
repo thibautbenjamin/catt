@@ -1,8 +1,8 @@
 open Kernel
+open Settings
 open Common
 open ExtSyntax
 
-let debug_mode = true
        
 type cmd =
   |Decl of var * expr
@@ -19,7 +19,7 @@ let exec_cmd env cmd =
 		      (string_of_expr e)
      in
      let env =
-       if debug_mode then 
+       if !debug_mode then 
 	 Kernel.add_env env x e
        else
 	 try Kernel.add_env env x e

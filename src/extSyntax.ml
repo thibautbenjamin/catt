@@ -31,9 +31,9 @@ let rec string_of_expr e =
 		   (string_of_ps ps)
 		   (string_of_expr u)
   |Sub (t,s) ->
-    Printf.sprintf "Sub(%s,%s)"
-		   (string_of_sub s)
+    Printf.sprintf "(%s [%s])"
 		   (string_of_expr t)
+		   (string_of_sub s)
 and string_of_ps ps =
   match ps with
   |[] -> ""
@@ -45,6 +45,7 @@ and string_of_ps ps =
 and string_of_sub s =
   match s with
   |[] -> ""
+  |t::[] -> Printf.sprintf "%s" (string_of_expr t)
   |t::s -> Printf.sprintf"%s; %s"
 			 (string_of_expr t)
 			 (string_of_sub s)
