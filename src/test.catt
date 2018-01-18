@@ -1,10 +1,39 @@
 coh id (x : *) : x -> x.
-coh idd (x : *) (y : *) (f : x -> y) : f -> f.
-coh iddd (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) : a -> a.
 
-coh id_id (x : *) : id [x] -> id [x].
+coh comp2 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) ( f2 : x2 -> x3) : x1 -> x3.
 
-coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z.
+coh comp3 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) : x1 -> x4.
+
+coh comp4 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) :
+x1 -> x5.
+
+coh comp5 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6):
+x1 -> x6.
+
+coh comp6 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7):
+x1 -> x7.
+
+coh comp7 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8):
+x1 -> x8.
+
+coh comp8 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8) (x9 : *) (f8 : x8 -> x9):
+x1 -> x9.
+
+coh comp9 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8) (x9 : *) (f8 : x8 -> x9) (x10 : *) (f9 : x9 -> x10):
+x1 -> x10.
+
+coh comp10 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8) (x9 : *) (f8 : x8 -> x9) (x10 : *) (f9 : x9 -> x10) (x11 : *) (f10 : x10 -> x11):
+x1 -> x11.
+
+coh comp11 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8) (x9 : *) (f8 : x8 -> x9) (x10 : *) (f9 : x9 -> x10) (x11 : *) (f10 : x10 -> x11) (x12 : *) (f11 : x11 -> x12):
+x1 -> x12.
+
+coh  whiskl (x : *) (y : *) (f : x -> y) (z : *) (g1 : y -> z) (g2 : y -> z) (a : g1 -> g2) :
+comp2[f g1] -> comp2[f g2].
+
+coh whiskl2 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (t : *) (h1 : z -> t) (h2 : z -> t) (a : h1 -> h2) :
+comp3[f g h1] -> comp3[f g h2].
+
 
 coh assoc (x : *)
     	  (y : *) (f : x -> y)
@@ -15,17 +44,10 @@ coh assoc (x : *)
 coh unitl (x : *) (y : *) (f : x -> y) : f -> comp [(id [x]) f].
 coh unitr (x : *) (y : *) (f : x -> y) : f -> comp [f (id [y])].
 
-coh id_comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : comp[f g] -> comp[f g].
-coh comp2h (x : *)
-    	   (y : *) (f1 : x -> y)
-	   (f2 : x -> y) (a : f1 -> f2)
-	   (z : *) (g1 : y -> z)
-	   (g2 : y -> z) (b : g1 -> g2)
-	   : comp[f1 g1] -> comp[f2 g2].
-
-coh comp2v (x : *)
+coh compv (x : *)
     	   (y : *) (f1 : x -> y)
 	   (f2 : x -> y) (a : f1 -> f2)
 	   (f3 : x -> y) (b : f2 -> f3)
 	   : f1 -> f3.
 
+coh id_id_id (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) : id [a] -> id [a].

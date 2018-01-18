@@ -1,4 +1,6 @@
 exception NotValid
+exception EmptySub
+exception BadUnderSub
 exception NotAlgebraic
 exception UnknownId of string
 exception UnknownCoh of string

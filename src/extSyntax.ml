@@ -1,10 +1,12 @@
 module Var = struct
   type t =
   |Name of string
-
+  |New of int
+	     
   let to_string v =
   match v with
   |Name s -> s
+  |New i -> "_" ^ string_of_int i
 
   let mk s = Name s
 end

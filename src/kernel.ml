@@ -12,13 +12,17 @@ module EVar
     type t
     val to_string : t -> string
     val mk : var -> t
+    val to_var : t -> var 
   end
 = struct
   type t = var
 
-  let to_string v = Var.to_string v
-
+  let to_string v =
+      Var.to_string v
+      
   let mk v = v
+
+  let to_var v = v
 end
 
 
@@ -27,18 +31,23 @@ module CVar
     type t
     val to_string : t -> string
     val mk : var -> t
+    val to_var : t -> var
   end
 = struct
-  type t = var
+    type t = var
 
-  let to_string v = Var.to_string v
+    let to_string v =
+      Var.to_string v
+	       
+    let mk v = v
 
-  let mk v = v
+    let to_var v = v 
 end
 
 type evar = EVar.t
 type cvar = CVar.t
-        
+
+let var_of_cvar = CVar.to_var
 	       
 (** --Substitutions are lists of terms, they come with 	    
 	 - maker
@@ -51,12 +60,13 @@ module rec Sub
 		     
   (** Structural functions *)
   val mk : Env.t -> expr list -> Ctx.t -> PS.t -> t
-  (*val mk : Env.t -> expr list -> Ctx.t -> Ctx.t -> t*)
-
+  val to_expr : t -> expr list
+						    
   (** Syntactic properties *)		    
   val free_vars : t -> cvar list
   val apply : t -> Ctx.t -> Expr.t -> Expr.t
-
+  val dim : Env.t -> Ctx.t -> expr list -> int
+					
   (** Equality procedures *)
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
 
@@ -117,7 +127,7 @@ end
 	check env s src tar;
 	Expr.checkT env tar u;
 	Expr.checkType env src t (apply s tar u)
-
+		       
     (** --------
 	Printing
         --------  *)        
@@ -185,6 +195,23 @@ end
 	    in t::s
 	in aux (List.rev l) (Ctx.of_ps tar)
  	       
+    let dim env ctx l =
+      let rec max l i =
+	match l with
+	| [] -> i
+	| t::l -> if t > i
+		  then max l t
+		  else max l i
+      in
+      let l  = (List.map (fun x -> Expr.dim (Expr.infer env ctx (Expr.mk env ctx x))) l)
+      in
+      match l with
+      |t::l -> max l t
+      |[] -> raise EmptySub
+
+    let to_expr s =
+      List.map Expr.to_expr s
+		   
   end
 
 (** -- Contexts are association lists of variables and terms in normal form.
@@ -199,17 +226,20 @@ and Ctx
   (** Makers *)
   val empty : unit -> t
   val add : Env.t -> t -> var -> expr -> t
+  val add_norm : Env.t -> t -> var -> Expr.t -> t
   val mk : Env.t -> (var * expr) list -> t
   val of_ps : PS.t -> t
 					       
   (** Structural operations *)
   val head : t -> cvar * Expr.t
   val tail : t -> t
-
+  val suspend : Env.t -> t -> int -> t
+		    
   (** Syntactic properties *)
   val ty_var : t -> cvar -> Expr.t
   val free_vars : t -> cvar list
   val mem : t -> cvar -> bool
+  val to_expr : t -> (var * expr) list
 
   (** Equality procedure *)
   val isEmpty : t -> bool
@@ -234,6 +264,12 @@ end
 
   let add env (ctx :Ctx.t) x u =
     let u = Expr.mk env ctx u in
+    let x = CVar.mk x in
+    (ctx :> t)@[(x,u)]
+
+
+  let add_norm env (ctx :Ctx.t) x u =
+    let () = Expr.checkT env ctx u in
     let x = CVar.mk x in
     (ctx :> t)@[(x,u)]
 
@@ -269,6 +305,42 @@ end
     |a::ctx -> a::(tail ctx)
 
 
+		    
+  let suspend env (ctx : t) i =
+    let open Var in
+    assert (i>=1);
+    let rec aux k c ty=
+      match k with
+      |k when k = i -> c,ty
+      |k ->
+	let k' = k+1 in
+	let ty = Arr (Var (New (2*k-1)), Var (New (2*k)))
+	in
+	let ty' = Arr (Var (New (2*k'-1)), Var (New (2*k')))
+	in aux k'
+	       (Ctx.add 
+		  env
+		  (Ctx.add env c (New ((2*k')-1)) ty)
+		  (New (2*k'))
+		  ty)
+	       ty'
+    in
+    let ctx' = Ctx.add env
+		   (Ctx.add_norm env (Ctx.empty ()) (New 1) Obj)
+		   (New 2)
+		   Obj    
+    in 
+    let ctx',ty = aux 1 ctx' Obj in
+    let rec comp c res = match c with
+      |(x,Expr.Obj)::c -> comp c (Ctx.add env res (var_of_cvar x) ty)
+      |(x,tx)::c -> comp c (Ctx.add_norm env res (var_of_cvar x) tx)
+      |[] -> res
+    in
+    comp ctx ctx'
+
+
+    
+
   (** --------------------
       Syntactic properties
       -------------------- *)
@@ -279,7 +351,12 @@ end
    |(x,u)::c when x = v -> true
    |_::c -> mem c v
 
-		    
+
+ let to_expr c =
+   List.map
+     (fun (v,t) -> (CVar.to_var v, (Expr.to_expr t)))
+     c
+		
   (** -------------------
       Equality procedures
       ------------------- *)
@@ -336,6 +413,7 @@ and PS
 
   (** Syntactic properties *)
   val free_vars : t -> cvar list
+  val to_expr : t -> (var*expr) list
 
   (** Structural operations *)
   val height : t -> int
@@ -343,6 +421,7 @@ and PS
   val source : int -> t -> t
   val target : int -> t -> t
   val shape : t -> pshape
+  val suspend : Env.t -> t -> int -> t
 			     
   (** Printing *)
   val to_string : t -> bool -> string
@@ -388,7 +467,7 @@ end
        | _ -> raise Invalid
 
 
-  let mk l : t =
+  let mk (l : Ctx.t) : t =
     let open Expr in 
     let rec close ps tx =
       match tx with
@@ -397,7 +476,7 @@ end
       | _ -> assert(false)
     in
     let x0,l =
-      match l with
+      match (l :> (cvar*Expr.t) list) with
       | (x,Obj)::l -> x,l
       | _ -> raise Invalid
     in
@@ -423,6 +502,7 @@ end
 	 let x,tx = marker ps in close ps tx 
     in
     aux (PNil(x0,Obj)) l
+
 	
 	
   (** ---------------------
@@ -471,7 +551,10 @@ end
     |PNil _ -> PShape.PNil
     |PCons (ps,_,_) -> PShape.PCons (shape ps)
     |PDrop ps -> PShape.PDrop (shape ps)
-			     
+
+  let rec suspend env ps i =
+    mk (Ctx.suspend env (Ctx.of_ps ps) i)
+			      
   (** --------
       Printing
       -------- *)        
@@ -497,6 +580,10 @@ end
 	  Printf.sprintf " %s ! "
 			 (print ps)
       in print ps
+
+  let to_expr ps = Ctx.to_expr (Ctx.of_ps ps)
+
+	
   end
 
 (** -- Environnement is a association list of variable and coherences
@@ -526,7 +613,7 @@ end
   let add env x u =
     let u = match u with
     |Coh (ps,u) ->
-      let c = Ctx.mk env ps in
+      let c = PS.mk (Ctx.mk env ps) in
       Coh.mk env c u
     |_ -> assert (false)
     in
@@ -559,6 +646,8 @@ and Expr
   val checkType : Env.t -> Ctx.t -> t -> t -> unit
   val mk : Env.t -> Ctx.t -> expr -> t
 
+  val dim : t -> int
+  val to_expr : t -> expr
   end
 = struct
   type  t =
@@ -577,7 +666,7 @@ and Expr
 
     
   let rec to_string expr abbrev =
-    let to_string  = fun u -> Expr.to_string u abbrev in 
+    let to_string  = fun u -> to_string u abbrev in 
     match expr with
     |CVar x -> CVar.to_string x
     |Obj -> "*"
@@ -640,8 +729,8 @@ and Expr
 	let () = checkEqual env c t t' in
 	Arr (t,u,v)
       |Sub (t,s) ->
-	let t,tar = Cut.mk env t in
-	let s = Sub.mk env s c (PS.mk tar) in
+	let t,tar = Cut.mk env t (Sub.dim env c s) in
+	let s = Sub.mk env s c tar in
 	Sub (t,s)
       |Coh _ -> failwith "unsubstituted coherence"
     in
@@ -655,7 +744,20 @@ and Expr
     let e = translate e
     in
     check e;
-    e    
+    e
+
+  let rec dim t =
+    match t with
+    |Obj -> 0
+    |Arr(a,t,u) -> 1 + dim a
+    |_ -> assert (false)
+
+  let rec to_expr t : expr=
+    match t with
+    |Obj -> Obj
+    |Arr(_,u,v) -> Arr(to_expr u, to_expr v)
+    |CVar v -> Var (CVar.to_var v)
+    |Sub (t,s) -> Sub(Cut.to_expr t, Sub.to_expr s)
 end
     
 and Cut
@@ -668,7 +770,8 @@ and Cut
   val to_string : t -> bool -> string
   val checkEqual : Env.t -> t -> t -> Ctx.t
   val infer : Env.t -> t -> Ctx.t * Expr.t
-  val mk : Env.t -> expr -> (t * Ctx.t)
+  val mk : Env.t -> expr -> int -> (t * PS.t)
+  val to_expr : t -> expr
 end
 = struct
   type t = 
@@ -699,15 +802,37 @@ end
     |Unfold coh ->
       (Ctx.of_ps (Coh.ps coh), Coh.target coh)
 
-  let mk env e =
+  let mk env e i =
     match e with
     |Var v ->
       let coh = Env.val_var env (EVar.mk v) in
-      (Unfold coh, Ctx.of_ps(Coh.ps coh))
+      let ps = Coh.ps coh in
+      let j = PS.dim ps in
+      if (j=i)
+      then
+	(Unfold coh, ps)
+      else if i>j then
+	let t = Expr.to_expr (Coh.target coh) in
+        let ps = PS.suspend env ps (i-j) in
+	(Unfold (Coh.mk env ps t), ps)
+      else failwith "substitution not applied enough"
     |Coh (ps,t) ->
-      let c = Ctx.mk env ps in
-      (Unfold (Coh.mk env c t), c)
-    |(Obj |Arr _|Sub _) -> failwith "problem"
+      let ps = PS.mk (Ctx.mk env ps) in
+      let j = PS.dim ps in
+      if (j=i) then
+	(Unfold (Coh.mk env ps t), ps)
+      else if i>j then
+	let ps = PS.suspend env ps (i-j) in 
+	(Unfold (Coh.mk env ps t), ps)
+      else failwith "substitution not applied enough"
+
+    |(Obj |Arr _|Sub _) -> raise BadUnderSub
+
+  let rec to_expr c =
+    match c with
+    |Fold v -> Var (EVar.to_var v)
+    |Unfold coh -> Coh.to_expr coh
+
 end
 
 (** -- Module with a specific type for well-defined coherences
@@ -716,19 +841,18 @@ and Coh
 : sig
   type t = private (PS.t * Expr.t)   
 
-  val mk : Env.t -> Ctx.t -> expr -> t
+  val mk : Env.t -> PS.t -> expr -> t
   val free_vars : t -> cvar list
   val to_string : t -> bool -> string
   val checkEqual : Env.t -> t -> t -> Ctx.t
   val ps : t -> PS.t
   val target : t -> Expr.t
+  val to_expr : t -> expr
 end
 = struct
   type t = PS.t * Expr.t
 		    
-  let mk env ctx t =
-    let ps = PS.mk ctx in
-    let t = Expr.mk env ctx t in
+  let check env ps t = 
     if List.included (PS.free_vars ps) (Expr.free_vars t)
     then  (ps,t)
     else
@@ -759,7 +883,12 @@ end
 	end;
       with
       |UnknownId _ -> raise NotAlgebraic
-	
+			    
+  let mk env ps t =
+    let t = Expr.mk env (Ctx.of_ps ps) t in
+    check env ps t
+
+      
   let free_vars (ps,t) =
     List.union (PS.free_vars ps) (Expr.free_vars t)
 
@@ -776,6 +905,8 @@ end
   let ps (ps,t) = ps
 
   let target (ps,t) = t
+
+  let to_expr (ps,t) = Coh (PS.to_expr ps, Expr.to_expr t)
 
 end    
         
