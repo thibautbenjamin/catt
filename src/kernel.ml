@@ -318,26 +318,26 @@ end
 	in
 	let ty' = Arr (Var (New (2*k'-1)), Var (New (2*k')))
 	in aux k'
-	       (Ctx.add 
-		  env
-		  (Ctx.add env c (New ((2*k')-1)) ty)
-		  (New (2*k'))
-		  ty)
-	       ty'
+	     (Ctx.add 
+		env
+		(Ctx.add env c (New ((2*k')-1)) ty)
+		(New (2*k'))
+		ty)
+	     ty'
     in
     let ctx' = Ctx.add env
-		   (Ctx.add_norm env (Ctx.empty ()) (New 1) Obj)
+		   (Ctx.add_norm env (Ctx.empty ()) (New 1) Expr.Obj)
 		   (New 2)
 		   Obj    
-    in 
-    let ctx',ty = aux 1 ctx' Obj in
+    in
+    let ctx',ty = aux 1 ctx' (Arr (Var (New 1), Var (New 2))) in
     let rec comp c res = match c with
       |(x,Expr.Obj)::c -> comp c (Ctx.add env res (var_of_cvar x) ty)
-      |(x,tx)::c -> comp c (Ctx.add_norm env res (var_of_cvar x) tx)
+      |(x,tx)::c -> comp c (Ctx.add env res (var_of_cvar x) (Expr.to_expr tx))
       |[] -> res
     in
     comp ctx ctx'
-
+    
 
     
 
