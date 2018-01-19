@@ -60,11 +60,12 @@ module rec Sub
 		     
   (** Structural functions *)
   val mk : Env.t -> expr list -> Ctx.t -> PS.t -> t
+  val mk_elaborated : Env.t -> expr list -> Ctx.t -> PS.t -> t
   val to_expr : t -> expr list
 						    
   (** Syntactic properties *)		    
   val free_vars : t -> cvar list
-  val apply : t -> Ctx.t -> Expr.t -> Expr.t
+  val apply : Env.t -> t -> Ctx.t -> Ctx.t -> Expr.t -> Expr.t
   val dim : Env.t -> Ctx.t -> expr list -> int
 					
   (** Equality procedures *)
@@ -85,7 +86,7 @@ end
         --------------------  *) 
     let free_vars s =
       List.concat (List.map Expr.free_vars s)
-			   
+		  
     let rec apply_var (s:t) (tar:Ctx.t) x =
       match s,tar with
       |_,_ when Ctx.isEmpty tar ->
@@ -95,16 +96,17 @@ end
 	if y = x
 	then t
 	else apply_var l tar x
-      |[], _ -> assert (false)
+      |[], _ -> assert (false)     
 
-    let rec apply (s:t) tar e =
+    let rec compose env src tar s s' =
+      List.rev (List.map (fun t -> Expr.to_expr (apply env s tar src t)) s')
+    and apply env (s:t) tar sour e =
       let open Expr in
       match e with
       |CVar x -> apply_var s tar x
       |Obj -> Obj
-      |Arr (a,u,v) ->
-	Arr (apply s tar a, apply s tar u, apply s tar v)
-      |Sub _ -> assert (false)
+      |Arr (a,u,v) -> Arr (apply env s tar sour a, apply env s tar sour u, apply env s tar sour v)
+      |Sub (t,s') -> let newtar = Cut.ps t in Sub (t, Sub.mk_elaborated env (compose env sour tar s (s' :> Expr.t list)) sour newtar)
 
     (** -----------------
 	Typing procedures
@@ -126,7 +128,7 @@ end
 	let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	check env s src tar;
 	Expr.checkT env tar u;
-	Expr.checkType env src t (apply s tar u)
+	Expr.checkType env src t (apply env s tar src u)
 		       
     (** --------
 	Printing
@@ -191,10 +193,24 @@ end
 	    let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	    let s = aux s tar in
 	    let t = Expr.mk env src t in
-	    let () = Expr.checkType env src t (apply s tar u)
+	    let () = Expr.checkType env src t (apply env s tar src u)
 	    in t::s
 	in aux (List.rev l) (Ctx.of_ps tar)
- 	       
+
+    let mk_elaborated env l src tar =
+      let rec aux l (tar : Ctx.t) =
+	match l,(tar :> (cvar * Expr.t) list) with
+	|[],[] -> []
+	|(_::_,[] |[],_::_) -> raise NotValid
+	|t::s,_ ->
+	  let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
+	  let s = aux s tar in
+	  let t = Expr.mk env src t in
+	  let () = Expr.checkType env src t (apply env s tar src u)
+	  in t::s
+      in aux (List.rev l) (Ctx.of_ps tar)
+      
+               
     let dim env ctx l =
       let rec max l i =
 	match l with
@@ -210,7 +226,7 @@ end
       |[] -> raise EmptySub
 
     let to_expr s =
-      List.map Expr.to_expr s
+      List.rev (List.map Expr.to_expr s)
 		   
   end
 
@@ -702,7 +718,7 @@ and Expr
     |Sub (e,s) ->
       let tar,ty = Cut.infer env e in
       Sub.check env s ctx tar;
-      Sub.apply s tar ty
+      Sub.apply env s tar ctx ty
     |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e true))
   and checkT env ctx e =
     match e with
@@ -772,6 +788,7 @@ and Cut
   val infer : Env.t -> t -> Ctx.t * Expr.t
   val mk : Env.t -> expr -> int -> (t * PS.t)
   val to_expr : t -> expr
+  val ps : t -> PS.t
 end
 = struct
   type t = 
@@ -802,6 +819,11 @@ end
     |Unfold coh ->
       (Ctx.of_ps (Coh.ps coh), Coh.target coh)
 
+  let ps coh =
+    match coh with
+    |Fold _ -> assert (false)
+    |Unfold coh -> Coh.ps coh
+        
   let mk env e i =
     match e with
     |Var v ->
