@@ -9,6 +9,7 @@ rule token = parse
   | "coh" { COH }
   | "hyp" { HYP }
   | "check" { CHECK }
+  | "let" { LET }
   | "eval" { EVAL }
   | "env" { ENV }
   | "(" { LPAR }

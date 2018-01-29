@@ -47,6 +47,8 @@ coh exch (x : *)
 		 (g3 : y -> z) (b2 : g2 -> g3) :
 comp [(hcomp [a1 b1]) (hcomp [a2 b2])] -> hcomp [(comp [a1 a2]) (comp [b1 b2])].
 
-check (x : *) (f : x -> x) : x -> x = comp [f f].
+let sq (x : *) (f : x -> x) : x -> x = comp [f f].
+
+check (x : *) (f : x -> x) : x -> x = sq [(sq [f])].
 
 check (x : *) (y : *) (f : x -> y) (g : y -> x) : x -> x = comp [g f].

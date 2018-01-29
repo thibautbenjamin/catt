@@ -1,4 +1,4 @@
-SOURCES = stdlib.ml settings.ml common.ml extSyntax.ml pShape.ml kernel.ml lexer.mll parser.mly command.ml prover.ml catt.ml
+SOURCES = stdlib.ml settings.ml common.ml extSyntax.ml pShape.ml kernel.ml lexer.mll parser.mly macrosEnvironnement.ml unravel.ml command.ml prover.ml catt.ml
 RESULT = catt
 ANNOTATE = true
 

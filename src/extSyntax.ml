@@ -9,6 +9,11 @@ module Var = struct
   |New i -> "_" ^ string_of_int i
 
   let mk s = Name s
+
+  let equal u v = match u,v with
+    |Name s, Name s' -> s = s'
+    |New a, New b -> a = b
+    |_,_ -> false
 end
 
 type var = Var.t

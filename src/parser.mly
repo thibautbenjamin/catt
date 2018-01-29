@@ -7,7 +7,7 @@
 %token COH OBJ PIPE MOR
 %token LPAR RPAR LBRA RBRA COL FS
 %token <string> IDENT STRING
-%token CHECK EVAL HYP ENV EQUAL
+%token CHECK EVAL HYP ENV EQUAL LET
 %token EOF
 
 %left PIPE
@@ -22,8 +22,9 @@ prog:
     |EOF { [] }
 
 cmd:
-    |COH IDENT args COL expr FS { Decl (Var.mk $2, Coh($3,$5)) }
+    |COH IDENT args COL expr FS { DeclCoh (Var.mk $2, Coh($3,$5)) }
     |CHECK args COL expr EQUAL expr FS { Check ($2,$6,$4) }
+    |LET IDENT args COL expr EQUAL expr FS { Decl (Var.mk $2,$3,$7,$5) }
 
 args:
     |LPAR IDENT COL expr RPAR args { (Var.mk $2, $4)::$6 }
