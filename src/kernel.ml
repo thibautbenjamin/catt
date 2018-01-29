@@ -132,7 +132,7 @@ end
 		       
     (** --------
 	Printing
-        --------  *)        
+        --------  *)   
     let rec to_string s abbrev =
       match s with
       |[] -> ""
@@ -180,22 +180,6 @@ end
       let s = find_max (List.rev l) (PS.shape tar) in
       let () = check env s src (Ctx.of_ps tar) in
       s
-			   
-    let mk env l src tar =
-      if !partial_substitutions then
-	elaborate env l src tar
-      else
-        let rec aux l (tar : Ctx.t) =
-	  match l,(tar :> (cvar * Expr.t) list) with
-	  |[],[] -> []
-	  |(_::_,[] |[],_::_) -> raise NotValid
-	  |t::s,_ ->
-	    let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
-	    let s = aux s tar in
-	    let t = Expr.mk env src t in
-	    let () = Expr.checkType env src t (apply env s tar src u)
-	    in t::s
-	in aux (List.rev l) (Ctx.of_ps tar)
 
     let mk_elaborated env l src tar =
       let rec aux l (tar : Ctx.t) =
@@ -209,6 +193,12 @@ end
 	  let () = Expr.checkType env src t (apply env s tar src u)
 	  in t::s
       in aux (List.rev l) (Ctx.of_ps tar)
+        
+    let mk env l src tar =
+      if !partial_substitutions then
+	elaborate env l src tar
+      else
+        mk_elaborated env l src tar
       
                
     let dim env ctx l =
@@ -226,10 +216,10 @@ end
       |[] -> raise EmptySub
 
     let to_expr s =
-      List.rev (List.map Expr.to_expr s)
-		   
+      List.rev (List.map Expr.to_expr s)		   
   end
 
+    
 (** -- Contexts are association lists of variables and terms in normal form.
    -- They are provided with 	    
 	 - maker (normalization and well-definedness)
@@ -933,8 +923,13 @@ end
 end    
         
 type env = Env.t
+type ctx = Ctx.t
+type kexpr = Expr.t
 
+             
 let empty_env = Env.empty ()
 let add_env = Env.add
 
-					   
+let checkType = Expr.checkType
+let mk_expr = Expr.mk
+let mk_ctx = Ctx.mk

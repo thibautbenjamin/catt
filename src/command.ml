@@ -7,7 +7,7 @@ open ExtSyntax
 type cmd =
   |Decl of var * expr
 (** Add the possibility to check terms in a given context for debugging and as an help to the user *)
-(*  |Check of expr list * expr *)
+  |Check of ((var* expr) list) * expr * expr 
 		   
 type prog = cmd list
 			       
@@ -32,7 +32,13 @@ let exec_cmd env cmd =
      in 
      let () = info  "defined" in
      env
-
+  | Check (l, e, t) ->
+     let () = command "check %s : %s" (string_of_expr e) (string_of_expr t) in
+     let c = Kernel.mk_ctx env l in
+     let () = Kernel.checkType env c (Kernel.mk_expr env c e) (Kernel.mk_expr env c t) in
+     let () = info "checked"
+     in env
+       
                                        
 let exec prog =
   let rec aux env = function
