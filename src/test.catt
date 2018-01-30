@@ -51,4 +51,9 @@ let sq (x : *) (f : x -> x) : x -> x = comp [f f].
 
 check (x : *) (f : x -> x) : x -> x = sq [(sq [f])].
 
+check (x : *) (y : *) (f : x -> y) (g : y -> y) = comp [f (sq [g])].
+
+let sqsq (x : *) (f : x -> x) = sq [(sq [f])].
+
+
 check (x : *) (y : *) (f : x -> y) (g : y -> x) : x -> x = comp [g f].

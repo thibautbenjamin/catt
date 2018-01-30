@@ -931,5 +931,7 @@ let empty_env = Env.empty ()
 let add_env = Env.add
 
 let checkType = Expr.checkType
+let infer = Expr.infer
+let string_of_kexpr e = Expr.to_string e true
 let mk_expr = Expr.mk
 let mk_ctx = Ctx.mk

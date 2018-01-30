@@ -9,8 +9,8 @@ open Unravel
 type cmd =
   |DeclCoh of var * expr
 (** Add the possibility to check terms in a given context for debugging and as an help to the user *)
-  |Check of ((var* expr) list) * expr * expr 
-  |Decl of var * (var * expr) list * expr * expr
+  |Check of ((var* expr) list) * expr * (expr option) 
+  |Decl of var * (var * expr) list * expr * (expr option)
 	                                  
 type prog = cmd list
 			       
@@ -37,21 +37,34 @@ let exec_cmd env cmd =
      let () = info  "defined" in
      env
   | Check (l, e, t) ->
-     let e = unravel e and t = unravel t in
-     let () = command "check %s : %s" (string_of_expr e) (string_of_expr t) in
+     let e = unravel e in
      let c = Kernel.mk_ctx env l in
-     let () = Kernel.checkType env c (Kernel.mk_expr env c e) (Kernel.mk_expr env c t) in
-     let () = info "checked"
+     let () = match t with
+     |Some t -> let t = unravel t in
+                let () = command "check %s : %s" (string_of_expr e) (string_of_expr t) in
+                let () = Kernel.checkType env c (Kernel.mk_expr env c e) (Kernel.mk_expr env c t) in
+                info "checked"
+     |None -> let () = command "check %s " (string_of_expr e) in
+              let t = Kernel.infer env c (Kernel.mk_expr env c e) in
+              info "checked term %s type %s" (string_of_expr e) (string_of_kexpr t)
+
      in env
   | Decl (v,l,e,t) ->
-     let e = unravel e and t = unravel t in
-     let () = command "let %s : %s" (string_of_expr e) (string_of_expr t) in
+     let e = unravel e in
      let c = Kernel.mk_ctx env l in
-     let () = Kernel.checkType env c (Kernel.mk_expr env c e) (Kernel.mk_expr env c t) in
+     let t = match t with
+     |Some t -> let t = unravel t in 
+                let () = command "let %s : %s" (string_of_expr e) (string_of_expr t) in
+                let t = Kernel.mk_expr env c t in
+                let () = Kernel.checkType env c (Kernel.mk_expr env c e) t in
+                t
+     |None -> let () = command "let %s " (string_of_expr e) in
+              let t = Kernel.infer env c (Kernel.mk_expr env c e) in t
+     in
      let l = List.map fst l in
      let l = select l e in
      mEnv := (v, (fun l' -> replace l l' e)) :: (! mEnv);
-     let () = info "defined"
+     let () = info "defined term of type %s" (string_of_kexpr t)
      in env
      
                                        
