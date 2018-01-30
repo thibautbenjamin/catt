@@ -72,7 +72,7 @@ module rec Sub
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
 
   (** Printing *)	
-  val to_string : t -> bool -> string
+  val to_string : t -> string
 				 
   (** Well-definedness procedure *)
   val check : Env.t -> t  -> Ctx.t -> Ctx.t -> unit
@@ -133,13 +133,13 @@ end
     (** --------
 	Printing
         --------  *)   
-    let rec to_string s abbrev =
+    let rec to_string s =
       match s with
       |[] -> ""
       |u::s ->
 	Printf.sprintf "%s (%s)"
-		       (to_string s abbrev)
-		       (Expr.to_string u abbrev)
+		       (to_string s)
+		       (Expr.to_string u)
 
 		       
     (** --------------------
@@ -252,7 +252,7 @@ and Ctx
   val checkEqual : Env.t -> t -> t -> unit
 
   (** Printing *)
-  val to_string : t -> bool -> string
+  val to_string : t -> string
 end
 = struct
   type t = (cvar * Expr.t) list
@@ -389,14 +389,13 @@ end
   (** --------
       Printing
       -------- *)	      
- let rec to_string ctx abbrev =
-   let to_string = (fun c -> to_string c abbrev) in
+ let rec to_string ctx =
    match ctx with
    |[] -> ""
    |(x,t)::c ->
      Printf.sprintf "(%s,%s) %s"
 		    (CVar.to_string x)
-                    (Expr.to_string t abbrev)
+                    (Expr.to_string t)
                     (to_string c)
 end
 
@@ -430,7 +429,7 @@ and PS
   val suspend : Env.t -> t -> int -> t
 			     
   (** Printing *)
-  val to_string : t -> bool -> string
+  val to_string : t -> string
 end
 = struct
   exception Invalid
@@ -564,24 +563,24 @@ end
   (** --------
       Printing
       -------- *)        
-  let to_string ps abbrev =
-    if abbrev
+  let to_string ps =
+    if !abbrev
     then
-      Ctx.to_string (Ctx.of_ps ps) abbrev
+      Ctx.to_string (Ctx.of_ps ps)
     else
       let rec print ps = 
 	match ps with
 	|PNil (x,t) ->
 	  Printf.sprintf "[(%s,%s)]"
 			 (CVar.to_string x)
-			 (Expr.to_string t abbrev)
+			 (Expr.to_string t)
 	|PCons (ps,(x1,t1),(x2,t2)) ->
 	  Printf.sprintf "%s [(%s,%s) (%s,%s)]"
 			 (print ps)
 			 (CVar.to_string x1)
-			 (Expr.to_string t1 abbrev)
+			 (Expr.to_string t1)
 			 (CVar.to_string x2)
-			 (Expr.to_string t2 abbrev)
+			 (Expr.to_string t2)
 	|PDrop ps ->
 	  Printf.sprintf " %s ! "
 			 (print ps)
@@ -644,7 +643,7 @@ and Expr
     |Sub of Cut.t * Sub.t
   
   val free_vars : t -> cvar list
-  val to_string : t -> bool  -> string
+  val to_string : t -> string
 
   val checkT : Env.t -> Ctx.t -> t -> unit
   val infer : Env.t -> Ctx.t -> t -> t
@@ -671,16 +670,15 @@ and Expr
   (* to be modified to include Cut.free_vars *)
 
     
-  let rec to_string expr abbrev =
-    let to_string  = fun u -> to_string u abbrev in 
+  let rec to_string expr =
     match expr with
     |CVar x -> CVar.to_string x
     |Obj -> "*"
     |Arr (t,u,v) ->
-      if abbrev then
+      if !abbrev then
         Printf.sprintf "%s -> %s" (to_string u) (to_string v)
       else Printf.sprintf "%s | %s -> %s" (to_string t) (to_string u) (to_string v)
-    |Sub (t,s) -> Printf.sprintf "%s.%s" (Sub.to_string s abbrev) (Cut.to_string t abbrev)
+    |Sub (t,s) -> Printf.sprintf "%s %s" (Cut.to_string t) (Sub.to_string s)
 
   let rec checkEqual env ctx e1 e2 =
     let equal = checkEqual env ctx in
@@ -688,7 +686,7 @@ and Expr
     |CVar x,CVar y ->
       if not (x = y)
       then
-	raise (NotEqual (to_string e1 true, to_string e2 true))
+	raise (NotEqual (to_string e1, to_string e2))
       else ()
     |Obj,Obj -> ()
     |Arr(t1,u1,v1),Arr(t2,u2,v2) ->
@@ -699,7 +697,7 @@ and Expr
       let tar = Cut.checkEqual env t1 t2 in
       Sub.checkEqual env tar s1 s2
     |(CVar _|Obj |Arr _|Sub _),_ ->
-      raise (NotEqual (to_string e1 true, to_string e2 true)) 
+      raise (NotEqual (to_string e1, to_string e2)) 
   (** TODO : prove that infer produces only normal forms 
        that are also valid types *)
   and infer env ctx e =
@@ -709,7 +707,7 @@ and Expr
       let tar,ty = Cut.infer env e in
       Sub.check env s ctx tar;
       Sub.apply env s tar ctx ty
-    |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e true))
+    |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e))
   and checkT env ctx e =
     match e with
     |Obj -> ()
@@ -718,7 +716,7 @@ and Expr
       checkType env ctx u t;
       checkType env ctx v t
     |(CVar _ |Sub _) ->
-      raise (IsNotType (Expr.to_string e true))
+      raise (IsNotType (Expr.to_string e))
   and checkType env ctx e1 e2  =
     checkEqual env ctx (infer env ctx e1) e2 
 
@@ -773,7 +771,7 @@ and Cut
     |Fold of evar
     |Unfold of Coh.t		 
   val free_vars : t -> cvar list
-  val to_string : t -> bool -> string
+  val to_string : t -> string
   val checkEqual : Env.t -> t -> t -> Ctx.t
   val infer : Env.t -> t -> Ctx.t * Expr.t
   val mk : Env.t -> expr -> int -> (t * PS.t)
@@ -790,10 +788,10 @@ end
      |Fold x -> assert (false) (** Ignore this case for now *)
      |Unfold coh -> Coh.free_vars coh 
 
-  let to_string coh abbrev =
+  let to_string coh =
     match coh with
     |Fold x -> EVar.to_string x
-    |Unfold coh -> Coh.to_string coh abbrev
+    |Unfold coh -> Coh.to_string coh
 				  
   let checkEqual env e1 e2 =
     match e1, e2 with
@@ -855,7 +853,7 @@ and Coh
 
   val mk : Env.t -> PS.t -> expr -> t
   val free_vars : t -> cvar list
-  val to_string : t -> bool -> string
+  val to_string : t -> string
   val checkEqual : Env.t -> t -> t -> Ctx.t
   val ps : t -> PS.t
   val target : t -> Expr.t
@@ -904,10 +902,10 @@ end
   let free_vars (ps,t) =
     List.union (PS.free_vars ps) (Expr.free_vars t)
 
-  let to_string (ps,t) abbrev =
+  let to_string (ps,t) =
     Printf.sprintf "Coh {%s |- %s}"
-		   (PS.to_string ps abbrev)
-		   (Expr.to_string t abbrev)
+		   (PS.to_string ps)
+		   (Expr.to_string t)
 
   let checkEqual env (ps1,t1) (ps2,t2) =
     let c1 = Ctx.of_ps ps1 and c2 = Ctx.of_ps ps2 in
@@ -932,6 +930,6 @@ let add_env = Env.add
 
 let checkType = Expr.checkType
 let infer = Expr.infer
-let string_of_kexpr e = Expr.to_string e true
+let string_of_kexpr e = Expr.to_string e
 let mk_expr = Expr.mk
 let mk_ctx = Ctx.mk

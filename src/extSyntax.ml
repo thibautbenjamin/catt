@@ -39,7 +39,7 @@ let rec string_of_expr e =
 		   (string_of_ps ps)
 		   (string_of_expr u)
   |Sub (t,s) ->
-    Printf.sprintf "(%s [%s])"
+    Printf.sprintf "(%s %s)"
 		   (string_of_expr t)
 		   (string_of_sub s)
 and string_of_ps ps =
