@@ -28,14 +28,15 @@ x1 -> x11.
 coh comp11 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8) (x9 : *) (f8 : x8 -> x9) (x10 : *) (f9 : x9 -> x10) (x11 : *) (f10 : x10 -> x11) (x12 : *) (f11 : x11 -> x12):
 x1 -> x12.
 
+
 coh  whiskl (x : *) (y : *) (f : x -> y) (z : *) (g1 : y -> z) (g2 : y -> z) (a : g1 -> g2) :
-comp [f g1] -> comp [f g2].
+comp f g1 -> comp f g2.
 
 coh whiskr (x : *) (y : *) (f1 : x -> y) (f2 : x -> y) (a : f1 -> f2) (z : *) (g : y -> z) :
-comp [f1 g] -> comp [f2 g].
+comp f1 g -> comp f2 g.
 
 coh hcomp (x : *) (y : *) (f1 : x -> y) (f2 : x -> y) (a : f1 -> f2) (z : *) (g1 : y -> z) (g2 : y -> z) (b : g1 -> g2) :
-comp [f1 g1] -> comp [f2 g2].
+comp f1 g1 -> comp f2 g2.
 
 
 coh exch (x : *)
@@ -45,15 +46,15 @@ coh exch (x : *)
 	 (z : *) (g1 : y -> z)
 	         (g2 : y -> z) (b1 : g1 -> g2)
 		 (g3 : y -> z) (b2 : g2 -> g3) :
-comp [(hcomp [a1 b1]) (hcomp [a2 b2])] -> hcomp [(comp [a1 a2]) (comp [b1 b2])].
+comp (hcomp a1 b1) (hcomp a2 b2) -> hcomp (comp a1 a2) (comp b1 b2).
 
-let sq (x : *) (f : x -> x) : x -> x = comp [f f].
+let sq (x : *) (f : x -> x) : x -> x = comp f f.
 
-check (x : *) (f : x -> x) : x -> x = sq [(sq [f])].
+check (x : *) (f : x -> x) : x -> x = sq (sq f).
 
-check (x : *) (y : *) (f : x -> y) (g : y -> y) = comp [f (sq [g])].
+check (x : *) (y : *) (f : x -> y) (g : y -> y) = comp f (sq g).
 
-let sqsq (x : *) (f : x -> x) = sq [(sq [f])].
+let sqsq (x : *) (f : x -> x) = sq (sq f).
 
 
-check (x : *) (y : *) (f : x -> y) (g : y -> x) : x -> x = comp [g f].
+check (x : *) (y : *) (f : x -> y) (g : y -> x) : x -> x = comp g f.

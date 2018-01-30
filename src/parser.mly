@@ -43,10 +43,10 @@ simple_expr:
     |IDENT { Var (Var.mk $1) }
 
 subst_expr:
-    |simple_expr { $1 }
-    |subst_expr LBRA sub RBRA { Sub ($1,$3) }
+    |simple_expr { $1 }	
+    |simple_expr simple_expr sub { Sub ($1,$2::$3) }
 
 expr:
     |subst_expr { $1 }
-    |expr MOR expr { Arr ($1,$3) }
+    |subst_expr MOR subst_expr { Arr ($1,$3) }
     |COH args COL simple_expr { Coh ($2,$4) }
