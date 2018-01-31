@@ -137,7 +137,7 @@ end
       match s with
       |[] -> ""
       |u::s ->
-	Printf.sprintf "%s (%s)"
+	Printf.sprintf "%s %s"
 		       (to_string s)
 		       (Expr.to_string u)
 
@@ -688,7 +688,7 @@ and Expr
       if !abbrev then
         Printf.sprintf "%s -> %s" (to_string u) (to_string v)
       else Printf.sprintf "%s | %s -> %s" (to_string t) (to_string u) (to_string v)
-    |Sub (t,s) -> Printf.sprintf "%s %s" (Cut.to_string t) (Sub.to_string s)
+    |Sub (t,s) -> Printf.sprintf "(%s %s)" (Cut.to_string t) (Sub.to_string s)
 
   let rec checkEqual env ctx e1 e2 =
     let equal = checkEqual env ctx in
