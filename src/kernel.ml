@@ -4,9 +4,6 @@ open Common
 open PShape
 open ExtSyntax
 		   
-		   
-
-(** TODO : write both of them in one go*)       
 module EVar
 : sig 
     type t
@@ -137,6 +134,7 @@ end
       match s,ps with
       |u::[], PNil -> Printf.sprintf "%s" (Expr.to_string env u)
       |_,_ ->
+        
         let rec aux s ps = 
           if !implicit_print then
             match s,ps with
@@ -144,7 +142,7 @@ end
                                               (aux s ps)
                                               (Expr.to_string env u)
             |s , PDrop ps -> aux s ps
-            |u::s , PCons ps -> aux s ps
+            |u::_::s , PCons ps -> aux s ps
             |s,PNil -> ""
             |_,_ -> assert(false)
           else

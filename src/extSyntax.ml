@@ -54,7 +54,7 @@ and string_of_sub s =
   match s with
   |[] -> ""
   |t::[] -> Printf.sprintf "%s" (string_of_expr t)
-  |t::s -> Printf.sprintf"%s; %s"
+  |t::s -> Printf.sprintf"%s %s"
 			 (string_of_expr t)
 			 (string_of_sub s)
 
