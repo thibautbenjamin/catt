@@ -106,7 +106,7 @@ end
       |CVar x -> apply_var s tar x
       |Obj -> Obj
       |Arr (a,u,v) -> Arr (apply env s tar sour a, apply env s tar sour u, apply env s tar sour v)
-      |Sub (t,s') -> let newtar = Cut.ps t in Sub (t, Sub.mk_elaborated env (compose env sour tar s (s' :> Expr.t list)) sour newtar)
+      |Sub (t,s') -> let newtar = Cut.ps env t in Sub (t, Sub.mk_elaborated env (compose env sour tar s (s' :> Expr.t list)) sour newtar)
 
     (** -----------------
 	Typing procedures
@@ -141,7 +141,16 @@ end
 		       (to_string s)
 		       (Expr.to_string u)
 
-		       
+
+    let rec print_list l = match l with
+      |[] -> ""
+      |t::q -> (string_of_expr t) ^ " " ^ (print_list q)
+                                            
+    let rec print_listbis l = match l with
+      |[] -> ""
+      |t::q -> (Expr.to_string t) ^ " " ^ (print_listbis q)
+
+                                            
     (** --------------------
 	Structural functions
         --------------------  *)
@@ -189,7 +198,7 @@ end
 	|t::s,_ ->
 	  let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	  let s = aux s tar in
-	  let t = Expr.mk env src t in
+	  let t = Expr.mk_elaborated env src t in
 	  let () = Expr.checkType env src t (apply env s tar src u)
 	  in t::s
       in aux (List.rev l) (Ctx.of_ps tar)
@@ -650,7 +659,9 @@ and Expr
   val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
   val checkType : Env.t -> Ctx.t -> t -> t -> unit
   val mk : Env.t -> Ctx.t -> expr -> t
+  val mk_elaborated : Env.t -> Ctx.t -> expr -> t
 
+                                       
   val dim : t -> int
   val to_expr : t -> expr
   end
@@ -667,7 +678,6 @@ and Expr
     |Obj -> []
     |Arr (t,u,v) -> List.unions [(free_vars t);(free_vars u);(free_vars v)]
     |Sub (_,sub) -> Sub.free_vars sub
-  (* to be modified to include Cut.free_vars *)
 
     
   let rec to_string expr =
@@ -750,6 +760,37 @@ and Expr
     check e;
     e
 
+  let mk_elaborated env c (e:expr) =
+    let rec translate  e = 
+      match e with
+      |Var v -> CVar (CVar.mk v)
+      |Obj -> Obj
+      |Arr (u,v) ->
+	let u = translate u in
+	let v = translate v in 
+	let t = infer env c u in
+	let t' = infer env c v in
+	let () = checkEqual env c t t' in
+	Arr (t,u,v)
+      |Sub (t,s) ->
+	let t,tar = Cut.mk env t (Sub.dim env c s) in
+	let s = Sub.mk_elaborated env s c tar in
+	Sub (t,s)
+      |Coh _ -> failwith "unsubstituted coherence"
+    in
+    let check e  =
+      match e with
+      |(CVar _ |Sub _) ->
+	let _ = infer env c e in ()
+      |Arr _ -> checkT env c e
+      |Obj -> ()
+    in
+    let e = translate e
+    in
+    check e;
+    e
+
+      
   let rec dim t =
     match t with
     |Obj -> 0
@@ -770,24 +811,18 @@ and Cut
   type t =
     |Fold of evar
     |Unfold of Coh.t		 
-  val free_vars : t -> cvar list
   val to_string : t -> string
   val checkEqual : Env.t -> t -> t -> Ctx.t
   val infer : Env.t -> t -> Ctx.t * Expr.t
   val mk : Env.t -> expr -> int -> (t * PS.t)
   val to_expr : t -> expr
-  val ps : t -> PS.t
+  val ps : Env.t -> t -> PS.t
 end
 = struct
   type t = 
     |Fold of evar
     |Unfold of Coh.t
 		 
-  let free_vars coh =
-    match coh with
-     |Fold x -> assert (false) (** Ignore this case for now *)
-     |Unfold coh -> Coh.free_vars coh 
-
   let to_string coh =
     match coh with
     |Fold x -> EVar.to_string x
@@ -796,20 +831,22 @@ end
   let checkEqual env e1 e2 =
     match e1, e2 with
     |Unfold coh1, Unfold coh2 -> Coh.checkEqual env coh1 coh2
-    |(Fold _, _ |_, Fold _) -> assert (false)
-    (** allowing cut rule : this case should be
-	|Fold x, y -> checkEqual_norm (val_var x) y 
-	and its symmetric case*)
+    |Fold x, Fold y -> Coh.checkEqual env (Env.val_var env x) (Env.val_var env y)
+    |Unfold coh, Fold y -> Coh.checkEqual env coh (Env.val_var env y)
+    |Fold x, Unfold coh -> Coh.checkEqual env (Env.val_var env x) coh
 
   let infer env coh =
     match coh with
-    |Fold _ -> assert (false) (** No cut rule yet *)
+    |Fold x ->
+      let coh = Env.val_var env x in
+      (Ctx.of_ps (Coh.ps coh), Coh.target coh)
     |Unfold coh ->
       (Ctx.of_ps (Coh.ps coh), Coh.target coh)
 
-  let ps coh =
+  let ps env coh =
     match coh with
-    |Fold _ -> assert (false)
+    |Fold x -> let coh = Env.val_var env x in
+               Coh.ps coh
     |Unfold coh -> Coh.ps coh
         
   let mk env e i =
@@ -820,7 +857,7 @@ end
       let j = PS.dim ps in
       if (j=i)
       then
-	(Unfold coh, ps)
+	(Fold (EVar.mk v), ps)
       else if i>j then
 	let t = Expr.to_expr (Coh.target coh) in
         let ps = PS.suspend env ps (i-j) in

@@ -27,7 +27,7 @@ cmd:
     |CHECK args EQUAL expr FS { Check ($2,$4,None) }
     |LET IDENT args COL expr EQUAL expr FS { Decl (Var.mk $2,$3,$7, Some $5) }
     |LET IDENT args EQUAL expr FS { Decl (Var.mk $2,$3,$5, None) }
-
+    
 
 args:
     |LPAR IDENT COL expr RPAR args { (Var.mk $2, $4)::$6 }
