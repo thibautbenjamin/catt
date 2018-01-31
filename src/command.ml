@@ -46,8 +46,7 @@ let exec_cmd env cmd =
                 info "checked"
      |None -> let () = command "check %s " (string_of_expr e) in
               let t = Kernel.infer env c (Kernel.mk_expr env c e) in
-              info "checked term %s type %s" (string_of_expr e) (string_of_kexpr t)
-
+              info "checked term %s type %s" (string_of_expr e) (string_of_kexpr env t)
      in env
   | Decl (v,l,e,t) ->
      let e = unravel e in
@@ -64,7 +63,7 @@ let exec_cmd env cmd =
      let l = List.map fst l in
      let l = select l e in
      mEnv := (v, (fun l' -> replace l l' e)) :: (! mEnv);
-     let () = info "defined term of type %s" (string_of_kexpr t)
+     let () = info "defined term of type %s" (string_of_kexpr env t)
      in env
      
                                        
