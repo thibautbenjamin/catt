@@ -619,7 +619,7 @@ end
 *)    
 and Env
 : sig
-  type t = private (evar * Coh.t) list
+  type t
   val env : t ref
                                   
   (** Makers *)
