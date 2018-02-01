@@ -56,23 +56,23 @@ module rec Sub
   type t = private (Expr.t list)
 		     
   (** Structural functions *)
-  val mk : Env.t -> expr list -> Ctx.t -> PS.t -> t
-  val mk_elaborated : Env.t -> expr list -> Ctx.t -> PS.t -> t
+  val mk : expr list -> Ctx.t -> PS.t -> t
+  val mk_elaborated : expr list -> Ctx.t -> PS.t -> t
   val to_expr : t -> expr list
 						    
   (** Syntactic properties *)		    
   val free_vars : t -> cvar list
-  val apply : Env.t -> t -> Ctx.t -> Ctx.t -> Expr.t -> Expr.t
-  val dim : Env.t -> Ctx.t -> expr list -> int
+  val apply : t -> Ctx.t -> Ctx.t -> Expr.t -> Expr.t
+  val dim : Ctx.t -> expr list -> int
 					
   (** Equality procedures *)
-  val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
+  val checkEqual : Ctx.t -> t -> t -> unit
 
   (** Printing *)	
-  val to_string : Env.t -> t -> PShape.pshape -> string
+  val to_string : t -> PShape.pshape -> string
 				 
   (** Well-definedness procedure *)
-  val check : Env.t -> t  -> Ctx.t -> Ctx.t -> unit
+  val check : t  -> Ctx.t -> Ctx.t -> unit
 end
 = struct
     type t = Expr.t list
@@ -95,44 +95,44 @@ end
 	else apply_var l tar x
       |[], _ -> assert (false)     
 
-    let rec compose env src tar s s' =
-      List.rev (List.map (fun t -> Expr.to_expr (apply env s tar src t)) s')
-    and apply env (s:t) tar sour e =
+    let rec compose src tar s s' =
+      List.rev (List.map (fun t -> Expr.to_expr (apply s tar src t)) s')
+    and apply (s:t) tar sour e =
       let open Expr in
       match e with
       |CVar x -> apply_var s tar x
       |Obj -> Obj
-      |Arr (a,u,v) -> Arr (apply env s tar sour a, apply env s tar sour u, apply env s tar sour v)
-      |Sub (t,s') -> let newtar = Cut.ps env t in Sub (t, Sub.mk_elaborated env (compose env sour tar s (s' :> Expr.t list)) sour newtar)
+      |Arr (a,u,v) -> Arr (apply s tar sour a, apply s tar sour u, apply s tar sour v)
+      |Sub (t,s') -> let newtar = Cut.ps t in Sub (t, Sub.mk_elaborated (compose sour tar s (s' :> Expr.t list)) sour newtar)
 
     (** -----------------
 	Typing procedures
         -----------------  *) 
-    let rec checkEqual env ctx s1 s2 =
+    let rec checkEqual ctx s1 s2 =
       match s1,s2 with
       |[],[] -> ()
       |t1::s1,t2::s2 ->
-	Expr.checkEqual env ctx t1 t2;
-	checkEqual env ctx s1 s2
+	Expr.checkEqual ctx t1 t2;
+	checkEqual ctx s1 s2
       |_,_ -> raise NotValid
 
-    let rec check env s src (tar:Ctx.t) =
+    let rec check s src (tar:Ctx.t) =
       match s,(tar :> (cvar * Expr.t) list)
       with
       |[],[] -> ()
       |(_::_,[] |[],_::_) -> raise NotValid
       |t::s,_ ->
 	let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
-	check env s src tar;
-	Expr.checkT env tar u;
-	Expr.checkType env src t (apply env s tar src u)
+	check s src tar;
+	Expr.checkT tar u;
+	Expr.checkType src t (apply s tar src u)
 		       
     (** --------
 	Printing
         --------  *)   
-    let to_string env s ps =
+    let to_string s ps =
       match s,ps with
-      |u::[], PNil -> Printf.sprintf "%s" (Expr.to_string env u)
+      |u::[], PNil -> Printf.sprintf "%s" (Expr.to_string u)
       |_,_ ->
         
         let rec aux s ps = 
@@ -140,7 +140,7 @@ end
             match s,ps with
             |u::_::s, PDrop (PCons (ps)) -> Printf.sprintf "%s %s"
                                               (aux s ps)
-                                              (Expr.to_string env u)
+                                              (Expr.to_string u)
             |s , PDrop ps -> aux s ps
             |u::_::s , PCons ps -> aux s ps
             |s,PNil -> ""
@@ -151,7 +151,7 @@ end
             |u::s ->
 	      Printf.sprintf "%s %s"
 	        (aux s ps)
-	        (Expr.to_string env u)
+	        (Expr.to_string u)
         in aux s ps
 
 
@@ -167,7 +167,7 @@ end
     (** --------------------
 	Structural functions
         --------------------  *)
-    let elaborate env l src tar =
+    let elaborate l src tar =
       let rec complete l x a ps =
 	match ps with
 	|PNil ->
@@ -183,14 +183,14 @@ end
       and find_max l ps =
 	match l,ps with
 	|x::[], PNil ->
-	  let x = Expr.mk env src x in
+	  let x = Expr.mk src x in
 	  [x]
 	|[],_ -> raise NotValid
 	| _, PNil -> raise NotValid
 	|f::l, PDrop(PCons(ps)) ->
-	  let f = Expr.mk env src f in
+	  let f = Expr.mk src f in
 	  let a,x,y =
-	    match (Expr.infer env src f) with
+	    match (Expr.infer src f) with
 	    |Arr(a,x,y) -> a,x,y
 	    |_ -> assert(false)
 	  in
@@ -200,10 +200,10 @@ end
 	|s, PCons _ -> assert(false)
       in
       let s = find_max (List.rev l) (PS.shape tar) in
-      let () = check env s src (Ctx.of_ps tar) in
+      let () = check s src (Ctx.of_ps tar) in
       s
 
-    let mk_elaborated env l src tar =
+    let mk_elaborated l src tar =
       let rec aux l (tar : Ctx.t) =
 	match l,(tar :> (cvar * Expr.t) list) with
 	|[],[] -> []
@@ -211,19 +211,19 @@ end
 	|t::s,_ ->
 	  let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	  let s = aux s tar in
-	  let t = Expr.mk_elaborated env src t in
-	  let () = Expr.checkType env src t (apply env s tar src u)
+	  let t = Expr.mk_elaborated src t in
+	  let () = Expr.checkType src t (apply s tar src u)
 	  in t::s
       in aux (List.rev l) (Ctx.of_ps tar)
         
-    let mk env l src tar =
+    let mk l src tar =
       if !partial_substitutions then
-	elaborate env l src tar
+	elaborate l src tar
       else
-        mk_elaborated env l src tar
+        mk_elaborated l src tar
       
                
-    let dim env ctx l =
+    let dim ctx l =
       let rec max l i =
 	match l with
 	| [] -> i
@@ -231,7 +231,7 @@ end
 		  then max l t
 		  else max l i
       in
-      let l  = (List.map (fun x -> Expr.dim (Expr.infer env ctx (Expr.mk env ctx x))) l)
+      let l  = (List.map (fun x -> Expr.dim (Expr.infer ctx (Expr.mk ctx x))) l)
       in
       match l with
       |t::l -> max l t
@@ -253,15 +253,15 @@ and Ctx
 
   (** Makers *)
   val empty : unit -> t
-  val add : Env.t -> t -> var -> expr -> t
-  val add_norm : Env.t -> t -> var -> Expr.t -> t
-  val mk : Env.t -> (var * expr) list -> t
+  val add : t -> var -> expr -> t
+  val add_norm : t -> var -> Expr.t -> t
+  val mk : (var * expr) list -> t
   val of_ps : PS.t -> t
 					       
   (** Structural operations *)
   val head : t -> cvar * Expr.t
   val tail : t -> t
-  val suspend : Env.t -> t -> int -> t
+  val suspend : t -> int -> t
 		    
   (** Syntactic properties *)
   val ty_var : t -> cvar -> Expr.t
@@ -271,10 +271,10 @@ and Ctx
 
   (** Equality procedure *)
   val isEmpty : t -> bool
-  val checkEqual : Env.t -> t -> t -> unit
+  val checkEqual : t -> t -> unit
 
   (** Printing *)
-  val to_string : Env.t -> t -> string
+  val to_string : t -> string
 end
 = struct
   type t = (cvar * Expr.t) list
@@ -290,23 +290,23 @@ end
       ------ *)
   let empty _ = []
 
-  let add env (ctx :Ctx.t) x u =
-    let u = Expr.mk env ctx u in
+  let add (ctx :Ctx.t) x u =
+    let u = Expr.mk ctx u in
     let x = CVar.mk x in
     (ctx :> t)@[(x,u)]
 
 
-  let add_norm env (ctx :Ctx.t) x u =
-    let () = Expr.checkT env ctx u in
+  let add_norm (ctx :Ctx.t) x u =
+    let () = Expr.checkT ctx u in
     let x = CVar.mk x in
     (ctx :> t)@[(x,u)]
 
-  let rec mk env  l =
+  let rec mk l =
     let rec aux l ctx =
       match l with
       |[] -> ctx
       |(x,t)::l ->
-	let ctx = Ctx.add env ctx x t in
+	let ctx = Ctx.add ctx x t in
 	aux l ctx
     in aux l (Ctx.empty ()) 
 
@@ -334,7 +334,7 @@ end
 
 
 		    
-  let suspend env (ctx : t) i =
+  let suspend (ctx : t) i =
     let open Var in
     assert (i>=1);
     let rec aux k c ty=
@@ -347,21 +347,20 @@ end
 	let ty' = Arr (Var (New (2*k'-1)), Var (New (2*k')))
 	in aux k'
 	     (Ctx.add 
-		env
-		(Ctx.add env c (New ((2*k')-1)) ty)
+		(Ctx.add c (New ((2*k')-1)) ty)
 		(New (2*k'))
 		ty)
 	     ty'
     in
-    let ctx' = Ctx.add env
-		   (Ctx.add_norm env (Ctx.empty ()) (New 1) Expr.Obj)
+    let ctx' = Ctx.add 
+		   (Ctx.add_norm (Ctx.empty ()) (New 1) Expr.Obj)
 		   (New 2)
 		   Obj    
     in
     let ctx',ty = aux 1 ctx' (Arr (Var (New 1), Var (New 2))) in
     let rec comp c res = match c with
-      |(x,Expr.Obj)::c -> comp c (Ctx.add env res (var_of_cvar x) ty)
-      |(x,tx)::c -> comp c (Ctx.add env res (var_of_cvar x) (Expr.to_expr tx))
+      |(x,Expr.Obj)::c -> comp c (Ctx.add res (var_of_cvar x) ty)
+      |(x,tx)::c -> comp c (Ctx.add res (var_of_cvar x) (Expr.to_expr tx))
       |[] -> res
     in
     comp ctx ctx'
@@ -393,7 +392,7 @@ end
     |[] -> true
     |_ -> false
 		
-  let rec checkEqual env ctx1 ctx2 =
+  let rec checkEqual ctx1 ctx2 =
     let rec equal c (ctx1 : Ctx.t) (ctx2 : Ctx.t) = 
       match ((ctx1 :> (cvar * Expr.t) list),
 	     (ctx2 :> (cvar * Expr.t) list)) with
@@ -402,7 +401,7 @@ end
 	let ((v1,x1),t1) = (Ctx.head ctx1, Ctx.tail ctx1) in
 	let ((v2,x2),t2) = (Ctx.head ctx2, Ctx.tail ctx2) in
 	if not (v1 = v2) then raise NotValid;
-	Expr.checkEqual env c x1 x2;
+	Expr.checkEqual c x1 x2;
         equal ctx1 t1 t2
       |_,_ -> raise NotValid
     in equal (Ctx.empty ()) ctx1 ctx2
@@ -411,14 +410,14 @@ end
   (** --------
       Printing
       -------- *)	      
- let rec to_string env ctx =
+ let rec to_string ctx =
    match ctx with
    |[] -> ""
    |(x,t)::c ->
      Printf.sprintf "(%s,%s) %s"
 		    (CVar.to_string x)
-                    (Expr.to_string env t)
-                    (to_string env c)
+                    (Expr.to_string t)
+                    (to_string c)
 end
 
 
@@ -448,10 +447,10 @@ and PS
   val source : int -> t -> t
   val target : int -> t -> t
   val shape : t -> pshape
-  val suspend : Env.t -> t -> int -> t
+  val suspend : t -> int -> t
 			     
   (** Printing *)
-  val to_string : Env.t -> t -> string
+  val to_string : t -> string
 end
 = struct
   exception Invalid
@@ -579,30 +578,30 @@ end
     |PCons (ps,_,_) -> PShape.PCons (shape ps)
     |PDrop ps -> PShape.PDrop (shape ps)
 
-  let rec suspend env ps i =
-    mk (Ctx.suspend env (Ctx.of_ps ps) i)
+  let rec suspend ps i =
+    mk (Ctx.suspend (Ctx.of_ps ps) i)
 			      
   (** --------
       Printing
       -------- *)        
-  let to_string env ps =
+  let to_string ps =
     if !abbrev
     then
-      Ctx.to_string env (Ctx.of_ps ps)
+      Ctx.to_string (Ctx.of_ps ps)
     else
       let rec print ps = 
 	match ps with
 	|PNil (x,t) ->
 	  Printf.sprintf "[(%s,%s)]"
 			 (CVar.to_string x)
-			 (Expr.to_string env t)
+			 (Expr.to_string t)
 	|PCons (ps,(x1,t1),(x2,t2)) ->
 	  Printf.sprintf "%s [(%s,%s) (%s,%s)]"
 			 (print ps)
 			 (CVar.to_string x1)
-			 (Expr.to_string env t1)
+			 (Expr.to_string t1)
 			 (CVar.to_string x2)
-			 (Expr.to_string env t2)
+			 (Expr.to_string t2)
 	|PDrop ps ->
 	  Printf.sprintf " %s ! "
 			 (print ps)
@@ -621,37 +620,40 @@ end
 and Env
 : sig
   type t = private (evar * Coh.t) list
-
+  val env : t ref
+                                  
   (** Makers *)
-  val empty : unit -> t
-  val add : t -> var -> expr -> t
+  val init : unit
+  val add : var -> expr -> unit
 
   (** Structural operation *)
-  val val_var : t -> evar -> Coh.t
+  val val_var : evar -> Coh.t
 end
 = struct
   type t = (evar * Coh.t) list
 
+  let env = ref ([] :> t)
+                          
   (** ------
       Makers
       ------ *)
-  let empty a = []
+  let init = env := []
 
-  let add env x u =
+  let add x u =
     let u = match u with
-    |Coh (ps,u) ->
-      let c = PS.mk (Ctx.mk env ps) in
-      Coh.mk env c u
+    |Coh (ps,u) -> 
+      let c = PS.mk (Ctx.mk ps) in
+      Coh.mk c u
     |_ -> assert (false)
     in
-    (EVar.mk x,u)::(env :> (evar * Coh.t) list)
+    env := (EVar.mk x,u)::!env
 
 
   (** --------------------
       Structural operation
       -------------------- *)	     
-  let val_var env x =
-    try List.assoc x env
+  let val_var x =
+    try List.assoc x !env
     with Not_found -> raise (UnknownCoh (EVar.to_string x))
 end
 
@@ -665,14 +667,14 @@ and Expr
     |Sub of Cut.t * Sub.t
   
   val free_vars : t -> cvar list
-  val to_string : Env.t -> t -> string
+  val to_string : t -> string
 
-  val checkT : Env.t -> Ctx.t -> t -> unit
-  val infer : Env.t -> Ctx.t -> t -> t
-  val checkEqual : Env.t -> Ctx.t -> t -> t -> unit
-  val checkType : Env.t -> Ctx.t -> t -> t -> unit
-  val mk : Env.t -> Ctx.t -> expr -> t
-  val mk_elaborated : Env.t -> Ctx.t -> expr -> t
+  val checkT : Ctx.t -> t -> unit
+  val infer : Ctx.t -> t -> t
+  val checkEqual : Ctx.t -> t -> t -> unit
+  val checkType : Ctx.t -> t -> t -> unit
+  val mk : Ctx.t -> expr -> t
+  val mk_elaborated : Ctx.t -> expr -> t
 
                                        
   val dim : t -> int
@@ -693,23 +695,23 @@ and Expr
     |Sub (_,sub) -> Sub.free_vars sub
 
     
-  let rec to_string env expr =
+  let rec to_string expr =
     match expr with
     |CVar x -> CVar.to_string x
     |Obj -> "*"
     |Arr (t,u,v) ->
       if !abbrev then
-        Printf.sprintf "%s -> %s" (to_string env u) (to_string env v)
-      else Printf.sprintf "%s | %s -> %s" (to_string env t) (to_string env u) (to_string env v)
-    |Sub (t,s) -> let ps = Cut.ps env t in Printf.sprintf "(%s %s)" (Cut.to_string env t) (Sub.to_string env s (PS.shape ps))
+        Printf.sprintf "%s -> %s" (to_string u) (to_string v)
+      else Printf.sprintf "%s | %s -> %s" (to_string t) (to_string u) (to_string v)
+    |Sub (t,s) -> let ps = Cut.ps t in Printf.sprintf "(%s %s)" (Cut.to_string t) (Sub.to_string s (PS.shape ps))
 
-  let rec checkEqual env ctx e1 e2 =
-    let equal = checkEqual env ctx in
+  let rec checkEqual ctx e1 e2 =
+    let equal = checkEqual ctx in
     match e1, e2 with
     |CVar x,CVar y ->
       if not (x = y)
       then
-	raise (NotEqual (to_string env e1, to_string env e2))
+	raise (NotEqual (to_string e1, to_string e2))
       else ()
     |Obj,Obj -> ()
     |Arr(t1,u1,v1),Arr(t2,u2,v2) ->
@@ -717,33 +719,33 @@ and Expr
       equal u1 u2;
       equal v1 v2
     |Sub(t1,s1),Sub(t2,s2) ->
-      let tar = Cut.checkEqual env t1 t2 in
-      Sub.checkEqual env tar s1 s2
+      let tar = Cut.checkEqual t1 t2 in
+      Sub.checkEqual tar s1 s2
     |(CVar _|Obj |Arr _|Sub _),_ ->
-      raise (NotEqual (to_string env e1, to_string env e2)) 
+      raise (NotEqual (to_string e1, to_string e2)) 
   (** TODO : prove that infer produces only normal forms 
        that are also valid types *)
-  and infer env ctx e =
+  and infer ctx e =
     match e with
     |CVar x -> Ctx.ty_var ctx x
     |Sub (e,s) ->
-      let tar,ty = Cut.infer env e in
-      Sub.check env s ctx tar;
-      Sub.apply env s tar ctx ty
-    |(Obj |Arr _) -> raise (HasNoType (Expr.to_string env e))
-  and checkT env ctx e =
+      let tar,ty = Cut.infer e in
+      Sub.check s ctx tar;
+      Sub.apply s tar ctx ty
+    |(Obj |Arr _) -> raise (HasNoType (Expr.to_string e))
+  and checkT ctx e =
     match e with
     |Obj -> ()
     |Arr (t,u,v) ->
-      checkT env ctx t;
-      checkType env ctx u t;
-      checkType env ctx v t
+      checkT ctx t;
+      checkType ctx u t;
+      checkType ctx v t
     |(CVar _ |Sub _) ->
-      raise (IsNotType (Expr.to_string env e))
-  and checkType env ctx e1 e2  =
-    checkEqual env ctx (infer env ctx e1) e2 
+      raise (IsNotType (Expr.to_string e))
+  and checkType ctx e1 e2  =
+    checkEqual ctx (infer ctx e1) e2 
 
-  let mk env c (e:expr) =
+  let mk c (e:expr) =
     let rec translate  e = 
       match e with
       |Var v -> CVar (CVar.mk v)
@@ -751,21 +753,21 @@ and Expr
       |Arr (u,v) ->
 	let u = translate u in
 	let v = translate v in 
-	let t = infer env c u in
-	let t' = infer env c v in
-	let () = checkEqual env c t t' in
+	let t = infer c u in
+	let t' = infer c v in
+	let () = checkEqual c t t' in
 	Arr (t,u,v)
       |Sub (t,s) ->
-	let t,tar = Cut.mk env t (Sub.dim env c s) in
-	let s = Sub.mk env s c tar in
+	let t,tar = Cut.mk t (Sub.dim c s) in
+	let s = Sub.mk s c tar in
 	Sub (t,s)
       |Coh _ -> failwith "unsubstituted coherence"
     in
     let check e  =
       match e with
       |(CVar _ |Sub _) ->
-	let _ = infer env c e in ()
-      |Arr _ -> checkT env c e
+	let _ = infer c e in ()
+      |Arr _ -> checkT c e
       |Obj -> ()
     in
     let e = translate e
@@ -773,7 +775,7 @@ and Expr
     check e;
     e
 
-  let mk_elaborated env c (e:expr) =
+  let mk_elaborated c (e:expr) =
     let rec translate  e = 
       match e with
       |Var v -> CVar (CVar.mk v)
@@ -781,21 +783,21 @@ and Expr
       |Arr (u,v) ->
 	let u = translate u in
 	let v = translate v in 
-	let t = infer env c u in
-	let t' = infer env c v in
-	let () = checkEqual env c t t' in
+	let t = infer c u in
+	let t' = infer c v in
+	let () = checkEqual c t t' in
 	Arr (t,u,v)
       |Sub (t,s) ->
-	let t,tar = Cut.mk env t (Sub.dim env c s) in
-	let s = Sub.mk_elaborated env s c tar in
+	let t,tar = Cut.mk t (Sub.dim c s) in
+	let s = Sub.mk_elaborated s c tar in
 	Sub (t,s)
       |Coh _ -> failwith "unsubstituted coherence"
     in
     let check e  =
       match e with
       |(CVar _ |Sub _) ->
-	let _ = infer env c e in ()
-      |Arr _ -> checkT env c e
+	let _ = infer c e in ()
+      |Arr _ -> checkT c e
       |Obj -> ()
     in
     let e = translate e
@@ -824,48 +826,48 @@ and Cut
   type t =
     |Fold of evar
     |Unfold of Coh.t		 
-  val to_string : Env.t -> t -> string
-  val checkEqual : Env.t -> t -> t -> Ctx.t
-  val infer : Env.t -> t -> Ctx.t * Expr.t
-  val mk : Env.t -> expr -> int -> (t * PS.t)
+  val to_string : t -> string
+  val checkEqual : t -> t -> Ctx.t
+  val infer : t -> Ctx.t * Expr.t
+  val mk : expr -> int -> (t * PS.t)
   val to_expr : t -> expr
-  val ps : Env.t -> t -> PS.t
+  val ps : t -> PS.t
 end
 = struct
   type t = 
     |Fold of evar
     |Unfold of Coh.t
 		 
-  let to_string env coh =
+  let to_string coh =
     match coh with
     |Fold x -> EVar.to_string x
-    |Unfold coh -> Coh.to_string env coh
+    |Unfold coh -> Coh.to_string coh
 				  
-  let checkEqual env e1 e2 =
+  let checkEqual e1 e2 =
     match e1, e2 with
-    |Unfold coh1, Unfold coh2 -> Coh.checkEqual env coh1 coh2
-    |Fold x, Fold y -> Coh.checkEqual env (Env.val_var env x) (Env.val_var env y)
-    |Unfold coh, Fold y -> Coh.checkEqual env coh (Env.val_var env y)
-    |Fold x, Unfold coh -> Coh.checkEqual env (Env.val_var env x) coh
+    |Unfold coh1, Unfold coh2 -> Coh.checkEqual coh1 coh2
+    |Fold x, Fold y -> Coh.checkEqual (Env.val_var x) (Env.val_var y)
+    |Unfold coh, Fold y -> Coh.checkEqual coh (Env.val_var y)
+    |Fold x, Unfold coh -> Coh.checkEqual (Env.val_var x) coh
 
-  let infer env coh =
+  let infer coh =
     match coh with
     |Fold x ->
-      let coh = Env.val_var env x in
+      let coh = Env.val_var x in
       (Ctx.of_ps (Coh.ps coh), Coh.target coh)
     |Unfold coh ->
       (Ctx.of_ps (Coh.ps coh), Coh.target coh)
 
-  let ps env coh =
+  let ps coh =
     match coh with
-    |Fold x -> let coh = Env.val_var env x in
+    |Fold x -> let coh = Env.val_var x in
                Coh.ps coh
     |Unfold coh -> Coh.ps coh
         
-  let mk env e i =
+  let mk e i =
     match e with
     |Var v ->
-      let coh = Env.val_var env (EVar.mk v) in
+      let coh = Env.val_var (EVar.mk v) in
       let ps = Coh.ps coh in
       let j = PS.dim ps in
       if (j=i)
@@ -873,17 +875,17 @@ end
 	(Fold (EVar.mk v), ps)
       else if i>j then
 	let t = Expr.to_expr (Coh.target coh) in
-        let ps = PS.suspend env ps (i-j) in
-	(Unfold (Coh.mk env ps t), ps)
+        let ps = PS.suspend ps (i-j) in
+	(Unfold (Coh.mk ps t), ps)
       else failwith "substitution not applied enough"
     |Coh (ps,t) ->
-      let ps = PS.mk (Ctx.mk env ps) in
+      let ps = PS.mk (Ctx.mk ps) in
       let j = PS.dim ps in
       if (j=i) then
-	(Unfold (Coh.mk env ps t), ps)
+	(Unfold (Coh.mk ps t), ps)
       else if i>j then
-	let ps = PS.suspend env ps (i-j) in 
-	(Unfold (Coh.mk env ps t), ps)
+	let ps = PS.suspend ps (i-j) in 
+	(Unfold (Coh.mk ps t), ps)
       else failwith "substitution not applied enough"
 
     |(Obj |Arr _|Sub _) -> raise BadUnderSub
@@ -901,10 +903,10 @@ and Coh
 : sig
   type t = private (PS.t * Expr.t)   
 
-  val mk : Env.t -> PS.t -> expr -> t
+  val mk : PS.t -> expr -> t
   val free_vars : t -> cvar list
-  val to_string : Env.t -> t -> string
-  val checkEqual : Env.t -> t -> t -> Ctx.t
+  val to_string : t -> string
+  val checkEqual : t -> t -> Ctx.t
   val ps : t -> PS.t
   val target : t -> Expr.t
   val to_expr : t -> expr
@@ -912,7 +914,7 @@ end
 = struct
   type t = PS.t * Expr.t
 		    
-  let check env ps t = 
+  let check ps t = 
     if List.included (PS.free_vars ps) (Expr.free_vars t)
     then  (ps,t)
     else
@@ -929,11 +931,11 @@ end
       let fvf = List.union (free_vars f) (free_vars a)
       and fvg = List.union (free_vars g) (free_vars a) in
       try
-	let tf = Expr.infer env ctxs f in
-	let tg = Expr.infer env ctxt g in
+	let tf = Expr.infer ctxs f in
+	let tg = Expr.infer ctxt g in
 	begin
-	  Expr.checkT env ctxs tf;
-	  Expr.checkT env ctxt tg;
+	  Expr.checkT ctxs tf;
+	  Expr.checkT ctxt tg;
 	  if List.included (PS.free_vars pss)
 			    fvf &&
 	     List.included (PS.free_vars pst)
@@ -944,23 +946,23 @@ end
       with
       |UnknownId _ -> raise NotAlgebraic
 			    
-  let mk env ps t =
-    let t = Expr.mk env (Ctx.of_ps ps) t in
-    check env ps t
+  let mk ps t =
+    let t = Expr.mk (Ctx.of_ps ps) t in
+    check ps t
 
       
   let free_vars (ps,t) =
     List.union (PS.free_vars ps) (Expr.free_vars t)
 
-  let to_string env (ps,t) =
+  let to_string (ps,t) =
     Printf.sprintf "Coh {%s |- %s}"
-		   (PS.to_string env ps)
-		   (Expr.to_string env t)
+		   (PS.to_string ps)
+		   (Expr.to_string t)
 
-  let checkEqual env (ps1,t1) (ps2,t2) =
+  let checkEqual (ps1,t1) (ps2,t2) =
     let c1 = Ctx.of_ps ps1 and c2 = Ctx.of_ps ps2 in
-    Ctx.checkEqual env c1 c2;
-    Expr.checkEqual env c1 t1 t2; c1
+    Ctx.checkEqual c1 c2;
+    Expr.checkEqual c1 t1 t2; c1
 
   let ps (ps,t) = ps
 
@@ -975,7 +977,7 @@ type ctx = Ctx.t
 type kexpr = Expr.t
 
              
-let empty_env = Env.empty ()
+let init_env = Env.init
 let add_env = Env.add
 
 let checkType = Expr.checkType

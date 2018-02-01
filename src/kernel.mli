@@ -4,12 +4,12 @@ type env
 type kexpr
 type ctx
        
-val empty_env : env
-val add_env : env -> var -> expr -> env
+val init_env : unit
+val add_env : var -> expr -> unit
 
-val checkType : env -> ctx -> kexpr -> kexpr -> unit
-val infer : env -> ctx -> kexpr -> kexpr
-val string_of_kexpr : env -> kexpr -> string
-val mk_expr : env -> ctx -> expr -> kexpr
-val mk_ctx : env -> (var * expr) list -> ctx
+val checkType : ctx -> kexpr -> kexpr -> unit
+val infer : ctx -> kexpr -> kexpr
+val string_of_kexpr : kexpr -> string
+val mk_expr : ctx -> expr -> kexpr
+val mk_ctx : (var * expr) list -> ctx
  
