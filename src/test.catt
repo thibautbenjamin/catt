@@ -54,7 +54,6 @@ comp (hcomp a1 b1) (hcomp a2 b2) -> hcomp (comp a1 a2) (comp b1 b2).
 check (x : *) (y : *) (z : *) (t : *) (f1 : x -> y) (f2 : x -> y) (g1 : y -> z) (g2 : y -> z) (h1 : z -> t) (h2 : z -> t) (a : f1 -> f2) (b : g1 -> g2) (c : h1  -> h2) = hcomp a (hcomp b c). 
 
 
-
-let eh1 (x : *) (a : id x -> id x) (b : id x -> id x) = hunitl- a.
+let eh1 (x : *) (a : id x -> id x) = hunitl- a.
 
 

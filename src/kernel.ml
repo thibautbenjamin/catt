@@ -627,10 +627,10 @@ and Env
   val add : var -> expr -> unit
 
   (** Structural operation *)
-  val val_var : evar -> Coh.t
+  val val_var : evar -> int -> Coh.t
 end
 = struct
-  type t = (evar * Coh.t) list
+  type t = (evar * ((int * Coh.t) list)) list
 
   let env = ref ([] :> t)
                           
@@ -646,15 +646,32 @@ end
       Coh.mk c u
     |_ -> assert (false)
     in
-    env := (EVar.mk x,u)::!env
+    env := (EVar.mk x,[0,u])::!env
 
+  let rec replace a b l = match l with
+    |(x,y)::l when x = a -> (x,b)::(replace a b l)
+    |(x,y)::l -> (x,y)::(replace a b l)
+    |[] -> []                            
 
   (** --------------------
       Structural operation
       -------------------- *)	     
-  let val_var x =
-    try List.assoc x !env
-    with Not_found -> raise (UnknownCoh (EVar.to_string x))
+  let val_var x i =
+    let cohfamily = try List.assoc x !env
+                    with Not_found -> raise (UnknownCoh (EVar.to_string x))
+    in
+    try List.assoc i cohfamily
+    with Not_found ->
+         let coh = try List.assoc 0 cohfamily
+                   with Not_found -> assert(false) in
+         let ps = Coh.ps coh in
+         let t = Expr.to_expr (Coh.target coh) in
+         let ps = PS.suspend ps i in
+         let newcoh = (Coh.mk ps t) in
+         env := replace x ((i,newcoh)::cohfamily) (!env); 
+         newcoh
+
+
 end
 
     
@@ -824,7 +841,7 @@ and Cut
 : sig
 
   type t =
-    |Fold of evar
+    |Fold of evar * int
     |Unfold of Coh.t		 
   val to_string : t -> string
   val checkEqual : t -> t -> Ctx.t
@@ -835,49 +852,51 @@ and Cut
 end
 = struct
   type t = 
-    |Fold of evar
+    |Fold of evar * int
     |Unfold of Coh.t
-		 
+
+  let rec repeat s k =
+    if k = 0 then "" else s^(repeat s (k-1))
+                 
   let to_string coh =
     match coh with
-    |Fold x -> EVar.to_string x
+    |Fold (x,i) ->
+      if !print_lifting then
+        EVar.to_string x ^ (repeat "°" i)
+      else EVar.to_string x
     |Unfold coh -> Coh.to_string coh
 				  
   let checkEqual e1 e2 =
     match e1, e2 with
     |Unfold coh1, Unfold coh2 -> Coh.checkEqual coh1 coh2
-    |Fold x, Fold y -> Coh.checkEqual (Env.val_var x) (Env.val_var y)
-    |Unfold coh, Fold y -> Coh.checkEqual coh (Env.val_var y)
-    |Fold x, Unfold coh -> Coh.checkEqual (Env.val_var x) coh
+    |Fold (x,i), Fold (y,j) -> Coh.checkEqual (Env.val_var x i) (Env.val_var y j)
+    |Unfold coh, Fold (y,i) -> Coh.checkEqual coh (Env.val_var y i)
+    |Fold (x,i), Unfold coh -> Coh.checkEqual (Env.val_var x i) coh
 
   let infer coh =
     match coh with
-    |Fold x ->
-      let coh = Env.val_var x in
+    |Fold (x,i) ->
+      let coh = Env.val_var x i in
       (Ctx.of_ps (Coh.ps coh), Coh.target coh)
     |Unfold coh ->
       (Ctx.of_ps (Coh.ps coh), Coh.target coh)
 
   let ps coh =
     match coh with
-    |Fold x -> let coh = Env.val_var x in
+    |Fold (x,i) -> let coh = Env.val_var x i in
                Coh.ps coh
     |Unfold coh -> Coh.ps coh
         
   let mk e i =
     match e with
     |Var v ->
-      let coh = Env.val_var (EVar.mk v) in
+      let coh = Env.val_var (EVar.mk v) 0 in
       let ps = Coh.ps coh in
       let j = PS.dim ps in
-      if (j=i)
-      then
-	(Fold (EVar.mk v), ps)
-      else if i>j then
-	let t = Expr.to_expr (Coh.target coh) in
-        let ps = PS.suspend ps (i-j) in
-	(Unfold (Coh.mk ps t), ps)
-      else failwith "substitution not applied enough"
+      if i<j then failwith "substitution not applied enough" else
+      let coh = Env.val_var (EVar.mk v) (i-j) in
+      let ps = Coh.ps coh in
+      (Fold ((EVar.mk v),i-j), ps)
     |Coh (ps,t) ->
       let ps = PS.mk (Ctx.mk ps) in
       let j = PS.dim ps in
@@ -892,7 +911,7 @@ end
 
   let rec to_expr c =
     match c with
-    |Fold v -> Var (EVar.to_var v)
+    |Fold (v,i) -> Var (EVar.to_var v)
     |Unfold coh -> Coh.to_expr coh
 
 end
