@@ -59,6 +59,7 @@ module rec Sub
   val mk : expr list -> Ctx.t -> PS.t -> t
   val mk_elaborated : expr list -> Ctx.t -> PS.t -> t
   val to_expr : t -> expr list
+  val reinit : t -> PShape.pshape -> expr list
 						    
   (** Syntactic properties *)		    
   val free_vars : t -> cvar list
@@ -239,7 +240,22 @@ end
 
     let to_expr s =
       List.rev (List.map Expr.to_expr s)		   
-  end
+
+    let reinit s ps =
+      match s,ps with
+      |u::[], PNil -> [Expr.reinit u]
+      |_,_ ->
+        let rec aux s ps = 
+            match s,ps with
+            |u::_::s, PDrop (PCons (ps)) -> (Expr.reinit u) :: (aux s ps)
+            |s , PDrop ps -> aux s ps
+            |u::_::s , PCons ps -> aux s ps
+            |s,PNil -> []
+            |_,_ -> assert(false)
+        in List.rev(aux s ps)
+
+
+end
 
     
 (** -- Contexts are association lists of variables and terms in normal form.
@@ -665,7 +681,7 @@ end
          let coh = try List.assoc 0 cohfamily
                    with Not_found -> assert(false) in
          let ps = Coh.ps coh in
-         let t = Expr.to_expr (Coh.target coh) in
+         let t = Expr.reinit (Coh.target coh) in
          let ps = PS.suspend ps i in
          let newcoh = (Coh.mk ps t) in
          env := replace x ((i,newcoh)::cohfamily) (!env); 
@@ -696,6 +712,7 @@ and Expr
                                        
   val dim : t -> int
   val to_expr : t -> expr
+  val reinit : t -> expr
   end
 = struct
   type  t =
@@ -829,12 +846,20 @@ and Expr
     |Arr(a,t,u) -> 1 + dim a
     |_ -> assert (false)
 
-  let rec to_expr t : expr=
+  let rec to_expr t : expr =
     match t with
     |Obj -> Obj
     |Arr(_,u,v) -> Arr(to_expr u, to_expr v)
     |CVar v -> Var (CVar.to_var v)
     |Sub (t,s) -> Sub(Cut.to_expr t, Sub.to_expr s)
+
+  let rec reinit t : expr =
+    match t with
+    |Obj -> Obj
+    |Arr(_,u,v) -> Arr(reinit u, reinit v)
+    |CVar v -> Var (CVar.to_var v)
+    |Sub (t,s) -> Sub(Cut.to_expr t, Sub.reinit s (PS.shape (Cut.ps t)))
+    
 end
     
 and Cut
