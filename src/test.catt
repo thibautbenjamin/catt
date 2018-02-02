@@ -40,7 +40,11 @@ comp f1 g1 -> comp f2 g2.
 coh unitl (x : *) (y : *) (f : x -> y) : comp (id x) f -> f.
 coh unitl- (x : *) (y : *) (f : x -> y) : f -> comp (id x) f.
 
+coh unitr (x : *) (y : *) (f : x -> y) : comp f (id y) -> f.
+coh unitr- (x : *) (y : *) (f : x -> y) : f -> comp f (id y).
+
 coh hunitl- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g):  a -> comp3 (unitl- f) (hcomp (id (id x)) a) (unitl g). 
+coh hunitr- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g):  a -> comp3 (unitr- f) (hcomp a (id (id y))) (unitr g). 
 
 coh exch (x : *)
          (y : *) (f1 : x -> y)
@@ -56,6 +60,6 @@ check (x : *) (y : *) (z : *) (t : *) (f1 : x -> y) (f2 : x -> y) (g1 : y -> z) 
 check (x : *) (alpha : id (id x) -> id (id x)) (beta: id (id x) -> id (id x)) = hcomp alpha beta.
 
 
-let eh1 (x : *) (a : id x -> id x) = hunitl- a.
+let eh1 (x : *) (a : id x -> id x) (b : id x -> id x) = hcomp (hunitl- a) (hunitr- b).
 
 

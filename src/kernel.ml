@@ -3,7 +3,13 @@ open Settings
 open Common
 open PShape
 open ExtSyntax
-		   
+
+
+    let rec print_list l = match l with
+      |[] -> ""
+      |t::q -> (string_of_expr t) ^ " " ^ (print_list q)
+
+       
 module EVar
 : sig 
     type t
@@ -65,7 +71,8 @@ module rec Sub
   val free_vars : t -> cvar list
   val apply : t -> Ctx.t -> Ctx.t -> Expr.t -> Expr.t
   val dim : Ctx.t -> expr list -> int
-					
+  val dim_elaborated : Ctx.t -> expr list -> int
+                                    
   (** Equality procedures *)
   val checkEqual : Ctx.t -> t -> t -> unit
 
@@ -238,6 +245,21 @@ end
       |t::l -> max l t
       |[] -> raise EmptySub
 
+    let dim_elaborated ctx l =
+      let rec max l i =
+	match l with
+	| [] -> i
+	| t::l -> if t > i
+		  then max l t
+		  else max l i
+      in
+      let l  = (List.map (fun x -> Expr.dim (Expr.infer ctx (Expr.mk_elaborated ctx x))) l)
+      in
+      match l with
+      |t::l -> max l t
+      |[] -> raise EmptySub
+
+                   
     let to_expr s =
       List.rev (List.map Expr.to_expr s)		   
 
@@ -822,7 +844,7 @@ and Expr
 	let () = checkEqual c t t' in
 	Arr (t,u,v)
       |Sub (t,s) ->
-	let t,tar = Cut.mk t (Sub.dim c s) in
+	let t,tar = Cut.mk t (Sub.dim_elaborated c s) in
 	let s = Sub.mk_elaborated s c tar in
 	Sub (t,s)
       |Coh _ -> failwith "unsubstituted coherence"
