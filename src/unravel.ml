@@ -37,15 +37,14 @@ and contains v e =
 (* check all occurences of variables of l in e and replace them with variables of l' *)  
 let rec replace l l' e =
   let e = unravel e in
-  match l,l' with
-  |[],[] -> e
-  |(u::q1),(v::q2) ->
-    let e = (replace q1 q2 e) in replace_var u v e
-  |_,_ -> error "wrong number of arguments"
-and replace_var u t e =
   match e with
-  |Var a -> if Var.equal a u then t else e
+  |Var a -> replace_var l l' a
   |Obj -> e
-  |Arr(a,b) -> Arr(replace_var u t a, replace_var u t b)
+  |Arr(a,b) -> Arr(replace l l' a, replace l l' b)
   |Coh (_,_) -> e
-  |Sub (e,s) -> Sub(replace_var u t e, List.map (replace_var u t) s)
+  |Sub (e,s) -> Sub(replace l l' e, List.map (replace l l') s)
+and replace_var l l' a =
+  match l, l' with
+  |(u::q1),(v::q2) -> if Var.equal a u then v else replace_var q1 q2 a 
+  |[],[] -> Var a
+  |_,_ -> error "wrong number of arguments"

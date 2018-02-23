@@ -4,11 +4,6 @@ open Common
 open PShape
 open ExtSyntax
 
-
-    let rec print_list l = match l with
-      |[] -> ""
-      |t::q -> (string_of_expr t) ^ " " ^ (print_list q)
-
        
 module EVar
 : sig 
@@ -553,8 +548,8 @@ end
               let x,tx = marker ps in
               if x = fx then
                 let fvps = PS.free_vars ps in
-                assert (not (List.mem f fvps));
-                assert (not (List.mem y fvps));
+                if (List.mem f fvps) then raise (DoubledVar (CVar.to_string f));
+                if (List.mem y fvps) then raise (DoubledVar (CVar.to_string y));
                 let ps = PCons (ps,(y,ty),(f,tf)) in
                 aux ps l
               else
@@ -940,10 +935,14 @@ end
       let coh = Env.val_var (EVar.mk v) 0 in
       let ps = Coh.ps coh in
       let j = PS.dim ps in
-      if i<j then failwith "substitution not applied enough" else
-      let coh = Env.val_var (EVar.mk v) (i-j) in
-      let ps = Coh.ps coh in
-      (Fold ((EVar.mk v),i-j), ps)
+      if j<=i then 
+        let coh = Env.val_var (EVar.mk v) (i-j) in
+        let ps = Coh.ps coh in
+        (Fold ((EVar.mk v),i-j), ps)
+      else
+        if j-i <= (!suspended) then
+          failwith "suspensions are not yet implemented"
+        else failwith (Printf.sprintf "this coherence is not correctly defined without suspending the category more than %i" (!suspended)) 
     |Coh (ps,t) ->
       let ps = PS.mk (Ctx.mk ps) in
       let j = PS.dim ps in

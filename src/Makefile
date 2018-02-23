@@ -3,6 +3,6 @@ RESULT = catt
 ANNOTATE = true
 
 all: dnc
-	./catt test.catt
+	./catt ../examples/strengthening-equivalence.catt
 
 include OCamlMakefile

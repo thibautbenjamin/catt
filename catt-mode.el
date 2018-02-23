@@ -35,3 +35,5 @@
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.catt\\'" . catt-mode))
+
+
