@@ -158,9 +158,9 @@ end
         in aux s ps
 
 
-    (* let rec print_list l = match l with *)
-    (*   |[] -> "" *)
-    (*   |t::q -> (string_of_expr t) ^ " " ^ (print_list q) *)
+    let rec print_list l = match l with
+      |[] -> ""
+      |t::q -> (string_of_expr t) ^ " " ^ (print_list q)
                                             
     (* let rec print_listbis l = match l with *)
     (*   |[] -> "" *)

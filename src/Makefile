@@ -3,6 +3,6 @@ RESULT = catt
 ANNOTATE = true
 
 all: dnc
-	./catt ../examples/strengthening-equivalence.catt
+	./catt ../examples/double-braiding-dim4.catt
 
 include OCamlMakefile
