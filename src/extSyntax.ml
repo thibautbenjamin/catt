@@ -21,10 +21,10 @@ type var = Var.t
 type expr =
   |Var of var
   |Obj
-  |Arr of expr * expr
-  |Coh of ((var * expr) list) * expr
-  |Sub of expr * (expr list)
-            
+  |Arr of rexpr * rexpr
+  |Coh of ((var * rexpr) list) * rexpr
+  |Sub of rexpr * (rexpr list)
+and rexpr = expr * bool (* bool is true iff the expression has implicit arguments *)
                    
 let rec string_of_expr e =
   match e with
@@ -32,15 +32,15 @@ let rec string_of_expr e =
   |Obj -> "*"
   |Arr (u,v) ->
     Printf.sprintf "%s -> %s"
-		   (string_of_expr u)
-		   (string_of_expr v)
+		   (string_of_rexpr u)
+		   (string_of_rexpr v)
   |Coh (ps,u) ->
     Printf.sprintf "Coh{%s |- %s}"
 		   (string_of_ps ps)
-		   (string_of_expr u)
+		   (string_of_rexpr u)
   |Sub (t,s) ->
     Printf.sprintf "(%s %s)"
-		   (string_of_expr t)
+		   (string_of_rexpr t)
 		   (string_of_sub s)
 and string_of_ps ps =
   match ps with
@@ -48,13 +48,13 @@ and string_of_ps ps =
   |(x,t)::ps ->
     Printf.sprintf "(%s:%s) %s"
 		   (Var.to_string x)
-		   (string_of_expr t)
+		   (string_of_rexpr t)
 		   (string_of_ps ps)
 and string_of_sub s =
   match s with
   |[] -> ""
-  |t::[] -> Printf.sprintf "%s" (string_of_expr t)
+  |t::[] -> Printf.sprintf "%s" (string_of_rexpr t)
   |t::s -> Printf.sprintf"%s %s"
-			 (string_of_expr t)
+			 (string_of_rexpr t)
 			 (string_of_sub s)
-
+and string_of_rexpr (e,_) = string_of_expr e

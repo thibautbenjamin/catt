@@ -57,16 +57,15 @@ module rec Sub
   type t = private (Expr.t list)
 		     
   (** Structural functions *)
-  val mk : expr list -> Ctx.t -> PS.t -> t
-  val mk_elaborated : expr list -> Ctx.t -> PS.t -> t
-  val to_expr : t -> expr list
-  val reinit : t -> PShape.pshape -> expr list
+  val mk : rexpr list -> Ctx.t -> PS.t -> bool -> t
+  val mk_elaborated : rexpr list -> Ctx.t -> PS.t -> t
+  val to_expr : t -> rexpr list
+  val reinit : t -> PShape.pshape -> rexpr list
 						    
   (** Syntactic properties *)		    
   val free_vars : t -> cvar list
   val apply : t -> Ctx.t -> Ctx.t -> Expr.t -> Expr.t
-  val dim : Ctx.t -> expr list -> int
-  val dim_elaborated : Ctx.t -> expr list -> int
+  val dim : Ctx.t -> rexpr list -> int
                                     
   (** Equality procedures *)
   val checkEqual : Ctx.t -> t -> t -> unit
@@ -214,13 +213,13 @@ end
 	|t::s,_ ->
 	  let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	  let s = aux s tar in
-	  let t = Expr.mk_elaborated src t in
+	  let t = Expr.mk src t in
 	  let () = Expr.checkType src t (apply s tar src u)
 	  in t::s
       in aux (List.rev l) (Ctx.of_ps tar)
         
-    let mk l src tar =
-      if !partial_substitutions then
+    let mk l src tar elab =
+      if elab then
 	elaborate l src tar
       else
         mk_elaborated l src tar
@@ -240,24 +239,11 @@ end
       |t::l -> max l t
       |[] -> raise EmptySub
 
-    let dim_elaborated ctx l =
-      let rec max l i =
-	match l with
-	| [] -> i
-	| t::l -> if t > i
-		  then max l t
-		  else max l i
-      in
-      let l  = (List.map (fun x -> Expr.dim (Expr.infer ctx (Expr.mk_elaborated ctx x))) l)
-      in
-      match l with
-      |t::l -> max l t
-      |[] -> raise EmptySub
-
                    
     let to_expr s =
       List.rev (List.map Expr.to_expr s)		   
 
+    (* erase the implicit arguments of the list *)
     let reinit s ps =
       match s,ps with
       |u::[], PNil -> [Expr.reinit u]
@@ -286,9 +272,9 @@ and Ctx
 
   (** Makers *)
   val empty : unit -> t
-  val add : t -> var -> expr -> t
+  val add : t -> var -> rexpr -> t
   val add_norm : t -> var -> Expr.t -> t
-  val mk : (var * expr) list -> t
+  val mk : (var * rexpr) list -> t
   val of_ps : PS.t -> t
 					       
   (** Structural operations *)
@@ -300,7 +286,7 @@ and Ctx
   val ty_var : t -> cvar -> Expr.t
   val free_vars : t -> cvar list
   val mem : t -> cvar -> bool
-  val to_expr : t -> (var * expr) list
+  val to_expr : t -> (var * rexpr) list
 
   (** Equality procedure *)
   val isEmpty : t -> bool
@@ -364,8 +350,6 @@ end
     |[] -> assert(false)
     |_::[] -> []
     |a::ctx -> a::(tail ctx)
-
-
 		    
   let suspend (ctx : t) i =
     let open Var in
@@ -375,9 +359,9 @@ end
       |k when k = i -> c,ty
       |k ->
 	let k' = k+1 in
-	let ty = Arr (Var (New (2*k-1)), Var (New (2*k)))
+	let ty = (Arr ((Var (New (2*k-1)), false), (Var (New (2*k)), false)), false)
 	in
-	let ty' = Arr (Var (New (2*k'-1)), Var (New (2*k')))
+	let ty' = (Arr ((Var (New (2*k'-1)), false), (Var (New (2*k')), false)), false)
 	in aux k'
 	     (Ctx.add 
 		(Ctx.add c (New ((2*k')-1)) ty)
@@ -388,9 +372,9 @@ end
     let ctx' = Ctx.add 
 		   (Ctx.add_norm (Ctx.empty ()) (New 1) Expr.Obj)
 		   (New 2)
-		   Obj    
+		   (Obj, false)    
     in
-    let ctx',ty = aux 1 ctx' (Arr (Var (New 1), Var (New 2))) in
+    let ctx',ty = aux 1 ctx' ((Arr ((Var (New 1), false), (Var (New 2), false))), false) in
     let rec comp c res = match c with
       |(x,Expr.Obj)::c -> comp c (Ctx.add res (var_of_cvar x) ty)
       |(x,tx)::c -> comp c (Ctx.add res (var_of_cvar x) (Expr.to_expr tx))
@@ -472,7 +456,7 @@ and PS
 
   (** Syntactic properties *)
   val free_vars : t -> cvar list
-  val to_expr : t -> (var*expr) list
+  val to_expr : t -> (var * rexpr) list
 
   (** Structural operations *)
   val height : t -> int
@@ -657,7 +641,7 @@ and Env
                                   
   (** Makers *)
   val init : unit
-  val add : var -> expr -> unit
+  val add : var -> rexpr -> unit
 
   (** Structural operation *)
   val val_var : evar -> int -> Coh.t
@@ -672,7 +656,7 @@ end
       ------ *)
   let init = env := []
 
-  let add x u =
+  let add x (u,_) =
     let u = match u with
     |Coh (ps,u) -> 
       let c = PS.mk (Ctx.mk ps) in
@@ -723,13 +707,13 @@ and Expr
   val infer : Ctx.t -> t -> t
   val checkEqual : Ctx.t -> t -> t -> unit
   val checkType : Ctx.t -> t -> t -> unit
-  val mk : Ctx.t -> expr -> t
-  val mk_elaborated : Ctx.t -> expr -> t
+  val mk : Ctx.t -> rexpr -> t
+  (* val mk_elaborated : Ctx.t -> rexpr -> t *)
 
                                        
   val dim : t -> int
-  val to_expr : t -> expr
-  val reinit : t -> expr
+  val to_expr : t -> rexpr
+  val reinit : t -> rexpr
   end
 = struct
   type  t =
@@ -796,24 +780,23 @@ and Expr
   and checkType ctx e1 e2  =
     checkEqual ctx (infer ctx e1) e2 
 
-  let mk c (e:expr) =
-    let rec translate  e = 
+  let mk c (e,elab) =      
+    let rec translate e el = 
       match e with
       |Var v -> CVar (CVar.mk v)
       |Obj -> Obj
-      |Arr (u,v) ->
-	let u = translate u in
-	let v = translate v in 
+      |Arr ((u,e1),(v,e2)) ->
+        let u = translate u e1 in
+	let v = translate v e2 in 
 	let t = infer c u in
 	let t' = infer c v in
 	let () = checkEqual c t t' in
 	Arr (t,u,v)
       |Sub (t,s) ->
 	let t,tar = Cut.mk t (Sub.dim c s) in
-	let s = Sub.mk s c tar in
+	let s = Sub.mk s c tar el in
 	Sub (t,s)
-      |Coh _ -> failwith "unsubstituted coherence"
-    in
+      |Coh _ -> failwith "unsubstituted coherence" in
     let check e  =
       match e with
       |(CVar _ |Sub _) ->
@@ -821,41 +804,10 @@ and Expr
       |Arr _ -> checkT c e
       |Obj -> ()
     in
-    let e = translate e
+    let e = translate e elab
     in
     check e;
     e
-
-  let mk_elaborated c (e:expr) =
-    let rec translate  e = 
-      match e with
-      |Var v -> CVar (CVar.mk v)
-      |Obj -> Obj
-      |Arr (u,v) ->
-	let u = translate u in
-	let v = translate v in 
-	let t = infer c u in
-	let t' = infer c v in
-	let () = checkEqual c t t' in
-	Arr (t,u,v)
-      |Sub (t,s) ->
-	let t,tar = Cut.mk t (Sub.dim_elaborated c s) in
-	let s = Sub.mk_elaborated s c tar in
-	Sub (t,s)
-      |Coh _ -> failwith "unsubstituted coherence"
-    in
-    let check e  =
-      match e with
-      |(CVar _ |Sub _) ->
-	let _ = infer c e in ()
-      |Arr _ -> checkT c e
-      |Obj -> ()
-    in
-    let e = translate e
-    in
-    check e;
-    e
-
       
   let rec dim t =
     match t with
@@ -863,19 +815,19 @@ and Expr
     |Arr(a,t,u) -> 1 + dim a
     |_ -> assert (false)
 
-  let rec to_expr t : expr =
+  let rec to_expr t : rexpr =
     match t with
-    |Obj -> Obj
-    |Arr(_,u,v) -> Arr(to_expr u, to_expr v)
-    |CVar v -> Var (CVar.to_var v)
-    |Sub (t,s) -> Sub(Cut.to_expr t, Sub.to_expr s)
+    |Obj -> (Obj, false)
+    |Arr(_,u,v) -> (Arr(to_expr u, to_expr v), false)
+    |CVar v -> (Var (CVar.to_var v), false)
+    |Sub (t,s) -> (Sub (Cut.to_expr t, Sub.to_expr s), false)
 
-  let rec reinit t : expr =
+  let rec reinit t : rexpr =
     match t with
-    |Obj -> Obj
-    |Arr(_,u,v) -> Arr(reinit u, reinit v)
-    |CVar v -> Var (CVar.to_var v)
-    |Sub (t,s) -> Sub(Cut.to_expr t, Sub.reinit s (PS.shape (Cut.ps t)))
+    |Obj -> (Obj, true)
+    |Arr(_,u,v) -> (Arr(reinit u, reinit v), true)
+    |CVar v -> (Var (CVar.to_var v), true)
+    |Sub (t,s) -> (Sub(Cut.to_expr t, Sub.reinit s (PS.shape (Cut.ps t))), true)
     
 end
     
@@ -888,8 +840,8 @@ and Cut
   val to_string : t -> string
   val checkEqual : t -> t -> Ctx.t
   val infer : t -> Ctx.t * Expr.t
-  val mk : expr -> int -> (t * PS.t)
-  val to_expr : t -> expr
+  val mk : rexpr -> int -> (t * PS.t)
+  val to_expr : t -> rexpr
   val ps : t -> PS.t
 end
 = struct
@@ -929,7 +881,7 @@ end
                Coh.ps coh
     |Unfold coh -> Coh.ps coh
         
-  let mk e i =
+  let mk (e,_) i =
     match e with
     |Var v ->
       let coh = Env.val_var (EVar.mk v) 0 in
@@ -955,9 +907,9 @@ end
 
     |(Obj |Arr _|Sub _) -> raise BadUnderSub
 
-  let rec to_expr c =
+  let rec to_expr c : rexpr =
     match c with
-    |Fold (v,i) -> Var (EVar.to_var v)
+    |Fold (v,i) -> (Var (EVar.to_var v), false)
     |Unfold coh -> Coh.to_expr coh
 
 end
@@ -968,13 +920,13 @@ and Coh
 : sig
   type t = private (PS.t * Expr.t)   
 
-  val mk : PS.t -> expr -> t
+  val mk : PS.t -> rexpr -> t
   val free_vars : t -> cvar list
   val to_string : t -> string
   val checkEqual : t -> t -> Ctx.t
   val ps : t -> PS.t
   val target : t -> Expr.t
-  val to_expr : t -> expr
+  val to_expr : t -> rexpr
 end
 = struct
   type t = PS.t * Expr.t
@@ -1033,7 +985,7 @@ end
 
   let target (ps,t) = t
 
-  let to_expr (ps,t) = Coh (PS.to_expr ps, Expr.to_expr t)
+  let to_expr (ps,t) = (Coh (PS.to_expr ps, Expr.to_expr t), false)
 
 end    
         
@@ -1045,6 +997,8 @@ type kexpr = Expr.t
 let init_env = Env.init
 let add_env = Env.add
 
+let elab ctx e = Expr.to_expr (Expr.mk ctx e)
+                
 let checkType = Expr.checkType
 let infer = Expr.infer
 let string_of_kexpr e = Expr.to_string e

@@ -7,10 +7,10 @@ open Unravel
 
        
 type cmd =
-  |DeclCoh of var * expr
+  |DeclCoh of var * rexpr
 (** Add the possibility to check terms in a given context for debugging and as an help to the user *)
-  |Check of ((var* expr) list) * expr * (expr option) 
-  |Decl of var * (var * expr) list * expr * (expr option)
+  |Check of ((var* rexpr) list) * rexpr * (rexpr option) 
+  |Decl of var * (var * rexpr) list * rexpr * (rexpr option)
 	                                  
 type prog = cmd list
 			       
@@ -19,9 +19,13 @@ let exec_cmd cmd =
   | DeclCoh (x,e) ->
      let () = command "let %s = %s"
 		      (Var.to_string x)
-		      (string_of_expr e)
+		      (string_of_expr (fst e))
      in
-     let e = unravel e in
+     let e = 
+       match fst e with
+       |Coh (l,u) -> Coh (l, unravel (mk_ctx l) u), snd e
+       |_ -> assert (false)
+     in
      let env =
        if !debug_mode then 
 	 Kernel.add_env x e
@@ -37,28 +41,28 @@ let exec_cmd cmd =
      let () = info  "defined" in
      env
   | Check (l, e, t) ->
-     let e = unravel e in
      let c = Kernel.mk_ctx l in
+     let e = unravel c e in
      begin
      match t with
-     |Some t -> let t = unravel t in
-                let () = command "check %s : %s" (string_of_expr e) (string_of_expr t) in
+     |Some t -> let t = unravel c t in
+                let () = command "check %s : %s" (string_of_expr (fst e)) (string_of_expr (fst t)) in
                 let () = Kernel.checkType c (Kernel.mk_expr c e) (Kernel.mk_expr c t) in
                 info "checked"
-     |None -> let () = command "check %s " (string_of_expr e) in
+     |None -> let () = command "check %s " (string_of_expr (fst e)) in
               let t = Kernel.infer c (Kernel.mk_expr c e) in
-              info "checked term %s type %s" (string_of_expr e) (string_of_kexpr t)
+              info "checked term %s type %s" (string_of_expr (fst e)) (string_of_kexpr t)
      end
   | Decl (v,l,e,t) ->
-     let e = unravel e in
      let c = Kernel.mk_ctx l in
+     let e = unravel c e in
      let t = match t with
-     |Some t -> let t = unravel t in 
-                let () = command "let %s : %s" (string_of_expr e) (string_of_expr t) in
+     |Some t -> let t = unravel c t in 
+                let () = command "let %s : %s" (string_of_expr (fst e)) (string_of_expr (fst t)) in
                 let t = Kernel.mk_expr c t in
                 let () = Kernel.checkType c (Kernel.mk_expr c e) t in
                 t
-     |None -> let () = command "let %s " (string_of_expr e) in
+     |None -> let () = command "let %s " (string_of_expr (fst e)) in
               let t = Kernel.infer c (Kernel.mk_expr c e) in t
      in
      let l = List.map fst l in
