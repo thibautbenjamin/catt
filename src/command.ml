@@ -1,36 +1,32 @@
+open Var
 open Kernel
 open Settings
 open Common
-open ExtSyntax
 open MacrosEnvironnement
 open Unravel
 
        
 type cmd =
-  |DeclCoh of var * rexpr
-(** Add the possibility to check terms in a given context for debugging and as an help to the user *)
-  |Check of ((var* rexpr) list) * rexpr * (rexpr option) 
-  |Decl of var * (var * rexpr) list * rexpr * (rexpr option)
+  |DeclCoh of Var.t * (Var.t * ty) list * ty 
+  |Check of ((Var.t * ty) list) * tm * (ty option)
+  |Decl of Var.t * (Var.t * ty) list * tm * (ty option)
 	                                  
 type prog = cmd list
-			       
+                
 let exec_cmd cmd =
   match cmd with
-  | DeclCoh (x,e) ->
+  | DeclCoh (x,ps,e) ->
      let () = command "let %s = %s"
 		      (Var.to_string x)
-		      (string_of_expr (fst e))
+		      (string_of_ty e)
      in
-     let e = 
-       match fst e with
-       |Coh (l,u) -> Coh (l, unravel (mk_ctx l) u), snd e
-       |_ -> assert (false)
-     in
+     let ps = mk_ctx ps in
+     let e = unravel_ty ps e in
      let env =
        if !debug_mode then 
-	 Kernel.add_env x e
+	 Kernel.add_env x ps e
        else
-	 try Kernel.add_env x e
+	 try Kernel.add_env x ps e
 	 with
 	 |UnknownId s  -> error "unknown identifier %s" s
 	 |UnknownCoh s  -> error "unknown coherence name %s" s
@@ -42,33 +38,35 @@ let exec_cmd cmd =
      env
   | Check (l, e, t) ->
      let c = Kernel.mk_ctx l in
-     let e = unravel c e in
+     let e = fst (unravel_tm c e) in
+     let e,t' = Kernel.mk_tm c e in
      begin
      match t with
-     |Some t -> let t = unravel c t in
-                let () = command "check %s : %s" (string_of_expr (fst e)) (string_of_expr (fst t)) in
-                let () = Kernel.checkType c (Kernel.mk_expr c e) (Kernel.mk_expr c t) in
+     |Some t -> let t = unravel_ty c t in
+                let t = Kernel.mk_ty c t in
+                let () = command "check %s : %s" (string_of_tm e) (string_of_ty t) in
+                let () = Kernel.checkEqual c t t' in
                 info "checked"
-     |None -> let () = command "check %s " (string_of_expr (fst e)) in
-              let t = Kernel.infer c (Kernel.mk_expr c e) in
-              info "checked term %s type %s" (string_of_expr (fst e)) (string_of_kexpr t)
+     |None -> let () = command "check %s " (string_of_tm e) in
+              info "checked term %s type %s" (string_of_tm e) (string_of_ty t')
      end
   | Decl (v,l,e,t) ->
      let c = Kernel.mk_ctx l in
-     let e = unravel c e in
+     let e, vars = unravel_tm c e in
+     let e,t' = Kernel.mk_tm c e in 
      let t = match t with
-     |Some t -> let t = unravel c t in 
-                let () = command "let %s : %s" (string_of_expr (fst e)) (string_of_expr (fst t)) in
-                let t = Kernel.mk_expr c t in
-                let () = Kernel.checkType c (Kernel.mk_expr c e) t in
-                t
-     |None -> let () = command "let %s " (string_of_expr (fst e)) in
-              let t = Kernel.infer c (Kernel.mk_expr c e) in t
+       |Some t -> let t = unravel_ty c t in
+                  let t = Kernel.mk_ty c t in
+                  let () = Kernel.checkEqual c t t' in
+                  let () = command "let %s : %s" (string_of_tm e) (string_of_ty t) in
+                  t
+       |None -> let () = command "let %s " (string_of_tm e) in
+                t'
      in
      let l = List.map fst l in
-     let l = select l e in
-     mEnv := (v, (fun l' -> replace l l' e)) :: (! mEnv);
-     info "defined term of type %s" (string_of_kexpr t)
+     let l = List.filter (fun x -> List.mem x vars) l in
+     mEnv := (v, (fun l' -> replace l l' (reinit e))) :: (! mEnv);
+     info "defined term of type %s" (string_of_ty t)
      
                                        
 let rec exec prog =

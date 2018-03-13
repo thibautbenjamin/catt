@@ -1,7 +1,8 @@
 %{
     open Common
     open Command
-    open ExtSyntax
+    open Var
+    open Kernel.Expr
 %}
 
 %token COH OBJ PIPE MOR
@@ -22,31 +23,36 @@ prog:
     |EOF { [] }
 
 cmd:
-    |COH IDENT args COL expr FS { DeclCoh (Var.mk $2, (Coh($3,$5), true)) }
-    |CHECK args COL expr EQUAL expr FS { Check ($2,$6, Some $4) }
-    |CHECK args EQUAL expr FS { Check ($2,$4,None) }
-    |LET IDENT args COL expr EQUAL expr FS { Decl (Var.mk $2,$3,$7, Some $5) }
-    |LET IDENT args EQUAL expr FS { Decl (Var.mk $2,$3,$5, None) }
+    |COH IDENT args COL tyexpr FS { DeclCoh (Var.mk $2,$3,$5) }
+    |CHECK args COL tyexpr EQUAL tmexpr FS { Check ($2,$6, Some $4) }
+    |CHECK args EQUAL tmexpr FS { Check ($2,$4,None) }
+    |LET IDENT args COL tyexpr EQUAL tmexpr FS { Decl (Var.mk $2,$3,$7, Some $5) }
+    |LET IDENT args EQUAL tmexpr FS { Decl (Var.mk $2,$3,$5, None) }
     
 
 args:
-    |LPAR IDENT COL expr RPAR args { (Var.mk $2, $4)::$6 }
+    |LPAR IDENT COL tyexpr RPAR args { (Var.mk $2, $4)::$6 }
     |{ [] }
 
 sub:
-    |simple_expr sub { $1::$2 }	
+    |simple_tmexpr sub { $1::$2 }	
     |{ [] }
 
-simple_expr:
-    |LPAR expr RPAR { $2 }
-    |OBJ { Obj, true }
-    |IDENT { (Var (Var.mk $1), true) }
+simple_tmexpr:
+    |LPAR tmexpr RPAR { $2 }
+    |IDENT { Var (Var.mk $1) }
 
-subst_expr:
-    |simple_expr { $1 }	
-    |simple_expr simple_expr sub { (Sub ($1,$2::$3), true) }
+simple_tyexpr:
+    |LPAR tyexpr RPAR { $2 }
+    |OBJ { Obj }
 
-expr:
-    |subst_expr { $1 }
-    |subst_expr MOR subst_expr { (Arr ($1,$3), true) }
-    |COH args COL simple_expr { (Coh ($2,$4), true) }
+subst_tmexpr:
+    |simple_tmexpr { $1 }	
+    |simple_tmexpr simple_tmexpr sub { Sub ($1,$2::$3) }
+
+tmexpr:
+    |subst_tmexpr { $1 }
+
+tyexpr:
+    |simple_tyexpr { $1 } 
+    |subst_tmexpr MOR subst_tmexpr { Arr ($1,$3) }

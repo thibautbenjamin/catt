@@ -1,5 +1,6 @@
-open ExtSyntax
+open Var
+open Kernel
 open Common
        
-let mEnv : ((var * (rexpr list -> rexpr)) list) ref = ref []
+let mEnv : ((Var.t * (tm list -> tm)) list) ref = ref []
 

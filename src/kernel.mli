@@ -1,17 +1,34 @@
-open ExtSyntax
-       
-type env
-type kexpr
-type ctx
-       
-val init_env : unit
-val add_env : var -> rexpr -> unit
+open Var
 
-val elab : ctx -> rexpr -> rexpr 
-                                
-val checkType : ctx -> kexpr -> kexpr -> unit
-val infer : ctx -> kexpr -> kexpr
-val string_of_kexpr : kexpr -> string
-val mk_expr : ctx -> rexpr -> kexpr
-val mk_ctx : (var * rexpr) list -> ctx
- 
+type kTy
+type kTm
+type env
+type ctx
+module Expr
+: sig
+type ty =
+   |Obj
+   |Arr of tm * tm
+   |Ty of kTy
+ and tm =
+   |Var of Var.t
+   |Sub of tm * (tm list)
+   |Tm of kTm
+end
+
+type ty = Expr.ty
+type tm = Expr.tm
+
+val string_of_ty : ty -> string
+val string_of_tm : tm -> string
+                           
+val init_env : unit
+val add_env : Var.t -> ctx -> ty -> unit
+
+val mk_ctx : (Var.t * ty) list -> ctx 
+val mk_tm : ctx -> tm -> tm * ty
+val mk_ty : ctx -> ty -> ty
+                           
+val checkEqual : ctx -> ty -> ty -> unit
+
+val reinit : tm -> tm
