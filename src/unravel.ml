@@ -25,12 +25,12 @@ let rec unravel_tm ctx (e : tm) =
       | Var v when List.mem v (List.map fst (!mEnv)) ->
          (List.assoc v (!mEnv)) (List.map (fun x -> fst (mk_tm ctx x)) l), vars
       | _ -> Sub (fst e,l), vars)
-    |Tm tm -> assert(false) (* e, [] *)
+    |Tm tm ->  e, []
 and unravel_ty ctx (e : ty) =
   match e with
     |Obj -> e
     |Arr (u,v) -> Arr (fst (unravel_tm ctx u), fst (unravel_tm ctx v))
-    |Ty ty -> assert(false) (* e *)
+    |Ty ty -> e 
   
 (* check all occurences of variables of l in e and replace them with terms of l' *)  
 let rec replace l l' e : tm =
