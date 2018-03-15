@@ -8,7 +8,7 @@
 %token COH OBJ PIPE MOR
 %token LPAR RPAR LBRA RBRA COL FS
 %token <string> IDENT STRING
-%token CHECK EVAL HYP ENV EQUAL LET
+%token CHECK EVAL HYP ENV EQUAL LET IN
 %token EOF
 
 %left PIPE
@@ -26,12 +26,16 @@ cmd:
     |COH IDENT args COL tyexpr FS { DeclCoh (Var.mk $2,$3,$5) }
     |CHECK args COL tyexpr EQUAL tmexpr FS { Check ($2,$6, Some $4) }
     |CHECK args EQUAL tmexpr FS { Check ($2,$4,None) }
-    |LET IDENT args COL tyexpr EQUAL tmexpr FS { Decl (Var.mk $2,$3,$7, Some $5) }
-    |LET IDENT args EQUAL tmexpr FS { Decl (Var.mk $2,$3,$5, None) }
+    |LET IDENT args COL tyexpr EQUAL list_replace tmexpr FS { Decl (Var.mk $2,$3,$7,$8,Some $5) }
+    |LET IDENT args EQUAL list_replace tmexpr FS { Decl (Var.mk $2,$3,$5,$6, None) }
     
 
 args:
     |LPAR IDENT COL tyexpr RPAR args { (Var.mk $2, $4)::$6 }
+    |{ [] }
+
+list_replace:
+    |LET IDENT EQUAL tmexpr IN list_replace { (Var.mk $2, $4)::$6 }
     |{ [] }
 
 sub:

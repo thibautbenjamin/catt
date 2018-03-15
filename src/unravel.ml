@@ -1,3 +1,4 @@
+open List
 open Stdlib
 open Var
 open Kernel
@@ -43,3 +44,13 @@ and replace_var l l' a =
                       else replace_var q1 q2 a 
   |[],[] -> Var a
   |_,_ -> error "wrong number of arguments"
+
+let rec replace_bis l e : tm =
+  match e with
+  |Var a ->
+    begin
+      try List.assoc a l with
+        Not_found -> Var a
+    end
+  |Sub (e,s) -> Sub(replace_bis l e, List.map (replace_bis l) s)
+  |Tm tm -> e

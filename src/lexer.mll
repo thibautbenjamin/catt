@@ -12,6 +12,7 @@ rule token = parse
   | "let" { LET }
   | "eval" { EVAL }
   | "env" { ENV }
+  | "in" {IN}
   | "(" { LPAR }
   | ")" { RPAR }
   | ":" { COL }

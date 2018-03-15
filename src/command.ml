@@ -9,7 +9,7 @@ open Unravel
 type cmd =
   |DeclCoh of Var.t * (Var.t * ty) list * ty 
   |Check of ((Var.t * ty) list) * tm * (ty option)
-  |Decl of Var.t * (Var.t * ty) list * tm * (ty option)
+  |Decl of Var.t * (Var.t * ty) list * (Var.t * tm) list * tm * (ty option)
 	                                  
 type prog = cmd list
                 
@@ -50,8 +50,9 @@ let exec_cmd cmd =
      |None -> let () = command "check %s " (string_of_tm e) in
               info "checked term %s type %s" (string_of_tm e) (string_of_ty t')
      end
-  | Decl (v,l,e,t) ->
+  | Decl (v,l,repl,e,t) ->
      let c = Kernel.mk_ctx l in
+     let e = replace_bis repl e in 
      let e, vars = unravel_tm c e in
      let e,t' = Kernel.mk_tm c e in 
      let t = match t with
