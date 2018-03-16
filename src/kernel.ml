@@ -60,7 +60,7 @@ module rec Sub
   (** Structural functions *)
   val mk : Expr.tm list -> Ctx.t -> PS.t  -> t
   val mk_elaborated : Expr.tm list -> Ctx.t -> PS.t -> t 
-  (* val to_expr : t -> Expr.tm list *)
+  val value : t -> Tm.t list
   val reinit : t -> PShape.pshape -> Expr.tm list
 						    
   (** Syntactic properties *)		    
@@ -231,7 +231,9 @@ end
       in aux (List.rev l) (Ctx.of_ps tar)
         
     let mk l src tar =
-   	elaborate l src tar
+      elaborate l src tar
+
+    let value t = t
                   
     let dim ctx l =
       let rec max l i =
@@ -720,9 +722,8 @@ and Ty
   val mk : Ctx.t -> Expr.ty -> t
                                        
   val dim : t -> int
-  (* val to_expr : t -> Expr.ty *)
   val reinit : t -> Expr.ty
-  end
+end
 = struct
   type expr =
     |Obj
@@ -891,7 +892,6 @@ and Tm
         |Tm tm -> try Ctx.checkSubCtx tm.c c; (tm, tm.ty)
                   with _ -> mk c (Tm.reinit tm)        
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
-                               
 end
     
 and Cut
@@ -1037,6 +1037,8 @@ and Expr
    val string_of_tm : tm -> string
 
    val reinit : tm -> tm
+   val unify_ty : Ctx.t -> ty -> ty -> ((Var.t * ty) * tm option * bool) list -> ((Var.t * ty) * tm option * bool) list
+
 end
 = struct
    type ty =
@@ -1072,12 +1074,42 @@ and string_of_sub s =
   |t::s -> Printf.sprintf"%s %s"
 			 (string_of_tm t)
                          (string_of_sub s)
-
+                         
 let rec reinit tm =
   match tm with
   |Var _ -> tm  
   |Sub (tm,s) -> Sub (reinit tm, List.map reinit s)
   |Tm tm -> Tm.reinit tm
+
+let rec unify_tm (c : Ctx.t) (tm1 : tm) (tm2 : tm) l =
+  match tm1 ,tm2 with
+  |Var u, _ -> let rec replace l =
+                 match l with
+                 |(((v,ty), None, _)::l) when u = v -> ((v,ty), Some (Expr.Tm (fst (Tm.mk c tm2))), true)::l 
+                 |((((v,ty), Some tm, _)::_) as l) when u = v -> l
+                 (* TODO : check compatibility between the constraints *)
+                 |a::l -> a::(replace l)
+                 |[] -> []
+               in replace l
+  |Sub(e,s), Sub (e',s') -> let rec aux s s' l =
+                              match s,s' with
+                              |(a::s),(a'::s') -> let l = unify_tm c a a' l in aux s s' l 
+                              |[],[] -> l
+                              |_,_ -> failwith "unable to unify"
+                            in aux s s' l
+  |Tm _, _ -> assert(false)
+  |_, Tm _ -> assert(false)
+  |_, Var _ -> failwith "unable to unify"
+                         
+let unify_ty (c : Ctx.t) (ty1 : ty) (ty2 : ty) l =
+  match ty1 ,ty2 with
+  |Obj, Obj -> l
+  |Arr(u,v), Arr(u',v') -> let l = unify_tm c u u' l
+                                     in unify_tm c v v' l
+  |Ty ty2, _ -> assert(false)
+  |_, Ty _ -> assert(false)
+  |_, (Obj | Arr _) -> failwith "unable to unify"
+
 
 end
 
@@ -1118,3 +1150,10 @@ let checkEqual c ty1 ty2 =
               
 let reinit = Expr.reinit
 
+                                
+          
+                             
+let unify c a b l =
+  match b with
+  |Expr.Tm b -> Expr.unify_ty c a (Ty.reinit (Tm.infer c b)) l
+  |_ -> assert(false)    

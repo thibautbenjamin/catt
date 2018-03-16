@@ -2,5 +2,5 @@ open Var
 open Kernel
 open Common
        
-let mEnv : ((Var.t * (tm list -> tm)) list) ref = ref []
+let mEnv : ((Var.t * (ctx * (tm list) -> tm)) list) ref = ref []
 

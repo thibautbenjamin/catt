@@ -53,7 +53,7 @@ let exec_cmd cmd =
   | Decl (v,l,repl,e,t) ->
      let c = Kernel.mk_ctx l in
      let repl = List.map (fun (x,t) -> (x, fst (mk_tm c t))) repl in
-     let e = replace_bis repl e in 
+     let e = replace repl e in 
      let e, vars = unravel_tm c e in
      let e,t' = Kernel.mk_tm c e in 
      let t = match t with
@@ -65,14 +65,18 @@ let exec_cmd cmd =
        |None -> let () = command "let %s " (string_of_tm e) in
                 t'
      in
-     let l = List.map fst l in
-     let l = List.filter (fun x -> List.mem x vars) l in
-     mEnv := (v, (fun l' -> replace l l' (reinit e))) :: (! mEnv);
+     let l = List.filter (fun (x,_) -> List.mem x vars) l in
+     let l = select l in
+     mEnv := (v, (fun (c,l') -> let assoc = complete c l l' v in replace assoc (reinit e))) :: (! mEnv);
      info "defined term of type %s" (string_of_ty t)
-     
                                        
 let rec exec prog =
   let rec aux = function
     |[] -> ()
     |(t::l)  -> exec_cmd t; aux l
   in Kernel.init_env; aux prog
+
+
+
+
+                        
