@@ -1050,6 +1050,8 @@ end
     |Sub of tm * (tm list)
     |Tm of Tm.t
 
+   exception UnableUnify
+             
 let rec string_of_ty e =
   match e with
   |Obj -> "*"
@@ -1095,20 +1097,20 @@ let rec unify_tm (c : Ctx.t) (tm1 : tm) (tm2 : tm) l =
                               match s,s' with
                               |(a::s),(a'::s') -> let l = unify_tm c a a' l in aux s s' l 
                               |[],[] -> l
-                              |_,_ -> failwith "unable to unify"
+                              |_,_ -> raise UnableUnify
                             in aux s s' l
   |Tm _, _ -> assert(false)
   |_, Tm _ -> assert(false)
-  |_, Var _ -> failwith "unable to unify"
+  |_, Var _ -> raise UnableUnify
                          
 let unify_ty (c : Ctx.t) (ty1 : ty) (ty2 : ty) l =
   match ty1 ,ty2 with
-  |Obj, Obj -> l
+  |Obj, _ -> l
   |Arr(u,v), Arr(u',v') -> let l = unify_tm c u u' l
                                      in unify_tm c v v' l
   |Ty ty2, _ -> assert(false)
   |_, Ty _ -> assert(false)
-  |_, (Obj | Arr _) -> failwith "unable to unify"
+  |_, _ -> raise UnableUnify
 
 
 end
@@ -1150,9 +1152,6 @@ let checkEqual c ty1 ty2 =
               
 let reinit = Expr.reinit
 
-                                
-          
-                             
 let unify c a b l =
   match b with
   |Expr.Tm b -> Expr.unify_ty c a (Ty.reinit (Tm.infer c b)) l

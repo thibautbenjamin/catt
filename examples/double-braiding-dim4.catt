@@ -157,6 +157,9 @@ comp3 f1 (comp f2 f3) f4 -> comp5 f1 f2 (id x3) f3 f4.
 coh can5FU (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) :
 comp (can5F f1 f2 f3 f4) (can5F- f1 f2 f3 f4) -> id (comp5 f1 f2 (id x3) f3 f4).
 
+coh can5FCU (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) :
+comp (can5F- f1 f2 f3 f4) (can5F f1 f2 f3 f4) -> id (comp3 f1 (comp f2 f3) f4).
+
 coh can7F (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) :
 comp7 f1 f2 f3 (id x4) f4 f5 f6 -> comp5 f1 f2 (comp f3 f4) f5 f6.
 
@@ -224,6 +227,15 @@ coh focus3U (x0 : *) (x1 : *) (f1 : x0 -> x1)
 		     (x5 : *) (f5 : x4 -> x5)
 		     (x6 : *) (f6 : x5 -> x6) :
 		     comp (focus3 f1 f2 f3 f4 f5 f6) (focus3- f1 f2 f3 f4 f5 f6) -> id (comp (comp3 f1 f2 f3) (comp3 f4 f5 f6)).
+
+coh focus3CU (x0 : *) (x1 : *) (f1 : x0 -> x1)
+    	       	     (x2 : *) (f2 : x1 -> x2)
+	  	     (x3 : *) (f3 : x2 -> x3)
+		     (x4 : *) (f4 : x3 -> x4)
+		     (x5 : *) (f5 : x4 -> x5)
+		     (x6 : *) (f6 : x5 -> x6) :
+		     comp (focus3- f1 f2 f3 f4 f5 f6) (focus3 f1 f2 f3 f4 f5 f6) -> id (comp5  f1 f2 (comp f3 f4) f5 f6).
+
 
 
 coh assoc12 (x0 : *) (x1 : *) (f1 : x0 -> x1)
@@ -605,111 +617,17 @@ comp (red3 f1 f2 f5 f6 s1) (exp3 f1 f2 f5 f6 s2) -> id (comp5 f1 f2 (comp f3 f4)
 simpl2F (simplrew5 f1 f2 f5 f6 sU)
 	(can5FU f1 f2 f5 f6).
 
-coh BLA (x : *) : x -> x.
 let expred3U (x0 : *) (x1 : *) (x2 : *) (x3 : *)
     	     (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3)
 	     (f4 : x3 -> x2) (f5 : x2 -> x1) (f6 : x1 -> x0)
-	     (s1 : comp f3 f4 -> id x2) (s2 : id x2 -> comp f3 f4) 
-	     (sU- : id (comp f3 f4) -> comp s1 s2) :
-comp (exp3 f1 f2 f5 f6 s2) (red3 f1 f2 f5 f6 s1)  -> id (comp5 f1 f2 (comp f3 f4) f5 f6) =
-simpl2F (can5FU f1 f2 f5 f6)
-	(simplrew5 f1 f2 f5 f6 sU-).
+	     (s1 : id x2 -> comp f3 f4) (s2 : comp f3 f4 -> id x2)  
+	     (sU : comp s1 s2 -> id (id x2)) :
+comp (exp3 f1 f2 f5 f6 s1) (red3 f1 f2 f5 f6 s2) -> id (comp3 f1 (comp f2 f5) f6)  =
+simpl2F (can5FCU f1 f2 f5 f6)
+	(simplrew5 f1 f2 f5 f6 sU). 
 
 
-# ### Eckmann-Hilton morphism
-# let half-eh1 (x : *) (a : id x -> id x) (b : id x -> id x) =
-# let u1 = (unitl- (id x)) in
-# let u2 = (unitr (id x)) in
-# comp6 (hcomp (hunitl- a) (hunitr- b))
-#       (focus3 u1 (hcomp (id (id x)) a) (unitl (id x)) (unitr- (id x)) (hcomp b (id (id x))) u2)
-#       (rew5 u1 (hcomp (id (id x)) a) (hinvlr x) (hcomp b (id (id x))) u2)
-#       (cancel5 u1 (hcomp (id (id x)) a) (hcomp b (id (id x))) u2)
-#       (assoc4 u1 (hcomp (id (id x)) a) (hcomp b (id (id x))) u2)
-#       (rew3 u1 (comp (exch (id (id x)) b a (id (id x))) (hrew (unitl b) (unitr a))) u2).      
-
-# let half-eh2 (x : *) (a : id x -> id x) (b : id x -> id x) =
-# comp6 (rew3 (unitr- (id x)) (comp (hrew (unitr- b) (unitl- a)) (exch- b (id (id x)) (id (id x)) a)) (unitl (id x)))
-# (assoc4- (unitr- (id x)) (hcomp b (id (id x))) (hcomp (id (id x)) a) (unitl (id x)))
-# (cancel5- (unitr- (id x)) (hcomp b (id (id x))) (hcomp (id (id x)) a) (unitl (id x)))
-# (rew5 (unitr- (id x)) (hcomp b (id (id x))) (hinvrl- x) (hcomp (id (id x)) a) (unitl (id x)))
-# (focus3- (unitr- (id x)) (hcomp b (id (id x))) (unitr (id x)) (unitl- (id x)) (hcomp (id (id x)) a) (unitl (id x)))
-# (hcomp (hunitr b) (hunitl a)).
-
-# let eckmann-hilton (x : *) (a : id x -> id x) (b : id x -> id x) =
-# comp3 (half-eh1 x a b)
-#       (rew1-3 (equivlr- x) (hcomp b a) (equivrl x))
-#       (half-eh2 x a b).
-
-# ### Inverse of Ekcmann-Hilton Morphism : turning the other way around
-# let half-eh2- (x : *) (a : id x -> id x) (b : id x -> id x) =
-# comp6 (hcomp (hunitr- a) (hunitl- b))
-#       (focus3 (unitr- (id x)) (hcomp a (id (id x))) (unitr (id x)) (unitl- (id x)) (hcomp (id (id x)) b) (unitl (id x)))
-#       (rew5 (unitr- (id x)) (hcomp a (id (id x))) (hinvrl x) (hcomp (id (id x)) b) (unitl (id x)))
-#       (cancel5 (unitr- (id x)) (hcomp a (id (id x))) (hcomp (id (id x)) b) (unitl (id x)))
-#       (assoc4 (unitr- (id x)) (hcomp a (id (id x))) (hcomp (id (id x)) b) (unitl (id x)))
-#       (rew3 (unitr- (id x)) (comp (exch a (id (id x)) (id (id x)) b) (hrew (unitr a) (unitl b))) (unitl (id x))).
-
-# let half-eh1- (x : *) (a : id x -> id x) (b : id x -> id x) =
-# comp6 (rew3 (unitl- (id x)) (comp (hrew (unitl- a) (unitr- b)) (exch- (id (id x)) a b (id (id x)))) (unitr (id x)))
-#      (assoc4- (unitl- (id x)) (hcomp (id (id x)) b) (hcomp a (id (id x))) (unitr (id x)))
-#      (cancel5- (unitl- (id x)) (hcomp (id (id x)) b) (hcomp a (id (id x))) (unitr (id x)))
-#      (rew5 (unitl- (id x)) (hcomp (id (id x)) b) (hinvlr- x) (hcomp a (id (id x))) (unitr (id x)))
-#      (focus3- (unitl- (id x)) (hcomp (id (id x)) b) (unitl (id x)) (unitr- (id x)) (hcomp a (id (id x))) (unitr (id x)))
-#      (hcomp (hunitl b) (hunitr a)).
-
-# let eckmann-hilton- (x : *) (a : id x -> id x) (b : id x -> id x) =
-# comp3 (half-eh1- x a b)
-#       (rew1-3 (equivrl- x) (hcomp a b) (equivlr x))
-#       (half-eh2- x a b).
-
-# ### Cancellation on Eckmann-Hilton with its inverse	
-# let eh1U (x : *) (a : id x -> id x) (b : id x  -> id x) :
-# comp (half-eh1 a b) (half-eh1- b a) -> id (comp a b) =
-# let u = unitl- (id x) in
-# let v = unitr (id x) in
-# simpl6F (simplhcomp (hunitlCU a) (hunitrCU b))
-# 	(focus3U u (hcomp (id (id x)) a) (unitl (id x)) (unitr- (id x)) (hcomp b (id (id x))) v)
-# 	(simplrew5 u (hcomp (id (id x)) a) (hcomp b (id (id x))) v (hinvlrU x))
-# 	(cancel5U u (hcomp (id (id x)) a) (hcomp b (id (id x))) v)
-#  	(assoc4U u (hcomp (id (id x)) a) (hcomp b (id (id x))) v)
-# 	(simplrew3 u v (simpl2F (exchU (id (id x)) b a (id (id x)))
-# 	                        (simplhrew (unitlU b) (unitrU a)))).
-
-
-
-
-
-
-# let eh2U (x : *) (a : id x -> id x) (b : id x -> id x) =
-# simpl6F (rew3  (unitr-  (id x)) (comp  (hrew  (unitr-  b) (unitl-  a)) (exch-  b (id  (id x)) (id  (id x)) a)) (unitl  (id x)))
-# 	(assoc4-  (unitr-  (id x)) (hcomp  b (id  (id x))) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(cancel5-  (unitr-  (id x)) (hcomp  b (id  (id x))) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(rew5  (unitr-  (id x)) (hcomp  b (id  (id x))) (hinvrl- x) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(focus3-  (unitr-  (id x)) (hcomp  b (id  (id x))) (unitr  (id x)) (unitl-  (id x)) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(hcomp  (hunitr  b) (hunitl  a))
-# 	(hcomp  (hunitr-  b) (hunitl-  a))
-# 	(focus3  (unitr-  (id x)) (hcomp  b (id  (id x))) (unitr  (id x)) (unitl-  (id x)) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(rew5  (unitr-  (id x)) (hcomp  b (id  (id x))) (hinvrl x) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(cancel5  (unitr-  (id x)) (hcomp  b (id  (id x))) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(assoc4  (unitr-  (id x)) (hcomp  b (id  (id x))) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(rew3  (unitr-  (id x)) (comp  (exch  b (id  (id x)) (id  (id x)) a) (hrew  (unitr  b) (unitl  a))) (unitl  (id x)))
-# 	(lem1)
-# 	(assoc4CU (unitr-  (id x)) (hcomp  b (id  (id x))) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(cancel5CU (unitr-  (id x)) (hcomp  b (id  (id x))) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(lem2)
-# 	(focus3CU (unitr-  (id x)) (hcomp  b (id  (id x))) (unitr  (id x)) (unitl-  (id x)) (hcomp  (id  (id x)) a) (unitl  (id x)))
-# 	(comp3 (hcompcomp (hunitr b) (hunitr- b) (hunitl a) (hunitl- a)) (hrew (hunitrU b) (hunitlU a)) (hcompid b a)).
-	
-
-
-
-
-# let ehU (x : *) (a : id x -> id x) (b : id x -> id x) =
-# comp (eckmann-hilton x a b) (eckmann-hilton- x b a).
-
-# let eh1' (x : *) (a : id (id x) -> id (id x)) (b : id (id x) -> id (id x))
-
-
+# ### Some operations on 2-cells
 let whisklS (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) =
     comp3 (unitl- f) (whiskl (id x) a) (unitl g).
 
@@ -755,7 +673,7 @@ coh exchU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
     	      	  (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
 comp (exch a b) (exch- a b) -> id (comp (whiskr a h) (whiskl g b)).
 
-
+# ### Eckmann-Hilton morphism, inverse and cancellation
 let eh (x : *) (a : id x -> id x) (b : id x  -> id x) =
 let u = unitr (id x) in
 let u- = unitr- (id x) in
@@ -782,59 +700,6 @@ comp7 (hcomp (whisklScan- a) (whiskrScan- b))
       (focus3- u- (whiskr b (id x)) u v- (whiskl (id x) a) v)
       (hcomp (whiskrScan b) (whisklScan a)).
 
-
-
-let l1 (x : *) (a : id x -> id x) (b : id x  -> id x) =
-let u = unitr (id x) in
-let u- = unitr- (id x) in
-let v = unitl (id x) in
-let v- = unitl- (id x) in
-(simplhcomp (whiskrScanCU a) (whisklScanCU b)).
-
-let l2 (x : *) (a : id x -> id x) (b : id x  -> id x) =
-let u = unitr (id x) in
-let u- = unitr- (id x) in
-let v = unitl (id x) in
-let v- = unitl- (id x) in
-(focus3U u- (whiskr b (id x)) u v- (whiskl (id x) a) v).
-
-let l3 (x : *) (a : id x -> id x) (b : id x  -> id x) =
-let u = unitr (id x) in
-let u- = unitr- (id x) in
-let v = unitl (id x) in
-let v- = unitl- (id x) in
-(redexp3U v- (whiskl (id x) b) (whiskr a (id x)) u (hinvrlU x)).
-
-let l4 (x : *) (a : id x -> id x) (b : id x  -> id x) =
-let u = unitr (id x) in
-let u- = unitr- (id x) in
-let v = unitl (id x) in
-let v- = unitl- (id x) in
-(simplrew3A (equivrl-U x) (exchU a b) (equivlrU x)).
-
-
-let l5 (x : *) (a : id x -> id x) (b : id x  -> id x) =
-let u = unitr (id x) in
-let u- = unitr- (id x) in
-let v = unitl (id x) in
-let v- = unitl- (id x) in
-(expred3U v- (whiskl (id x) b) (whiskr a (id x)) u (hinvlrCU x)).
-
-let l6 (x : *) (a : id x -> id x) (b : id x  -> id x) =
-let u = unitr (id x) in
-let u- = unitr- (id x) in
-let v = unitl (id x) in
-let v- = unitl- (id x) in
-(focus3CU v- (whiskl (id x) a) v u- (whiskr b (id x)) u).
-
-let l7 (x : *) (a : id x -> id x) (b : id x  -> id x) =
-let u = unitr (id x) in
-let u- = unitr- (id x) in
-let v = unitl (id x) in
-let v- = unitl- (id x) in
-(simplhcomp (whisklScanU b) (whiskrScanU a)).
-
-
 let ehU (x : *) (a : id x -> id x) (b : id x  -> id x) :
 comp (eh a b) (eh- b a) -> id (comp a b) =
 let u = unitr (id x) in
@@ -842,10 +707,10 @@ let u- = unitr- (id x) in
 let v = unitl (id x) in
 let v- = unitl- (id x) in
 simpl7F (simplhcomp (whiskrScanCU a) (whisklScanCU b))
-	(focus3U u- (whiskr b (id x)) u v- (whiskl (id x) a) v)
-	(redexp3U v- (whiskl (id x) b) (whiskr a (id x)) u (hinvrlU x))
+	(focus3U u- (whiskr a (id x)) u v- (whiskl (id x) b) v)
+	(redexp3U u- (whiskr a (id x)) (whiskl (id x) b) v (hinvrlU x))
 	(simplrew3A (equivrl-U x) (exchU a b) (equivlrU x))
 	(expred3U v- (whiskl (id x) b) (whiskr a (id x)) u (hinvlrCU x))
-	(focus3CU v- (whiskl (id x) a) v u- (whiskr b (id x)) u)
+	(focus3CU v- (whiskl (id x) b) v u- (whiskr a (id x)) u)
 	(simplhcomp (whisklScanU b) (whiskrScanU a)).
 
