@@ -6,23 +6,36 @@ open Kernel.Expr
 open MacrosEnvironnement
 open Common
 
+let rec print l =
+  match l with
+  |t::q -> Printf.sprintf "%s %s" (Var.to_string t) (print q)
+  |[] -> ""
+       
 let rec unravel_tm ctx (e : tm) =
   match e with
-    |Var v -> e, [v]
+    |Var v -> e
     |Sub (e,l) ->
-      (let e = unravel_tm ctx e and res = List.map (unravel_tm ctx) l in
-       let l = List.map fst res and vars = List.unions (List.map snd res) in 
-       match fst e with
+      (let e = unravel_tm ctx e and l = List.map (unravel_tm ctx) l in
+       match e with
       | Var v when List.mem v (List.map fst (!mEnv)) ->
-         (List.assoc v (!mEnv)) (ctx, List.map (fun x -> fst (mk_tm ctx x)) l), vars
-      | _ -> Sub (fst e,l), vars)
-    |Tm tm ->  e, []
+         (List.assoc v (!mEnv)) (ctx, List.map (fun x -> fst (mk_tm ctx x)) l)
+      | _ -> Sub (e,l))
+    |Tm tm -> e
+                  
 and unravel_ty ctx (e : ty) =
   match e with
     |Obj -> e
-    |Arr (u,v) -> Arr (fst (unravel_tm ctx u), fst (unravel_tm ctx v))
+    |Arr (u,v) -> Arr (unravel_tm ctx u, unravel_tm ctx v)
     |Ty ty -> e 
 
+(* list of variables of a term *)
+let rec list_vars e =
+  match e with
+    |Var v -> [v]
+    |Sub (e,l) -> List.unions (List.map list_vars l)
+    |Tm tm -> list_vars (reinit e)
+    
+                
 (* replace variables of e using the association list l *)  
 let rec replace l e : tm =
   match e with

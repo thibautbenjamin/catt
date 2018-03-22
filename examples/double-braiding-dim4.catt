@@ -31,6 +31,9 @@ x1 -> x12.
 coh comp12 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8) (x9 : *) (f8 : x8 -> x9) (x10 : *) (f9 : x9 -> x10) (x11 : *) (f10 : x10 -> x11) (x12 : *) (f11 : x11 -> x12) (x13 : *) (f12 : x12 -> x13):
 x1 -> x13.
 
+coh comp13 (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8) (x9 : *) (f8 : x8 -> x9) (x10 : *) (f9 : x9 -> x10) (x11 : *) (f10 : x10 -> x11) (x12 : *) (f11 : x11 -> x12) (x13 : *) (f12 : x12 -> x13) (x14 : *) (f13 : x13 -> x14):
+x1 -> x14.
+
 
 coh  whiskl (x : *) (y : *) (f : x -> y) (z : *) (g1 : y -> z) (g2 : y -> z) (a : g1 -> g2) :
 comp f g1 -> comp f g2.
@@ -72,44 +75,51 @@ coh hunitr- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g):  a -> comp3 
 coh hunitrCU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) : comp (hunitr- a) (hunitr a) -> id a.
 
 
-coh exch (x : *)
-         (y : *) (f1 : x -> y)
-	         (f2 : x -> y) (a1 : f1 -> f2)
-		 (f3 : x -> y) (a2 : f2 -> f3)
-	 (z : *) (g1 : y -> z)
-	         (g2 : y -> z) (b1 : g1 -> g2)
-		 (g3 : y -> z) (b2 : g2 -> g3) :
-comp (hcomp a1 b1) (hcomp a2 b2) -> hcomp (comp a1 a2) (comp b1 b2).
+# coh exch (x : *)
+#          (y : *) (f1 : x -> y)
+# 	         (f2 : x -> y) (a1 : f1 -> f2)
+# 		 (f3 : x -> y) (a2 : f2 -> f3)
+# 	 (z : *) (g1 : y -> z)
+# 	         (g2 : y -> z) (b1 : g1 -> g2)
+# 		 (g3 : y -> z) (b2 : g2 -> g3) :
+# comp (hcomp a1 b1) (hcomp a2 b2) -> hcomp (comp a1 a2) (comp b1 b2).
 
-coh exch- (x : *)
-       	  (y : *) (f1 : x -> y)
-	          (f2 : x -> y) (a1 : f1 -> f2)
-	      	  (f3 : x -> y) (a2 : f2 -> f3)
-	  (z : *) (g1 : y -> z)
-	          (g2 : y -> z) (b1 : g1 -> g2)
-	       	  (g3 : y -> z) (b2 : g2 -> g3) :
-hcomp (comp a1 a2) (comp b1 b2) -> comp (hcomp a1 b1) (hcomp a2 b2).
+# coh exch- (x : *)
+#        	  (y : *) (f1 : x -> y)
+# 	          (f2 : x -> y) (a1 : f1 -> f2)
+# 	      	  (f3 : x -> y) (a2 : f2 -> f3)
+# 	  (z : *) (g1 : y -> z)
+# 	          (g2 : y -> z) (b1 : g1 -> g2)
+# 	       	  (g3 : y -> z) (b2 : g2 -> g3) :
+# hcomp (comp a1 a2) (comp b1 b2) -> comp (hcomp a1 b1) (hcomp a2 b2).
 
-coh exchU (x : *)
-       	  (y : *) (f1 : x -> y)
-	          (f2 : x -> y) (a1 : f1 -> f2)
-	      	  (f3 : x -> y) (a2 : f2 -> f3)
-	  (z : *) (g1 : y -> z)
-	          (g2 : y -> z) (b1 : g1 -> g2)
-	       	  (g3 : y -> z) (b2 : g2 -> g3) :
-comp (exch a1 a2 b1 b2) (exch- a1 a2 b1 b2) -> id (comp (hcomp a1 b1) (hcomp a2 b2)).
+# coh exchU (x : *)
+#        	  (y : *) (f1 : x -> y)
+# 	          (f2 : x -> y) (a1 : f1 -> f2)
+# 	      	  (f3 : x -> y) (a2 : f2 -> f3)
+# 	  (z : *) (g1 : y -> z)
+# 	          (g2 : y -> z) (b1 : g1 -> g2)
+# 	       	  (g3 : y -> z) (b2 : g2 -> g3) :
+# comp (exch a1 a2 b1 b2) (exch- a1 a2 b1 b2) -> id (comp (hcomp a1 b1) (hcomp a2 b2)).
 
 coh hinvlr (x : *) : comp (unitl (id x)) (unitr- (id x)) -> id (comp (id x) (id x)).
 coh hinvrl (x : *) : comp (unitr (id x)) (unitl- (id x)) -> id (comp (id x) (id x)).
 coh hinvlr- (x : *) : id (comp (id x) (id x)) -> comp (unitl (id x)) (unitr- (id x)).
 coh hinvrl- (x : *) : id (comp (id x) (id x)) -> comp (unitr (id x)) (unitl- (id x)).
 coh hinvlrU (x: *) : comp (hinvlr x) (hinvlr- x) -> id (comp (unitl (id x)) (unitr- (id x))).
+coh hinvlrCU (x: *) : comp (hinvlr- x) (hinvlr x) -> id (id (comp (id x) (id x))).
+coh hinvrlU (x: *) : comp (hinvrl x) (hinvrl- x) -> id (comp (unitr (id x)) (unitl- (id x))).
+
+
+
 
 coh equivlr- (x : *) : unitl- (id x) -> unitr- (id x).
 coh equivrl- (x : *) : unitr- (id x) -> unitl- (id x).
+coh equivrl-U (x : *) : comp (equivrl- x) (equivlr- x) ->  (id (unitr- (id x))).
+
 coh equivrl (x : *) : unitr (id x) -> unitl (id x).
 coh equivlr (x : *) : unitl (id x) -> unitr (id x).
-
+coh equivlrU (x : *) : comp (equivlr x) (equivrl x) ->  (id (unitl (id x))).
 
 coh cancel3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
                      (x2 : *) (f2 : x1 -> x2) :
@@ -141,6 +151,12 @@ coh cancel5U (x0 : *) (x1 : *) (f1 : x0 -> x1)
 coh can5F (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) :
 comp5 f1 f2 (id x3) f3 f4 -> comp3 f1 (comp f2 f3) f4.
 
+coh can5F- (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) :
+comp3 f1 (comp f2 f3) f4 -> comp5 f1 f2 (id x3) f3 f4.
+
+coh can5FU (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) :
+comp (can5F f1 f2 f3 f4) (can5F- f1 f2 f3 f4) -> id (comp5 f1 f2 (id x3) f3 f4).
+
 coh can7F (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) :
 comp7 f1 f2 f3 (id x4) f4 f5 f6 -> comp5 f1 f2 (comp f3 f4) f5 f6.
 
@@ -149,6 +165,10 @@ comp9 f1 f2 f3 f4 (id x5) f5 f6 f7 f8 -> comp7 f1 f2 f3 (comp f4 f5) f6 f7 f8.
 
 coh can11F (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8) (x9 : *) (f8 : x8 -> x9) (x10 : *) (f9 : x9 -> x10) (x11 : *) (f10 : x10 -> x11):
 comp11 f1 f2 f3 f4 f5 (id x6) f6 f7 f8 f9 f10 -> comp9 f1 f2 f3 f4 (comp f5 f6) f7 f8 f9 f10.
+
+coh can13F (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) (x4 : *) (f3 : x3 -> x4) (x5 : *) (f4 : x4 -> x5) (x6 : *) (f5 : x5 -> x6) (x7 : *) (f6 : x6 -> x7) (x8 : *) (f7 : x7 -> x8) (x9 : *) (f8 : x8 -> x9) (x10 : *) (f9 : x9 -> x10) (x11 : *) (f10 : x10 -> x11) (x12 : *) (f11 : x11 -> x12) (x13 : *) (f12 : x12 -> x13) :
+comp13 f1 f2 f3 f4 f5 f6 (id x7) f7 f8 f9 f10 f11 f12 -> comp11 f1 f2 f3 f4 f5 (comp f6 f7)  f8 f9 f10 f11 f12.
+
 
 coh assoc4 (x0 : *) (x1 : *) (f1 : x0 -> x1)
                     (x2 : *) (f2 : x1 -> x2)	
@@ -245,7 +265,24 @@ coh assoc10 (x0 : *) (x1 : *) (f1 : x0 -> x1)
 		     (x9 : *) (f9 : x8 -> x9)
                      (x10 : *) (f10 : x9 -> x10) :
 		     comp10 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 -> comp9 f1 f2 f3 f4 (comp f5 f6) f7 f8 f9 f10.
-		     
+
+coh focus7 (x0 : *) (x1 : *) (f1 : x0 -> x1)
+                    (x2 : *) (f2 : x1 -> x2)	
+		    (x3 : *) (f3 : x2 -> x3) 
+		    (x4 : *) (f4 : x3 -> x4)
+		    (x5 : *) (f5 : x4 -> x5)
+                    (x6 : *) (f6 : x5 -> x6)	
+		    (x7 : *) (f7 : x6 -> x7) 
+		    (x8 : *) (f8 : x7 -> x8)
+		    (x9 : *) (f9 : x8 -> x9)
+                    (x10 : *) (f10 : x9 -> x10)	
+		    (x11 : *) (f11 : x10 -> x11) 
+		    (x12 : *) (f12 : x11 -> x12)
+		    (x13 : *) (f13 : x12 -> x13)
+		    (x14 : *) (f14 : x13 -> x14) :
+		    comp (comp7 f1 f2 f3 f4 f5 f6 f7) (comp7 f8 f9 f10 f11 f12 f13 f14) -> comp13 f1 f2 f3 f4 f5 f6 (comp f7 f8) f9 f10 f11 f12 f13 f14.
+
+
 
 coh rew3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
                   (x2 : *) (f2 : x1 -> x2) (g2 : x1 -> x2) (a : f2 -> g2)	
@@ -269,10 +306,33 @@ coh rew3id (x0 : *) (x1 : *) (f1 : x0 -> x1)
 	            (x3 : *) (f3 : x2 -> x3) : 
 		    rew3 f1 (id f2) f3 -> id (comp3 f1 f2 f3).
 
-coh rew1-3 (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a : f1 -> g1)
-    	       	    (x2 : *) (f2 : x1 -> x2)
-		    (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (b : f3 -> g3) :
-comp3 f1 f2 f3 -> comp3 g1 f2 g3.
+coh rew3A (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a : f1 -> g1)
+    	       	   (x2 : *) (f2 : x1 -> x2) (g2 : x1 -> x2) (b : f2 -> g2)
+		   (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (c : f3 -> g3) :
+		   comp3 f1 f2 f3 -> comp3 g1 g2 g3.
+
+
+coh rrew3A (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1) (a2 : f1 -> g1)
+    	      	       	     	      	    	      	    	(al : a1 -> a2)
+                       (x2 : *) (f2 : x1 -> x2) (g2 : x1 -> x2) (b1 : f2 -> g2) (b2 : f2 -> g2)
+		       	     	      	    	      	    	(bet : b1 -> b2)
+		       (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (c1 : f3 -> g3) (c2 : f3 -> g3)
+		       	     	      	    	      	    	(gam : c1 -> c2) :
+     rew3A a1 b1 c1 -> rew3A a2 b2 c2.
+
+coh rew3Acomp (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1)
+    	      	       	     	      	        (h1 : x0 -> x1) (a2 : g1 -> h1)
+                       (x2 : *) (f2 : x1 -> x2) (g2 : x1 -> x2) (b1 : f2 -> g2)
+		      	       	     	        (h2 : x1 -> x2) (b2 : g2 -> h2)
+		       (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (c1 : f3 -> g3)
+		       	     	      	    	(h3 : x2 -> x3) (c2 : g3 -> h3) : 
+     comp (rew3A a1 b1 c1) (rew3A a2 b2 c2) -> rew3A (comp a1 a2) (comp b1 b2) (comp c1 c2).
+
+coh rew3Aid (x0 : *) (x1 : *) (f1 : x0 -> x1)
+    	       	     (x2 : *) (f2 : x1 -> x2) 
+		     (x3 : *) (f3 : x2 -> x3) :
+		     rew3A (id f1) (id f2) (id f3) -> id (comp3 f1 f2 f3).
+
 
 coh rew5 (x0 : *) (x1 : *) (f1 : x0 -> x1)
                   (x2 : *) (f2 : x1 -> x2)
@@ -337,6 +397,22 @@ coh rew11 (x0 : *) (x1 : *) (f1 : x0 -> x1)
                    (x10 : *) (f10 : x9 -> x10)	
 	     	   (x11 : *) (f11 : x10 -> x11) :
 		   comp11 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 -> comp11 f1 f2 f3 f4 f5 g6 f7 f8 f9 f10 f11.		   		   
+
+coh rew13 (x0 : *) (x1 : *) (f1 : x0 -> x1)
+                   (x2 : *) (f2 : x1 -> x2)
+		   (x3 : *) (f3 : x2 -> x3) 
+		   (x4 : *) (f4 : x3 -> x4)
+		   (x5 : *) (f5 : x4 -> x5)
+                   (x6 : *) (f6 : x5 -> x6) 
+		   (x7 : *) (f7 : x6 -> x7) (g7 : x6  -> x7) (a : f7 -> g7)	
+		   (x8 : *) (f8 : x7 -> x8)
+		   (x9 : *) (f9 : x8 -> x9)
+                   (x10 : *) (f10 : x9 -> x10)	
+	     	   (x11 : *) (f11 : x10 -> x11)
+		   (x12 : *) (f12 : x11 -> x12)
+		   (x13 : *) (f13 : x12 -> x13) :
+		   comp13 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 -> comp13 f1 f2 f3 f4 f5 f6 g7 f8 f9 f10 f11 f12 f13.		   		   
+
 
 coh hrew (x : *) (y : *) (f : x -> y) (g : x -> y) (a0 : f -> g) (a1 : f -> g) (al : a0 -> a1)
     	      	 (z : *) (h : y -> z) (k : y -> z) (b0 : h -> k) (b1 : h -> k) (bet : b0 -> b1) :
@@ -432,6 +508,39 @@ let simpl6F (x0 : *) (x1 : *) (x2 : *) (x3 : *) (x4 : *) (x5 : *) (x6 : *)
 	    comp (focus6 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12)
 	    	 (simpl6 s1 s2 s3 s4 s5 s6).
 
+let simpl7 (x0 : *) (x1 : *) (x2 : *) (x3 : *) (x4 : *) (x5 : *) (x6 : *) (x7 : *)
+    	   (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3) (f4 : x3 -> x4) (f5 : x4 -> x5)
+	       	       	   (f6 : x5 -> x6) (f7 : x6 -> x7)
+	   (f8 : x7 -> x6) (f9 : x6 -> x5) (f10 : x5 -> x4) (f11 : x4 -> x3) (f12 : x3 -> x2)
+	       	       	   (f13 : x2 -> x1)(f14 : x1 -> x0)
+	   (s1 : comp f1 f14 -> id x0) (s2 : comp f2 f13 -> id x1)
+	   (s3 : comp f3 f12 -> id x2) (s4 : comp f4 f11 -> id x3)
+	   (s5 : comp f5 f10 -> id x4)  (s6 : comp f6 f9 -> id x5)
+	   (s7 : comp f7 f8 -> id x6) =
+	   comp3 (rew13 f1 f2 f3 f4 f5 f6 s7 f9 f10 f11 f12 f13 f14)
+	   	 (can13F f1 f2 f3 f4 f5 f6 f9 f10 f11 f12 f13 f14)
+		 (simpl6 s1 s2 s3 s4 s5 s6).
+
+let simpl7F (x0 : *) (x1 : *) (x2 : *) (x3 : *) (x4 : *) (x5 : *) (x6 : *) (x7 : *)
+    	    (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3) (f4 : x3 -> x4) (f5 : x4 -> x5)
+	       	       	    (f6 : x5 -> x6) (f7 : x6 -> x7)
+	    (f8 : x7 -> x6) (f9 : x6 -> x5) (f10 : x5 -> x4) (f11 : x4 -> x3) (f12 : x3 -> x2)
+	       	       	    (f13 : x2 -> x1)(f14 : x1 -> x0)
+	    (s1 : comp f1 f14 -> id x0) (s2 : comp f2 f13 -> id x1)
+	    (s3 : comp f3 f12 -> id x2) (s4 : comp f4 f11 -> id x3)
+	    (s5 : comp f5 f10 -> id x4)  (s6 : comp f6 f9 -> id x5)
+	    (s7 : comp f7 f8 -> id x6) =
+	    comp (focus7 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14) 
+		 (simpl7 s1 s2 s3 s4 s5 s6 s7).
+
+
+let simplhcomp (x : *) (y : *) (z : *)
+    	       (f1 : x -> y) (f2 : x -> y) (g1 : y -> z) (g2 : y -> z)
+	       (a1 : f1 -> f2) (a2 : f2 -> f1) (b1 : g1 -> g2) (b2 : g2 -> g1)
+	       (aU : comp a1 a2 -> id f1) (bU : comp b1 b2 -> id g1) =
+	       comp3 (hcompcomp a1 a2 b1 b2)
+	       	     (hrew aU bU)
+		     (hcompid f1 g1).
 
 # ### Tactics to simplify rewriting
 let simplrew3 (x0 : *) (x1 : *) (x2 : *) (x3 : *)
@@ -441,6 +550,16 @@ let simplrew3 (x0 : *) (x1 : *) (x2 : *) (x3 : *)
 comp3 (rew3comp f1 a b f3)
       (rrew3 f1 abU f3)
       (rew3id f1 f2 f3).
+
+let simplrew3A (x0 : *) (x1 : *) (x2 : *) (x3 : *)
+    	       (f1 : x0 -> x1) (g1 : x0 -> x1) (f2 : x1 -> x2) (g2 : x1 -> x2)
+	       	     	       	     	       (f3 : x2 -> x3) (g3 : x2 -> x3)
+	       (a1 : f1 -> g1) (a2 : g1 -> f1) (b1 : f2 -> g2) (b2 : g2 -> f2)
+	       	     	       	     	       (c1 : f3 -> g3) (c2 : g3 -> f3)
+	       (aU : comp a1 a2 -> id f1) (bU : comp b1 b2 -> id f2) (cU : comp c1 c2 -> id f3) =
+comp3 (rew3Acomp a1 a2 b1 b2 c1 c2)
+      (rrew3A aU bU cU)
+      (rew3Aid f1 f2 f3).
 
 let simplrew5 (x0 : *) (x1 : *) (x2 : *) (x3 : *) (x4 : *) (x5 : *)
     	      (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3) (g3 : x2 -> x3) (f4 : x3 -> x4) (f5 : x4 -> x5) 
@@ -460,25 +579,53 @@ comp3 (hrewcomp s1 s2 r1 r2)
       (hrewid a1 b1).
 
 # ### Tactics for reducing
-# let red3 (x0 : *) (x1 : *) (x2 : *) (x3 : *)
-#     	    (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3)
-# 	    (f4 : x3 -> x2) (f5 : x2 -> x1) (f6 : x1 -> x0)
-# 	    (s : comp f3 f4 -> id x2) =
-# 	    comp (rew5 f1 f2 s f5 f6)
-# 	   	 (can5F f1 f2 f5 f6).
+let red3 (x0 : *) (x1 : *) (x2 : *) (x3 : *)
+    	 (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3)
+	 (f4 : x3 -> x2) (f5 : x2 -> x1) (f6 : x1 -> x0)
+	 (s : comp f3 f4 -> id x2) =
+	 comp (rew5 f1 f2 s f5 f6)
+	      (can5F f1 f2 f5 f6).
 
+
+# ### Tactics for expansing
+let exp3 (x0 : *) (x1 : *) (x2 : *) (x3 : *)
+    	 (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3)
+	 (f4 : x3 -> x2) (f5 : x2 -> x1) (f6 : x1 -> x0)
+	 (s : id x2 -> comp f3 f4) =
+comp (can5F- f1 f2 f5 f6)
+     (rew5 f1 f2 s f5 f6).
+
+# ### Simplifying expansion/reduction
+let redexp3U (x0 : *) (x1 : *) (x2 : *) (x3 : *)
+    	     (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3)
+	     (f4 : x3 -> x2) (f5 : x2 -> x1) (f6 : x1 -> x0)
+	     (s1 : comp f3 f4 -> id x2) (s2 : id x2 -> comp f3 f4)
+	     (sU : comp s1 s2 -> id (comp f3 f4)) :
+comp (red3 f1 f2 f5 f6 s1) (exp3 f1 f2 f5 f6 s2) -> id (comp5 f1 f2 (comp f3 f4) f5 f6) =
+simpl2F (simplrew5 f1 f2 f5 f6 sU)
+	(can5FU f1 f2 f5 f6).
+
+coh BLA (x : *) : x -> x.
+let expred3U (x0 : *) (x1 : *) (x2 : *) (x3 : *)
+    	     (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3)
+	     (f4 : x3 -> x2) (f5 : x2 -> x1) (f6 : x1 -> x0)
+	     (s1 : comp f3 f4 -> id x2) (s2 : id x2 -> comp f3 f4) 
+	     (sU- : id (comp f3 f4) -> comp s1 s2) :
+comp (exp3 f1 f2 f5 f6 s2) (red3 f1 f2 f5 f6 s1)  -> id (comp5 f1 f2 (comp f3 f4) f5 f6) =
+simpl2F (can5FU f1 f2 f5 f6)
+	(simplrew5 f1 f2 f5 f6 sU-).
 
 
 # ### Eckmann-Hilton morphism
-let half-eh1 (x : *) (a : id x -> id x) (b : id x -> id x) =
-let u1 = (unitl- (id x)) in
-let u2 = (unitr (id x)) in
-comp6 (hcomp (hunitl- a) (hunitr- b))
-      (focus3 u1 (hcomp (id (id x)) a) (unitl (id x)) (unitr- (id x)) (hcomp b (id (id x))) u2)
-      (rew5 u1 (hcomp (id (id x)) a) (hinvlr x) (hcomp b (id (id x))) u2)
-      (cancel5 u1 (hcomp (id (id x)) a) (hcomp b (id (id x))) u2)
-      (assoc4 u1 (hcomp (id (id x)) a) (hcomp b (id (id x))) u2)
-      (rew3 u1 (comp (exch (id (id x)) b a (id (id x))) (hrew (unitl b) (unitr a))) u2).      
+# let half-eh1 (x : *) (a : id x -> id x) (b : id x -> id x) =
+# let u1 = (unitl- (id x)) in
+# let u2 = (unitr (id x)) in
+# comp6 (hcomp (hunitl- a) (hunitr- b))
+#       (focus3 u1 (hcomp (id (id x)) a) (unitl (id x)) (unitr- (id x)) (hcomp b (id (id x))) u2)
+#       (rew5 u1 (hcomp (id (id x)) a) (hinvlr x) (hcomp b (id (id x))) u2)
+#       (cancel5 u1 (hcomp (id (id x)) a) (hcomp b (id (id x))) u2)
+#       (assoc4 u1 (hcomp (id (id x)) a) (hcomp b (id (id x))) u2)
+#       (rew3 u1 (comp (exch (id (id x)) b a (id (id x))) (hrew (unitl b) (unitr a))) u2).      
 
 # let half-eh2 (x : *) (a : id x -> id x) (b : id x -> id x) =
 # comp6 (rew3 (unitr- (id x)) (comp (hrew (unitr- b) (unitl- a)) (exch- b (id (id x)) (id (id x)) a)) (unitl (id x)))
@@ -494,7 +641,7 @@ comp6 (hcomp (hunitl- a) (hunitr- b))
 #       (half-eh2 x a b).
 
 # ### Inverse of Ekcmann-Hilton Morphism : turning the other way around
-# let half-eh1- (x : *) (a : id x -> id x) (b : id x -> id x) =
+# let half-eh2- (x : *) (a : id x -> id x) (b : id x -> id x) =
 # comp6 (hcomp (hunitr- a) (hunitl- b))
 #       (focus3 (unitr- (id x)) (hcomp a (id (id x))) (unitr (id x)) (unitl- (id x)) (hcomp (id (id x)) b) (unitl (id x)))
 #       (rew5 (unitr- (id x)) (hcomp a (id (id x))) (hinvrl x) (hcomp (id (id x)) b) (unitl (id x)))
@@ -502,7 +649,7 @@ comp6 (hcomp (hunitl- a) (hunitr- b))
 #       (assoc4 (unitr- (id x)) (hcomp a (id (id x))) (hcomp (id (id x)) b) (unitl (id x)))
 #       (rew3 (unitr- (id x)) (comp (exch a (id (id x)) (id (id x)) b) (hrew (unitr a) (unitl b))) (unitl (id x))).
 
-# let half-eh2- (x : *) (a : id x -> id x) (b : id x -> id x) =
+# let half-eh1- (x : *) (a : id x -> id x) (b : id x -> id x) =
 # comp6 (rew3 (unitl- (id x)) (comp (hrew (unitl- a) (unitr- b)) (exch- (id (id x)) a b (id (id x)))) (unitr (id x)))
 #      (assoc4- (unitl- (id x)) (hcomp (id (id x)) b) (hcomp a (id (id x))) (unitr (id x)))
 #      (cancel5- (unitl- (id x)) (hcomp (id (id x)) b) (hcomp a (id (id x))) (unitr (id x)))
@@ -516,25 +663,21 @@ comp6 (hcomp (hunitl- a) (hunitr- b))
 #       (half-eh2- x a b).
 
 # ### Cancellation on Eckmann-Hilton with its inverse	
-let lem (x : *) (a : id x -> id x) (b : id x  -> id x) =
-simplrew3 (unitl- (id x)) (unitr (id x))
-	  (simpl2F (exchU (id (id x)) b a (id (id x)))
-		   (simplhrew (unitlU b) (unitrU a))).
+# let eh1U (x : *) (a : id x -> id x) (b : id x  -> id x) :
+# comp (half-eh1 a b) (half-eh1- b a) -> id (comp a b) =
+# let u = unitl- (id x) in
+# let v = unitr (id x) in
+# simpl6F (simplhcomp (hunitlCU a) (hunitrCU b))
+# 	(focus3U u (hcomp (id (id x)) a) (unitl (id x)) (unitr- (id x)) (hcomp b (id (id x))) v)
+# 	(simplrew5 u (hcomp (id (id x)) a) (hcomp b (id (id x))) v (hinvlrU x))
+# 	(cancel5U u (hcomp (id (id x)) a) (hcomp b (id (id x))) v)
+#  	(assoc4U u (hcomp (id (id x)) a) (hcomp b (id (id x))) v)
+# 	(simplrew3 u v (simpl2F (exchU (id (id x)) b a (id (id x)))
+# 	                        (simplhrew (unitlU b) (unitrU a)))).
 
-let lem2 (x : *) (a : id x -> id x) (b : id x  -> id x) =
-simplrew5 (unitl- (id x))
-          (hcomp (id (id x)) a)
-	  (hcomp b (id (id x)))
-	  (unitr (id x))
-	  (hinvlrU x).
 
-let eh1U (x : *) (a : id x -> id x) (b : id x  -> id x) =
-simpl6F (comp3 (hcompcomp (hunitl- a) (hunitl a) (hunitr- b) (hunitr b)) (hrew (hunitlCU a) (hunitrCU b)) (hcompid a b))
-	(focus3U (unitl- (id x)) (hcomp (id (id x)) a) (unitl (id x)) (unitr- (id x)) (hcomp b (id (id x))) (unitr (id x)))
-	(lem2 a b)
-	(cancel5U (unitl- (id x)) (hcomp (id (id x)) a) (hcomp b (id (id x))) (unitr (id x)))
- 	(assoc4U (unitl- (id x)) (hcomp (id (id x)) a) (hcomp b (id (id x))) (unitr (id x)))
-	(lem a b).
+
+
 
 
 # let eh2U (x : *) (a : id x -> id x) (b : id x -> id x) =
@@ -567,6 +710,142 @@ simpl6F (comp3 (hcompcomp (hunitl- a) (hunitl a) (hunitr- b) (hunitr b)) (hrew (
 # let eh1' (x : *) (a : id (id x) -> id (id x)) (b : id (id x) -> id (id x))
 
 
+let whisklS (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) =
+    comp3 (unitl- f) (whiskl (id x) a) (unitl g).
+
+coh whisklScan (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    whisklS a -> a.
+
+coh whisklScan- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    a -> whisklS a.
+
+coh whisklScanU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    comp (whisklScan a) (whisklScan- a) -> id (whisklS a).
+
+coh whisklScanCU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    comp (whisklScan- a) (whisklScan a) -> id a.
 
 
+
+let whiskrS (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) =
+    comp3 (unitr- f) (whiskr a (id y)) (unitr g).
+
+coh whiskrScan (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    whiskrS a -> a.
+
+coh whiskrScan- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    a -> whiskrS a.
+
+coh whiskrScanU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    comp (whiskrScan a) (whiskrScan- a) -> id (whiskrS a).
+
+coh whiskrScanCU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    comp (whiskrScan- a) (whiskrScan a) -> id a.
+
+
+coh exch (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
+    	      	 (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
+		 comp (whiskr a h) (whiskl g b) -> comp (whiskl f b) (whiskr a k).
+
+coh exch- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
+    	      	  (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
+		  comp (whiskl f b) (whiskr a k) -> comp (whiskr a h) (whiskl g b).
+
+coh exchU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
+    	      	  (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
+comp (exch a b) (exch- a b) -> id (comp (whiskr a h) (whiskl g b)).
+
+
+let eh (x : *) (a : id x -> id x) (b : id x  -> id x) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+    comp7 (hcomp (whiskrScan- a) (whisklScan- b))
+    	  (focus3 u- (whiskr a (id x)) u v- (whiskl  (id x) b) v)
+	  (red3 u- (whiskr a (id x)) (whiskl  (id x) b) v (hinvrl x))
+	  (rew3A (equivrl- x) (exch a b) (equivlr x))
+	  (exp3 v- (whiskl (id x) b) (whiskr a (id x)) u (hinvlr- x))
+	  (focus3- v- (whiskl (id x) b) v u- (whiskr a (id x)) u)
+	  (hcomp (whisklScan b) (whiskrScan a)).
+
+let eh- (x : *) (a : id x -> id x) (b : id x  -> id x) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+comp7 (hcomp (whisklScan- a) (whiskrScan- b))
+      (focus3 v- (whiskl (id x) a) v u- (whiskr b (id x)) u)
+      (red3 v- (whiskl (id x) a) (whiskr b (id x)) u (hinvlr x))
+      (rew3A (equivlr- x) (exch- b a) (equivrl x))
+      (exp3 u- (whiskr b (id x)) (whiskl (id x) a) v (hinvrl- x))
+      (focus3- u- (whiskr b (id x)) u v- (whiskl (id x) a) v)
+      (hcomp (whiskrScan b) (whisklScan a)).
+
+
+
+let l1 (x : *) (a : id x -> id x) (b : id x  -> id x) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+(simplhcomp (whiskrScanCU a) (whisklScanCU b)).
+
+let l2 (x : *) (a : id x -> id x) (b : id x  -> id x) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+(focus3U u- (whiskr b (id x)) u v- (whiskl (id x) a) v).
+
+let l3 (x : *) (a : id x -> id x) (b : id x  -> id x) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+(redexp3U v- (whiskl (id x) b) (whiskr a (id x)) u (hinvrlU x)).
+
+let l4 (x : *) (a : id x -> id x) (b : id x  -> id x) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+(simplrew3A (equivrl-U x) (exchU a b) (equivlrU x)).
+
+
+let l5 (x : *) (a : id x -> id x) (b : id x  -> id x) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+(expred3U v- (whiskl (id x) b) (whiskr a (id x)) u (hinvlrCU x)).
+
+let l6 (x : *) (a : id x -> id x) (b : id x  -> id x) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+(focus3CU v- (whiskl (id x) a) v u- (whiskr b (id x)) u).
+
+let l7 (x : *) (a : id x -> id x) (b : id x  -> id x) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+(simplhcomp (whisklScanU b) (whiskrScanU a)).
+
+
+let ehU (x : *) (a : id x -> id x) (b : id x  -> id x) :
+comp (eh a b) (eh- b a) -> id (comp a b) =
+let u = unitr (id x) in
+let u- = unitr- (id x) in
+let v = unitl (id x) in
+let v- = unitl- (id x) in
+simpl7F (simplhcomp (whiskrScanCU a) (whisklScanCU b))
+	(focus3U u- (whiskr b (id x)) u v- (whiskl (id x) a) v)
+	(redexp3U v- (whiskl (id x) b) (whiskr a (id x)) u (hinvrlU x))
+	(simplrew3A (equivrl-U x) (exchU a b) (equivlrU x))
+	(expred3U v- (whiskl (id x) b) (whiskr a (id x)) u (hinvlrCU x))
+	(focus3CU v- (whiskl (id x) a) v u- (whiskr b (id x)) u)
+	(simplhcomp (whisklScanU b) (whiskrScanU a)).
 

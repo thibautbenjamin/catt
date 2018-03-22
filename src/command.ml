@@ -12,7 +12,17 @@ type cmd =
   |Decl of Var.t * (Var.t * ty) list * (Var.t * tm) list * tm * (ty option)
 	                                  
 type prog = cmd list
-                
+
+let rec print l = match l with
+  |((x,_),true)::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print l);
+  |((x,_),false)::l -> Printf.sprintf "{%s} %s" (Var.to_string x) (print l);
+  |[] -> ""
+
+let rec print_vars l = match l with
+  |x::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print_vars l);
+  |[] -> ""
+
+           
 let exec_cmd cmd =
   match cmd with
   | DeclCoh (x,ps,e) ->
@@ -38,7 +48,7 @@ let exec_cmd cmd =
      env
   | Check (l, e, t) ->
      let c = Kernel.mk_ctx l in
-     let e = fst (unravel_tm c e) in
+     let e = unravel_tm c e in
      let e,t' = Kernel.mk_tm c e in
      begin
      match t with
@@ -54,7 +64,7 @@ let exec_cmd cmd =
      let c = Kernel.mk_ctx l in
      let repl = List.map (fun (x,t) -> (x, fst (mk_tm c t))) repl in
      let e = replace repl e in 
-     let e, vars = unravel_tm c e in
+     let e = unravel_tm c e in
      let e,t' = Kernel.mk_tm c e in 
      let t = match t with
        |Some t -> let t = unravel_ty c t in
@@ -65,7 +75,7 @@ let exec_cmd cmd =
        |None -> let () = command "let %s " (string_of_tm e) in
                 t'
      in
-     let l = List.filter (fun (x,_) -> List.mem x vars) l in
+     let l = List.filter (fun (x,_) -> List.mem x (list_vars e)) l in
      let l = select l in
      mEnv := (v, (fun (c,l') -> let assoc = complete c l l' v in replace assoc (reinit e))) :: (! mEnv);
      info "defined term of type %s" (string_of_ty t)
