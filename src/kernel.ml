@@ -126,7 +126,7 @@ end
     (** -----------------
 	Typing procedures
         -----------------  *) 
-    let rec checkEqual ctx s1 s2 =
+    let rec checkEqual ctx s1 s2 = 
       match s1,s2 with
       |[],[] -> ()
       |t1::s1,t2::s2 ->
@@ -138,7 +138,13 @@ end
       |[] -> ""
       |t::q -> Tm.to_string t ^ " " ^ print_list q
 
+    let rec print l =
+      match l with
+      |(t::q) -> Tm.to_string t ^ " " ^ print q
+      |[] -> ""
+
     let rec check s src (tar:Ctx.t) =
+      (* debug "substitution %s" (print s); *)
       match s,(tar :> (cvar * Ty.t) list)
       with
       |[],[] -> ()
@@ -147,6 +153,7 @@ end
 	let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	check s src tar;
 	Ty.check tar u;
+        (* debug "checking that term %s \n has type %s" (Tm.to_string t) (Ty.to_string (applyTy s tar src u)); *)
 	Tm.checkType src t (applyTy s tar src u)
 		       
     (** --------
@@ -758,6 +765,7 @@ end
     |_ -> check_hidden ctx ty.e
                        
   let rec checkEqual ctx ty1 ty2 =
+    (* debug "checking equality between %s and %s" (to_string ty1)(to_string ty2); *)
     let equal = checkEqual ctx in
     match ty1.e, ty2.e with
     |Obj,Obj -> ()
@@ -834,6 +842,7 @@ and Tm
     |Sub (t,s) -> let ps = Cut.ps t in Printf.sprintf "(%s %s)" (Cut.to_string t) (Sub.to_string s (PS.shape ps))
 
   let rec checkEqual ctx tm1 tm2 =
+    (* debug "checking equality between %s and %s" (to_string tm1)(to_string tm2); *)
     match tm1.e, tm2.e with
     |CVar x,CVar y ->
       if not (x = y)
@@ -1076,7 +1085,12 @@ and string_of_sub s =
   |t::s -> Printf.sprintf"%s %s"
 			 (string_of_tm t)
                          (string_of_sub s)
-                         
+
+let rec print l =
+  match l with
+  |(t::q) -> string_of_tm t ^ " " ^ print q
+  |[] -> ""
+
 let rec reinit tm =
   match tm with
   |Var _ -> tm  
@@ -1084,6 +1098,7 @@ let rec reinit tm =
   |Tm tm -> Tm.reinit tm
 
 let rec unify_tm (c : Ctx.t) (tm1 : tm) (tm2 : tm) l =
+  (* debug "unifying %s with %s" (string_of_tm tm1) (string_of_tm tm2); *)
   match tm1 ,tm2 with
   |Var u, _ -> let rec replace l =
                  match l with
