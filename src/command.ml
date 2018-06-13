@@ -62,7 +62,8 @@ let exec_cmd cmd =
      end
   | Decl (v,l,repl,e,t) ->
      let c = Kernel.mk_ctx l in
-     let repl = List.map (fun (x,t) -> (x, fst (mk_tm c t))) repl in
+     let mk = fun t -> let t = unravel_tm c t in fst (mk_tm c t) in
+     let repl = List.map (fun (x,t) -> (x, mk t)) repl in
      let e = replace repl e in 
      let e = unravel_tm c e in
      let e,t' = Kernel.mk_tm c e in 
