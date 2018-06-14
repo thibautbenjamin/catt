@@ -73,7 +73,7 @@ let exec_cmd cmd =
                   let () = Kernel.checkEqual c t t' in
                   let () = command "let %s = %s : %s" (Var.to_string v) (string_of_tm e) (string_of_ty t) in
                   t
-       |None -> let () = command "let %s = %s " (Var.to_string v) (string_of_tm e) in
+       |None -> let () = command "let %s = %s" (Var.to_string v) (string_of_tm e) in
                 t'
      in
      let l = List.filter (fun (x,_) -> List.mem x (list_vars e)) l in

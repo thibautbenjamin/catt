@@ -166,9 +166,10 @@ end
         let rec aux s ps = 
           if !implicit_print then
             match s,ps with
-            |u::_::s, PDrop (PCons (ps)) -> Printf.sprintf "%s %s"
-                                              (aux s ps)
-                                              (Tm.to_string u)
+            |u::_::s, PDrop (PCons (ps)) ->
+              let ps = aux s ps in
+              let u = Tm.to_string u in
+              if ps = "" then u else ps ^ " " ^ u
             |s , PDrop ps -> aux s ps
             |u::_::s , PCons ps -> aux s ps
             |s,PNil -> ""
@@ -1082,7 +1083,7 @@ and string_of_sub s =
   match s with
   |[] -> ""
   |t::[] -> Printf.sprintf "%s" (string_of_tm t)
-  |t::s -> Printf.sprintf"%s %s"
+  |t::s -> Printf.sprintf "%s %s"
 			 (string_of_tm t)
                          (string_of_sub s)
 
