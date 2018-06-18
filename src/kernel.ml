@@ -14,12 +14,7 @@ module Var = struct
     | Name s -> s
     | New i -> "_" ^ string_of_int i
 
-  let mk s = Name s
-
-  let equal u v = match u,v with
-    | Name s, Name s' -> s = s'
-    | New a, New b -> a = b
-    | _,_ -> false
+  let make s = Name s
 end
 
 (** Environment variables (i.e. defined coherences). *)
@@ -27,7 +22,7 @@ module EVar
 : sig
   type t
   val to_string : t -> string
-  val mk : Var.t -> t
+  val make : Var.t -> t
   val to_var : t -> Var.t
 end
 =
@@ -37,7 +32,7 @@ struct
   let to_string v =
     Var.to_string v
 
-  let mk v = v
+  let make v = v
 
   let to_var v = v
 end
@@ -47,7 +42,7 @@ module CVar
 : sig 
     type t
     val to_string : t -> string
-    val mk : Var.t -> t
+    val make : Var.t -> t
     val to_var : t -> Var.t
 end
 =
@@ -57,7 +52,7 @@ struct
   let to_string v =
     Var.to_string v
 	       
-  let mk v = v
+  let make v = v
 
   let to_var v = v 
 end
@@ -80,25 +75,25 @@ module rec Sub
 sig
   type t = private (Tm.t list)
 
-  (** Structural functions *)
+  (* Structural functions *)
   val mk : Expr.tm list -> Ctx.t -> PS.t  -> t
   val mk_elaborated : Expr.tm list -> Ctx.t -> PS.t -> t 
   val value : t -> Tm.t list
   val reinit : t -> PShape.pshape -> Expr.tm list
 	   
-  (** Syntactic properties *)		    
+  (* Syntactic properties *)		    
   val free_vars : t -> cvar list
   val applyTy : t -> Ctx.t -> Ctx.t -> Ty.t -> Ty.t
   val applyTm : t -> Ctx.t -> Ctx.t -> Tm.t -> Tm.t
   val dim : Ctx.t -> Expr.tm list -> int
            
-  (** Equality procedures *)
+  (* Equality procedures *)
   val checkEqual : Ctx.t -> t -> t -> unit
 
-  (** Printing *)	
+  (* Printing *)	
   val to_string : t -> PShape.pshape -> string
 	   
-  (** Well-definedness procedure *)
+  (* Well-definedness procedure *)
   val check : t  -> Ctx.t -> Ctx.t -> unit
 end
   =
@@ -228,37 +223,37 @@ struct
     (** Close downwards. *)
     let rec complete l x ty ps =
       match ps with
-      |PNil ->
-	[x]
-      |PCons ps->
-	let a',x',y' =
-          let open Ty in
-	  match ty.e with
-	  |Arr(a',x',y') -> a',x',y'
-	  |_ -> assert(false)
-	in
-	x::y'::(complete l x' a' ps)
-      |(PDrop _) as ps -> find_max l ps
+      | PNil ->
+	 [x]
+      | PCons ps->
+	 let a',x',y' =
+           let open Ty in
+	   match ty.e with
+	   |Arr(a',x',y') -> a',x',y'
+	   |_ -> assert(false)
+	 in
+	 x::y'::(complete l x' a' ps)
+      | (PDrop _) as ps -> find_max l ps
     (** Find next maximal term and close it downwards. *)
     and find_max l ps =
       match l,ps with
-      |x::[], PNil ->
-	let x,_ = Tm.mk src x in
-	[x]
-      |[],_ -> raise NotValid
-      | _, PNil -> raise NotValid
-      |f::l, PDrop(PCons(ps)) ->
-	let f,_ = Tm.mk src f in
-	let a,x,y =
-          let open Ty in
-	  match (Tm.infer src f).e with
-	  |Arr(a,x,y) -> a,x,y
-	  |_ -> assert false
-	in
-	let s = complete l x a ps in
-	f::y::s
-      |s,PDrop ps -> find_max s ps
-      |s, PCons _ -> assert false
+      | x::[], PNil ->
+	 let x,_ = Tm.make src x in
+	 [x]
+      | [],_ -> raise NotValid
+      |  _, PNil -> raise NotValid
+      | f::l, PDrop(PCons(ps)) ->
+	 let f,_ = Tm.make src f in
+	 let a,x,y =
+           let open Ty in
+	   match (Tm.infer src f).e with
+	   |Arr(a,x,y) -> a,x,y
+	   |_ -> assert false
+	 in
+	 let s = complete l x a ps in
+	 f::y::s
+      | s,PDrop ps -> find_max s ps
+      | s, PCons _ -> assert false
     in
     let s = find_max (List.rev l) (PS.shape tar) in
     check s src (Ctx.of_ps tar);
@@ -273,7 +268,7 @@ struct
       |t::s,_ ->
 	let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	let s = aux s tar in
-	let (t,ty) = Tm.mk src t in
+	let t,ty = Tm.make src t in
 	let () = Ty.checkEqual src ty (applyTy s tar src u)
 	in t::s
     in aux (List.rev l) (Ctx.of_ps tar)
@@ -294,7 +289,7 @@ struct
       | [] -> i
       | t::l -> if t > i then max l t else max l i
     in
-    let l = List.map (fun x -> Ty.dim (snd (Tm.mk ctx x))) l in
+    let l = List.map (fun x -> Ty.dim (snd (Tm.make ctx x))) l in
     match l with
     | t::l -> max l t
     | [] -> raise EmptySub
@@ -329,7 +324,7 @@ sig
   val empty : unit -> t
   val add : t -> Var.t -> Expr.ty -> t
   val add_norm : t -> Var.t -> Ty.t -> t
-  val mk : (Var.t * Expr.ty) list -> t
+  val make : (Var.t * Expr.ty) list -> t
   val of_ps : PS.t -> t
        
   (* Structural operations *)
@@ -368,7 +363,7 @@ struct
   let empty () = []
 
   let add_norm (ctx : Ctx.t) x u =
-    let x = CVar.mk x in
+    let x = CVar.make x in
     try
       ignore (List.assoc x (ctx :> (CVar.t * Ty.t) list));
       raise (DoubleDef (CVar.to_string x))
@@ -376,7 +371,7 @@ struct
 
   (** Add a typed variable to a context. *)
   let add (ctx : Ctx.t) x u : t =
-    let u = Ty.mk ctx u in
+    let u = Ty.make ctx u in
     add_norm ctx x u
 
   (** Add a variable whose type is already constructed to a context. *)
@@ -385,7 +380,7 @@ struct
     add_norm ctx x u
 
   (** Create a context from a list of terms. *)
-  let rec mk l =
+  let rec make l =
     let rec aux l ctx =
       match l with
       | [] -> ctx
@@ -702,24 +697,23 @@ struct
      -------- *)
   (** String representation of a pasting scheme. *)
   let to_string ps =
-    if !abbrev
-    then
+    if !abbrev then
       Ctx.to_string (Ctx.of_ps ps)
     else
       let rec print ps = 
 	match ps with
-	|PNil (x,t) ->
+	| PNil (x,t) ->
 	  Printf.sprintf "[(%s,%s)]"
 	    (CVar.to_string x)
 	    (Ty.to_string t)
-	|PCons (ps,(x1,t1),(x2,t2)) ->
+	| PCons (ps,(x1,t1),(x2,t2)) ->
 	  Printf.sprintf "%s [(%s,%s) (%s,%s)]"
 	    (print ps)
 	    (CVar.to_string x1)
 	    (Ty.to_string t1)
 	    (CVar.to_string x2)
 	    (Ty.to_string t2)
-	|PDrop ps ->
+	| PDrop ps ->
 	  Printf.sprintf " %s ! "
 	    (print ps)
       in print ps	  
@@ -766,7 +760,7 @@ struct
     let u = 
       let c = PS.mk ps in
       Coh.mk c u in
-    env := (EVar.mk x,[0,u])::!env
+    env := (EVar.make x,[0,u])::!env
 
   (* --------------------
      Structural operation
@@ -808,7 +802,7 @@ sig
 
   val check : Ctx.t -> t -> unit
   val checkEqual : Ctx.t -> t -> t -> unit
-  val mk : Ctx.t -> Expr.ty -> t
+  val make : Ctx.t -> Expr.ty -> t
        
   val dim : t -> int
   val reinit : t -> Expr.ty
@@ -861,7 +855,7 @@ struct
       raise (NotEqual (to_string ty1, to_string ty2))
 
   (** Construct a type. *)
-  let rec mk c (e : Expr.ty) =
+  let rec make c (e : Expr.ty) =
     let already_known = Hashtbl.find_all Hash.tbty e in
     let rec aux l = match l with
       | [] -> raise Unknown
@@ -875,8 +869,8 @@ struct
         match e with
         | Obj -> {c = c; e = Obj}
         | Arr (u,v) ->
-           let u,tu = Tm.mk c u in
-           let v,tv = Tm.mk c v in
+           let u,tu = Tm.make c u in
+           let v,tv = Tm.make c v in
            let () = checkEqual c tu tv in {c = c; e = Arr(tu,u,v)}
         | Ty ty -> Ctx.checkSubCtx ty.c c; ty
       in Hashtbl.add Hash.tbty e newty; newty
@@ -911,7 +905,7 @@ sig
   val infer : Ctx.t -> t -> Ty.t
   val checkEqual : Ctx.t -> t -> t -> unit
   val checkType : Ctx.t -> t -> Ty.t -> unit
-  val mk : Ctx.t -> Expr.tm -> t * Ty.t
+  val make : Ctx.t -> Expr.tm -> t * Ty.t
        
   val reinit : t -> Expr.tm
 end
@@ -979,7 +973,7 @@ struct
 
   (** Create a term from an expression. *)
   (* TODO: return a value of type t instead of a pair *)
-  let rec mk c e =
+  let rec make c e =
     let already_known = Hashtbl.find_all Hash.tbtm e in
     let rec aux l = match l with
       | [] -> raise Unknown
@@ -991,7 +985,7 @@ struct
       let newtm,newty = 
         match e with
         | Var v ->
-           let e = CVar (CVar.mk v) in
+           let e = CVar (CVar.make v) in
            let ty = infer_expr c e in
            ({c = c; ty = ty; e = e}, ty)
         | Sub (t,s) ->
@@ -1000,8 +994,11 @@ struct
            let e : expr = Sub (t,s) in
            let ty = infer_expr c e in
            ({c = c; ty = ty; e = e}, ty)
-        | Tm tm -> try Ctx.checkSubCtx tm.c c; (tm, tm.ty)
-                  with _ -> mk c (Tm.reinit tm)        
+        | Tm tm ->
+           begin
+             try Ctx.checkSubCtx tm.c c; (tm, tm.ty)
+             with _ -> make c (Tm.reinit tm)
+           end
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 end
 
@@ -1052,13 +1049,13 @@ struct
        let open Expr in
        match e with
        |Var v ->
-         let coh = Env.val_var (EVar.mk v) 0 in
+         let coh = Env.val_var (EVar.make v) 0 in
          let ps = Coh.ps coh in
          let j = PS.dim ps in
          if j<=i then 
-           let coh = Env.val_var (EVar.mk v) (i-j) in
+           let coh = Env.val_var (EVar.make v) (i-j) in
            let ps = Coh.ps coh in
-           (Fold ((EVar.mk v),i-j), ps)
+           (Fold ((EVar.make v),i-j), ps)
          else failwith "arguments of the coherence have dimension too low"
        |Tm tm -> assert (false) (* TODO *)
        |(Sub _) -> raise BadUnderSub
@@ -1119,7 +1116,7 @@ struct
       |UnknownId _ -> raise NotAlgebraic
 		       
   let mk ps t =
-    let t = Ty.mk (Ctx.of_ps ps) t in
+    let t = Ty.make (Ctx.of_ps ps) t in
     check ps t
 
   let to_string (ps,t) =
@@ -1160,6 +1157,7 @@ end
 struct
   (* TODO: do we really have to have Ty and Tm? It would be better to have raw
      terms as an independent module. *)
+  (* TODO: this would allow us to have let in as a proper construction... *)
   (** A raw type. *)
   type ty =
     | Obj
@@ -1210,7 +1208,7 @@ struct
     | Var u, _ ->
        let rec replace l =
          match l with
-         | (((v,ty), None, _)::l) when u = v -> ((v,ty), Some (Expr.Tm (fst (Tm.mk c tm2))), true)::l 
+         | (((v,ty), None, _)::l) when u = v -> ((v,ty), Some (Expr.Tm (fst (Tm.make c tm2))), true)::l 
          | ((((v,ty), Some tm, _)::_) as l) when u = v -> l
          (* TODO : check compatibility between the constraints *)
          | a::l -> a::(replace l)
@@ -1265,13 +1263,13 @@ let string_of_tm = Expr.string_of_tm
 let init_env = Env.init
 let add_env = Env.add
                 
-let mk_ctx = Ctx.mk
-let mk_tm c e = let e,t = Tm.mk c e in Expr.Tm e, Expr.Ty t
-let mk_ty c e = Expr.Ty (Ty.mk c e)
+(* let mk_ctx = Ctx.mk *)
+let mk_tm c e = let e,t = Tm.make c e in Expr.Tm e, Expr.Ty t
+let mk_ty c e = Expr.Ty (Ty.make c e)
                         
 let checkEqual c ty1 ty2 =
-  let ty1 = Ty.mk c ty1 in
-  let ty2 = Ty.mk c ty2 in
+  let ty1 = Ty.make c ty1 in
+  let ty2 = Ty.make c ty2 in
   Ty.checkEqual c ty1 ty2
               
 let reinit = Expr.reinit

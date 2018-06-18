@@ -29,7 +29,7 @@ let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
      command "let %s = %s" (Var.to_string x) (string_of_ty e);
-     let ps = mk_ctx ps in
+     let ps = Ctx.make ps in
      let e = unravel_ty ps e in
      let env =
        if !debug_mode then 
@@ -46,7 +46,7 @@ let exec_cmd cmd =
      info "defined";
      env
   | Check (l, e, t) ->
-     let c = Kernel.mk_ctx l in
+     let c = Kernel.Ctx.make l in
      let e = unravel_tm c e in
      let e,t' = Kernel.mk_tm c e in
      begin
@@ -62,9 +62,9 @@ let exec_cmd cmd =
           info "checked term %s type %s" (string_of_tm e) (string_of_ty t')
      end
   | Decl (v,l,repl,e,t) ->
-     let c = Kernel.mk_ctx l in
-     let mk t = let t = unravel_tm c t in fst (mk_tm c t) in
-     let repl = List.map (fun (x,t) -> (x, mk t)) repl in
+     let c = Kernel.Ctx.make l in
+     let make t = let t = unravel_tm c t in fst (mk_tm c t) in
+     let repl = List.map (fun (x,t) -> (x, make t)) repl in
      let e = replace repl e in 
      let e = unravel_tm c e in
      let e,t' = Kernel.mk_tm c e in 
