@@ -17,7 +17,6 @@ rule token = parse
   | ")" { RPAR }
   | ":" { COL }
   | "->" { MOR }
-  | "." { FS }
   | "*" { OBJ }
   | "|" { PIPE }
   | "[" { LBRA }

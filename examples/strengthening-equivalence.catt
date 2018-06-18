@@ -1,44 +1,44 @@
 #################################
 # Standard library : compositions/rewriting/simplification
-coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z.
-coh comp3 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (t : *) (h : z -> t) : x -> t.
-coh comp4 (x0 : *) (x1 : *) (f1 : x0 -> x1) (x2 : *) (f2 : x1 -> x2) (x3 : *) (f3 : x2 -> x3) (x4 : *) (f4 : x3 -> x4) : x0 -> x4.
-coh comp5 (x0 : *) (x1 : *) (f1 : x0 -> x1) (x2 : *) (f2 : x1 -> x2) (x3 : *) (f3 : x2 -> x3) (x4 : *) (f4 : x3 -> x4) (x5 : *) (f5 : x4 -> x5) : x0 -> x5.
+coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
+coh comp3 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (t : *) (h : z -> t) : x -> t
+coh comp4 (x0 : *) (x1 : *) (f1 : x0 -> x1) (x2 : *) (f2 : x1 -> x2) (x3 : *) (f3 : x2 -> x3) (x4 : *) (f4 : x3 -> x4) : x0 -> x4
+coh comp5 (x0 : *) (x1 : *) (f1 : x0 -> x1) (x2 : *) (f2 : x1 -> x2) (x3 : *) (f3 : x2 -> x3) (x4 : *) (f4 : x3 -> x4) (x5 : *) (f5 : x4 -> x5) : x0 -> x5
 
-coh id (x : *) : x -> x.
+coh id (x : *) : x -> x
 
-coh comp1U (x : *) (y : *) (f : x -> y) : comp f (id y) -> f.
-coh comp1U- (x : *) (y : *) (f : x -> y) : f -> comp f (id y).
-coh compU2 (x : *) (y : *) (f : x -> y) : comp (id x) f -> f.
-coh compU2- (x : *) (y : *) (f : x -> y) : f -> comp (id x) f.
-coh compU23 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : comp3 (id x) f g -> comp f g.
-coh compU23- (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : comp f g -> comp3 (id x) f g.
-coh comp1U3 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z)  : comp3 f (id y) g -> comp f g.
+coh comp1U (x : *) (y : *) (f : x -> y) : comp f (id y) -> f
+coh comp1U- (x : *) (y : *) (f : x -> y) : f -> comp f (id y)
+coh compU2 (x : *) (y : *) (f : x -> y) : comp (id x) f -> f
+coh compU2- (x : *) (y : *) (f : x -> y) : f -> comp (id x) f
+coh compU23 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : comp3 (id x) f g -> comp f g
+coh compU23- (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : comp f g -> comp3 (id x) f g
+coh comp1U3 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z)  : comp3 f (id y) g -> comp f g
 
-coh comp1R (x : *) (y : *) (f : x -> y) (z : *) (g1 : y -> z) (g2 : y -> z) (rew : g1  -> g2) : comp f g1 -> comp f g2.
-coh compR2 (x : *) (y : *) (f1 : x -> y) (f2 : x -> y) (rew : f1 -> f2) (z : *) (g : y -> z) : comp f1 g -> comp f2 g.
-coh comp1R3 (x : *) (y : *) (f : x -> y) (z : *) (g1 : y -> z) (g2 : y -> z) (rew : g1 -> g2) (t : *) (h : z -> t) : comp3 f g1 h -> comp3 f g2 h.
-coh compR23 (x : *) (y : *) (f1 : x -> y) (f2 : x -> y) (rew : f1 ->  f2) (z : *) (g : y -> z) (t : *) (h : z -> t) : comp3 f1 g h -> comp3 f2 g h. 
+coh comp1R (x : *) (y : *) (f : x -> y) (z : *) (g1 : y -> z) (g2 : y -> z) (rew : g1  -> g2) : comp f g1 -> comp f g2
+coh compR2 (x : *) (y : *) (f1 : x -> y) (f2 : x -> y) (rew : f1 -> f2) (z : *) (g : y -> z) : comp f1 g -> comp f2 g
+coh comp1R3 (x : *) (y : *) (f : x -> y) (z : *) (g1 : y -> z) (g2 : y -> z) (rew : g1 -> g2) (t : *) (h : z -> t) : comp3 f g1 h -> comp3 f g2 h
+coh compR23 (x : *) (y : *) (f1 : x -> y) (f2 : x -> y) (rew : f1 ->  f2) (z : *) (g : y -> z) (t : *) (h : z -> t) : comp3 f1 g h -> comp3 f2 g h 
 
-coh assoc3 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (t : *) (h : z -> t) : comp f (comp g h) -> comp (comp f g) h.
-coh assoc3- (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (t : *) (h : z -> t) : comp (comp f g) h -> comp f (comp g h).
-coh assoc4 (x0 : *) (x1 : *) (f1 : x0 -> x1) (x2 :*) (f2 : x1 -> x2) (x3 : *) (f3 : x2 -> x3) (x4 : *) (f4 : x3 -> x4) : comp3 (comp f1 f2) f3 f4 -> comp3 f1 (comp f2 f3) f4.
+coh assoc3 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (t : *) (h : z -> t) : comp f (comp g h) -> comp (comp f g) h
+coh assoc3- (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (t : *) (h : z -> t) : comp (comp f g) h -> comp f (comp g h)
+coh assoc4 (x0 : *) (x1 : *) (f1 : x0 -> x1) (x2 :*) (f2 : x1 -> x2) (x3 : *) (f3 : x2 -> x3) (x4 : *) (f4 : x3 -> x4) : comp3 (comp f1 f2) f3 f4 -> comp3 f1 (comp f2 f3) f4
 
 
 ##############################
 # Uniqueness of left- and right-inverse
 
-let uniqr (x : *) (y : *) (f : x -> y) (g0 : y -> x) (g1 : y -> x) (eta : id x  -> comp f g0) (eta- : comp f g0 -> id x) (phi : id y -> comp g1 f) (phi- : comp g1 f -> id y) = comp5 (compU2- g0) (compR2 phi g0) (assoc3- g1 f g0) (comp1R g1 eta-) (comp1U g1).
+let uniqr (x : *) (y : *) (f : x -> y) (g0 : y -> x) (g1 : y -> x) (eta : id x  -> comp f g0) (eta- : comp f g0 -> id x) (phi : id y -> comp g1 f) (phi- : comp g1 f -> id y) = comp5 (compU2- g0) (compR2 phi g0) (assoc3- g1 f g0) (comp1R g1 eta-) (comp1U g1)
 
 
 ###############################
 # Definition of Strengthening
 
-let adj1 (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) = comp (compU23- g f) (compR23 xi- g f).
+let adj1 (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) = comp (compU23- g f) (compR23 xi- g f)
 
-let adj2 (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) = comp3 (assoc4 g f g f) (comp1R3 g (eta-) f) (comp1U3 g f).
+let adj2 (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) = comp3 (assoc4 g f g f) (comp1R3 g (eta-) f) (comp1U3 g f)
 
-let epsilon (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) = comp3 (adj1 f g xi-) (adj2 f g eta-) xi.
+let epsilon (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) = comp3 (adj1 f g xi-) (adj2 f g eta-) xi
 
 #Define epsilon-
 #Show that epsilon and epsilon- are inverses
@@ -47,9 +47,9 @@ let epsilon (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (
 ###############################
 # Definition of adjunctions
 
-let adj-ty1 (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (epsilon : comp g f -> id y) = comp5 (comp1U- g) (comp1R g eta) (assoc3 g f g) (compR2 epsilon g) (compU2 g).
+let adj-ty1 (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (epsilon : comp g f -> id y) = comp5 (comp1U- g) (comp1R g eta) (assoc3 g f g) (compR2 epsilon g) (compU2 g)
 
-let adj-ty2 (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (epsilon : comp g f -> id y) = comp5 (compU2- f) (compR2 eta f) (assoc3- f g f) (comp1R f epsilon) (comp1U f).
+let adj-ty2 (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (epsilon : comp g f -> id y) = comp5 (compU2- f) (compR2 eta f) (assoc3- f g f) (comp1R f epsilon) (comp1U f)
 #To prove that (f,g,eta,epsilon) is an adjunction one has to define
 # - An invertible morphism (adj-ty1 f g eta epsilon) -> (id g)
 # - An invertible morphism (adj-ty2 f g eta epsilon) -> (id f)
@@ -57,8 +57,8 @@ let adj-ty2 (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (
 ###########################
 # Strengthening defines an adjunction
 
-check (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) (xiLW : comp xi xi- -> id (comp g f)) (xiLW- : id (comp g f) -> comp xi xi-) = (adj-ty1 f g eta (epsilon f g eta- xi xi-)).
+check (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) (xiLW : comp xi xi- -> id (comp g f)) (xiLW- : id (comp g f) -> comp xi xi-) = (adj-ty1 f g eta (epsilon f g eta- xi xi-))
 
 
-let test (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) (xiLW : comp xi xi- -> id (comp g f)) (xiLW- : id (comp g f) -> comp xi xi-) = (adj-ty2 f g eta (epsilon f g eta- xi xi-)).
+let test (x : *) (y : *) (f : x -> y) (g : y -> x) (eta : id x -> comp f g) (eta- : comp f g -> id x) (xi : comp g f -> id y) (xi- : id y -> comp g f) (xiLW : comp xi xi- -> id (comp g f)) (xiLW- : id (comp g f) -> comp xi xi-) = (adj-ty2 f g eta (epsilon f g eta- xi xi-))
 
