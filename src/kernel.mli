@@ -1,19 +1,25 @@
-open Var
-
 type kTy
 type kTm
 type env
 type ctx
-module Expr
-: sig
-type ty =
-   |Obj
-   |Arr of tm * tm
-   |Ty of kTy
- and tm =
-   |Var of Var.t
-   |Sub of tm * (tm list)
-   |Tm of kTm
+
+module Var : sig
+  type t
+
+  val mk : string -> t
+
+  val to_string : t -> string
+end
+
+module Expr : sig
+  type ty =
+    | Obj
+    | Arr of tm * tm
+    | Ty of kTy
+  and tm =
+    | Var of Var.t
+    | Sub of tm * (tm list)
+    | Tm of kTm
 end
 
 type ty = Expr.ty

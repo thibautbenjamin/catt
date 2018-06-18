@@ -1,4 +1,3 @@
-open Var
 open Kernel
 open Settings
 open Common
@@ -15,12 +14,14 @@ type cmd =
 (** A program. *)
 type prog = cmd list
 
-let rec print l = match l with
+let rec print l =
+  match l with
   | ((x,_),true)::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print l);
   | ((x,_),false)::l -> Printf.sprintf "{%s} %s" (Var.to_string x) (print l);
   | [] -> ""
 
-let rec print_vars l = match l with
+let rec print_vars l =
+  match l with
   | x::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print_vars l);
   | [] -> ""
            
@@ -50,15 +51,15 @@ let exec_cmd cmd =
      let e,t' = Kernel.mk_tm c e in
      begin
        match t with
-       |Some t ->
-         let t = unravel_ty c t in
-         let t = Kernel.mk_ty c t in
-         command "check %s : %s" (string_of_tm e) (string_of_ty t);
-         Kernel.checkEqual c t t';
-         info "checked"
-       |None ->
-         command "check %s " (string_of_tm e);
-         info "checked term %s type %s" (string_of_tm e) (string_of_ty t')
+       | Some t ->
+          let t = unravel_ty c t in
+          let t = Kernel.mk_ty c t in
+          command "check %s : %s" (string_of_tm e) (string_of_ty t);
+          Kernel.checkEqual c t t';
+          info "checked"
+       | None ->
+          command "check %s " (string_of_tm e);
+          info "checked term %s type %s" (string_of_tm e) (string_of_ty t')
      end
   | Decl (v,l,repl,e,t) ->
      let c = Kernel.mk_ctx l in

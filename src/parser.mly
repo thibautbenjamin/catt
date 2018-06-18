@@ -1,8 +1,9 @@
 %{
     open Common
     open Command
-    open Var
     open Kernel.Expr
+
+    module Var = Kernel.Var
 %}
 
 %token COH OBJ PIPE MOR

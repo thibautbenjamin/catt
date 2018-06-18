@@ -1,4 +1,3 @@
-open Var
 open Kernel
 open Common
        

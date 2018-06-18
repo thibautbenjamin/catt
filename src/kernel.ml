@@ -2,22 +2,37 @@ open Stdlib
 open Settings
 open Common
 open PShape
-open Var
 
 (** Variables, before distinction between environment or context variables. *)
-type var = Var.t
+module Var = struct
+  type t =
+  | Name of string
+  | New of int
+	     
+  let to_string v =
+    match v with
+    | Name s -> s
+    | New i -> "_" ^ string_of_int i
+
+  let mk s = Name s
+
+  let equal u v = match u,v with
+    | Name s, Name s' -> s = s'
+    | New a, New b -> a = b
+    | _,_ -> false
+end
 
 (** Environment variables (i.e. defined coherences). *)
 module EVar
-: sig 
+: sig
   type t
   val to_string : t -> string
-  val mk : var -> t
-  val to_var : t -> var 
+  val mk : Var.t -> t
+  val to_var : t -> Var.t
 end
 =
 struct
-  type t = var
+  type t = Var.t
 
   let to_string v =
     Var.to_string v
@@ -32,12 +47,12 @@ module CVar
 : sig 
     type t
     val to_string : t -> string
-    val mk : var -> t
-    val to_var : t -> var
+    val mk : Var.t -> t
+    val to_var : t -> Var.t
 end
 =
 struct
-  type t = var
+  type t = Var.t
 
   let to_string v =
     Var.to_string v
@@ -47,6 +62,7 @@ struct
   let to_var v = v 
 end
 
+type var = Var.t
 type evar = EVar.t
 type cvar = CVar.t
 
@@ -136,8 +152,8 @@ struct
     (* Ctx.checkEqual (ty.c) tar; *)
     let e = 
       match ty.e with
-      |Obj -> Obj
-      |Arr (a,u,v) -> Arr (applyTy s tar src a, applyTm s tar src u, applyTm s tar src v)
+      | Obj -> Obj
+      | Arr (a,u,v) -> Arr (applyTy s tar src a, applyTm s tar src u, applyTm s tar src v)
     in {c = src; e = e}
 
     (* -----------------
@@ -146,31 +162,31 @@ struct
   (** Check equality of substitutions. *)
   let rec checkEqual ctx (s1:t) (s2:t) = 
     match s1,s2 with
-    |[],[] -> ()
-    |t1::s1,t2::s2 ->
-      Tm.checkEqual ctx t1 t2;
-      checkEqual ctx s1 s2
-    |_,_ -> raise NotValid
+    | [],[] -> ()
+    | t1::s1,t2::s2 ->
+       Tm.checkEqual ctx t1 t2;
+       checkEqual ctx s1 s2
+    | _,_ -> raise NotValid
 
   (* TODO: use String.concat *)
   let rec print l =
     match l with
-    |(t::q) -> Tm.to_string t ^ " " ^ print q
-    |[] -> ""
+    | (t::q) -> Tm.to_string t ^ " " ^ print q
+    | [] -> ""
 
   (** Check that a substitution is well-formed with given source and target. *)
   let rec check (s:t) src (tar:Ctx.t) =
     (* debug "substitution %s" (print s); *)
     match s,(tar :> (cvar * Ty.t) list)
     with
-    |[],[] -> ()
-    |(_::_,[] |[],_::_) -> raise NotValid
-    |t::s,_ ->
-      let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
-      check s src tar;
-      Ty.check tar u;
-      (* debug "checking that term %s \n has type %s" (Tm.to_string t) (Ty.to_string (applyTy s tar src u)); *)
-      Tm.checkType src t (applyTy s tar src u)
+    | [],[] -> ()
+    | (_::_,[] |[],_::_) -> raise NotValid
+    | t::s,_ ->
+       let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
+       check s src tar;
+       Ty.check tar u;
+       (* debug "checking that term %s \n has type %s" (Tm.to_string t) (Ty.to_string (applyTy s tar src u)); *)
+       Tm.checkType src t (applyTy s tar src u)
 	
     (*  --------
 	Printing
@@ -181,27 +197,27 @@ struct
   (* TODO: use a full pasting scheme and remove "pasting shapes" *)
   let to_string (s:t) ps =
     match s,ps with
-    |u::[], PNil -> Printf.sprintf "%s" (Tm.to_string u)
-    |_,_ ->
-      let rec aux s ps = 
-        if !implicit_print then
-          match s,ps with
-          |u::_::s, PDrop (PCons (ps)) ->
-            let ps = aux s ps in
-            let u = Tm.to_string u in
-            if ps = "" then u else ps ^ " " ^ u
-          |s , PDrop ps -> aux s ps
-          |u::_::s , PCons ps -> aux s ps
-          |s,PNil -> ""
-          |_,_ -> assert(false)
-        else
-          match s with
-          |[] -> ""
-          |u::s ->
-	    Printf.sprintf "%s %s"
-	      (aux s ps)
-	      (Tm.to_string u)
-      in aux s ps
+    | u::[], PNil -> Printf.sprintf "%s" (Tm.to_string u)
+    | _,_ ->
+       let rec aux s ps = 
+         if !implicit_print then
+           match s,ps with
+           | u::_::s, PDrop (PCons (ps)) ->
+              let ps = aux s ps in
+              let u = Tm.to_string u in
+              if ps = "" then u else ps ^ " " ^ u
+           | s , PDrop ps -> aux s ps
+           | u::_::s , PCons ps -> aux s ps
+           | s,PNil -> ""
+           | _,_ -> assert(false)
+         else
+           match s with
+           | [] -> ""
+           | u::s ->
+	      Printf.sprintf "%s %s"
+	        (aux s ps)
+	        (Tm.to_string u)
+       in aux s ps
 
     (*  --------------------
 	Structural functions
@@ -311,9 +327,9 @@ sig
 
   (* Makers *)
   val empty : unit -> t
-  val add : t -> var -> Expr.ty -> t
-  val add_norm : t -> var -> Ty.t -> t
-  val mk : (var * Expr.ty) list -> t
+  val add : t -> Var.t -> Expr.ty -> t
+  val add_norm : t -> Var.t -> Ty.t -> t
+  val mk : (Var.t * Expr.ty) list -> t
   val of_ps : PS.t -> t
        
   (* Structural operations *)
@@ -1076,8 +1092,8 @@ struct
     else
       let open Ty in
       let a,f,g = match t.e with
-        |Arr(a,f,g) -> (a,f,g)  
-        |_ -> raise NotAlgebraic
+        | Arr(a,f,g) -> (a,f,g)  
+        | _ -> raise NotAlgebraic
       in
       let i = PS.dim ps in
       let pss = PS.source (i-1) ps
@@ -1131,7 +1147,7 @@ sig
     | Ty of Ty.t        
   and tm =     
     | Var of var
-    | Sub of tm * (tm list)
+    | Sub of tm * tm list
     | Tm of Tm.t
 
   val string_of_ty : ty -> string
@@ -1142,10 +1158,14 @@ sig
 end
   =
 struct
+  (* TODO: do we really have to have Ty and Tm? It would be better to have raw
+     terms as an independent module. *)
+  (** A raw type. *)
   type ty =
     | Obj
     | Arr of tm * tm
-    | Ty of Ty.t        
+    | Ty of Ty.t
+  (** A raw term. *)
   and tm =     
     | Var of var
     | Sub of tm * (tm list)
@@ -1156,32 +1176,24 @@ struct
   let rec string_of_ty e =
     match e with
     | Obj -> "*"
-    | Arr (u,v) ->
-       Printf.sprintf "%s -> %s"
-	 (string_of_tm u)
-	 (string_of_tm v)
+    | Arr (u,v) -> Printf.sprintf "%s -> %s" (string_of_tm u) (string_of_tm v)
     | Ty ty -> Ty.to_string ty
   and string_of_tm e =
     match e with
-    |Var x -> Var.to_string x
-    |Sub (t,s) ->
-      Printf.sprintf "(%s %s)"
-	(string_of_tm t)
-	(string_of_sub s)
-    |Tm tm -> Tm.to_string tm
-
+    | Var x -> Var.to_string x
+    | Sub (t,s) -> Printf.sprintf "(%s %s)" (string_of_tm t) (string_of_sub s)
+    | Tm tm -> Tm.to_string tm
   and string_of_sub s =
     match s with
-    |[] -> ""
-    |t::[] -> Printf.sprintf "%s" (string_of_tm t)
-    |t::s -> Printf.sprintf "%s %s"
-	       (string_of_tm t)
-               (string_of_sub s)
+    | [] -> ""
+    | t::[] -> Printf.sprintf "%s" (string_of_tm t)
+    | t::s -> Printf.sprintf "%s %s" (string_of_tm t) (string_of_sub s)
 
+  (* TODO: use String.concat *)
   let rec print l =
     match l with
-    |(t::q) -> string_of_tm t ^ " " ^ print q
-    |[] -> ""
+    | (t::q) -> string_of_tm t ^ " " ^ print q
+    | [] -> ""
 
   (** Remove partly verified terms. *)
   (* TODO: remove this *)
@@ -1216,7 +1228,7 @@ struct
     | Tm _, _ -> assert false
     | _, Tm _ -> assert false
     | _, Var _ -> raise UnableUnify
-                  
+
   let unify_ty (c : Ctx.t) (ty1 : ty) (ty2 : ty) l =
     match ty1 ,ty2 with
     | Obj, _ -> l
@@ -1266,5 +1278,5 @@ let reinit = Expr.reinit
 
 let unify c a b l =
   match b with
-  |Expr.Tm b -> Expr.unify_ty c a (Ty.reinit (Tm.infer c b)) l
-  |_ -> assert(false)    
+  | Expr.Tm b -> Expr.unify_ty c a (Ty.reinit (Tm.infer c b)) l
+  | _ -> assert(false)    
