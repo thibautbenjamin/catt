@@ -8,7 +8,7 @@ open Unravel
 (** A command. *)
 (* TODO: remove the list of let in *)
 type cmd =
-  | DeclCoh of Var.t * (Var.t * ty) list * ty (** a coherence *)
+  | Coh of Var.t * (Var.t * ty) list * ty (** a coherence *)
   | Check of ((Var.t * ty) list) * tm * ty option (** check that a term is well-typed in a context *)
   | Decl of Var.t * (Var.t * ty) list * (Var.t * tm) list * tm * ty option (** let declarations *)
 
@@ -26,7 +26,7 @@ let rec print_vars l = match l with
            
 let exec_cmd cmd =
   match cmd with
-  | DeclCoh (x,ps,e) ->
+  | Coh (x,ps,e) ->
      command "let %s = %s" (Var.to_string x) (string_of_ty e);
      let ps = mk_ctx ps in
      let e = unravel_ty ps e in

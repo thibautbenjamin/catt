@@ -23,7 +23,7 @@ prog:
     |EOF { [] }
 
 cmd:
-    |COH IDENT args COL tyexpr FS { DeclCoh (Var.mk $2,$3,$5) }
+    |COH IDENT args COL tyexpr FS { Coh (Var.mk $2,$3,$5) }
     |CHECK args COL tyexpr EQUAL tmexpr FS { Check ($2,$6, Some $4) }
     |CHECK args EQUAL tmexpr FS { Check ($2,$4,None) }
     |LET IDENT args COL tyexpr EQUAL list_replace tmexpr FS { Decl (Var.mk $2,$3,$7,$8,Some $5) }
