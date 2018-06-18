@@ -906,22 +906,22 @@ let leftfront-rightback
      	(z : *) (f2 : y -> z) (g2 : y -> z) (a2 : f2 -> g2) (b2 : f2 -> g2) (s : a2 -> b2) =
 comp (rew2@2 (rew2@1 a1 f2) (rrew2@2 g1 s)) (rew2@1 (rrew2@1 r f2) (rew2@2 g1 b2))
 
-coh exch-back-front-in-lr
-(x : *) (y : *) (f1 : x -> y) (g1 : x -> y) (a1 : f1 -> g1) (b1 : f1 -> g1) (r : a1 -> b1)
-    	(z : *) (f2 : y -> z) (g2 : y -> z) (a2 : f2 -> g2) (b2 : f2 -> g2) (s : a2 -> b2)
-: back-front r s -> front-back r s
+# coh exch-back-front-in-lr
+# (x : *) (y : *) (f1 : x -> y) (g1 : x -> y) (a1 : f1 -> g1) (b1 : f1 -> g1) (r : a1 -> b1)
+    	# (z : *) (f2 : y -> z) (g2 : y -> z) (a2 : f2 -> g2) (b2 : f2 -> g2) (s : a2 -> b2)
+# : back-front r s -> front-back r s
 
-let rightback-leftfront
-(x : *) (y : *) (f1 : x -> y) (g1 : x -> y) (a1 : f1 -> g1) (b1 : f1 -> g1) (r : a1 -> b1)
-     	(z : *) (f2 : y -> z) (g2 : y -> z) (a2 : f2 -> g2) (b2 : f2 -> g2) (s : a2 -> b2) =
-comp (rew2@1 (rrew2@2 r f2) (rew2@2 g1 a2)) (rew2@2 (rew2@1 b1 f2) (rrew2@2 g1 s))
-
-
+# let rightback-leftfront
+# (x : *) (y : *) (f1 : x -> y) (g1 : x -> y) (a1 : f1 -> g1) (b1 : f1 -> g1) (r : a1 -> b1)
+     	# (z : *) (f2 : y -> z) (g2 : y -> z) (a2 : f2 -> g2) (b2 : f2 -> g2) (s : a2 -> b2) =
+# comp (rew2@1 (rrew2@2 r f2) (rew2@2 g1 a2)) (rew2@2 (rew2@1 b1 f2) (rrew2@2 g1 s))
 
 
 
 
-let BUG (x : *) = y
+
+
+# let BUG (x : *) = y
 
 ####DIMENSION 3 : ANOTHER ECKMANN-HILTON MORPHISM
 # coh rew2@1 (x : *) (y : *) (f1 : x -> y) (g1 : x -> y) (a : f1 -> g1)
