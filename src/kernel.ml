@@ -83,12 +83,12 @@ sig
 	   
   (* Syntactic properties *)		    
   val free_vars : t -> cvar list
-  val applyTy : t -> Ctx.t -> Ctx.t -> Ty.t -> Ty.t
-  val applyTm : t -> Ctx.t -> Ctx.t -> Tm.t -> Tm.t
+  val apply_Ty : t -> Ctx.t -> Ctx.t -> Ty.t -> Ty.t
+  val apply_Tm : t -> Ctx.t -> Ctx.t -> Tm.t -> Tm.t
   val dim : Ctx.t -> Expr.tm list -> int
            
   (* Equality procedures *)
-  val checkEqual : Ctx.t -> t -> t -> unit
+  val check_equal : Ctx.t -> t -> t -> unit
 
   (* Printing *)	
   val to_string : t -> PShape.pshape -> string
@@ -114,7 +114,7 @@ struct
   (** Apply a substitution of given codomain to a variable. *)
   let rec apply_var (s:t) (tar:Ctx.t) x =
     match s,tar with
-    |_,_ when Ctx.isEmpty tar ->
+    |_,_ when Ctx.is_empty tar ->
       raise (UnknownId (CVar.to_string x))
     |t::l, _ ->
       let open Tm in
@@ -127,11 +127,11 @@ struct
   (** Sequential composition of substitutions. *)
   let rec compose src tar s (s':t) =
     let open Expr in
-    List.rev (List.map (fun t -> Tm (applyTm s tar src t)) s')
+    List.rev (List.map (fun t -> Tm (apply_Tm s tar src t)) s')
   (** Apply a substitution to a term. *)
-  and applyTm (s:t) tar src tm =
+  and apply_Tm (s:t) tar src tm =
     let open Tm in
-    Ctx.checkSubCtx (tm.c) tar;
+    Ctx.check_sub_ctx (tm.c) tar;
     (* Ctx.checkEqual (tm.c) tar; *)
     let e =
       match tm.e with
@@ -139,28 +139,28 @@ struct
       |Sub (t,s') ->
         let newtar = Cut.ps t in 
         Sub (t, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar)
-    in {c = src; ty = applyTy s tar src (Tm.infer tar tm); e = e}
+    in {c = src; ty = apply_Ty s tar src (Tm.infer tar tm); e = e}
   (** Apply a substitution to a type. *)
-  and applyTy (s:t) tar src ty =
+  and apply_Ty (s:t) tar src ty =
     let open Ty in
-    Ctx.checkSubCtx (ty.c) tar;
+    Ctx.check_sub_ctx (ty.c) tar;
     (* Ctx.checkEqual (ty.c) tar; *)
     let e = 
       match ty.e with
       | Obj -> Obj
-      | Arr (a,u,v) -> Arr (applyTy s tar src a, applyTm s tar src u, applyTm s tar src v)
+      | Arr (a,u,v) -> Arr (apply_Ty s tar src a, apply_Tm s tar src u, apply_Tm s tar src v)
     in {c = src; e = e}
 
     (* -----------------
 	Typing procedures
         -----------------  *)
   (** Check equality of substitutions. *)
-  let rec checkEqual ctx (s1:t) (s2:t) = 
+  let rec check_equal ctx (s1:t) (s2:t) = 
     match s1,s2 with
     | [],[] -> ()
     | t1::s1,t2::s2 ->
-       Tm.checkEqual ctx t1 t2;
-       checkEqual ctx s1 s2
+       Tm.check_equal ctx t1 t2;
+       check_equal ctx s1 s2
     | _,_ -> raise NotValid
 
   (* TODO: use String.concat *)
@@ -181,7 +181,7 @@ struct
        check s src tar;
        Ty.check tar u;
        (* debug "checking that term %s \n has type %s" (Tm.to_string t) (Ty.to_string (applyTy s tar src u)); *)
-       Tm.checkType src t (applyTy s tar src u)
+       Tm.check_type src t (apply_Ty s tar src u)
 	
     (*  --------
 	Printing
@@ -269,7 +269,7 @@ struct
 	let ((x,u),tar) = (Ctx.head tar,Ctx.tail tar) in
 	let s = aux s tar in
 	let t,ty = Tm.make src t in
-	let () = Ty.checkEqual src ty (applyTy s tar src u)
+	let () = Ty.check_equal src ty (apply_Ty s tar src u)
 	in t::s
     in aux (List.rev l) (Ctx.of_ps tar)
 
@@ -334,13 +334,13 @@ sig
        
   (* Syntactic properties *)
   val ty_var : t -> cvar -> Ty.t
-  val free_vars : t -> cvar list
+  val domain : t -> cvar list
   val mem : t -> cvar -> bool
 
   (* Equality procedure *)
-  val isEmpty : t -> bool
-  val checkSubCtx : t -> t -> unit
-  val checkEqual : t -> t -> unit
+  val is_empty : t -> bool
+  val check_sub_ctx : t -> t -> unit
+  val check_equal : t -> t -> unit
 
   (* Printing *)
   val to_string : t -> string
@@ -453,9 +453,7 @@ struct
      Syntactic properties
      -------------------- *)
   (** Domain of definition of a context. *)
-  (* TODO: rename the function to something like "domain" *)
-  (* TODO: check whether this function is really used *)
-  let free_vars ctx = List.map fst ctx
+  let domain ctx = List.map fst ctx
 
   (** Check whether a variable belongs to a context. *)
   let rec mem (c:t) v =
@@ -468,27 +466,27 @@ struct
      Equality procedures
      ------------------- *)
   (** Is a context empty? *)
-  let isEmpty (c:t) =
+  let is_empty (c:t) =
     c = []
 
   (** Check whether a context is included in another one. *)
   (* TODO: this is a bit worrying as a function, is it really necessary or can
      we get rid of it? *)
-  let checkSubCtx ctx1 ctx2 =
+  let check_sub_ctx ctx1 ctx2 =
     let rec sub c (ctx1 : Ctx.t) (ctx2 : Ctx.t) = 
-      if Ctx.isEmpty ctx1 then ()
-      else if Ctx.isEmpty ctx2 then raise NotValid
+      if Ctx.is_empty ctx1 then ()
+      else if Ctx.is_empty ctx2 then raise NotValid
       else
         let (v1,x1),t1 = Ctx.head ctx1, Ctx.tail ctx1 in
         let (v2,x2),t2 = Ctx.head ctx2, Ctx.tail ctx2 in
         if not (v1 = v2) then
           sub c ctx1 t2
-        else (Ty.checkEqual c x1 x2;
+        else (Ty.check_equal c x1 x2;
               sub ctx1 t1 t2)
     in sub (Ctx.empty ()) ctx1 ctx2
 
   (** Equality of contexts. *)
-  let rec checkEqual ctx1 ctx2 =
+  let rec check_equal ctx1 ctx2 =
     let rec equal c (ctx1 : Ctx.t) (ctx2 : Ctx.t) =
       match ((ctx1 :> (cvar * Ty.t) list),
              (ctx2 :> (cvar * Ty.t) list)) with
@@ -497,7 +495,7 @@ struct
          let ((v1,x1),t1) = (Ctx.head ctx1, Ctx.tail ctx1) in
          let ((v2,x2),t2) = (Ctx.head ctx2, Ctx.tail ctx2) in
          if not (v1 = v2) then raise NotValid;
-         Ty.checkEqual c x1 x2;
+         Ty.check_equal c x1 x2;
          equal ctx1 t1 t2
       | _,_ -> raise NotValid
     in equal (Ctx.empty ()) ctx1 ctx2
@@ -537,7 +535,7 @@ sig
   val mk : Ctx.t -> t
 
   (* Syntactic properties *)
-  val free_vars : t -> cvar list
+  val domain : t -> cvar list
   (* val to_expr : t -> (var * Expr.ty) list *)
 
   (* Structural operations *)
@@ -565,9 +563,7 @@ struct
       Syntactic properties
       -------------------- *)
   (** Domain of definition. *)
-  (* TODO: rename to domain. *)
-  (* TODO: check whether this is useful. *)
-  let free_vars ps = Ctx.free_vars (Ctx.of_ps ps)
+  let domain ps = Ctx.domain (Ctx.of_ps ps)
 		      
   (* -----
     Maker
@@ -620,9 +616,9 @@ struct
               if (y <> fy) then raise Invalid;
               let x,tx = marker ps in
               if x = fx then
-                let fvps = PS.free_vars ps in
-                if (List.mem f fvps) then raise (DoubledVar (CVar.to_string f));
-                if (List.mem y fvps) then raise (DoubledVar (CVar.to_string y));
+                let varps = PS.domain ps in
+                if (List.mem f varps) then raise (DoubledVar (CVar.to_string f));
+                if (List.mem y varps) then raise (DoubledVar (CVar.to_string y));
                 let ps = PCons (ps,(y,ty),(f,tf)) in
                 aux ps l
                 else
@@ -801,7 +797,7 @@ sig
   val to_string : t -> string
 
   val check : Ctx.t -> t -> unit
-  val checkEqual : Ctx.t -> t -> t -> unit
+  val check_equal : Ctx.t -> t -> t -> unit
   val make : Ctx.t -> Expr.ty -> t
        
   val dim : t -> int
@@ -833,24 +829,24 @@ struct
 
   (** Ensure that a type is well-formed in given context. *)
   let rec check ctx ty =
-    try Ctx.checkSubCtx ty.c ctx with
+    try Ctx.check_sub_ctx ty.c ctx with
     | _ -> check_hidden ctx ty.e
   and check_hidden ctx tye =
     match tye with
     | Obj -> ()
     | Arr (t,u,v) ->
        check ctx t;
-       Tm.checkType ctx u t;
-       Tm.checkType ctx v t
+       Tm.check_type ctx u t;
+       Tm.check_type ctx v t
 
   (** Test for equality. *)
-  let rec checkEqual ctx ty1 ty2 =
+  let rec check_equal ctx ty1 ty2 =
     (* debug "checking equality between %s and %s" (to_string ty1)(to_string ty2); *)
-    let equal = checkEqual ctx in
+    let equal = check_equal ctx in
     match ty1.e, ty2.e with
     |Obj,Obj -> ()
     |Arr(t1,u1,v1),Arr(t2,u2,v2) ->
-      equal t1 t2; Tm.checkEqual ctx u1 u2; Tm.checkEqual ctx v1 v2
+      equal t1 t2; Tm.check_equal ctx u1 u2; Tm.check_equal ctx v1 v2
     |(Obj |Arr _),_ ->
       raise (NotEqual (to_string ty1, to_string ty2))
 
@@ -859,7 +855,7 @@ struct
     let already_known = Hashtbl.find_all Hash.tbty e in
     let rec aux l = match l with
       | [] -> raise Unknown
-      | ty::q -> try Ctx.checkSubCtx ty.c c; ty with
+      | ty::q -> try Ctx.check_sub_ctx ty.c c; ty with
                  |_ -> aux q
     in
     let open Expr in
@@ -871,8 +867,8 @@ struct
         | Arr (u,v) ->
            let u,tu = Tm.make c u in
            let v,tv = Tm.make c v in
-           let () = checkEqual c tu tv in {c = c; e = Arr(tu,u,v)}
-        | Ty ty -> Ctx.checkSubCtx ty.c c; ty
+           let () = check_equal c tu tv in {c = c; e = Arr(tu,u,v)}
+        | Ty ty -> Ctx.check_sub_ctx ty.c c; ty
       in Hashtbl.add Hash.tbty e newty; newty
 
   (** Dimension of a type. *)
@@ -903,8 +899,8 @@ sig
   val to_string : t -> string
 
   val infer : Ctx.t -> t -> Ty.t
-  val checkEqual : Ctx.t -> t -> t -> unit
-  val checkType : Ctx.t -> t -> Ty.t -> unit
+  val check_equal : Ctx.t -> t -> t -> unit
+  val check_type : Ctx.t -> t -> Ty.t -> unit
   val make : Ctx.t -> Expr.tm -> t * Ty.t
        
   val reinit : t -> Expr.tm
@@ -931,7 +927,7 @@ struct
     | CVar x -> CVar.to_string x
     | Sub (t,s) -> let ps = Cut.ps t in Printf.sprintf "(%s %s)" (Cut.to_string t) (Sub.to_string s (PS.shape ps))
 
-  let rec checkEqual ctx tm1 tm2 =
+  let rec check_equal ctx tm1 tm2 =
     (* debug "checking equality between %s and %s" (to_string tm1)(to_string tm2); *)
     match tm1.e, tm2.e with
     | CVar x,CVar y ->
@@ -940,29 +936,28 @@ struct
 	raise (NotEqual (to_string tm1, to_string tm2))
       else ()
     | Sub(t1,s1),Sub(t2,s2) ->
-      let tar = Cut.checkEqual t1 t2 in
-      Sub.checkEqual tar s1 s2
+      let tar = Cut.check_equal t1 t2 in
+      Sub.check_equal tar s1 s2
     | (CVar _|Sub _),_ ->
       raise (NotEqual (to_string tm1, to_string tm2))
 
   (** Infer the type of an expression. *)
-  (* TODO: why do we need this? *)
   let infer_expr ctx tme =
     match tme with
     | CVar x -> Ctx.ty_var ctx x
     | Sub (e,s) ->
        let tar,ty = Cut.infer e in
        Sub.check s ctx tar;
-       Sub.applyTy s tar ctx ty
+       Sub.apply_Ty s tar ctx ty
 
   (** Infer the type of a term. *)
   let infer ctx tm =
-    try Ctx.checkSubCtx tm.c ctx; tm.ty
+    try Ctx.check_sub_ctx tm.c ctx; tm.ty
     with _ -> infer_expr ctx tm.e
 
   (** Check that term has given type. *)
-  let checkType ctx e t  =
-    Ty.checkEqual ctx (infer ctx e) t
+  let check_type ctx e t  =
+    Ty.check_equal ctx (infer ctx e) t
 
   (* TODO: do we really need this? *)
   let rec reinit tm : Expr.tm =
@@ -977,7 +972,7 @@ struct
     let already_known = Hashtbl.find_all Hash.tbtm e in
     let rec aux l = match l with
       | [] -> raise Unknown
-      | tm::q -> try Ctx.checkSubCtx tm.c c; (tm, tm.ty) with _ -> aux q
+      | tm::q -> try Ctx.check_sub_ctx tm.c c; (tm, tm.ty) with _ -> aux q
     in
     let open Expr in
     try aux already_known
@@ -996,7 +991,7 @@ struct
            ({c = c; ty = ty; e = e}, ty)
         | Tm tm ->
            begin
-             try Ctx.checkSubCtx tm.c c; (tm, tm.ty)
+             try Ctx.check_sub_ctx tm.c c; (tm, tm.ty)
              with _ -> make c (Tm.reinit tm)
            end
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
@@ -1009,7 +1004,7 @@ sig
   type t =
     | Fold of evar * int
   val to_string : t -> string
-  val checkEqual : t -> t -> Ctx.t
+  val check_equal : t -> t -> Ctx.t
   val infer : t -> Ctx.t * Ty.t
   val mk : Expr.tm -> int -> (t * PS.t)
   val reinit : t -> Expr.tm 
@@ -1030,9 +1025,9 @@ struct
            EVar.to_string x ^ (repeat "°" i)
          else EVar.to_string x
 	
-     let checkEqual e1 e2 =
+     let check_equal e1 e2 =
        match e1, e2 with
-       |Fold (x,i), Fold (y,j) -> Coh.checkEqual (Env.val_var x i) (Env.val_var y j)
+       |Fold (x,i), Fold (y,j) -> Coh.check_equal (Env.val_var x i) (Env.val_var y j)
 
      let infer coh =
        match coh with
@@ -1075,7 +1070,7 @@ and Coh
 
   val mk : PS.t -> Expr.ty -> t
   val to_string : t -> string
-  val checkEqual : t -> t -> Ctx.t
+  val check_equal : t -> t -> Ctx.t
   val ps : t -> PS.t
   val target : t -> Ty.t
 end
@@ -1084,7 +1079,7 @@ struct
   type t = PS.t * Ty.t
 	    
   let check ps t = 
-    if List.included (PS.free_vars ps) (Ty.free_vars t)
+    if List.included (PS.domain ps) (Ty.free_vars t)
     then (ps,t)
     else
       let open Ty in
@@ -1105,9 +1100,9 @@ struct
 	begin
 	  Ty.check ctxs tf;
 	  Ty.check ctxt tg;
-	  if List.included (PS.free_vars pss)
+	  if List.included (PS.domain pss)
 	       fvf &&
-	       List.included (PS.free_vars pst)
+	       List.included (PS.domain pst)
 		 fvg
 	  then (ps,t) 
 	  else raise NotAlgebraic
@@ -1124,10 +1119,10 @@ struct
       (PS.to_string ps)
       (Ty.to_string t)
 
-  let checkEqual (ps1,t1) (ps2,t2) =
+  let check_equal (ps1,t1) (ps2,t2) =
     let c1 = Ctx.of_ps ps1 and c2 = Ctx.of_ps ps2 in
-    Ctx.checkEqual c1 c2;
-    Ty.checkEqual c1 t1 t2; c1
+    Ctx.check_equal c1 c2;
+    Ty.check_equal c1 t1 t2; c1
 
   let ps (ps,t) = ps
 
@@ -1270,7 +1265,7 @@ let mk_ty c e = Expr.Ty (Ty.make c e)
 let checkEqual c ty1 ty2 =
   let ty1 = Ty.make c ty1 in
   let ty2 = Ty.make c ty2 in
-  Ty.checkEqual c ty1 ty2
+  Ty.check_equal c ty1 ty2
               
 let reinit = Expr.reinit
 
