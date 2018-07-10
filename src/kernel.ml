@@ -80,6 +80,7 @@ sig
   val mk_elaborated : Expr.tm list -> Ctx.t -> PS.t -> t 
   val value : t -> Tm.t list
   val reinit : t -> PShape.pshape -> Expr.tm list
+  val list_expl_vars : t -> PShape.pshape -> Var.t list
 	   
   (* Syntactic properties *)		    
   val free_vars : t -> cvar list
@@ -307,6 +308,21 @@ struct
         |s,PNil -> []
         |_,_ -> assert(false)
       in List.rev(aux s ps)
+
+  (** Keep only the the maximal elements of a substitution ("unealborate"). *)
+  let list_expl_vars (s:t) ps =
+    match s,ps with
+    |u::[], PNil -> Tm.list_expl_vars u
+    |_,_ ->
+      let rec aux s ps = 
+        match s,ps with
+        |u::_::s, PDrop (PCons (ps)) -> (Tm.list_expl_vars u) @ (aux s ps)
+        |s , PDrop ps -> aux s ps
+        |u::_::s , PCons ps -> aux s ps
+        |s,PNil -> []
+        |_,_ -> assert(false)
+      in (aux s ps)
+
 end
 
   (* -- Contexts are association lists of variables and terms in normal form.
@@ -904,6 +920,7 @@ sig
   val make : Ctx.t -> Expr.tm -> t * Ty.t
        
   val reinit : t -> Expr.tm
+  val list_expl_vars : t -> Var.t list
 end
   =
 struct
@@ -966,6 +983,13 @@ struct
     | CVar v -> Var (CVar.to_var v)
     | Sub (t,s) -> Sub (Cut.reinit t, Sub.reinit s (PS.shape (Cut.ps t)))
 
+  (*TODO : Building this*)
+  let rec list_expl_vars tm : Var.t list =
+    let open Expr in
+    match tm.e with
+    | CVar v -> [(CVar.to_var v)]
+    | Sub (t,s) -> Sub.list_expl_vars s (PS.shape (Cut.ps t))
+                       
   (** Create a term from an expression. *)
   (* TODO: return a value of type t instead of a pair *)
   let rec make c e =
@@ -1146,6 +1170,8 @@ sig
   val string_of_tm : tm -> string
 
   val reinit : tm -> tm
+  val list_vars : tm -> Var.t list
+
   val unify_ty : Ctx.t -> ty -> ty -> ((Var.t * ty) * tm option * bool) list -> ((Var.t * ty) * tm option * bool) list
 end
   =
@@ -1192,10 +1218,17 @@ struct
   (* TODO: remove this *)
   let rec reinit tm =
     match tm with
-    | Var _ -> tm  
+    | Var _ -> tm
     | Sub (tm,s) -> Sub (reinit tm, List.map reinit s)
     | Tm tm -> Tm.reinit tm
 
+  (** List the variables of an non-checked term (ie only the explicit variables)*)
+  let rec list_vars e =
+    match e with
+    | Var v -> [v]
+    | Sub (e,l) -> List.unions (List.map list_vars l)
+    | Tm tm -> Tm.list_expl_vars tm                       
+                         
   (* TODO: document l *)
   let rec unify_tm (c : Ctx.t) (tm1 : tm) (tm2 : tm) l =
     (* debug "unifying %s with %s" (string_of_tm tm1) (string_of_tm tm2); *)
@@ -1268,6 +1301,7 @@ let checkEqual c ty1 ty2 =
   Ty.check_equal c ty1 ty2
               
 let reinit = Expr.reinit
+let list_vars = Expr.list_vars
 
 let unify c a b l =
   match b with

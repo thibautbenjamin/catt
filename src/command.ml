@@ -82,6 +82,7 @@ let exec_cmd cmd =
      let l = List.filter (fun (x,_) -> List.mem x (list_vars e)) l in
      let l = select l in
      mEnv := (v, (fun (c,l') -> let assoc = complete c l l' v in replace assoc (reinit e))) :: (! mEnv);
+     (* mEnv := (v, (fun (c,l') -> let assoc = complete c l l' v in replace assoc e)) :: (! mEnv); *)     
      info "defined term of type %s" (string_of_ty t)
 
 let rec exec prog =

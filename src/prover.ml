@@ -1,5 +1,4 @@
 (** Interaction with user. *)
-open Syntax
 open Common
        
 

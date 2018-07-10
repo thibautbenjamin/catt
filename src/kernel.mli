@@ -62,6 +62,7 @@ val mk_ty : ctx -> ty -> ty
 val checkEqual : ctx -> ty -> ty -> unit
 
 val reinit : tm -> tm
+val list_vars : tm -> Var.t list
 
 val unify : ctx -> ty -> tm -> ((Var.t * ty) * tm option * bool) list -> ((Var.t * ty) * tm option * bool) list
 

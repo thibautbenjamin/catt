@@ -28,12 +28,11 @@ and unravel_ty ctx (e : ty) =
   | Ty ty -> e 
 
 (* list of variables of a term *)
-let rec list_vars e =
-  match e with
-  | Var v -> [v]
-  | Sub (e,l) -> List.unions (List.map list_vars l)
-  | Tm tm -> list_vars (reinit e)
-    
+(* let rec list_vars e = *)
+(*   match e with *)
+(*   | Var v -> [v] *)
+(*   | Sub (e,l) -> List.unions (List.map list_vars l) *)
+(*   | Tm tm -> list_expl_vars tm *)
                 
 (* replace variables of e using the association list l *)  
 let rec replace l e : tm =
