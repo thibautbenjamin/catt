@@ -1,8 +1,7 @@
 open Kernel
 open Settings
 open Common
-open MacrosEnvironnement
-open Unravel
+
 
 (** A command. *)
 (* TODO: remove the list of let in *)
@@ -24,13 +23,26 @@ let rec print_vars l =
   match l with
   | x::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print_vars l);
   | [] -> ""
+
+(** replace variables of e using the association list l *)  
+let rec replace l e : tm =
+  let open Kernel.Expr in
+  match e with
+  | Var a ->
+     begin
+       try List.assoc a l
+       with
+         Not_found -> Var a
+     end
+  | Sub (e,s) -> Sub(replace l e, List.map (replace l) s)
+  | Tm tm -> e
+
            
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
      command "let %s = %s" (Var.to_string x) (string_of_ty e);
      let ps = Ctx.make ps in
-     let e = unravel_ty ps e in
      let env =
        if !debug_mode then 
 	 Kernel.add_coh_env x ps e
@@ -47,12 +59,10 @@ let exec_cmd cmd =
      env
   | Check (l, e, t) ->
      let c = Kernel.Ctx.make l in
-     let e = unravel_tm c e in
      let e,t' = Kernel.mk_tm c e in
      begin
        match t with
        | Some t ->
-          let t = unravel_ty c t in
           let t = Kernel.mk_ty c t in
           command "check %s : %s" (string_of_tm e) (string_of_ty t);
           Kernel.checkEqual c t t';
@@ -63,14 +73,12 @@ let exec_cmd cmd =
      end
   | Decl (v,l,repl,e,t) ->
      let c = Kernel.Ctx.make l in
-     let make t = let t = unravel_tm c t in fst (mk_tm c t) in
+     let make t = fst (mk_tm c t) in
      let repl = List.map (fun (x,t) -> (x, make t)) repl in
      let e = replace repl e in 
-     let e = unravel_tm c e in
      let e,t' = Kernel.mk_tm c e in 
      let t = match t with
        | Some t ->
-          let t = unravel_ty c t in
           let t = Kernel.mk_ty c t in
           Kernel.checkEqual c t t';
           command "let %s = %s : %s" (Var.to_string v) (string_of_tm e) (string_of_ty t);
@@ -80,10 +88,7 @@ let exec_cmd cmd =
           t'
      in
      Kernel.add_let_env v c e;
-     (* let l = List.filter (fun (x,_) -> List.mem x (list_vars e)) l in *)
-     (* let l = select l in *)
-     (* mEnv := (v, (fun (c,l') -> let assoc = complete c l l' v in replace assoc (reinit e))) :: (! mEnv); *)
-     (* mEnv := (v, (fun (c,l') -> let assoc = complete c l l' v in replace assoc e)) :: (! mEnv); *)     
+     
      info "defined term of type %s" (string_of_ty t)
 
 let rec exec prog =

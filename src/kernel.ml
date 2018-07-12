@@ -1,7 +1,7 @@
 open Stdlib
 open Settings
 open Common
-open PShape
+
 
 (** Variables, before distinction between environment or context variables. *)
 module Var = struct
@@ -125,16 +125,6 @@ struct
       else apply_var l tar x
     |[], _ -> assert false
 
-  let rec to_string (s:t) (c:Ctx.t) =
-    match s,c with
-    | [], c when Ctx.is_empty c -> ""
-    | (u::s),c -> begin
-        match Ctx.head c with
-        | (_, Some true| _, None) -> Printf.sprintf "%s %s" (to_string s (Ctx.tail c)) (Tm.to_string u) 
-        | _, Some false -> Printf.sprintf "%s" (to_string s (Ctx.tail c))
-      end
-    | _ -> assert false
-
   let rec print_list (s:t) =
     match s with
     |[] -> ""
@@ -205,32 +195,16 @@ struct
   (** String representation of a substitution. We need a pasting scheme
      representation of the target in order to print only cells of locally
      maximal dimension. *)
-  (* TODO: use a full pasting scheme and remove "pasting shapes" *)
-  (* let to_string (s:t) ps = *)
-  (*   match s,ps with *)
-  (*   | u::[], PNil -> Printf.sprintf "%s" (Tm.to_string u) *)
-  (*   | _,_ -> *)
-  (*      let rec aux s ps =  *)
-  (*        if !implicit_print then *)
-  (*          match s,ps with *)
-  (*          | u::_::s, PDrop (PCons (ps)) -> *)
-  (*             let ps = aux s ps in *)
-  (*             let u = Tm.to_string u in *)
-  (*             if ps = "" then u else ps ^ " " ^ u *)
-  (*          | s , PDrop ps -> aux s ps *)
-  (*          | u::_::s , PCons ps -> aux s ps *)
-  (*          | s,PNil -> "" *)
-  (*          | _,_ -> assert(false) *)
-  (*        else *)
-  (*          match s with *)
-  (*          | [] -> "" *)
-  (*          | u::s -> *)
-  (*             Printf.sprintf "%s %s" *)
-  (*               (aux s ps) *)
-  (*               (Tm.to_string u) *)
-  (*      in aux s ps *)
-
-
+  let rec to_string (s:t) (c:Ctx.t) =
+    match s,c with
+    | [], c when Ctx.is_empty c -> ""
+    | (u::s),c -> begin
+        match Ctx.head c with
+        | (_, Some true| _, None) ->
+           Printf.sprintf "%s %s" (to_string s (Ctx.tail c)) (Tm.to_string u) 
+        | _, Some false -> Printf.sprintf "%s" (to_string s (Ctx.tail c))
+      end
+    | _ -> assert false
 
               
     (*  --------------------
@@ -238,51 +212,6 @@ struct
         --------------------  *)
   (** Given a list of terms of maximal dimension, complete it into a
      full-fledged substitution. *)
-  (* let elaborate l src (tar : Ctx.marked) : t = *)
-  (*   (\** Close downwards. *\) *)
-  (*   let rec complete l x ty ps = *)
-  (*     match ps with *)
-  (*     | PNil -> *)
-  (*        [x] *)
-  (*     | PCons ps-> *)
-  (*        let a',x',y' = *)
-  (*          let open Ty in *)
-  (*          match ty.e with *)
-  (*          |Arr(a',x',y') -> a',x',y' *)
-  (*          |_ -> assert(false) *)
-  (*        in *)
-  (*        x::y'::(complete l x' a' ps) *)
-  (*     | (PDrop _) as ps -> find_max l ps *)
-  (*   (\** Find next maximal term and close it downwards. *\) *)
-  (*   and find_max l ps = *)
-  (*     match l,ps with *)
-  (*     | x::[], PNil -> *)
-  (*        let x,_ = Tm.make src x in *)
-  (*        [x] *)
-  (*     | [],_ -> raise NotValid *)
-  (*     |  _, PNil -> raise NotValid *)
-  (*     | f::l, PDrop(PCons(ps)) -> *)
-  (*        let f,_ = Tm.make src f in *)
-  (*        let a,x,y = *)
-  (*          let open Ty in *)
-  (*          match (Tm.infer src f).e with *)
-  (*          |Arr(a,x,y) -> a,x,y *)
-  (*          |_ -> assert false *)
-  (*        in *)
-  (*        let s = complete l x a ps in *)
-  (*        f::y::s *)
-  (*     | s,PDrop ps -> find_max s ps *)
-  (*     | s, PCons _ -> assert false *)
-  (*   in *)
-  (*   let s = find_max (List.rev l) (PS.shape tar) in *)
-  (*   check s src tar; *)
-  (*   s *)
-
-
-  let rec print_list l = match l with
-    |(t::q) -> Printf.sprintf "%s %s" (Expr.string_of_tm t) (print_list q) 
-    |[] -> ""
-  (* TODO : implement elaboration  of substitution with a marked context*)
   exception Completed of ((Var.t * Expr.ty) * Expr.tm option * bool) list
   let elaborate (l: Expr.tm list) src tar : Expr.tm list =
     (* debug "elaborating list %s in target context %s" (print_list l) (Ctx.to_string tar); *)
@@ -366,20 +295,6 @@ struct
     | [] -> raise EmptySub
 
   (** Keep only the the maximal elements of a substitution ("unealborate"). *)
-  (* let reinit (s:t) ps = *)
-  (*   match s,ps with *)
-  (*   |u::[], PNil -> [Tm.reinit u] *)
-  (*   |_,_ -> *)
-  (*     let rec aux s ps =  *)
-  (*       match s,ps with *)
-  (*       |u::_::s, PDrop (PCons (ps)) -> (Tm.reinit u) :: (aux s ps) *)
-  (*       |s , PDrop ps -> aux s ps *)
-  (*       |u::_::s , PCons ps -> aux s ps *)
-  (*       |s,PNil -> [] *)
-  (*       |_,_ -> assert(false) *)
-  (*     in List.rev(aux s ps) *)
-
-
   let reinit (s:t) c =
     let rec aux s c = 
       match s,c with
@@ -393,19 +308,6 @@ struct
       in List.rev (aux s c)
 
   (** List the explicit variables of a substitution. *)
-  (* let list_expl_vars (s:t) ps = *)
-  (*   match s,ps with *)
-  (*   |u::[], PNil -> Tm.list_expl_vars u *)
-  (*   |_,_ -> *)
-  (*     let rec aux s ps =  *)
-  (*       match s,ps with *)
-  (*       |u::_::s, PDrop (PCons (ps)) -> (Tm.list_expl_vars u) @ (aux s ps) *)
-  (*       |s , PDrop ps -> aux s ps *)
-  (*       |u::_::s , PCons ps -> aux s ps *)
-  (*       |s,PNil -> [] *)
-  (*       |_,_ -> assert(false) *)
-  (*     in (aux s ps) *)
-
   let list_expl_vars (s:t) c =
     let rec aux s c = 
       match s,c with
@@ -722,7 +624,6 @@ sig
   val dim : t -> int
   val source : int -> t -> t
   val target : int -> t -> t
-  val shape : t -> pshape
   val suspend : t -> int -> t
        
   (* Printing *)
@@ -854,13 +755,6 @@ struct
       | PDrop ps -> PDrop (aux ps)
     in
     aux ps
-
-  (* TODO: remove shapes *)
-  let rec shape ps =
-    match ps with
-    |PNil _ -> PShape.PNil
-    |PCons (ps,_,_) -> PShape.PCons (shape ps)
-    |PDrop ps -> PShape.PDrop (shape ps)
 
   (** Suspend a pasting scheme. *)
   (* TODO: implement this more efficiently *)
@@ -1289,30 +1183,15 @@ struct
            EVar.to_string x ^ (repeat "°" i)
          else EVar.to_string x
 	
-     (* let check_equal e1 e2 = *)
-     (*   match e1, e2 with *)
-     (*   |Fold (x,i), Fold (y,j) -> Coh.check_equal (Env.val_var x i) (Env.val_var y j) *)
-
      let check_equal e1 tm1 s1 e2 tm2 s2 src =
        match e1, e2 with
        |Fold (x,i), Fold (y,j) -> Env.check_equal x i tm1 s1 y j tm2 s2 src
                              
-     (* TODO: use ty_var instead of val_var*)
-     (* let infer coh = *)
-     (*   match coh with *)
-     (*   |Fold (x,i) -> *)
-     (*     let coh = Env.val_var x i in *)
-     (*     (Ctx.of_ps (Coh.ps coh), Coh.target coh) *)
 
      let infer coh =
        match coh with
        |Fold (x,i) -> Env.ty_var x i
-                                                  
-     (* let ps coh = *)
-     (*   match coh with *)
-     (*   |Fold (x,i) -> let coh = Env.val_var x i in *)
-     (*                  Coh.ps coh *)
-                      
+
      let mk e i =
        let open Expr in
        match e with
