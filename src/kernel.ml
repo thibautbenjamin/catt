@@ -98,7 +98,7 @@ sig
   (* Well-definedness procedure *)
   val check : t  -> Ctx.t -> Ctx.t -> unit
 
-  val unify : Ctx.t -> Sub.t -> Sub.t -> ((Var.t * Ty.t) * Tm.t option * bool) list -> ((Var.t * Ty.t) * Tm.t option * bool) list
+  val unify : Ctx.t -> Sub.t -> Sub.t -> ((CVar.t * Ty.t) * Tm.t option * bool) list -> ((CVar.t * Ty.t) * Tm.t option * bool) list
 end
   =
 struct
@@ -211,7 +211,7 @@ struct
         --------------------  *)
   (** Given a list of terms of maximal dimension, complete it into a
      full-fledged substitution. *)
-  exception Completed of ((Var.t * Ty.t) * Tm.t option * bool) list
+  exception Completed of ((CVar.t * Ty.t) * Tm.t option * bool) list
   let elaborate (l: Tm.t list) src tar : Tm.t list =
     let rec create_assoc tar (l : Tm.t list) =
       match l with
@@ -220,14 +220,14 @@ struct
          let t = Ctx.tail tar in
          begin
            match Ctx.head tar with
-           |a, Some false -> ((var_of_cvar (fst a), snd a), None, false)::(create_assoc t l)
-           |a, Some true -> ((var_of_cvar (fst a), snd a), Some h, true)::(create_assoc t l')
+           |a, Some false -> (a, None, false)::(create_assoc t l)
+           |a, Some true -> (a, Some h, true)::(create_assoc t l')
 
            |_,None -> assert false
          end
       | [] -> if Ctx.is_empty tar then []
               else match Ctx.head tar with
-                   |a, Some false -> ((var_of_cvar (fst a), snd a), None, false)::(create_assoc (Ctx.tail tar) [])
+                   |a, Some false -> (a, None, false)::(create_assoc (Ctx.tail tar) [])
                                                                                     
                    |_, Some true -> failwith "not enough arguments given"
                    |_,None -> assert false
@@ -946,7 +946,7 @@ sig
   val dim : t -> int
   val reinit : t -> Expr.ty
 
-  val unify : Ctx.t -> t -> t -> ((Var.t * t) * Tm.t option * bool) list -> ((Var.t * t) * Tm.t option * bool) list
+  val unify : Ctx.t -> t -> t -> ((CVar.t * t) * Tm.t option * bool) list -> ((CVar.t * t) * Tm.t option * bool) list
 
 end
   =
@@ -1063,7 +1063,7 @@ sig
   val list_expl_vars : t -> Var.t list
 
   val mark_ctx : t -> t
-  val unify : Ctx.t -> t -> t -> ((Var.t * Ty.t) * t option * bool) list -> ((Var.t * Ty.t) * t option * bool) list
+  val unify : Ctx.t -> t -> t -> ((CVar.t * Ty.t) * t option * bool) list -> ((CVar.t * Ty.t) * t option * bool) list
 
 end
   =
@@ -1183,13 +1183,13 @@ struct
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 
 
-  let rec unify (c : Ctx.t) (tm1 : t) (tm2 : t) (l : ((Var.t * Ty.t) * t option * bool) list) : ((Var.t * Ty.t) * t option * bool) list =
+  let rec unify (c : Ctx.t) (tm1 : t) (tm2 : t) l =
     match tm1.e, tm2.e with
     | CVar u, _ ->
        let rec replace l =
          match l with
-         | (((v,ty), None, _)::l) when u = (CVar.make v) -> ((v,ty), Some tm2, true)::l 
-         | ((((v,ty), Some tm, _)::_) as l) when u = (CVar.make v) -> l
+         | (((v,ty), None, _)::l) when u = v -> ((v,ty), Some tm2, true)::l 
+         | ((((v,ty), Some tm, _)::_) as l) when u = v -> l
          (* TODO : check compatibility between the constraints *)
          | a::l -> a::(replace l)
          | [] -> []
@@ -1363,8 +1363,6 @@ struct
     | Var of var
     | Sub of tm * (tm list)
     | Tm of Tm.t
-
-  exception UnableUnify
              
   let rec string_of_ty e =
     match e with
