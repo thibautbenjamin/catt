@@ -998,6 +998,7 @@ struct
 
   (** Construct a type. *)
   let rec make c (e : Expr.ty) =
+    let e = Expr.remove_let_ty e in
     let already_known = Hashtbl.find_all Hash.tbty e in
     let rec aux l = match l with
       | [] -> raise Unknown
@@ -1015,6 +1016,7 @@ struct
            let v,tv = Tm.make c v in
            let () = check_equal c tu tv in {c = c; e = Arr(tu,u,v)}
         | Ty ty -> Ctx.check_sub_ctx ty.c c; ty
+        | Letin_ty _ -> assert false
       in Hashtbl.add Hash.tbty e newty; newty
 
   (** Dimension of a type. *)
@@ -1146,6 +1148,7 @@ struct
 
                               
   let rec make c e =
+    let e = Expr.remove_let_tm e in
     let already_known = Hashtbl.find_all Hash.tbtm e in
     let rec aux l = match l with
       | [] -> raise Unknown
@@ -1180,6 +1183,7 @@ struct
              try Ctx.check_sub_ctx tm.c c; (tm, tm.ty)
              with _ -> make c (Tm.reinit tm)
            end
+        | Letin_tm _ -> assert false
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 
 
@@ -1241,6 +1245,7 @@ struct
 
      let mk e i =
        let open Expr in
+       let e = remove_let_tm e in
        match e with
        |Var v ->
          let j = Env.dim_var v in
@@ -1250,6 +1255,7 @@ struct
          else failwith "arguments of the coherence have dimension too low"
        |Tm tm -> assert (false) (* TODO *)
        |(Sub _) -> raise BadUnderSub
+       |Letin_tm _ -> assert false
 
      let reinit c : Expr.tm =
        let open Expr in
@@ -1334,10 +1340,12 @@ and Expr
     :
 sig
   type ty =
+    | Letin_ty of var * tm * ty
     | Obj
     | Arr of tm * tm
     | Ty of Ty.t        
-  and tm =     
+   and tm =
+    | Letin_tm of var * tm * tm 
     | Var of var
     | Sub of tm * tm list
     | Tm of Tm.t
@@ -1347,6 +1355,9 @@ sig
 
   val reinit : tm -> tm
   val list_vars : tm -> Var.t list
+
+  val remove_let_tm : tm -> tm
+  val remove_let_ty : ty -> ty
 end
   =
 struct
@@ -1355,22 +1366,26 @@ struct
   (* TODO: this would allow us to have let in as a proper construction... *)
   (** A raw type. *)
   type ty =
+    | Letin_ty of var * tm * ty 
     | Obj
     | Arr of tm * tm
     | Ty of Ty.t
   (** A raw term. *)
-  and tm =     
+   and tm =
+    | Letin_tm of var * tm * tm
     | Var of var
     | Sub of tm * (tm list)
     | Tm of Tm.t
              
   let rec string_of_ty e =
     match e with
+    | Letin_ty (v,e,ty) -> Printf.sprintf "let %s = %s in %s" (Var.to_string v) (string_of_tm e) (string_of_ty ty)
     | Obj -> "*"
     | Arr (u,v) -> Printf.sprintf "%s -> %s" (string_of_tm u) (string_of_tm v)
     | Ty ty -> Ty.to_string ty
   and string_of_tm e =
     match e with
+    | Letin_tm (v,e,tm) -> Printf.sprintf "let %s = %s in %s" (Var.to_string v) (string_of_tm e) (string_of_tm tm)
     | Var x -> Var.to_string x
     | Sub (t,s) -> Printf.sprintf "(%s %s)" (string_of_tm t) (string_of_sub s)
     | Tm tm -> Tm.to_string tm
@@ -1390,6 +1405,7 @@ struct
   (* TODO: remove this *)
   let rec reinit tm =
     match tm with
+    | Letin_tm _ -> assert false
     | Var _ -> tm
     | Sub (tm,s) -> Sub (reinit tm, List.map reinit s)
     | Tm tm -> Tm.reinit tm
@@ -1397,9 +1413,35 @@ struct
   (** List the variables of an non-checked term (ie only the explicit variables)*)
   let rec list_vars e =
     match e with
+    | Letin_tm _ -> assert false
     | Var v -> [v]
     | Sub (e,l) -> List.unions (List.map list_vars l)
-    | Tm tm -> Tm.list_expl_vars tm                       
+    | Tm tm -> Tm.list_expl_vars tm
+
+  (** remove the let in in a term *)  
+  let rec replace_tm l e = 
+    match e with 
+    | Var a ->
+       begin
+         try List.assoc a l
+         with
+           Not_found -> Var a
+       end
+    | Sub (e,s) -> Sub(replace_tm l e, List.map (replace_tm l) s)
+    | Tm tm -> e
+    | Letin_tm (v,t,tm) -> replace_tm ((v,t)::l) tm
+  and replace_ty l t =
+    match t with
+    | (Obj| Ty _) -> t
+    | Arr(u,v) -> Arr (replace_tm l u, replace_tm l v)
+    | Letin_ty (v,t,ty) -> replace_ty ((v,t)::l) ty
+
+  let remove_let_tm e =
+    replace_tm [] e
+
+  let remove_let_ty e =
+    replace_ty [] e
+
 end
 
 and Hash

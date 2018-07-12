@@ -7,8 +7,7 @@ open Common
 (* TODO: remove the list of let in *)
 type cmd =
   | Coh of Var.t * (Var.t * ty) list * ty (** a coherence *)
-  | Check of ((Var.t * ty) list) * tm * ty option (** check that a term is well-typed in a context *)
-  | Decl of Var.t * (Var.t * ty) list * (Var.t * tm) list * tm * ty option (** let declarations *)
+  | Check of ((Var.t * ty) list) * tm * ty option (** check that a term is well-typed in a context *)  | Decl of Var.t * (Var.t * ty) list * tm * ty option (** let declarations *)
 
 (** A program. *)
 type prog = cmd list
@@ -23,20 +22,6 @@ let rec print_vars l =
   match l with
   | x::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print_vars l);
   | [] -> ""
-
-(** replace variables of e using the association list l *)  
-let rec replace l e : tm =
-  let open Kernel.Expr in
-  match e with
-  | Var a ->
-     begin
-       try List.assoc a l
-       with
-         Not_found -> Var a
-     end
-  | Sub (e,s) -> Sub(replace l e, List.map (replace l) s)
-  | Tm tm -> e
-
            
 let exec_cmd cmd =
   match cmd with
@@ -71,11 +56,8 @@ let exec_cmd cmd =
           command "check %s " (string_of_tm e);
           info "checked term %s type %s" (string_of_tm e) (string_of_ty t')
      end
-  | Decl (v,l,repl,e,t) ->
+  | Decl (v,l,e,t) ->
      let c = Kernel.Ctx.make l in
-     let make t = fst (mk_tm c t) in
-     let repl = List.map (fun (x,t) -> (x, make t)) repl in
-     let e = replace repl e in 
      let e,t' = Kernel.mk_tm c e in 
      let t = match t with
        | Some t ->
@@ -88,7 +70,6 @@ let exec_cmd cmd =
           t'
      in
      Kernel.add_let_env v c e;
-     
      info "defined term of type %s" (string_of_ty t)
 
 let rec exec prog =

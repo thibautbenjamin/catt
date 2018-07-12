@@ -13,10 +13,12 @@ end
 
 module Expr : sig
   type ty =
+    | Letin_ty of Var.t * tm * ty
     | Obj
     | Arr of tm * tm
     | Ty of kTy
-  and tm =
+   and tm =
+    | Letin_tm of Var.t * tm * tm
     | Var of Var.t
     | Sub of tm * (tm list)
     | Tm of kTm

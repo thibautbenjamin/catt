@@ -27,8 +27,8 @@ cmd:
     | COH IDENT args COL tyexpr { Coh (Var.make $2,$3,$5) }
     | CHECK args COL tyexpr EQUAL tmexpr { Check ($2,$6, Some $4) }
     | CHECK args EQUAL tmexpr { Check ($2,$4,None) }
-    | LET IDENT args COL tyexpr EQUAL list_replace tmexpr { Decl (Var.make $2,$3,$7,$8,Some $5) }
-    | LET IDENT args EQUAL list_replace tmexpr { Decl (Var.make $2,$3,$5,$6, None) }
+    | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (Var.make $2,$3,$7,Some $5) }
+    | LET IDENT args EQUAL tmexpr { Decl (Var.make $2,$3,$5, None) }
     
 
 args:
@@ -56,8 +56,10 @@ subst_tmexpr:
     | simple_tmexpr simple_tmexpr sub { Sub ($1,$2::$3) }
 
 tmexpr:
+    | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (Var.make $2, $4, $6) }
     | subst_tmexpr { $1 }
 
 tyexpr:
+    | LET IDENT EQUAL tmexpr IN tyexpr { Letin_ty (Var.make $2, $4, $6) }
     | simple_tyexpr { $1 } 
     | subst_tmexpr MOR subst_tmexpr { Arr ($1,$3) }
