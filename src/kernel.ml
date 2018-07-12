@@ -1419,11 +1419,11 @@ struct
     | Tm tm -> Tm.list_expl_vars tm
 
   (** remove the let in in a term *)  
-  let rec replace_tm l e = 
+  let rec replace_tm l e =
     match e with 
     | Var a ->
        begin
-         try List.assoc a l
+         try replace_tm l (List.assoc a l)
          with
            Not_found -> Var a
        end
