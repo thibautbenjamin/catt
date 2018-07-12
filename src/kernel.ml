@@ -76,8 +76,8 @@ sig
   type t = private (Tm.t list)
 
   (* Structural functions *)
-  val mk : Expr.tm list -> Ctx.t -> Ctx.t  -> t
-  val mk_elaborated : Expr.tm list -> Ctx.t -> Ctx.t -> t 
+  val mk : Tm.t list -> Ctx.t -> Ctx.t  -> t
+  val mk_elaborated : Tm.t list -> Ctx.t -> Ctx.t -> t 
   val value : t -> Tm.t list
   val reinit : t -> Ctx.t -> Expr.tm list
   val list_expl_vars : t -> Ctx.t -> Var.t list
@@ -133,13 +133,11 @@ struct
   (** Sequential composition of substitutions. *)
   let rec compose src tar s (s':t) =
     let open Expr in
-    List.rev (List.map (fun t -> Tm (apply_Tm s tar src t)) s')
+    List.rev (List.map (fun t -> apply_Tm s tar src t) s')
   (** Apply a substitution to a term. *)
   and apply_Tm (s:t) tar src tm =
-    (* debug "applying substitution %s from source %s to target %s" (print_list s) (Ctx.to_string tar) (Ctx.to_string src); *)
     let open Tm in
     Ctx.check_sub_ctx (tm.c) tar;
-    (* Ctx.checkEqual (tm.c) tar; *)
     let e =
       match tm.e with
       |CVar x -> apply_var s tar x
@@ -177,7 +175,6 @@ struct
 
   (** Check that a substitution is well-formed with given source and target. *)
   let rec check (s:t) src (tar:Ctx.t) =
-    (* debug "substitution %s" (print s); *)
     match s,Ctx.value tar
     with
     | [],[] -> ()
@@ -186,7 +183,6 @@ struct
        let (((x,u),_),tar) = (Ctx.head tar,Ctx.tail tar) in
        check s src tar;
        Ty.check tar u;
-       (* debug "checking that term %s \n has type %s" (Tm.to_string t) (Ty.to_string (applyTy s tar src u)); *)
        Tm.check_type src t (apply_Ty s tar src u)
 	
     (*  --------
@@ -212,10 +208,9 @@ struct
         --------------------  *)
   (** Given a list of terms of maximal dimension, complete it into a
      full-fledged substitution. *)
-  exception Completed of ((Var.t * Expr.ty) * Expr.tm option * bool) list
-  let elaborate (l: Expr.tm list) src tar : Expr.tm list =
-    (* debug "elaborating list %s in target context %s" (print_list l) (Ctx.to_string tar); *)
-    let rec create_assoc tar l =
+  exception Completed of ((Var.t * Expr.ty) * Tm.t option * bool) list
+  let elaborate (l: Tm.t list) src tar : Tm.t list =
+    let rec create_assoc tar (l : Tm.t list) =
       match l with
       | (h::l')as l ->
          if Ctx.is_empty tar then failwith (Printf.sprintf "too many arguments given");
@@ -241,7 +236,7 @@ struct
     in
     let rec loop assoc =
       let (a,b,assoc) = next assoc assoc in
-      let assoc = Expr.unify_ty src (snd a) (Ty.reinit (snd (Tm.make src b))) assoc
+      let assoc = Expr.unify_ty src (snd a) (Ty.reinit (Tm.infer src b)) assoc
       in loop (assoc)
     in
     let rec clear l =
@@ -257,7 +252,7 @@ struct
               
 
   (** Construct a substutition (which is already closed downward). *)
-  let mk_elaborated l src (tar : Ctx.t) =
+  let mk_elaborated (l : Tm.t list) src (tar : Ctx.t) =
     (* debug "building substitution %s in source %s and target %s" (print_list l) (Ctx.to_string src) (Ctx.to_string tar); *)
     let rec aux l (tar : Ctx.t) =
       match l,Ctx.value tar with
@@ -266,13 +261,13 @@ struct
       |t::s,_ ->
 	let ((x,u),_),tar = (Ctx.head tar,Ctx.tail tar) in
 	let s = aux s tar in
-	let t,ty = Tm.make src t in
+	let ty = Tm.infer src t in
 	let () = Ty.check_equal src ty (apply_Ty s tar src u)
 	in t::s
     in aux (List.rev l) tar
 
   (** Create a substitution described by maximal elements. *)
-  let mk l src tar =
+  let mk (l:Tm.t list) src tar =
     let list = elaborate (List.rev l) src tar in
     mk_elaborated (List.rev list) src tar
 
@@ -287,13 +282,12 @@ struct
       match l with
       | [] -> i
       | t::l -> if t > i then max l t else max l i
-    in
-    (* debug "computing dimension of list %s" (print_list l); *)
-    let l = List.map (fun x -> Ty.dim (snd (Tm.make ctx x))) l in
+    in let l = List.map (fun x -> Ty.dim (snd (Tm.make ctx x))) l in
     match l with
     | t::l -> max l t
     | [] -> raise EmptySub
 
+                  
   (** Keep only the the maximal elements of a substitution ("unealborate"). *)
   let reinit (s:t) c =
     let rec aux s c = 
@@ -1139,12 +1133,19 @@ struct
            let ty = infer_expr c e in
            ({c = c; ty = ty; e = e}, ty)
         | Sub (t,s) ->
-           (* debug "caught substitution %s (%s)" (string_of_tm t) (print_list s); *)
-           let t,tar = Cut.mk t (Sub.dim c s) in
-           let s = Sub.mk s c tar in
+           let max_list l = let rec max l i =
+                       match l with
+                       | [] -> i
+                       | t::l -> if t > i then max l t else max l i
+                       in
+                       match l with
+                       | t::l -> max l t
+                       | [] -> raise EmptySub in
+           let s = List.map (Tm.make c) s in
+           let t,tar = Cut.mk t (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
+           let s = Sub.mk (List.map fst s) c tar in
            let e : expr = Sub (t,s) in
            let ty = infer_expr c e in
-           (* debug "subsitution translated"; *)
            ({c = c; ty = ty; e = e}, ty)
         | Tm tm ->
            begin
@@ -1301,7 +1302,7 @@ sig
   val reinit : tm -> tm
   val list_vars : tm -> Var.t list
 
-  val unify_ty : Ctx.t -> ty -> ty -> ((Var.t * ty) * tm option * bool) list -> ((Var.t * ty) * tm option * bool) list
+  val unify_ty : Ctx.t -> ty -> ty -> ((Var.t * ty) * Tm.t option * bool) list -> ((Var.t * ty) * Tm.t option * bool) list
 end
   =
 struct
@@ -1365,7 +1366,7 @@ struct
     | Var u, _ ->
        let rec replace l =
          match l with
-         | (((v,ty), None, _)::l) when u = v -> ((v,ty), Some (Expr.Tm (fst (Tm.make c tm2))), true)::l 
+         | (((v,ty), None, _)::l) when u = v -> ((v,ty), Some (fst (Tm.make c tm2)), true)::l 
          | ((((v,ty), Some tm, _)::_) as l) when u = v -> l
          (* TODO : check compatibility between the constraints *)
          | a::l -> a::(replace l)
@@ -1431,8 +1432,3 @@ let checkEqual c ty1 ty2 =
               
 let reinit = Expr.reinit
 let list_vars = Expr.list_vars
-
-let unify c a b l =
-  match b with
-  | Expr.Tm b -> Expr.unify_ty c a (Ty.reinit (Tm.infer c b)) l
-  | _ -> assert(false)    
