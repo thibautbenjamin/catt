@@ -2,6 +2,7 @@ open Stdlib
 open Settings
 open Common
 
+exception UnableUnify
 
 (** Variables, before distinction between environment or context variables. *)
 module Var = struct
@@ -96,6 +97,8 @@ sig
 	   
   (* Well-definedness procedure *)
   val check : t  -> Ctx.t -> Ctx.t -> unit
+
+  val unify : Ctx.t -> Sub.t -> Sub.t -> ((Var.t * Ty.t) * Tm.t option * bool) list -> ((Var.t * Ty.t) * Tm.t option * bool) list
 end
   =
 struct
@@ -208,7 +211,7 @@ struct
         --------------------  *)
   (** Given a list of terms of maximal dimension, complete it into a
      full-fledged substitution. *)
-  exception Completed of ((Var.t * Expr.ty) * Tm.t option * bool) list
+  exception Completed of ((Var.t * Ty.t) * Tm.t option * bool) list
   let elaborate (l: Tm.t list) src tar : Tm.t list =
     let rec create_assoc tar (l : Tm.t list) =
       match l with
@@ -217,13 +220,15 @@ struct
          let t = Ctx.tail tar in
          begin
            match Ctx.head tar with
-           |a, Some false -> ((var_of_cvar (fst a), Ty.reinit (snd a)), None, false)::(create_assoc t l)
-           |a, Some true -> ((var_of_cvar (fst a), Ty.reinit (snd a)), Some h, true)::(create_assoc t l')
+           |a, Some false -> ((var_of_cvar (fst a), snd a), None, false)::(create_assoc t l)
+           |a, Some true -> ((var_of_cvar (fst a), snd a), Some h, true)::(create_assoc t l')
+
            |_,None -> assert false
          end
       | [] -> if Ctx.is_empty tar then []
               else match Ctx.head tar with
-                   |a, Some false -> ((var_of_cvar (fst a), Ty.reinit (snd a)), None, false)::(create_assoc (Ctx.tail tar) [])
+                   |a, Some false -> ((var_of_cvar (fst a), snd a), None, false)::(create_assoc (Ctx.tail tar) [])
+                                                                                    
                    |_, Some true -> failwith "not enough arguments given"
                    |_,None -> assert false
     in
@@ -236,7 +241,7 @@ struct
     in
     let rec loop assoc =
       let (a,b,assoc) = next assoc assoc in
-      let assoc = Expr.unify_ty src (snd a) (Ty.reinit (Tm.infer src b)) assoc
+      let assoc = Ty.unify src (snd a) (Tm.infer src b) assoc
       in loop (assoc)
     in
     let rec clear l =
@@ -252,7 +257,7 @@ struct
               
 
   (** Construct a substutition (which is already closed downward). *)
-  let mk_elaborated (l : Tm.t list) src (tar : Ctx.t) =
+  let mk_elaborated (l : Tm.t  list) src (tar : Ctx.t) =
     (* debug "building substitution %s in source %s and target %s" (print_list l) (Ctx.to_string src) (Ctx.to_string tar); *)
     let rec aux l (tar : Ctx.t) =
       match l,Ctx.value tar with
@@ -312,7 +317,15 @@ struct
           |_, Some false -> aux s (Ctx.tail c)
         end
       |_,_ -> assert false
-      in (aux s c)
+    in (aux s c)
+
+  let rec unify c s s' l =
+    match s,s' with
+    | (a::s),(a'::s') -> let l = Tm.unify c a a' l in unify c s s' l 
+    | [],[] -> l
+    | _,_ -> raise UnableUnify
+
+
 end
 
   (* -- Contexts are association lists of variables and terms in normal form.
@@ -932,6 +945,9 @@ sig
        
   val dim : t -> int
   val reinit : t -> Expr.ty
+
+  val unify : Ctx.t -> t -> t -> ((Var.t * t) * Tm.t option * bool) list -> ((Var.t * t) * Tm.t option * bool) list
+
 end
   =
 struct
@@ -1014,6 +1030,16 @@ struct
     match t.e with
     | Obj -> Obj
     | Arr(_,u,v) -> Arr (Tm.reinit u, Tm.reinit v)
+
+  let rec unify (c : Ctx.t) (ty1 : t) (ty2 : t) l =
+    match ty1.e ,ty2.e with
+    | Obj, _ -> l
+    | Arr(a,u,v), Arr(a',u',v') ->
+       let l = unify c a a' l in
+       let l = Tm.unify c u u' l
+       in Tm.unify c v v' l
+    | _, _ -> raise UnableUnify
+
 end
 
 (** Operations on terms. *)
@@ -1037,6 +1063,8 @@ sig
   val list_expl_vars : t -> Var.t list
 
   val mark_ctx : t -> t
+  val unify : Ctx.t -> t -> t -> ((Var.t * Ty.t) * t option * bool) list -> ((Var.t * Ty.t) * t option * bool) list
+
 end
   =
 struct
@@ -1153,6 +1181,24 @@ struct
              with _ -> make c (Tm.reinit tm)
            end
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
+
+
+  let rec unify (c : Ctx.t) (tm1 : t) (tm2 : t) (l : ((Var.t * Ty.t) * t option * bool) list) : ((Var.t * Ty.t) * t option * bool) list =
+    match tm1.e, tm2.e with
+    | CVar u, _ ->
+       let rec replace l =
+         match l with
+         | (((v,ty), None, _)::l) when u = (CVar.make v) -> ((v,ty), Some tm2, true)::l 
+         | ((((v,ty), Some tm, _)::_) as l) when u = (CVar.make v) -> l
+         (* TODO : check compatibility between the constraints *)
+         | a::l -> a::(replace l)
+         | [] -> []
+       in
+       replace l
+    | Sub(e,s), Sub (e',s') ->
+       Sub.unify c s s' l
+    | _, CVar _ -> raise UnableUnify
+
 end
 
 (* TODO: remove this *)
@@ -1301,8 +1347,6 @@ sig
 
   val reinit : tm -> tm
   val list_vars : tm -> Var.t list
-
-  val unify_ty : Ctx.t -> ty -> ty -> ((Var.t * ty) * Tm.t option * bool) list -> ((Var.t * ty) * Tm.t option * bool) list
 end
   =
 struct
@@ -1358,42 +1402,6 @@ struct
     | Var v -> [v]
     | Sub (e,l) -> List.unions (List.map list_vars l)
     | Tm tm -> Tm.list_expl_vars tm                       
-                         
-  (* TODO: document l *)
-  let rec unify_tm (c : Ctx.t) (tm1 : tm) (tm2 : tm) l =
-    (* debug "unifying %s with %s" (string_of_tm tm1) (string_of_tm tm2); *)
-    match tm1 ,tm2 with
-    | Var u, _ ->
-       let rec replace l =
-         match l with
-         | (((v,ty), None, _)::l) when u = v -> ((v,ty), Some (fst (Tm.make c tm2)), true)::l 
-         | ((((v,ty), Some tm, _)::_) as l) when u = v -> l
-         (* TODO : check compatibility between the constraints *)
-         | a::l -> a::(replace l)
-         | [] -> []
-       in
-       replace l
-    | Sub(e,s), Sub (e',s') ->
-       let rec aux s s' l =
-         match s,s' with
-         | (a::s),(a'::s') -> let l = unify_tm c a a' l in aux s s' l 
-         | [],[] -> l
-         | _,_ -> raise UnableUnify
-       in
-       aux s s' l
-    | Tm _, _ -> assert false
-    | _, Tm _ -> assert false
-    | _, Var _ -> raise UnableUnify
-
-  let unify_ty (c : Ctx.t) (ty1 : ty) (ty2 : ty) l =
-    match ty1 ,ty2 with
-    | Obj, _ -> l
-    | Arr(u,v), Arr(u',v') ->
-       let l = unify_tm c u u' l
-       in unify_tm c v v' l
-    | Ty ty2, _ -> assert(false)
-    | _, Ty _ -> assert(false)
-    | _, _ -> raise UnableUnify
 end
 
 and Hash
