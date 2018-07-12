@@ -21,27 +21,11 @@ module Expr : sig
     | Sub of tm * (tm list)
     | Tm of kTm
 end
-
-module rec Tm : sig
-  type t
-
-  val make : Ctx.t -> Expr.tm -> t * Ty.t
-end
-
-and Ty : sig
-  type t
-
-  val make : Ctx.t -> Expr.ty ->  t
-
-  val to_string : t -> string
-end
-
-and Ctx : sig
+                
+module Ctx : sig
   type t
 
   val make : (Var.t * Expr.ty) list -> t
-
-  val to_string : t -> string
 end
 
 type ctx = Ctx.t
@@ -56,12 +40,10 @@ val init_env : unit -> unit
 val add_coh_env : Var.t -> ctx -> ty -> unit
 val add_let_env : Var.t -> ctx -> tm -> unit
 
-(* val mk_ctx : (Var.t * ty) list -> ctx  *)
 val mk_tm : ctx -> tm -> tm * ty
 val mk_ty : ctx -> ty -> ty
                            
 val checkEqual : ctx -> ty -> ty -> unit
 
-val reinit : tm -> tm
-val list_vars : tm -> Var.t list
+
 

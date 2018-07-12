@@ -1436,5 +1436,4 @@ let checkEqual c ty1 ty2 =
   let ty2 = Ty.make c ty2 in
   Ty.check_equal c ty1 ty2
               
-let reinit = Expr.reinit
-let list_vars = Expr.list_vars
+
