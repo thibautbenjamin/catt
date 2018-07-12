@@ -5,6 +5,8 @@ ANNOTATE = true
 
 all: dnc
 	# ./catt ../examples/sam.catt
-	./catt ../examples/double-braiding-dim4.catt
+	# ./catt ../examples/double-braiding-dim4.catt
+	# ./catt ../examples/test.catt
+	./catt ../examples/syllepsis.catt
 
 include OCamlMakefile

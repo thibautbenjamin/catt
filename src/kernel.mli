@@ -52,8 +52,9 @@ type tm = Expr.tm
 val string_of_ty : ty -> string
 val string_of_tm : tm -> string
 
-val init_env : unit
-val add_env : Var.t -> ctx -> ty -> unit
+val init_env : unit -> unit
+val add_coh_env : Var.t -> ctx -> ty -> unit
+val add_let_env : Var.t -> ctx -> tm -> unit
 
 (* val mk_ctx : (Var.t * ty) list -> ctx  *)
 val mk_tm : ctx -> tm -> tm * ty

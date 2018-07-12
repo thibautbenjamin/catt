@@ -33,9 +33,9 @@ let exec_cmd cmd =
      let e = unravel_ty ps e in
      let env =
        if !debug_mode then 
-	 Kernel.add_env x ps e
+	 Kernel.add_coh_env x ps e
        else
-	 try Kernel.add_env x ps e
+	 try Kernel.add_coh_env x ps e
 	 with
 	 | UnknownId s  -> error "unknown identifier %s" s
 	 | UnknownCoh s  -> error "unknown coherence name %s" s
@@ -79,9 +79,10 @@ let exec_cmd cmd =
           command "let %s = %s" (Var.to_string v) (string_of_tm e);
           t'
      in
-     let l = List.filter (fun (x,_) -> List.mem x (list_vars e)) l in
-     let l = select l in
-     mEnv := (v, (fun (c,l') -> let assoc = complete c l l' v in replace assoc (reinit e))) :: (! mEnv);
+     Kernel.add_let_env v c e;
+     (* let l = List.filter (fun (x,_) -> List.mem x (list_vars e)) l in *)
+     (* let l = select l in *)
+     (* mEnv := (v, (fun (c,l') -> let assoc = complete c l l' v in replace assoc (reinit e))) :: (! mEnv); *)
      (* mEnv := (v, (fun (c,l') -> let assoc = complete c l l' v in replace assoc e)) :: (! mEnv); *)     
      info "defined term of type %s" (string_of_ty t)
 
@@ -90,7 +91,7 @@ let rec exec prog =
     | [] -> ()
     | (t::l)  -> exec_cmd t; aux l
   in
-  Kernel.init_env;
+  Kernel.init_env ();
   aux prog
 
 
