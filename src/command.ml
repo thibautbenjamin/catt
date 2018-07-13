@@ -27,7 +27,6 @@ let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
      command "let %s = %s" (Var.to_string x) (string_of_ty e);
-     let ps = Ctx.make ps in
      let env =
        if !debug_mode then 
 	 Kernel.add_coh_env x ps e
@@ -43,28 +42,26 @@ let exec_cmd cmd =
      info "defined";
      env
   | Check (l, e, t) ->
-     let c = Kernel.Ctx.make l in
      begin
        match t with
        | Some t ->
           command "check %s : %s" (string_of_tm e) (string_of_ty t);
-          Kernel.mk_tm_of_ty c e t;
+          Kernel.mk_tm_of_ty l e t;
           info "checked"
        | None ->
           command "check %s " (string_of_tm e);
-          let e,t = Kernel.mk_tm c e in
+          let e,t = Kernel.mk_tm l e in
           info "checked term %s type %s" e t
      end
 
   | Decl (v,l,e,t) ->
-     let c = Kernel.Ctx.make l in
      let t = match t with
        | Some t ->
           command "let %s = %s : %s" (Var.to_string v) (string_of_tm e) (string_of_ty t);
-          let t = Kernel.add_let_env_of_ty v c e t in t
+          let t = Kernel.add_let_env_of_ty v l e t in t
        | None ->
           command "let %s = %s" (Var.to_string v) (string_of_tm e);
-          let t = Kernel.add_let_env v c e in t
+          let t = Kernel.add_let_env v l e in t
      in
      info "defined term of type %s" t
      

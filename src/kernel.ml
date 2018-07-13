@@ -804,7 +804,7 @@ sig
        
   (* Makers *)
   val init : unit -> unit
-  val add_coh : var -> Ctx.t -> Expr.ty -> unit
+  val add_coh : var -> Coh.t -> unit
   val add_let : var -> Ctx.t -> Tm.t -> unit
 
   (* Structural operation *)
@@ -834,22 +834,19 @@ struct
 
   (** Add a variable together with the corresponding coherence (i.e. the pasting scheme and the output type). *)
   (* TODO: take a coherence as argument *)
-  let add_coh x ps u =
-    let u = 
-      let c = PS.mk ps in
-      Coh.mk c u in
+  (* let add_coh x ps u = *)
+  (*   let u =  *)
+  (*     let c = PS.mk ps in *)
+  (*     Coh.mk c u in *)
+  (*   env := (EVar.make x,[0,Coh u])::!env *)
+                         
+  let add_coh x u =
     env := (EVar.make x,[0,Coh u])::!env
 
 
   let add_let x c u =
     let u = Tm.mark_ctx u in
     env := (EVar.make x,[0,Let u])::!env
-
-
-  (* let add_let x c u = *)
-  (*   let u = fst (Tm.make c u) in *)
-  (*   let u = Tm.mark_ctx u in *)
-  (*   env := (EVar.make x,[0,Let u])::!env *)
 
   (* --------------------
      Structural operation
@@ -1434,14 +1431,20 @@ let string_of_ty = Expr.string_of_ty
 let string_of_tm = Expr.string_of_tm
             
 let init_env = Env.init
-let add_coh_env = Env.add_coh
+                 
+let add_coh_env v ps t =
+  let ps = PS.mk (Ctx.make ps) in
+  let c = Coh.mk ps t in
+  Env.add_coh v c
 
 let add_let_env v c u =
+  let c = Ctx.make c in 
   let u,t = Tm.make c u in
   Env.add_let v c u;
   Ty.to_string t
 
 let add_let_env_of_ty v c u t =
+  let c = Ctx.make c in
   let u,t' = Tm.make c u in
   let t = Ty.make c t in
   Ty.check_equal c t' t;
@@ -1449,15 +1452,17 @@ let add_let_env_of_ty v c u t =
   Ty.to_string t
                
                     
-let mk_tm c e = let e,t = Tm.make c e in
-                (Tm.to_string e, Ty.to_string t)
+let mk_tm c e =
+  let c = Ctx.make c in
+  let e,t = Tm.make c e in
+  (Tm.to_string e, Ty.to_string t)
 
-let mk_tm_of_ty c e t = let e,t' = Tm.make c e in
-                        let t = Ty.make c t in
-                        Ty.check_equal c t' t
-
-
-                        
+let mk_tm_of_ty c e t =
+  let c = Ctx.make c in
+  let e,t' = Tm.make c e in
+  let t = Ty.make c t in
+  Ty.check_equal c t' t
+                      
 let checkEqual c ty1 ty2 =
   let ty1 = Ty.make c ty1 in
   let ty2 = Ty.make c ty2 in
