@@ -53,7 +53,6 @@ let exec_cmd cmd =
           let e,t = Kernel.mk_tm l e in
           info "checked term %s type %s" e t
      end
-
   | Decl (v,l,e,t) ->
      let t = match t with
        | Some t ->

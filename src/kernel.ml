@@ -64,12 +64,6 @@ type cvar = CVar.t
 let var_of_cvar = CVar.to_var
 
 (** Operations on substitutions. *)
-(*
-  Substitutions are lists of terms, they come with 	    
-  - maker
-  - equality decision procedure
-  - application on a term 
- *)
 module rec Sub
  :
 sig
@@ -772,6 +766,7 @@ sig
   (* Structural operation *)
   val ty_var :  evar -> int -> (Ctx.t * Ty.t)
   val check_equal : evar -> int -> Tm.t -> Sub.t -> evar -> int -> Tm.t -> Sub.t -> Ctx.t -> unit
+  (* val dim_var : var -> int *)
   val ctx : evar -> int -> Ctx.t
   val elim : evar -> int -> Sub.t -> Ctx.t -> Ctx.t -> Tm.t -> Tm.t
 end
@@ -797,11 +792,12 @@ struct
 
   (** Add a variable together with the corresponding let term*)
   let add_let x u =
+    let open Tm in
     let u = Tm.mark_ctx u in
     let dim = Ctx.dim u.c in 
     env := (EVar.make x,(dim, [0,Let u]))::!env
 
-  (** Coherence associated to a variable. The second argument is the dimension expected for the term *)
+  (** Coherence associated to a variable. The second argument is the dimension for expected term *)
   let val_var x i =
     let rec replace a b l =
       match l with
@@ -837,9 +833,10 @@ struct
     let value = val_var x i in
     match value with
         |Coh coh -> (Ctx.of_ps (Coh.ps coh), Coh.target coh)
-        |Let t -> (t.c, t.ty)
+        |Let t -> let open Tm in (t.c, t.ty)
 
   let check_equal x i tm1 s1 y j tm2 s2 src =
+    let open Tm in
     match (val_var x i, val_var y j) with
     |Coh c1, Coh c2 -> let ps = Coh.check_equal c1 c2 in Sub.check_equal ps s1 s2
     |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1.c src t1) (Sub.apply_Tm s2 t2.c src t2)
@@ -850,7 +847,7 @@ struct
     let value = val_var x i in
     match value with
     |Coh c -> (Ctx.of_ps (Coh.ps c))
-    |Let t -> t.c
+    |Let t -> let open Tm in t.c
 
   let elim x i s src tar tm =
     let value = val_var x i in

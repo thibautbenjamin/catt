@@ -21,14 +21,6 @@ module Expr : sig
     | Var of Var.t
     | Sub of tm * (tm list)
 end
-                
-(* module Ctx : sig *)
-(*   type t *)
-
-(*   val make : (Var.t * Expr.ty) list -> t *)
-(* end *)
-
-(* type ctx = Ctx.t *)
 
 type ty = Expr.ty
 type tm = Expr.tm
