@@ -767,12 +767,11 @@ sig
   (* Makers *)
   val init : unit -> unit
   val add_coh : var -> Coh.t -> unit
-  val add_let : var -> Ctx.t -> Tm.t -> unit
+  val add_let : var -> Tm.t -> unit
 
   (* Structural operation *)
   val ty_var :  evar -> int -> (Ctx.t * Ty.t)
   val check_equal : evar -> int -> Tm.t -> Sub.t -> evar -> int -> Tm.t -> Sub.t -> Ctx.t -> unit
-  val dim_var : var -> int
   val ctx : evar -> int -> Ctx.t
   val elim : evar -> int -> Sub.t -> Ctx.t -> Ctx.t -> Tm.t -> Tm.t
 end
@@ -781,33 +780,28 @@ struct
   type value =
     |Coh of Coh.t 
     |Let of Tm.t 
-  (** An environment associates to each environment variable a coherence with
-     various possible suspensions. *)
-  type t = (evar * ((int * value) list)) list
+  (** An environment associates to each environment variable a term together with
+     various possible suspensions. It also stores the initial dimension of the unsuspended term *)
+  type t = (evar * (int * (int * value) list)) list
 
   (** The environment, i.e. the list of defined variables. *)
   let env = ref ([] :> t)
 
-  (* ------
-     Makers
-    ------ *)
   (** Initialize the environment. *)
   let init () = env := []
 
-  (** Add a variable together with the corresponding coherence (i.e. the pasting scheme and the output type). *)
+  (** Add a variable together with the corresponding coherence*)
   let add_coh x u =
-    env := (EVar.make x,[0,Coh u])::!env
+    let dim = PS.dim (Coh.ps u) in
+    env := (EVar.make x,(dim, [0,Coh u]))::!env
 
-
-  let add_let x c u =
+  (** Add a variable together with the corresponding let term*)
+  let add_let x u =
     let u = Tm.mark_ctx u in
-    env := (EVar.make x,[0,Let u])::!env
+    let dim = Ctx.dim u.c in 
+    env := (EVar.make x,(dim, [0,Let u]))::!env
 
-  (* --------------------
-     Structural operation
-     -------------------- *)	     
-  (** Coherence associated to a variable. The second argument is the number of
-     times we want to suspend. *)
+  (** Coherence associated to a variable. The second argument is the dimension expected for the term *)
   let val_var x i =
     let rec replace a b l =
       match l with
@@ -815,25 +809,28 @@ struct
       | (x,y)::l -> (x,y)::(replace a b l)
       | [] -> []
     in
-    let family =
+    let dim,family =
       try List.assoc x !env
       with Not_found -> raise (UnknownCoh (EVar.to_string x))
     in
+    let i = i - dim in
+    if i < 0 then failwith "dimension of arguments too low";
     try (List.assoc i family) 
     with Not_found ->
       try match (List.assoc 0 family) with
           |Coh coh ->
             let newcoh = Coh.suspend coh i in 
             let newval = Coh newcoh in
-            env := replace x ((i,newval)::family) (!env); 
+            env := replace x (dim,((i,newval)::family)) (!env); 
             newval
           |Let tm ->
             let newtm = Tm.suspend tm i in
             let newtm = Tm.mark_ctx newtm in
             let newval = Let newtm in
-            env := replace x ((i,newval)::family) (!env);
+            env := replace x (dim,((i,newval)::family)) (!env);
             newval
       with Not_found -> assert false
+
 
   (** Type of the expression associated to a variable, together with the context in which the type is valid *)
   let ty_var x i =
@@ -848,13 +845,6 @@ struct
     |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1.c src t1) (Sub.apply_Tm s2 t2.c src t2)
     |Let t, Coh c -> Tm.check_equal src (Sub.apply_Tm s1 t.c src t) tm2
     |Coh c, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t.c src t)
-
-
-  let dim_var v =
-    let value = val_var (EVar.make v) 0 in
-    match value with
-    |Coh c -> PS.dim (Coh.ps c)
-    |Let t -> Ctx.dim (t.c)
 
   let ctx x i =
     let value = val_var x i in
@@ -1159,7 +1149,7 @@ end
   =
 struct
   type t = 
-    | Fold of evar * int (** an environment variable together with the number of times it was suspended *)
+    | Fold of evar * int (** an environment variable together with its dimension *)
 
      let rec repeat s k =
        if k = 0 then "" else s^(repeat s (k-1))
@@ -1185,11 +1175,8 @@ struct
        let e = remove_let_tm e in
        match e with
        |Var v ->
-         let j = Env.dim_var v in
-         if j<=i then 
-           let c,_ = Env.ty_var (EVar.make v) (i-j) in
-           (Fold ((EVar.make v),i-j), c)
-         else failwith "arguments of the coherence have dimension too low"
+         let c,_ = Env.ty_var (EVar.make v) i in
+           (Fold ((EVar.make v),i), c)
        |(Sub _) -> raise BadUnderSub
        |Letin_tm _ -> assert false
 
@@ -1400,7 +1387,7 @@ let add_coh_env v ps t =
 let add_let_env v c u =
   let c = Ctx.make c in 
   let u,t = Tm.make c u in
-  Env.add_let v c u;
+  Env.add_let v u;
   Ty.to_string t
 
 let add_let_env_of_ty v c u t =
@@ -1408,7 +1395,7 @@ let add_let_env_of_ty v c u t =
   let u,t' = Tm.make c u in
   let t = Ty.make c t in
   Ty.check_equal c t' t;
-  Env.add_let v c u;
+  Env.add_let v u;
   Ty.to_string t
                
                     
