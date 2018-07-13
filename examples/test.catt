@@ -1,5 +1,7 @@
 coh id (x : *) : x -> x
 
+let bla (x : *) = id x
+
 let id2 (x : *) = id (id x)
 
 let f (x : *) (g : id2 x -> id2 x) = g

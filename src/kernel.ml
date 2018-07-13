@@ -117,6 +117,14 @@ struct
       else apply_var l tar x
     |[], _ -> assert false
                   
+  (* TODO : remove this *)
+  let rec print (s:t) =
+    match s with
+    | [] -> ""
+    | (u::s) -> Printf.sprintf "%s %s" (print s) (Tm.to_string u) 
+
+
+
   (** Sequential composition of substitutions. *)
   let rec compose src tar s (s':t) =
     let open Expr in
@@ -131,16 +139,36 @@ struct
       |Sub (t,s') ->
         let newtar = Cut.ctx t in 
         Sub (t, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar)
-    in {c = src; ty = apply_Ty s tar src (Tm.infer tar tm); e = e}
+    in {c = src; ty = apply_Ty s tar src tm.ty; e = e}
   (** Apply a substitution to a type. *)
-  and apply_Ty (s:t) tar src ty =
+  and apply_Ty s tar src ty =
     let open Ty in
     Ctx.check_sub_ctx (ty.c) tar;
     let e = 
       match ty.e with
       | Obj -> Obj
-      | Arr (a,u,v) -> Arr (apply_Ty s tar src a, apply_Tm s tar src u, apply_Tm s tar src v)
+      | Arr (a,u,v) -> let a,u,v = (apply_arr s tar src a u v) in Arr(a,u,v)
     in {c = src; e = e}
+  (** Apply a substitution to a triple argument of an arrow
+   This avoids computing the same type thrice, using that both terms have the same known type 
+   This function is unsafe and thus is not exported and should be used only in one place *)
+  and apply_arr s tar src ty tm1 tm2 =
+    let ty = apply_Ty s tar src ty in
+    let open Tm in
+    let e1 = match tm1.e with
+      |CVar x -> apply_var s tar x
+      |Sub (t,s') ->
+        let newtar = Cut.ctx t in 
+        Sub (t, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar) in
+    let e2 = match tm2.e with
+      |CVar x -> apply_var s tar x
+      |Sub (t,s') ->
+        let newtar = Cut.ctx t in 
+        Sub (t, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar) in
+    (ty, {c = src; ty = ty; e = e1}, {c = src; ty = ty; e = e2})
+            
+            
+
 
   (** Check equality of substitutions. *)
   let rec check_equal ctx (s1:t) (s2:t) = 
@@ -766,9 +794,8 @@ sig
   (* Structural operation *)
   val ty_var :  evar -> int -> (Ctx.t * Ty.t)
   val check_equal : evar -> int -> Tm.t -> Sub.t -> evar -> int -> Tm.t -> Sub.t -> Ctx.t -> unit
-  (* val dim_var : var -> int *)
   val ctx : evar -> int -> Ctx.t
-  val elim : evar -> int -> Sub.t -> Ctx.t -> Ctx.t -> Tm.t -> Tm.t
+
 end
   =
 struct
@@ -792,6 +819,7 @@ struct
 
   (** Add a variable together with the corresponding let term*)
   let add_let x u =
+    (* debug "adding %s" (Var.to_string x); *)
     let open Tm in
     let u = Tm.mark_ctx u in
     let dim = Ctx.dim u.c in 
@@ -799,6 +827,7 @@ struct
 
   (** Coherence associated to a variable. The second argument is the dimension for expected term *)
   let val_var x i =
+    (* debug "getting the value of id %s in env" (EVar.to_string x); *)
     let rec replace a b l =
       match l with
       | (x,y)::l when x = a -> (x,b)::(replace a b l)
@@ -848,13 +877,6 @@ struct
     match value with
     |Coh c -> (Ctx.of_ps (Coh.ps c))
     |Let t -> let open Tm in t.c
-
-  let elim x i s src tar tm =
-    let value = val_var x i in
-    match value with
-    |Coh c -> tm
-    |Let t -> Sub.apply_Tm s src tar t 
-    
 end
 
 and Ty
@@ -1072,8 +1094,6 @@ struct
     let ct = Ctx.suspend ct i in
     let tm = reinit tm in
     fst (Tm.make ct tm)
-
-      
     
   (** Create a term from an expression. *)
   (* TODO: return a value of type t instead of a pair *)                    
@@ -1087,6 +1107,7 @@ struct
     let open Expr in
     try aux already_known
     with Unknown ->
+      (* debug "building term %s" (string_of_tm e); *)
       let newtm,newty = 
         match e with
         | Var v ->
@@ -1103,11 +1124,10 @@ struct
                        | t::l -> max l t
                        | [] -> raise EmptySub in
            let s = List.map (Tm.make c) s in
-           let t,tar = Cut.mk t (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
+           let t,tar,ty = Cut.mk t (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
            let s = Sub.mk (List.map fst s) c tar in
-           let e : expr = Sub (t,s) in
-           let ty = infer_expr c e in
-           ({c = c; ty = ty; e = e}, ty)
+           let ty = Sub.apply_Ty s tar c ty in
+           ({c = c; ty = ty; e = Sub(t,s)}, ty)
         | Letin_tm _ -> assert false
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 
@@ -1139,7 +1159,7 @@ sig
   val to_string : t -> string
   val check_equal : t -> Tm.t -> Sub.t -> t -> Tm.t -> Sub.t -> Ctx.t -> unit
   val infer : t -> Ctx.t * Ty.t
-  val mk : Expr.tm -> int -> (t * Ctx.t)
+  val mk : Expr.tm -> int -> (t * Ctx.t * Ty.t)
   val reinit : t -> Expr.tm
   val ctx : t -> Ctx.t
 end
@@ -1162,7 +1182,6 @@ struct
        match e1, e2 with
        |Fold (x,i), Fold (y,j) -> Env.check_equal x i tm1 s1 y j tm2 s2 src
                              
-
      let infer coh =
        match coh with
        |Fold (x,i) -> Env.ty_var x i
@@ -1172,8 +1191,8 @@ struct
        let e = remove_let_tm e in
        match e with
        |Var v ->
-         let c,_ = Env.ty_var (EVar.make v) i in
-           (Fold ((EVar.make v),i), c)
+         let c,ty = Env.ty_var (EVar.make v) i in
+           (Fold ((EVar.make v),i), c, ty)
        |(Sub _) -> raise BadUnderSub
        |Letin_tm _ -> assert false
 
@@ -1382,7 +1401,7 @@ let add_coh_env v ps t =
   Env.add_coh v c
 
 let add_let_env v c u =
-  let c = Ctx.make c in 
+  let c = Ctx.make c in
   let u,t = Tm.make c u in
   Env.add_let v u;
   Ty.to_string t
