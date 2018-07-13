@@ -2,7 +2,6 @@ open Stdlib
 open Settings
 open Common
 
-exception UnableUnify
 
 (** Variables, before distinction between environment or context variables. *)
 module Var = struct
@@ -86,7 +85,6 @@ sig
   val free_vars : t -> cvar list
   val apply_Ty : t -> Ctx.t -> Ctx.t -> Ty.t -> Ty.t
   val apply_Tm : t -> Ctx.t -> Ctx.t -> Tm.t -> Tm.t
-  val dim : Ctx.t -> Expr.tm list -> int
            
   (* Equality procedures *)
   val check_equal : Ctx.t -> t -> t -> unit
@@ -124,11 +122,6 @@ struct
       then t.e
       else apply_var l tar x
     |[], _ -> assert false
-
-  let rec print_list (s:t) =
-    match s with
-    |[] -> ""
-    |(u::s) -> Printf.sprintf "%s %s" (print_list s) (Tm.to_string u)
                   
   (** Sequential composition of substitutions. *)
   let rec compose src tar s (s':t) =
@@ -164,12 +157,6 @@ struct
        check_equal ctx s1 s2
     | _,_ -> raise NotValid
 
-  (* TODO: use String.concat *)
-  let rec print l =
-    match l with
-    | (t::q) -> Tm.to_string t ^ " " ^ print q
-    | [] -> ""
-
   (** Check that a substitution is well-formed with given source and target. *)
   let rec check (s:t) src (tar:Ctx.t) =
     match s,Ctx.value tar
@@ -182,9 +169,6 @@ struct
        Ty.check tar u;
        Tm.check_type src t (apply_Ty s tar src u)
 	
-    (*  --------
-	Printing
-        --------  *)
   (** String representation of a substitution. We need a pasting scheme
      representation of the target in order to print only cells of locally
      maximal dimension. *)
@@ -200,9 +184,6 @@ struct
     | _ -> assert false
 
               
-    (*  --------------------
-	Structural functions
-        --------------------  *)
   (** Given a list of terms of maximal dimension, complete it into a
      full-fledged substitution. *)
   exception Completed of ((CVar.t * Ty.t) * Tm.t option * bool) list
@@ -252,7 +233,6 @@ struct
 
   (** Construct a substutition (which is already closed downward). *)
   let mk_elaborated (l : Tm.t  list) src (tar : Ctx.t) =
-    (* debug "building substitution %s in source %s and target %s" (print_list l) (Ctx.to_string src) (Ctx.to_string tar); *)
     let rec aux l (tar : Ctx.t) =
       match l,Ctx.value tar with
       |[],[] -> []
@@ -269,19 +249,6 @@ struct
   let mk (l:Tm.t list) src tar =
     let list = elaborate (List.rev l) src tar in
     mk_elaborated (List.rev list) src tar
-
-  (** Dimension of a list of terms. *)
-  (* TODO: this should be internal *)
-  let dim ctx l =
-    let rec max l i =
-      match l with
-      | [] -> i
-      | t::l -> if t > i then max l t else max l i
-    in let l = List.map (fun x -> Ty.dim (snd (Tm.make ctx x))) l in
-    match l with
-    | t::l -> max l t
-    | [] -> raise EmptySub
-
                   
   (** Keep only the the maximal elements of a substitution ("unealborate"). *)
   let reinit (s:t) c =
@@ -856,18 +823,12 @@ struct
     with Not_found ->
       try match (List.assoc 0 family) with
           |Coh coh ->
-            let ps = Coh.ps coh in
-            let t = Ty.reinit (Coh.target coh) in
-            let ps = PS.suspend ps i in
-            let newcoh = (Coh.mk ps t) in
+            let newcoh = Coh.suspend coh i in 
             let newval = Coh newcoh in
             env := replace x ((i,newval)::family) (!env); 
             newval
           |Let tm ->
-            let ct = tm.c in
-            let ct = Ctx.suspend ct i in
-            let tm = Tm.reinit tm in
-            let newtm = fst (Tm.make ct tm) in
+            let newtm = Tm.suspend tm i in
             let newtm = Tm.mark_ctx newtm in
             let newval = Let newtm in
             env := replace x ((i,newval)::family) (!env);
@@ -1045,6 +1006,8 @@ sig
   val list_expl_vars : t -> Var.t list
 
   val mark_ctx : t -> t
+  val suspend : t -> int -> t
+                        
   val unify : Ctx.t -> t -> t -> ((CVar.t * Ty.t) * t option * bool) list -> ((CVar.t * Ty.t) * t option * bool) list
 
 end
@@ -1116,7 +1079,14 @@ struct
 
   let mark_ctx t =
     {c = Ctx.mark t.c; ty = t.ty; e = t.e}
-                                      
+
+  let suspend tm i =
+    let ct = tm.c in
+    let ct = Ctx.suspend ct i in
+    let tm = reinit tm in
+    fst (Tm.make ct tm)
+
+      
     
   (** Create a term from an expression. *)
   (* TODO: return a value of type t instead of a pair *)                    
@@ -1245,6 +1215,7 @@ and Coh
   val check_equal : t -> t -> Ctx.t
   val ps : t -> PS.t
   val target : t -> Ty.t
+  val suspend : t -> int -> t
 end
 =
 struct
@@ -1299,6 +1270,11 @@ struct
   let ps (ps,t) = ps
 
   let target (ps,t) = t
+
+  let suspend (ps,t) i =
+    let t = Ty.reinit t in
+    let ps = PS.suspend ps i in
+    (Coh.mk ps t)
 end
 
 (** Operations on raw terms. *)
