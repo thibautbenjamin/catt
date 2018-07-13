@@ -79,7 +79,6 @@ sig
   (* Structural functions *)
   val mk : Tm.t list -> Ctx.t -> Ctx.t  -> t
   val mk_elaborated : Tm.t list -> Ctx.t -> Ctx.t -> t 
-  val value : t -> Tm.t list
   val reinit : t -> Ctx.t -> Expr.tm list
   val list_expl_vars : t -> Ctx.t -> Var.t list
 	   
@@ -270,10 +269,6 @@ struct
   let mk (l:Tm.t list) src tar =
     let list = elaborate (List.rev l) src tar in
     mk_elaborated (List.rev list) src tar
-
-  (** Representation of a substitution as a list. *)
-  (* TODO: remove this and use appropriate functions *)
-  let value t = t
 
   (** Dimension of a list of terms. *)
   (* TODO: this should be internal *)
@@ -896,8 +891,11 @@ struct
 
   let check_equal x i tm1 s1 y j tm2 s2 src =
     match (val_var x i, val_var y j) with
-    |Coh c1, Coh c2 -> let ps = Coh.check_equal c1 c2 in Sub.check_equal ps s1 s2 
-    |Let t1, Let t2 -> Tm.check_equal t1.c t1 t2; Sub.check_equal t1.c s1 s2
+    |Coh c1, Coh c2 -> let ps = Coh.check_equal c1 c2 in Sub.check_equal ps s1 s2
+    (* TODO : Equality procedure to revise in the case Let/Let
+     If the user does stupid things 
+     *)
+    |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1.c src t1) (Sub.apply_Tm s2 t2.c src t2)
     |Let t, Coh c -> Tm.check_equal src (Sub.apply_Tm s1 t.c src t) tm2
     |Coh c, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t.c src t)
 
