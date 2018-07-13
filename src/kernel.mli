@@ -16,12 +16,12 @@ module Expr : sig
     | Letin_ty of Var.t * tm * ty
     | Obj
     | Arr of tm * tm
-    | Ty of kTy
+    (* | Ty of kTy *)
    and tm =
     | Letin_tm of Var.t * tm * tm
     | Var of Var.t
     | Sub of tm * (tm list)
-    | Tm of kTm
+    (* | Tm of kTm *)
 end
                 
 module Ctx : sig
@@ -40,11 +40,16 @@ val string_of_tm : tm -> string
 
 val init_env : unit -> unit
 val add_coh_env : Var.t -> ctx -> ty -> unit
-val add_let_env : Var.t -> ctx -> tm -> unit
+val add_let_env : Var.t -> ctx -> tm -> string
+val add_let_env_of_ty : Var.t -> ctx -> tm -> ty -> string
 
-val mk_tm : ctx -> tm -> tm * ty
-val mk_ty : ctx -> ty -> ty
-                           
+(* val mk_tm : ctx -> tm -> tm * ty *)
+(* val mk_ty : ctx -> ty -> ty *)
+
+val mk_tm : ctx -> tm -> string * string
+val mk_tm_of_ty : ctx -> tm -> ty -> unit
+(* val mk_ty : ctx -> ty ->kTy *)
+
 val checkEqual : ctx -> ty -> ty -> unit
 
 

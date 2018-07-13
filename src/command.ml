@@ -4,10 +4,10 @@ open Common
 
 
 (** A command. *)
-(* TODO: remove the list of let in *)
 type cmd =
   | Coh of Var.t * (Var.t * ty) list * ty (** a coherence *)
-  | Check of ((Var.t * ty) list) * tm * ty option (** check that a term is well-typed in a context *)  | Decl of Var.t * (Var.t * ty) list * tm * ty option (** let declarations *)
+  | Check of ((Var.t * ty) list) * tm * ty option (** check that a term is well-typed in a context *)
+  | Decl of Var.t * (Var.t * ty) list * tm * ty option (** let declarations *)
 
 (** A program. *)
 type prog = cmd list
@@ -44,34 +44,31 @@ let exec_cmd cmd =
      env
   | Check (l, e, t) ->
      let c = Kernel.Ctx.make l in
-     let e,t' = Kernel.mk_tm c e in
      begin
        match t with
        | Some t ->
-          let t = Kernel.mk_ty c t in
           command "check %s : %s" (string_of_tm e) (string_of_ty t);
-          Kernel.checkEqual c t t';
+          Kernel.mk_tm_of_ty c e t;
           info "checked"
        | None ->
           command "check %s " (string_of_tm e);
-          info "checked term %s type %s" (string_of_tm e) (string_of_ty t')
+          let e,t = Kernel.mk_tm c e in
+          info "checked term %s type %s" e t
      end
+
   | Decl (v,l,e,t) ->
      let c = Kernel.Ctx.make l in
-     let e,t' = Kernel.mk_tm c e in 
      let t = match t with
        | Some t ->
-          let t = Kernel.mk_ty c t in
-          Kernel.checkEqual c t t';
           command "let %s = %s : %s" (Var.to_string v) (string_of_tm e) (string_of_ty t);
-          t
+          let t = Kernel.add_let_env_of_ty v c e t in t
        | None ->
           command "let %s = %s" (Var.to_string v) (string_of_tm e);
-          t'
+          let t = Kernel.add_let_env v c e in t
      in
-     Kernel.add_let_env v c e;
-     info "defined term of type %s" (string_of_ty t)
-
+     info "defined term of type %s" t
+     
+     
 let rec exec prog =
   let rec aux = function
     | [] -> ()
