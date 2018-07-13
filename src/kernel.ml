@@ -828,13 +828,6 @@ struct
   let init () = env := []
 
   (** Add a variable together with the corresponding coherence (i.e. the pasting scheme and the output type). *)
-  (* TODO: take a coherence as argument *)
-  (* let add_coh x ps u = *)
-  (*   let u =  *)
-  (*     let c = PS.mk ps in *)
-  (*     Coh.mk c u in *)
-  (*   env := (EVar.make x,[0,Coh u])::!env *)
-                         
   let add_coh x u =
     env := (EVar.make x,[0,Coh u])::!env
 
@@ -848,7 +841,6 @@ struct
      -------------------- *)	     
   (** Coherence associated to a variable. The second argument is the number of
      times we want to suspend. *)
-  (* TODO : code the suspension when it is not a coherence *)
   let val_var x i =
     let rec replace a b l =
       match l with
@@ -892,9 +884,6 @@ struct
   let check_equal x i tm1 s1 y j tm2 s2 src =
     match (val_var x i, val_var y j) with
     |Coh c1, Coh c2 -> let ps = Coh.check_equal c1 c2 in Sub.check_equal ps s1 s2
-    (* TODO : Equality procedure to revise in the case Let/Let
-     If the user does stupid things 
-     *)
     |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1.c src t1) (Sub.apply_Tm s2 t2.c src t2)
     |Let t, Coh c -> Tm.check_equal src (Sub.apply_Tm s1 t.c src t) tm2
     |Coh c, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t.c src t)
@@ -919,9 +908,6 @@ struct
     |Let t -> Sub.apply_Tm s src tar t 
     
 end
-
-
-  
 
 and Ty
     :
@@ -1459,11 +1445,5 @@ let mk_tm_of_ty c e t =
   let c = Ctx.make c in
   let e,t' = Tm.make c e in
   let t = Ty.make c t in
-  Ty.check_equal c t' t
-                      
-let checkEqual c ty1 ty2 =
-  let ty1 = Ty.make c ty1 in
-  let ty2 = Ty.make c ty2 in
-  Ty.check_equal c ty1 ty2
-              
+  Ty.check_equal c t' t              
 
