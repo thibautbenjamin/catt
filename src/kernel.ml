@@ -774,14 +774,67 @@ struct
       in print ps	  
 end
 
-   (* -- Environnement is a association list of variable and coherences
-    -- It is provided with 	    
-	 - maker 
-	 - association
-    *)    
+
+and EnvVal
+:
+sig
+  type t =
+    |Coh of Coh.t
+    |Let of Tm.t
+
+  val mk_coh : Coh.t -> t
+  val mk_let : Tm.t -> t
+
+  val suspend : t -> int -> t
+                         
+  val ty :  t -> (Ctx.t * Ty.t)
+  val ctx : t -> Ctx.t
+  val check_equal : t -> Tm.t -> Sub.t -> t -> Tm.t -> Sub.t -> Ctx.t -> unit
+end
+= 
+struct
+  type t =
+    |Coh of Coh.t
+    |Let of Tm.t
+
+  let mk_coh c = Coh c
+
+  let mk_let t = Let t
+
+  let suspend v i =
+    match v with
+    |Coh coh ->
+      let newcoh = Coh.suspend coh i in
+      Coh newcoh
+    |Let tm ->
+      let newtm = Tm.suspend tm i in
+      let newtm = Tm.mark_ctx newtm in
+      Let newtm
+
+                     
+  let ty value =
+    match value with
+    |Coh coh -> (Ctx.of_ps (Coh.ps coh), Coh.target coh)
+    |Let t -> let open Tm in (t.c, t.ty)
+
+  let ctx value =
+    match value with
+    |Coh c -> (Ctx.of_ps (Coh.ps c))
+    |Let t -> let open Tm in t.c
+                               
+  let check_equal v1 tm1 s1 v2 tm2 s2 src =
+    let open Tm in
+    match (v1, v2) with
+    |Coh c1, Coh c2 -> let ps = Coh.check_equal c1 c2 in Sub.check_equal ps s1 s2
+    |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1.c src t1) (Sub.apply_Tm s2 t2.c src t2)
+    |Let t, Coh c -> Tm.check_equal src (Sub.apply_Tm s1 t.c src t) tm2
+    |Coh c, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t.c src t)
+
+end
+    
 (** Operations on environments. *)
 and Env
-    :
+:
 sig
   type t
   val env : t ref
@@ -791,20 +844,13 @@ sig
   val add_coh : var -> Coh.t -> unit
   val add_let : var -> Tm.t -> unit
 
-  (* Structural operation *)
-  val ty_var :  evar -> int -> (Ctx.t * Ty.t)
-  val check_equal : evar -> int -> Tm.t -> Sub.t -> evar -> int -> Tm.t -> Sub.t -> Ctx.t -> unit
-  val ctx : evar -> int -> Ctx.t
-
+  val val_var : EVar.t -> int -> EnvVal.t
 end
   =
 struct
-  type value =
-    |Coh of Coh.t 
-    |Let of Tm.t 
   (** An environment associates to each environment variable a term together with
      various possible suspensions. It also stores the initial dimension of the unsuspended term *)
-  type t = (evar * (int * (int * value) list)) list
+  type t = (evar * (int * (int * EnvVal.t) list)) list
 
   (** The environment, i.e. the list of defined variables. *)
   let env = ref ([] :> t)
@@ -815,15 +861,17 @@ struct
   (** Add a variable together with the corresponding coherence*)
   let add_coh x u =
     let dim = PS.dim (Coh.ps u) in
-    env := (EVar.make x,(dim, [0,Coh u]))::!env
+    let u = EnvVal.mk_coh u in 
+    env := (EVar.make x,(dim, [0,u]))::!env
 
   (** Add a variable together with the corresponding let term*)
   let add_let x u =
     (* debug "adding %s" (Var.to_string x); *)
     let open Tm in
     let u = Tm.mark_ctx u in
-    let dim = Ctx.dim u.c in 
-    env := (EVar.make x,(dim, [0,Let u]))::!env
+    let dim = Ctx.dim u.c in
+    let u = EnvVal.mk_let u in
+    env := (EVar.make x,(dim, [0,u]))::!env
 
   (** Coherence associated to a variable. The second argument is the dimension for expected term *)
   let val_var x i =
@@ -842,41 +890,10 @@ struct
     if i < 0 then failwith "dimension of arguments too low";
     try (List.assoc i family) 
     with Not_found ->
-      try match (List.assoc 0 family) with
-          |Coh coh ->
-            let newcoh = Coh.suspend coh i in 
-            let newval = Coh newcoh in
-            env := replace x (dim,((i,newval)::family)) (!env); 
-            newval
-          |Let tm ->
-            let newtm = Tm.suspend tm i in
-            let newtm = Tm.mark_ctx newtm in
-            let newval = Let newtm in
-            env := replace x (dim,((i,newval)::family)) (!env);
-            newval
+      try let newval = EnvVal.suspend (List.assoc 0 family) i
+          in env := replace x (dim,((i,newval)::family)) (!env);
+             newval
       with Not_found -> assert false
-
-
-  (** Type of the expression associated to a variable, together with the context in which the type is valid *)
-  let ty_var x i =
-    let value = val_var x i in
-    match value with
-        |Coh coh -> (Ctx.of_ps (Coh.ps coh), Coh.target coh)
-        |Let t -> let open Tm in (t.c, t.ty)
-
-  let check_equal x i tm1 s1 y j tm2 s2 src =
-    let open Tm in
-    match (val_var x i, val_var y j) with
-    |Coh c1, Coh c2 -> let ps = Coh.check_equal c1 c2 in Sub.check_equal ps s1 s2
-    |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1.c src t1) (Sub.apply_Tm s2 t2.c src t2)
-    |Let t, Coh c -> Tm.check_equal src (Sub.apply_Tm s1 t.c src t) tm2
-    |Coh c, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t.c src t)
-
-  let ctx x i =
-    let value = val_var x i in
-    match value with
-    |Coh c -> (Ctx.of_ps (Coh.ps c))
-    |Let t -> let open Tm in t.c
 end
 
 and Ty
@@ -1060,7 +1077,7 @@ struct
     match tme with
     | CVar x -> Ctx.ty_var ctx x
     | Sub (e,s) ->
-       let tar,ty = Cut.infer e in
+       let tar,ty = Cut.ty e in
        Sub.check s ctx tar;
        Sub.apply_Ty s tar ctx ty
 
@@ -1155,10 +1172,10 @@ and Cut
     :
 sig
   type t =
-    | Fold of evar * int
+    | Fold of evar * EnvVal.t
   val to_string : t -> string
   val check_equal : t -> Tm.t -> Sub.t -> t -> Tm.t -> Sub.t -> Ctx.t -> unit
-  val infer : t -> Ctx.t * Ty.t
+  val ty : t -> Ctx.t * Ty.t
   val mk : Expr.tm -> int -> (t * Ctx.t * Ty.t)
   val reinit : t -> Expr.tm
   val ctx : t -> Ctx.t
@@ -1166,33 +1183,54 @@ end
   =
 struct
   type t = 
-    | Fold of evar * int (** an environment variable together with its dimension *)
+    | Fold of evar * EnvVal.t (** an environment variable together with its value in the environment *)
 
      let rec repeat s k =
        if k = 0 then "" else s^(repeat s (k-1))
        
+     (* TODO : add option here to print liftings *)
      let to_string coh =
        match coh with
-       |Fold (x,i) ->
-         if !print_lifting then
-           EVar.to_string x ^ (repeat "°" i)
-         else EVar.to_string x
+       |Fold (x,i) -> EVar.to_string x
 	
      let check_equal e1 tm1 s1 e2 tm2 s2 src =
        match e1, e2 with
-       |Fold (x,i), Fold (y,j) -> Env.check_equal x i tm1 s1 y j tm2 s2 src
-                             
-     let infer coh =
-       match coh with
-       |Fold (x,i) -> Env.ty_var x i
+       |Fold (x,v1), Fold (y,v2) -> EnvVal.check_equal v1 tm1 s1 v2 tm2 s2 src
+
+
+  (* let ty_var x i = *)
+  (*   let value = val_var x i in *)
+  (*   match value with *)
+  (*       |Coh coh -> (Ctx.of_ps (Coh.ps coh), Coh.target coh) *)
+  (*       |Let t -> let open Tm in (t.c, t.ty) *)
+
+  (* let check_equal x i tm1 s1 y j tm2 s2 src = *)
+  (*   let open Tm in *)
+  (*   match (val_var x i, val_var y j) with *)
+  (*   |Coh c1, Coh c2 -> let ps = Coh.check_equal c1 c2 in Sub.check_equal ps s1 s2 *)
+  (*   |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1.c src t1) (Sub.apply_Tm s2 t2.c src t2) *)
+  (*   |Let t, Coh c -> Tm.check_equal src (Sub.apply_Tm s1 t.c src t) tm2 *)
+  (*   |Coh c, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t.c src t) *)
+
+                                                  
+     let ctx e =
+       match e with
+       |Fold (v,value) -> EnvVal.ctx value
+         
+     let ty e =
+       match e with
+       |Fold (v,value) -> EnvVal.ty value
+
 
      let mk e i =
        let open Expr in
        let e = remove_let_tm e in
        match e with
        |Var v ->
-         let c,ty = Env.ty_var (EVar.make v) i in
-           (Fold ((EVar.make v),i), c, ty)
+         let v = EVar.make v in
+         let value = Env.val_var v i in
+         let ctx,ty = EnvVal.ty value in
+           (Fold (v,value), ctx, ty)
        |(Sub _) -> raise BadUnderSub
        |Letin_tm _ -> assert false
 
@@ -1201,9 +1239,6 @@ struct
        match c with
        |Fold (v,i) -> Var (EVar.to_var v)                      
 
-     let ctx e =
-       match e with
-       |Fold (v,i) -> Env.ctx v i
 end
 
 (* -- Module with a specific type for well-defined coherences
