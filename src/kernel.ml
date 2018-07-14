@@ -3,9 +3,6 @@ open Settings
 open Common
 open Syntax
 
-
-       
-
 (** Environment variables (i.e. defined coherences). *)
 module EVar
 : sig
@@ -86,8 +83,6 @@ struct
   (* TODO: add variable names *)
   type t = Tm.t list
 	   
-    (* Syntactic properties *)
-
   (** Free context variables. *)
   let free_vars (s:t) =
     List.concat (List.map Tm.free_vars s)
@@ -105,14 +100,6 @@ struct
       else apply_var l tar x
     |[], _ -> assert false
                   
-  (* TODO : remove this *)
-  let rec print (s:t) =
-    match s with
-    | [] -> ""
-    | (u::s) -> Printf.sprintf "%s %s" (print s) (Tm.to_string u) 
-
-
-
   (** Sequential composition of substitutions. *)
   let rec compose src tar s (s':t) =
     List.rev (List.map (fun t -> apply_Tm s tar src t) s')
