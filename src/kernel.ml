@@ -136,9 +136,9 @@ struct
     let e =
       match tm.e with
       |CVar x -> apply_var s tar x
-      |Sub (t,s') ->
-        let newtar = Cut.ctx t in 
-        Sub (t, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar)
+      |Sub (x,v,s') ->
+        let newtar = EnvVal.ctx v in 
+        Sub (x,v, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar)
     in {c = src; ty = apply_Ty s tar src tm.ty; e = e}
   (** Apply a substitution to a type. *)
   and apply_Ty s tar src ty =
@@ -157,14 +157,14 @@ struct
     let open Tm in
     let e1 = match tm1.e with
       |CVar x -> apply_var s tar x
-      |Sub (t,s') ->
-        let newtar = Cut.ctx t in 
-        Sub (t, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar) in
+      |Sub (x,v,s') ->
+        let newtar = EnvVal.ctx v in 
+        Sub (x,v, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar) in
     let e2 = match tm2.e with
       |CVar x -> apply_var s tar x
-      |Sub (t,s') ->
-        let newtar = Cut.ctx t in 
-        Sub (t, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar) in
+      |Sub (x,v,s') ->
+        let newtar = EnvVal.ctx v in 
+        Sub (x,v, Sub.mk_elaborated (compose src tar s (s' :> Tm.t list)) src newtar) in
     (ty, {c = src; ty = ty; e = e1}, {c = src; ty = ty; e = e2})
             
             
@@ -1017,7 +1017,7 @@ and Tm
 sig
   type expr = 
     | CVar of cvar
-    | Sub of Cut.t * Sub.t
+    | Sub of evar * EnvVal.t * Sub.t
   and t = {c : Ctx.t; ty : Ty.t; e : expr}
            
   val free_vars : t -> cvar list
@@ -1043,21 +1043,22 @@ struct
   (** An expression. *)
   type expr =
     | CVar of cvar (** a context variable *)
-    | Sub of Cut.t * Sub.t (** a substituted environment variable *)
+    | Sub of evar * EnvVal.t * Sub.t (** a substituted environment variable *)
   (** A term, i.e. an expression with given type in given context. *)
   and t = {c : Ctx.t; ty : Ty.t; e : expr}
 
+            
   exception Unknown
              
   let rec free_vars tm =
     match tm.e with
     | CVar x -> [x]
-    | Sub (_,sub) -> Sub.free_vars sub
+    | Sub (_,_,sub) -> Sub.free_vars sub
                      
   let rec to_string tm =
     match tm.e with
     | CVar x -> CVar.to_string x
-    | Sub (t,s) -> let c = Cut.ctx t in Printf.sprintf "(%s %s)" (Cut.to_string t) (Sub.to_string s c)
+    | Sub (x,v,s) -> let c = EnvVal.ctx v in Printf.sprintf "(%s %s)" (EVar.to_string x) (Sub.to_string s c)
 
   let rec check_equal ctx tm1 tm2 =
     (* debug "checking equality between %s and %s" (to_string tm1)(to_string tm2); *)
@@ -1067,17 +1068,22 @@ struct
       then
 	raise (NotEqual (to_string tm1, to_string tm2))
       else ()
-    | Sub(t1,s1),Sub(t2,s2) ->
-       Cut.check_equal t1 tm1 s1 t2 tm2 s2 ctx
+    | Sub(x,v1,s1),Sub(y,v2,s2) ->
+       EnvVal.check_equal v1 tm1 s1 v2 tm2 s2 ctx
     | (CVar _|Sub _),_ ->
-      raise (NotEqual (to_string tm1, to_string tm2))
+       raise (NotEqual (to_string tm1, to_string tm2))
+
+  (* let ty e = *)
+     (*   match e with *)
+     (*   |Fold (v,value) -> EnvVal.ty value *)
+
 
   (** Infer the type of an expression. *)
   let infer_expr ctx tme =
     match tme with
     | CVar x -> Ctx.ty_var ctx x
-    | Sub (e,s) ->
-       let tar,ty = Cut.ty e in
+    | Sub (_,v,s) ->
+       let tar,ty = EnvVal.ty v in
        Sub.check s ctx tar;
        Sub.apply_Ty s tar ctx ty
 
@@ -1095,13 +1101,13 @@ struct
     let open Expr in
     match tm.e with
     | CVar v -> Var (CVar.to_var v)
-    | Sub (t,s) -> Sub (Cut.reinit t, Sub.reinit s (Cut.ctx t))
+    | Sub (x,v,s) -> Sub (Var (EVar.to_var x), Sub.reinit s (EnvVal.ctx v))
 
   let rec list_expl_vars tm : Var.t list =
     let open Expr in
     match tm.e with
     | CVar v -> [(CVar.to_var v)]
-    | Sub (t,s) -> Sub.list_expl_vars s (Cut.ctx t)
+    | Sub (_,v,s) -> Sub.list_expl_vars s (EnvVal.ctx v)
 
   let mark_ctx t =
     {c = Ctx.mark t.c; ty = t.ty; e = t.e}
@@ -1114,6 +1120,18 @@ struct
     
   (** Create a term from an expression. *)
   (* TODO: return a value of type t instead of a pair *)                    
+     (* let mk e i = *)
+     (*   let open Expr in *)
+     (*   let e = remove_let_tm e in *)
+     (*   match e with *)
+     (*   |Var v -> *)
+     (*     let v = EVar.make v in *)
+     (*     let value = Env.val_var v i in *)
+     (*     let ctx,ty = EnvVal.ty value in *)
+     (*       (Fold (v,value), ctx, ty) *)
+     (*   |(Sub _) -> raise BadUnderSub *)
+     (*   |Letin_tm _ -> assert false *)
+
   let rec make c e =
     let e = Expr.remove_let_tm e in
     let already_known = Hashtbl.find_all Hash.tbtm e in
@@ -1141,10 +1159,15 @@ struct
                        | t::l -> max l t
                        | [] -> raise EmptySub in
            let s = List.map (Tm.make c) s in
-           let t,tar,ty = Cut.mk t (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
+           let i = (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
+           let v,t = match t with
+             |Var v -> let v = EVar.make v in (v, Env.val_var v i)
+             |Sub (_,_) -> raise BadUnderSub
+             |Letin_tm _ -> assert false
+           in let tar,ty = EnvVal.ty t in
            let s = Sub.mk (List.map fst s) c tar in
            let ty = Sub.apply_Ty s tar c ty in
-           ({c = c; ty = ty; e = Sub(t,s)}, ty)
+           ({c = c; ty = ty; e = Sub(v,t,s)}, ty)
         | Letin_tm _ -> assert false
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 
@@ -1161,86 +1184,43 @@ struct
          | [] -> []
        in
        replace l
-    | Sub(e,s), Sub (e',s') ->
+    | Sub(_,_,s), Sub (_,_,s') ->
        Sub.unify c s s' l
     | _, CVar _ -> raise UnableUnify
 
-end
 
-(* TODO: remove this *)
-and Cut
-    :
-sig
-  type t =
-    | Fold of evar * EnvVal.t
-  val to_string : t -> string
-  val check_equal : t -> Tm.t -> Sub.t -> t -> Tm.t -> Sub.t -> Ctx.t -> unit
-  val ty : t -> Ctx.t * Ty.t
-  val mk : Expr.tm -> int -> (t * Ctx.t * Ty.t)
-  val reinit : t -> Expr.tm
-  val ctx : t -> Ctx.t
-end
-  =
-struct
-  type t = 
-    | Fold of evar * EnvVal.t (** an environment variable together with its value in the environment *)
-
-     let rec repeat s k =
-       if k = 0 then "" else s^(repeat s (k-1))
        
-     (* TODO : add option here to print liftings *)
-     let to_string coh =
-       match coh with
-       |Fold (x,i) -> EVar.to_string x
-	
-     let check_equal e1 tm1 s1 e2 tm2 s2 src =
-       match e1, e2 with
-       |Fold (x,v1), Fold (y,v2) -> EnvVal.check_equal v1 tm1 s1 v2 tm2 s2 src
-
-
-  (* let ty_var x i = *)
-  (*   let value = val_var x i in *)
-  (*   match value with *)
-  (*       |Coh coh -> (Ctx.of_ps (Coh.ps coh), Coh.target coh) *)
-  (*       |Let t -> let open Tm in (t.c, t.ty) *)
-
-  (* let check_equal x i tm1 s1 y j tm2 s2 src = *)
-  (*   let open Tm in *)
-  (*   match (val_var x i, val_var y j) with *)
-  (*   |Coh c1, Coh c2 -> let ps = Coh.check_equal c1 c2 in Sub.check_equal ps s1 s2 *)
-  (*   |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1.c src t1) (Sub.apply_Tm s2 t2.c src t2) *)
-  (*   |Let t, Coh c -> Tm.check_equal src (Sub.apply_Tm s1 t.c src t) tm2 *)
-  (*   |Coh c, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t.c src t) *)
-
                                                   
-     let ctx e =
-       match e with
-       |Fold (v,value) -> EnvVal.ctx value
+     (* let ctx e = *)
+     (*   match e with *)
+     (*   |Fold (v,value) -> EnvVal.ctx value *)
          
-     let ty e =
-       match e with
-       |Fold (v,value) -> EnvVal.ty value
+     (* let ty e = *)
+     (*   match e with *)
+     (*   |Fold (v,value) -> EnvVal.ty value *)
 
 
-     let mk e i =
-       let open Expr in
-       let e = remove_let_tm e in
-       match e with
-       |Var v ->
-         let v = EVar.make v in
-         let value = Env.val_var v i in
-         let ctx,ty = EnvVal.ty value in
-           (Fold (v,value), ctx, ty)
-       |(Sub _) -> raise BadUnderSub
-       |Letin_tm _ -> assert false
+     (* let mk e i = *)
+     (*   let open Expr in *)
+     (*   let e = remove_let_tm e in *)
+     (*   match e with *)
+     (*   |Var v -> *)
+     (*     let v = EVar.make v in *)
+     (*     let value = Env.val_var v i in *)
+     (*     let ctx,ty = EnvVal.ty value in *)
+     (*       (Fold (v,value), ctx, ty) *)
+     (*   |(Sub _) -> raise BadUnderSub *)
+     (*   |Letin_tm _ -> assert false *)
 
-     let reinit c : Expr.tm =
-       let open Expr in
-       match c with
-       |Fold (v,i) -> Var (EVar.to_var v)                      
+     (* let reinit c : Expr.tm = *)
+     (*   let open Expr in *)
+     (*   match c with *)
+     (*   |Fold (v,i) -> Var (EVar.to_var v)                       *)
+
+
+
 
 end
-
 (* -- Module with a specific type for well-defined coherences
     -- They are different from normal type, they need to be substituted *)    
 (** A coherence. *)
