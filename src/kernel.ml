@@ -1,36 +1,25 @@
 open Stdlib
 open Settings
 open Common
+open Syntax
 
 
-(** Variables, before distinction between environment or context variables. *)
-module Var = struct
-  type t =
-  | Name of string
-  | New of int
-	     
-  let to_string v =
-    match v with
-    | Name s -> s
-    | New i -> "_" ^ string_of_int i
-
-  let make s = Name s
-end
+       
 
 (** Environment variables (i.e. defined coherences). *)
 module EVar
 : sig
   type t
   val to_string : t -> string
-  val make : Var.t -> t
-  val to_var : t -> Var.t
+  val make : var -> t
+  val to_var : t -> var
 end
 =
 struct
-  type t = Var.t
+  type t = var
 
   let to_string v =
-    Var.to_string v
+    string_of_var v
 
   let make v = v
 
@@ -42,22 +31,21 @@ module CVar
 : sig 
     type t
     val to_string : t -> string
-    val make : Var.t -> t
-    val to_var : t -> Var.t
+    val make : var -> t
+    val to_var : t -> var
 end
 =
 struct
-  type t = Var.t
+  type t = var
 
   let to_string v =
-    Var.to_string v
+    string_of_var v
 	       
   let make v = v
 
   let to_var v = v 
 end
 
-type var = Var.t
 type evar = EVar.t
 type cvar = CVar.t
 
@@ -72,8 +60,8 @@ sig
   (* Structural functions *)
   val mk : Tm.t list -> Ctx.t -> Ctx.t  -> t
   val mk_elaborated : Tm.t list -> Ctx.t -> Ctx.t -> t 
-  val reinit : t -> Ctx.t -> Expr.tm list
-  val list_expl_vars : t -> Ctx.t -> Var.t list
+  val reinit : t -> Ctx.t -> tm list
+  val list_expl_vars : t -> Ctx.t -> var list
 	   
   (* Syntactic properties *)		    
   val free_vars : t -> cvar list
@@ -127,7 +115,6 @@ struct
 
   (** Sequential composition of substitutions. *)
   let rec compose src tar s (s':t) =
-    let open Expr in
     List.rev (List.map (fun t -> apply_Tm s tar src t) s')
   (** Apply a substitution to a term. *)
   and apply_Tm (s:t) tar src tm =
@@ -320,9 +307,9 @@ sig
                      
   (* Makers *)
   val empty : unit -> t
-  val add : t -> Var.t -> Expr.ty -> t
-  val add_norm : t -> Var.t -> Ty.t -> t
-  val make : (Var.t * Expr.ty) list -> t
+  val add : t -> var -> ty -> t
+  val add_norm : t -> var -> Ty.t -> t
+  val make : (var * ty) list -> t
   val of_ps : PS.t -> t
        
   (* Structural operations *)
@@ -447,8 +434,6 @@ struct
 
   (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
   let suspend (ctx : t) i =
-    let open Var in
-    let open Expr in
     assert (i>=1);
     let rec aux k c ty=
       match k with
@@ -909,10 +894,10 @@ sig
 
   val check : Ctx.t -> t -> unit
   val check_equal : Ctx.t -> t -> t -> unit
-  val make : Ctx.t -> Expr.ty -> t
+  val make : Ctx.t -> ty -> t
        
   val dim : t -> int
-  val reinit : t -> Expr.ty
+  val reinit : t -> ty
 
   val unify : Ctx.t -> t -> t -> ((CVar.t * t) * Tm.t option * bool) list -> ((CVar.t * t) * Tm.t option * bool) list
 
@@ -965,15 +950,14 @@ struct
       raise (NotEqual (to_string ty1, to_string ty2))
 
   (** Construct a type. *)
-  let rec make c (e : Expr.ty) =
-    let e = Expr.remove_let_ty e in
+  let rec make c e =
+    let e = remove_let_ty e in
     let already_known = Hashtbl.find_all Hash.tbty e in
     let rec aux l = match l with
       | [] -> raise Unknown
       | ty::q -> try Ctx.check_sub_ctx ty.c c; ty with
                  |_ -> aux q
     in
-    let open Expr in
     try aux already_known
     with Unknown ->
       let newty = 
@@ -994,8 +978,7 @@ struct
 
   (** Expression from a type. *)
   (* TODO: can we remove this? *)
-  let rec reinit t : Expr.ty =
-    let open Expr in
+  let rec reinit t : ty =
     match t.e with
     | Obj -> Obj
     | Arr(_,u,v) -> Arr (Tm.reinit u, Tm.reinit v)
@@ -1026,10 +1009,10 @@ sig
   val infer : Ctx.t -> t -> Ty.t
   val check_equal : Ctx.t -> t -> t -> unit
   val check_type : Ctx.t -> t -> Ty.t -> unit
-  val make : Ctx.t -> Expr.tm -> t * Ty.t
+  val make : Ctx.t -> tm -> t * Ty.t
        
-  val reinit : t -> Expr.tm
-  val list_expl_vars : t -> Var.t list
+  val reinit : t -> tm
+  val list_expl_vars : t -> var list
 
   val mark_ctx : t -> t
   val suspend : t -> int -> t
@@ -1073,11 +1056,6 @@ struct
     | (CVar _|Sub _),_ ->
        raise (NotEqual (to_string tm1, to_string tm2))
 
-  (* let ty e = *)
-     (*   match e with *)
-     (*   |Fold (v,value) -> EnvVal.ty value *)
-
-
   (** Infer the type of an expression. *)
   let infer_expr ctx tme =
     match tme with
@@ -1097,14 +1075,12 @@ struct
     Ty.check_equal ctx (infer ctx e) t
 
   (* TODO: do we really need this? *)
-  let rec reinit tm : Expr.tm =
-    let open Expr in
+  let rec reinit tm =
     match tm.e with
     | CVar v -> Var (CVar.to_var v)
     | Sub (x,v,s) -> Sub (Var (EVar.to_var x), Sub.reinit s (EnvVal.ctx v))
 
-  let rec list_expl_vars tm : Var.t list =
-    let open Expr in
+  let rec list_expl_vars tm : var list =
     match tm.e with
     | CVar v -> [(CVar.to_var v)]
     | Sub (_,v,s) -> Sub.list_expl_vars s (EnvVal.ctx v)
@@ -1120,26 +1096,13 @@ struct
     
   (** Create a term from an expression. *)
   (* TODO: return a value of type t instead of a pair *)                    
-     (* let mk e i = *)
-     (*   let open Expr in *)
-     (*   let e = remove_let_tm e in *)
-     (*   match e with *)
-     (*   |Var v -> *)
-     (*     let v = EVar.make v in *)
-     (*     let value = Env.val_var v i in *)
-     (*     let ctx,ty = EnvVal.ty value in *)
-     (*       (Fold (v,value), ctx, ty) *)
-     (*   |(Sub _) -> raise BadUnderSub *)
-     (*   |Letin_tm _ -> assert false *)
-
   let rec make c e =
-    let e = Expr.remove_let_tm e in
+    let e = remove_let_tm e in
     let already_known = Hashtbl.find_all Hash.tbtm e in
     let rec aux l = match l with
       | [] -> raise Unknown
       | tm::q -> try Ctx.check_sub_ctx tm.c c; (tm, tm.ty) with _ -> aux q
     in
-    let open Expr in
     try aux already_known
     with Unknown ->
       (* debug "building term %s" (string_of_tm e); *)
@@ -1187,40 +1150,8 @@ struct
     | Sub(_,_,s), Sub (_,_,s') ->
        Sub.unify c s s' l
     | _, CVar _ -> raise UnableUnify
-
-
-       
-                                                  
-     (* let ctx e = *)
-     (*   match e with *)
-     (*   |Fold (v,value) -> EnvVal.ctx value *)
-         
-     (* let ty e = *)
-     (*   match e with *)
-     (*   |Fold (v,value) -> EnvVal.ty value *)
-
-
-     (* let mk e i = *)
-     (*   let open Expr in *)
-     (*   let e = remove_let_tm e in *)
-     (*   match e with *)
-     (*   |Var v -> *)
-     (*     let v = EVar.make v in *)
-     (*     let value = Env.val_var v i in *)
-     (*     let ctx,ty = EnvVal.ty value in *)
-     (*       (Fold (v,value), ctx, ty) *)
-     (*   |(Sub _) -> raise BadUnderSub *)
-     (*   |Letin_tm _ -> assert false *)
-
-     (* let reinit c : Expr.tm = *)
-     (*   let open Expr in *)
-     (*   match c with *)
-     (*   |Fold (v,i) -> Var (EVar.to_var v)                       *)
-
-
-
-
 end
+  
 (* -- Module with a specific type for well-defined coherences
     -- They are different from normal type, they need to be substituted *)    
 (** A coherence. *)
@@ -1228,7 +1159,7 @@ and Coh
     : sig
   type t = private (PS.t * Ty.t)   
 
-  val mk : PS.t -> Expr.ty -> t
+  val mk : PS.t -> ty -> t
   val to_string : t -> string
   val check_equal : t -> t -> Ctx.t
   val ps : t -> PS.t
@@ -1295,106 +1226,15 @@ struct
     (Coh.mk ps t)
 end
 
-(** Operations on raw terms. *)
-and Expr
-    :
-sig
-  type ty =
-    | Letin_ty of var * tm * ty
-    | Obj
-    | Arr of tm * tm     
-   and tm =
-    | Letin_tm of var * tm * tm 
-    | Var of var
-    | Sub of tm * tm list
-
-  val string_of_ty : ty -> string
-  val string_of_tm : tm -> string
-
-  val reinit : tm -> tm
-  val list_vars : tm -> Var.t list
-
-  val remove_let_tm : tm -> tm
-  val remove_let_ty : ty -> ty
-end
-  =
-struct
-  (** A raw type. *)
-  type ty =
-    | Letin_ty of var * tm * ty 
-    | Obj
-    | Arr of tm * tm
-  (** A raw term. *)
-   and tm =
-    | Letin_tm of var * tm * tm
-    | Var of var
-    | Sub of tm * (tm list)
-             
-  let rec string_of_ty e =
-    match e with
-    | Letin_ty (v,e,ty) -> Printf.sprintf "let %s = %s in %s" (Var.to_string v) (string_of_tm e) (string_of_ty ty)
-    | Obj -> "*"
-    | Arr (u,v) -> Printf.sprintf "%s -> %s" (string_of_tm u) (string_of_tm v)
-  and string_of_tm e =
-    match e with
-    | Letin_tm (v,e,tm) -> Printf.sprintf "let %s = %s in %s" (Var.to_string v) (string_of_tm e) (string_of_tm tm)
-    | Var x -> Var.to_string x
-    | Sub (t,s) -> Printf.sprintf "(%s %s)" (string_of_tm t) (string_of_sub s)
-  and string_of_sub s =
-    match s with
-    | [] -> ""
-    | t::[] -> Printf.sprintf "%s" (string_of_tm t)
-    | t::s -> Printf.sprintf "%s %s" (string_of_tm t) (string_of_sub s)
-
-  (** Remove partly verified terms. *)
-  (* TODO: remove this *)
-  let rec reinit tm =
-    match tm with
-    | Letin_tm _ -> assert false
-    | Var _ -> tm
-    | Sub (tm,s) -> Sub (reinit tm, List.map reinit s)
-
-  (** List the variables of an non-checked term (ie only the explicit variables)*)
-  let rec list_vars e =
-    match e with
-    | Letin_tm _ -> assert false
-    | Var v -> [v]
-    | Sub (e,l) -> List.unions (List.map list_vars l)
-
-  (** remove the let in in a term *)  
-  let rec replace_tm l e =
-    match e with 
-    | Var a ->
-       begin
-         try replace_tm l (List.assoc a l)
-         with
-           Not_found -> Var a
-       end
-    | Sub (e,s) -> Sub(replace_tm l e, List.map (replace_tm l) s)
-    | Letin_tm (v,t,tm) -> replace_tm ((v,t)::l) tm
-  and replace_ty l t =
-    match t with
-    | Obj -> t
-    | Arr(u,v) -> Arr (replace_tm l u, replace_tm l v)
-    | Letin_ty (v,t,ty) -> replace_ty ((v,t)::l) ty
-
-  let remove_let_tm e =
-    replace_tm [] e
-
-  let remove_let_ty e =
-    replace_ty [] e
-
-end
-
 and Hash
     : sig
-  val tbty : (Expr.ty, Ty.t) Hashtbl.t 
-  val tbtm : (Expr.tm, Tm.t) Hashtbl.t 
+  val tbty : (ty, Ty.t) Hashtbl.t 
+  val tbtm : (tm, Tm.t) Hashtbl.t 
 end
   =
 struct
-  let tbty : (Expr.ty, Ty.t) Hashtbl.t = Hashtbl.create 10000
-  let tbtm : (Expr.tm, Tm.t) Hashtbl.t = Hashtbl.create 10000
+  let tbty : (ty, Ty.t) Hashtbl.t = Hashtbl.create 10000
+  let tbtm : (tm, Tm.t) Hashtbl.t = Hashtbl.create 10000
 end
 
 type kTm = Tm.t
@@ -1403,11 +1243,7 @@ type kTy = Ty.t
     
 type env = Env.t
 type ctx = Ctx.t
-type ty = Expr.ty
-type tm = Expr.tm
-let string_of_ty = Expr.string_of_ty
-let string_of_tm = Expr.string_of_tm
-            
+
 let init_env = Env.init
                  
 let add_coh_env v ps t =

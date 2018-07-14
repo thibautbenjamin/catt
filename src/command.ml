@@ -1,32 +1,33 @@
 open Kernel
 open Settings
 open Common
+open Syntax
 
-
+              
 (** A command. *)
 type cmd =
-  | Coh of Var.t * (Var.t * ty) list * ty (** a coherence *)
-  | Check of ((Var.t * ty) list) * tm * ty option (** check that a term is well-typed in a context *)
-  | Decl of Var.t * (Var.t * ty) list * tm * ty option (** let declarations *)
+  | Coh of var * (var * ty) list * ty (** a coherence *)
+  | Check of ((var * ty) list) * tm * ty option (** check that a term is well-typed in a context *)
+  | Decl of var * (var * ty) list * tm * ty option (** let declarations *)
 
 (** A program. *)
 type prog = cmd list
 
 let rec print l =
   match l with
-  | ((x,_),true)::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print l);
-  | ((x,_),false)::l -> Printf.sprintf "{%s} %s" (Var.to_string x) (print l);
+  | ((x,_),true)::l -> Printf.sprintf "(%s) %s" (string_of_var x) (print l);
+  | ((x,_),false)::l -> Printf.sprintf "{%s} %s" (string_of_var x) (print l);
   | [] -> ""
 
 let rec print_vars l =
   match l with
-  | x::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print_vars l);
+  | x::l -> Printf.sprintf "(%s) %s" (string_of_var x) (print_vars l);
   | [] -> ""
            
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
-     command "let %s = %s" (Var.to_string x) (string_of_ty e);
+     command "let %s = %s" (string_of_var x) (string_of_ty e);
      let env =
        if !debug_mode then 
 	 Kernel.add_coh_env x ps e
@@ -56,10 +57,10 @@ let exec_cmd cmd =
   | Decl (v,l,e,t) ->
      let t = match t with
        | Some t ->
-          command "let %s = %s : %s" (Var.to_string v) (string_of_tm e) (string_of_ty t);
+          command "let %s = %s : %s" (string_of_var v) (string_of_tm e) (string_of_ty t);
           let t = Kernel.add_let_env_of_ty v l e t in t
        | None ->
-          command "let %s = %s" (Var.to_string v) (string_of_tm e);
+          command "let %s = %s" (string_of_var v) (string_of_tm e);
           let t = Kernel.add_let_env v l e in t
      in
      info "defined term of type %s" t

@@ -1,9 +1,8 @@
 %{
     open Common
     open Command
-    open Kernel.Expr
+    open Syntax
 
-    module Var = Kernel.Var
 %}
 
 %token COH OBJ PIPE MOR
@@ -24,19 +23,19 @@ prog:
     | EOF { [] }
 
 cmd:
-    | COH IDENT args COL tyexpr { Coh (Var.make $2,$3,$5) }
+    | COH IDENT args COL tyexpr { Coh (make_var $2,$3,$5) }
     | CHECK args COL tyexpr EQUAL tmexpr { Check ($2,$6, Some $4) }
     | CHECK args EQUAL tmexpr { Check ($2,$4,None) }
-    | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (Var.make $2,$3,$7,Some $5) }
-    | LET IDENT args EQUAL tmexpr { Decl (Var.make $2,$3,$5, None) }
+    | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (make_var $2,$3,$7,Some $5) }
+    | LET IDENT args EQUAL tmexpr { Decl (make_var $2,$3,$5, None) }
     
 
 args:
-    | LPAR IDENT COL tyexpr RPAR args { (Var.make $2, $4)::$6 }
+    | LPAR IDENT COL tyexpr RPAR args { (make_var $2, $4)::$6 }
     | { [] }
 
 list_replace:
-    | LET IDENT EQUAL tmexpr IN list_replace { (Var.make $2, $4)::$6 }
+    | LET IDENT EQUAL tmexpr IN list_replace { (make_var $2, $4)::$6 }
     | { [] }
 
 sub:
@@ -45,7 +44,7 @@ sub:
 
 simple_tmexpr:
     | LPAR tmexpr RPAR { $2 }
-    | IDENT { Var (Var.make $1) }
+    | IDENT { Var (make_var $1) }
 
 simple_tyexpr:
     | LPAR tyexpr RPAR { $2 }
@@ -56,10 +55,10 @@ subst_tmexpr:
     | simple_tmexpr simple_tmexpr sub { Sub ($1,$2::$3) }
 
 tmexpr:
-    | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (Var.make $2, $4, $6) }
+    | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (make_var $2, $4, $6) }
     | subst_tmexpr { $1 }
 
 tyexpr:
-    | LET IDENT EQUAL tmexpr IN tyexpr { Letin_ty (Var.make $2, $4, $6) }
+    | LET IDENT EQUAL tmexpr IN tyexpr { Letin_ty (make_var $2, $4, $6) }
     | simple_tyexpr { $1 } 
     | subst_tmexpr MOR subst_tmexpr { Arr ($1,$3) }
