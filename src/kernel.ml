@@ -70,9 +70,6 @@ sig
 
   (* Printing *)	
   val to_string : t ->  string
-	   
-  (* Well-definedness procedure *)
-  (* val check : t  -> Ctx.t -> Ctx.t -> unit *)
 
   val unify : Sub.t -> Sub.t -> ((CVar.t * Ty.t) * Tm.t option * bool) list -> ((CVar.t * Ty.t) * Tm.t option * bool) list
 end
@@ -95,7 +92,7 @@ struct
         assert false
       |t::l, _ ->
         let open Tm in
-        let (((y,_),_),tar) = (Ctx.head tar, Ctx.tail tar) in
+        let ((y,(_,_)),tar) = (Ctx.head tar, Ctx.tail tar) in
         if y = x
         then t.e
         else apply_list_var l tar x
@@ -162,18 +159,6 @@ struct
       | _,_ -> raise NotValid
     in check_list s1.list s2.list 
 
-  (** Check that a substitution is well-formed with given source and target. *)
-  let rec check s src tar =
-    match s,Ctx.value tar
-    with
-    | [],[] -> ()
-    | (_::_,[] |[],_::_) -> raise NotValid
-    | t::s,_ ->
-       let (((x,u),_),tar) = (Ctx.head tar,Ctx.tail tar) in
-       check s src tar;
-       Ty.check tar u;
-       Tm.check_type src t (apply_list_Ty s tar src u)
-	
   (** String representation of a substitution. We print only maximal elements *)
   let to_string (s:t) =
     let rec print_list s c =
@@ -181,9 +166,9 @@ struct
       | [], c when Ctx.is_empty c -> ""
       | (u::s),c -> begin
           match Ctx.head c with
-          | (_, Some true| _, None) ->
+          | (_, (_,true)) ->
              Printf.sprintf "%s %s" (print_list s (Ctx.tail c)) (Tm.to_string u) 
-          | _, Some false -> Printf.sprintf "%s" (print_list s (Ctx.tail c))
+          | (_, (_,false)) -> Printf.sprintf "%s" (print_list s (Ctx.tail c))
         end
       | _ -> assert false
     in print_list s.list s.tar
@@ -200,17 +185,15 @@ struct
          let t = Ctx.tail tar in
          begin
            match Ctx.head tar with
-           |a, Some false -> (a, None, false)::(create_assoc t l)
-           |a, Some true -> (a, Some h, true)::(create_assoc t l')
+           |(v, (tv, false)) -> ((v,tv), None, false)::(create_assoc t l)
+           |(v, (tv, true)) -> ((v,tv), Some h, true)::(create_assoc t l')
 
-           |_,None -> assert false
          end
       | [] -> if Ctx.is_empty tar then []
               else match Ctx.head tar with
-                   |a, Some false -> (a, None, false)::(create_assoc (Ctx.tail tar) [])
+                   |(v,(tv, false)) -> ((v,tv), None, false)::(create_assoc (Ctx.tail tar) [])
                                                                                     
-                   |_, Some true -> failwith "not enough arguments given"
-                   |_,None -> assert false
+                   |_ -> failwith "not enough arguments given"
     in
     let rec next l res =
       match l with
@@ -232,9 +215,7 @@ struct
     in
     let assoc = create_assoc tar l in
     try loop assoc
-    with Completed res -> clear res
-                                
-              
+    with Completed res -> clear res 
 
   (** Construct a substutition (which is already closed downward). *)
   let mk_elaborated (l : Tm.t  list) src (tar : Ctx.t) =
@@ -243,7 +224,7 @@ struct
       |[],[] -> []
       |(_::_,[] |[],_::_) -> raise NotValid
       |t::s,_ ->
-	let ((x,u),_),tar = (Ctx.head tar,Ctx.tail tar) in
+	let (x,(u,_)),tar = (Ctx.head tar,Ctx.tail tar) in
 	let s = aux s tar in
 	let ty = Tm.infer src t in
 	let () = Ty.check_equal src ty (apply_list_Ty s tar src u)
@@ -262,8 +243,8 @@ struct
       |[], c when Ctx.is_empty c -> []
       |(u::s),c -> begin
           match Ctx.head c with
-          |(_, Some true | _, None) -> (Tm.reinit u)::(aux s (Ctx.tail c)) 
-          |_, Some false -> aux s (Ctx.tail c)
+          |(_,(_,true)) -> (Tm.reinit u)::(aux s (Ctx.tail c)) 
+          |(_,(_,false)) -> aux s (Ctx.tail c)
         end
       |_,_ -> assert false
       in List.rev (aux s.list s.tar)
@@ -275,8 +256,8 @@ struct
       |[], c when Ctx.is_empty c -> []
       |(u::s),c -> begin
           match Ctx.head c with
-          |(_, Some true | _, None) -> (Tm.list_expl_vars u)@(aux s (Ctx.tail c)) 
-          |_, Some false -> aux s (Ctx.tail c)
+          |(_,(_,true)) -> (Tm.list_expl_vars u)@(aux s (Ctx.tail c)) 
+          |(_,(_,false)) -> aux s (Ctx.tail c)
         end
       |_,_ -> assert false
     in (aux s.list s.tar)
@@ -301,7 +282,7 @@ end
 and Ctx
     :
 sig
-  type t
+  type t = private (cvar * (Ty.t * bool)) list
                      
   (* Makers *)
   val empty : unit -> t
@@ -311,14 +292,14 @@ sig
   val of_ps : PS.t -> t
        
   (* Structural operations *)
-  val head : t -> (cvar * Ty.t) * bool option
+  val head : t -> cvar * (Ty.t * bool)
   val tail : t -> t
   val suspend : t -> int -> t
        
   (* Syntactic properties *)
   val ty_var : t -> cvar -> Ty.t
   val domain : t -> cvar list
-  val value : t -> (cvar * Ty.t) list
+  val value : t -> (cvar * (Ty.t * bool)) list
   val mem : t -> cvar -> bool
   val dim : t -> int
 
@@ -334,28 +315,27 @@ sig
 end
   =
 struct
-  (** A context. *)
-  type ctx_list = (cvar * Ty.t) list
-  type t = {list : ctx_list; marking : (bool list) option}
+  (** A context. Variables together with a type a a boolean indicating if the variable is explicit or implicit*)
+  type t = (cvar * (Ty.t * bool)) list
 
   (** type of a variable in a context. *)
   let ty_var (ctx:t) x =
     try
-      List.assoc x ctx.list
+      fst (List.assoc x ctx)
     with
     | Not_found -> raise (UnknownId (CVar.to_string x))
 
   (* ------ Makers ------ *)
   (** Empty context. *)
-  let empty () = {list = []; marking = None}
+  let empty () = []
 
   (** adding an already marked term to a context (forgets the marking)*)
   let add_norm (ctx : Ctx.t) x u =
     let x = CVar.make x in
     try
-      ignore (List.assoc x (ctx.list :> (CVar.t * Ty.t) list));
+      ignore (List.assoc x (ctx :> t));
       raise (DoubleDef (CVar.to_string x))
-    with Not_found -> {list = (x,u)::ctx.list; marking = None}
+    with Not_found -> (x,(u,false))::(ctx :> t)
 
   (** Add a typed variable to a context. *)
   let add (ctx : Ctx.t) x u : t =
@@ -381,46 +361,33 @@ struct
   let of_ps ps =
     let open PS in
     match ps with
-    |PNil (x,t) -> {list = [(x,t)]; marking = Some ([true])}
+    |PNil (x,t) -> [(x,(t,true))]
     |_ ->
       let rec aux ps =
         match ps with
         |PDrop (PCons (ps,(x1,t1),(x2,t2))) -> let c = aux ps in
-                                               let mark = match c.marking with
-                                                 |None -> assert false
-                                                 |Some mark -> mark
-                                               in
-                                               {list = (x2,t2)::(x1,t1)::(c.list); marking = Some (true::false::mark)}
+                                               (x2,(t2,true))::(x1,(t1, false))::c
         |PDrop ps -> aux ps
         |PCons (ps,(x1,t1),(x2,t2)) -> let c = aux ps in
-                                       let mark = match c.marking with
-                                         |None -> assert false
-                                         |Some mark -> mark
-                                       in
-                                       {list = (x2,t2)::(x1,t1)::(c.list); marking = Some (false::false::mark)}
-        |PNil (x,t) -> {list = [(x,t)]; marking = Some [false]}
+                                       (x2,(t2,false))::(x1,(t1,false))::c
+        |PNil (x,t) -> [(x,(t,false))]
       in (aux ps)
 
   (* ---------------------
       Structural operations
       --------------------- *)
 
-  (* TODO: reverse.........*)
   (** First element of a context. *)
   let rec head ctx =
-    match ctx.list, ctx.marking with
-    |[],_ -> assert false
-    |a::_, Some (b::_) -> a,Some b
-    |a::_, None -> a,None
-    |_,_ -> assert false
+    match ctx with
+    |[] -> assert false
+    |a::_ -> a
            
   (** Tail of a context. *)
-  let rec tail ctx = match ctx.list, ctx.marking with 
-    |[],_ -> assert false
-    |_::l, Some (_::mark) -> {list = l; marking = Some mark}
-    |_::l, None -> {list = l; marking = None}
-    |_,_ -> assert false
-
+  let rec tail ctx =
+    match ctx with 
+    |[] -> assert false
+    |_::l -> l
                    
   (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
   let suspend (ctx : t) i =
@@ -448,35 +415,35 @@ struct
     let ctx',ty = aux 1 ctx' (Arr (Var (New 1), Var (New 2))) in
     let open Ty in
     let rec comp c res = match c with
-      | (x,tx)::c when tx.e = Obj-> comp c (Ctx.add res (var_of_cvar x) ty)
-      | (x,tx)::c -> comp c (Ctx.add res (var_of_cvar x) (Ty.reinit tx))
+      | (x,(tx,_))::c when tx.e = Obj-> comp c (Ctx.add res (var_of_cvar x) ty)
+      | (x,(tx,_))::c -> comp c (Ctx.add res (var_of_cvar x) (Ty.reinit tx))
       | [] -> res
     in
-    comp (List.rev ctx.list) ctx'
+    comp (List.rev ctx) ctx'
        
   (* --------------------
      Syntactic properties
      -------------------- *)
   (** Domain of definition of a context. *)
-  let domain ctx = List.map fst ctx.list
+  let domain ctx = List.map fst ctx
 
-  let value ctx = ctx.list
+  let value (ctx : t) = ctx
     
   (** Check whether a variable belongs to a context. *)
   let mem (c:t) v =
     let rec aux c =  
       match c with
       | [] -> false
-      | (x,u)::c when x = v -> true
+      | (x,_)::c when x = v -> true
       | _::c -> aux c
-    in aux c.list
+    in aux c
 	      
   (* -------------------
      Equality procedures
      ------------------- *)
   (** Is a context empty? *)
   let is_empty (c:t) =
-    c.list = []
+    c = []
 
   (** Check whether a context is included in another one. *)
   (* TODO: this is a bit worrying as a function, is it really necessary or can
@@ -487,8 +454,8 @@ struct
       if Ctx.is_empty ctx1 then ()
       else if Ctx.is_empty ctx2 then raise NotValid
       else
-        let ((v1,x1),_),t1 = Ctx.head ctx1, Ctx.tail ctx1 in
-        let ((v2,x2),_),t2 = Ctx.head ctx2, Ctx.tail ctx2 in
+        let (v1,(x1,_)),t1 = Ctx.head ctx1, Ctx.tail ctx1 in
+        let (v2,(x2,_)),t2 = Ctx.head ctx2, Ctx.tail ctx2 in
         if not (v1 = v2) then
           sub c ctx1 t2
         else (Ty.check_equal c x1 x2;
@@ -498,12 +465,10 @@ struct
   (** Equality of contexts. *)
   let rec check_equal ctx1 ctx2 =
     let rec equal c (ctx1 : Ctx.t) (ctx2 : Ctx.t) =
-      match ((ctx1.list :> (cvar * Ty.t) list),
-             (ctx2.list :> (cvar * Ty.t) list)) with
+      match (ctx1 :> t), (ctx2 :> t) with
       | [],[] -> ()
-      | _::_, _::_ ->
-         let ((v1,x1),_),t1 = (Ctx.head ctx1, Ctx.tail ctx1) in
-         let ((v2,x2),_),t2 = (Ctx.head ctx2, Ctx.tail ctx2) in
+      | (v1,(x1,_))::_, (v2,(x2,_))::_ ->
+         let t1 = Ctx.tail ctx1 and t2 = Ctx.tail ctx2 in
          if not (v1 = v2) then raise NotValid;
          Ty.check_equal c x1 x2;
          equal ctx1 t1 t2
@@ -512,46 +477,40 @@ struct
 	
   let mark c =
     let rec appears x c = match c with
-      |(_,a)::q -> (List.mem x (Ty.free_vars a)) || (appears x q)
+      |(_,(a,_))::q -> (List.mem x (Ty.free_vars a)) || (appears x q)
       |[] -> false
     in
     let rec traversal c =
       match c with
-      |(a::c) -> (not (appears (fst a) c)) :: (traversal c)
+      |((x,(t,_))::c) -> (x, (t, (not (appears x c)))) :: (traversal c)
       |[] -> []
-    in {list = c.list ; marking = Some (List.rev (traversal (List.rev (c.list))))}
+    in List.rev (traversal (List.rev c))
              
      (* --------
       Printing
       -------- *)	      
   (** String representation of a context. *)
   let rec to_string ctx =
-    match ctx.list, ctx.marking with
-    | [],_ -> ""
-    | (x,t)::c, Some (false::mark) ->
+    match ctx with
+    | [] -> ""
+    | (x,(t,false))::c ->
        Printf.sprintf "%s {%s,%s}"
-         (to_string {list = c; marking = (Some mark)})
+         (to_string c)
          (CVar.to_string x)
          (Ty.to_string t)
-    | (x,t)::c, Some (true::mark) ->
+    | (x,(t,true))::c ->
        Printf.sprintf "%s (%s,%s)"
-         (to_string {list = c; marking = (Some mark)})
+         (to_string c)
 	 (CVar.to_string x)
          (Ty.to_string t)
-    | (x,t)::c, None ->
-       Printf.sprintf "%s (%s,%s)"
-         (to_string {list = c; marking = None})
-	 (CVar.to_string x)
-         (Ty.to_string t)
-    | _,_ -> assert false
                       
   (** dimension of a context is the maximal dimension of its variables *)
   let dim ctx =
     let rec aux c i = match c with
       |[] -> i
-      |(_,ty)::c when Ty.dim ty>i -> aux c (Ty.dim ty)
+      |(_,(ty,_))::c when Ty.dim ty>i -> aux c (Ty.dim ty)
       |_::c -> aux c i
-    in aux ctx.list 0
+    in aux ctx 0
                              
 end
 
@@ -643,11 +602,11 @@ struct
     let build l = 
       let x0,ty,l =
         match l with
-        | (x,ty)::l when ty.e = Obj -> x,ty,l
+        | (x,(ty,_))::l when ty.e = Obj -> x,ty,l
         | _ -> raise Invalid
       in
       let rec aux ps = function
-        | (y,ty)::(f,tf)::l ->
+        | ((y,(ty,_))::(f,(tf,_))::l) as l1 ->
            begin
              let open Tm in
              let open Ty in
@@ -662,7 +621,7 @@ struct
                   let ps = PCons (ps,(y,ty),(f,tf)) in
                   aux ps l
                   else
-                    aux (PDrop ps) ((y,ty)::(f,tf)::l)
+                  aux (PDrop ps) l1
              | _ -> raise Invalid
            end
         | [x,tx] -> raise Invalid
