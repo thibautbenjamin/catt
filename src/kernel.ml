@@ -174,9 +174,7 @@ struct
        Ty.check tar u;
        Tm.check_type src t (apply_list_Ty s tar src u)
 	
-  (** String representation of a substitution. We need a pasting scheme
-     representation of the target in order to print only cells of locally
-     maximal dimension. *)
+  (** String representation of a substitution. We print only maximal elements *)
   let to_string (s:t) =
     let rec print_list s c =
       match s,c with
@@ -190,11 +188,11 @@ struct
       | _ -> assert false
     in print_list s.list s.tar
 
-              
   (** Given a list of terms of maximal dimension, complete it into a
      full-fledged substitution. *)
   exception Completed of ((CVar.t * Ty.t) * Tm.t option * bool) list
   let elaborate (l: Tm.t list) src tar : Tm.t list =
+    (* debug "elaborating substitution %s in context %s" (print_list l) (Ctx.to_string tar); *)
     let rec create_assoc tar (l : Tm.t list) =
       match l with
       | (h::l')as l ->
@@ -337,7 +335,6 @@ end
   =
 struct
   (** A context. *)
-  (* TODO: reverse the order of lists *)
   type ctx_list = (cvar * Ty.t) list
   type t = {list : ctx_list; marking : (bool list) option}
 
@@ -358,7 +355,7 @@ struct
     try
       ignore (List.assoc x (ctx.list :> (CVar.t * Ty.t) list));
       raise (DoubleDef (CVar.to_string x))
-    with Not_found -> {list = ctx.list@[x,u]; marking = None}
+    with Not_found -> {list = (x,u)::ctx.list; marking = None}
 
   (** Add a typed variable to a context. *)
   let add (ctx : Ctx.t) x u : t =
@@ -393,14 +390,14 @@ struct
                                                  |None -> assert false
                                                  |Some mark -> mark
                                                in
-                                               {list = (c.list)@[(x1,t1);(x2,t2)]; marking = Some (mark@[false; true])}
+                                               {list = (x2,t2)::(x1,t1)::(c.list); marking = Some (true::false::mark)}
         |PDrop ps -> aux ps
         |PCons (ps,(x1,t1),(x2,t2)) -> let c = aux ps in
                                        let mark = match c.marking with
                                          |None -> assert false
                                          |Some mark -> mark
                                        in
-                                       {list = (c.list)@[(x1,t1);(x2,t2)]; marking = Some (mark@[false; false])}
+                                       {list = (x2,t2)::(x1,t1)::(c.list); marking = Some (false::false::mark)}
         |PNil (x,t) -> {list = [(x,t)]; marking = Some [false]}
       in (aux ps)
 
@@ -410,28 +407,21 @@ struct
 
   (* TODO: reverse.........*)
   (** First element of a context. *)
-  let rec head ctx = match ctx.list, ctx.marking with
+  let rec head ctx =
+    match ctx.list, ctx.marking with
     |[],_ -> assert false
-    |a::[], Some (b::[]) -> a,Some b
-    |a::[], None -> a,None
-    |_::ctx, Some (_::mark) -> head {list = ctx; marking = Some mark}
-    |_::ctx, None -> head {list = ctx; marking = None}
+    |a::_, Some (b::_) -> a,Some b
+    |a::_, None -> a,None
     |_,_ -> assert false
-
+           
   (** Tail of a context. *)
   let rec tail ctx = match ctx.list, ctx.marking with 
     |[],_ -> assert false
-    |_::[], Some (_::[]) -> {list = []; marking = Some []}
-    |_::[], None -> {list = []; marking = None}
-    |a::ctx, Some (b::mark) -> let tl = tail {list = ctx; marking = Some mark} in
-                               let tl_mark = match tl.marking with
-                                 |None -> assert false
-                                 |Some tl_mark -> tl_mark
-                               in
-                               {list = a::tl.list; marking  = Some (b::tl_mark)}
-    |a::ctx, None -> {list = a :: (tail {list = ctx; marking = None}).list; marking = None}
+    |_::l, Some (_::mark) -> {list = l; marking = Some mark}
+    |_::l, None -> {list = l; marking = None}
     |_,_ -> assert false
 
+                   
   (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
   let suspend (ctx : t) i =
     assert (i>=1);
@@ -462,7 +452,7 @@ struct
       | (x,tx)::c -> comp c (Ctx.add res (var_of_cvar x) (Ty.reinit tx))
       | [] -> res
     in
-    comp ctx.list ctx'
+    comp (List.rev ctx.list) ctx'
        
   (* --------------------
      Syntactic properties
@@ -529,7 +519,7 @@ struct
       match c with
       |(a::c) -> (not (appears (fst a) c)) :: (traversal c)
       |[] -> []
-    in {list = c.list ; marking = Some (traversal (c.list))}
+    in {list = c.list ; marking = Some (List.rev (traversal (List.rev (c.list))))}
              
      (* --------
       Printing
@@ -539,24 +529,22 @@ struct
     match ctx.list, ctx.marking with
     | [],_ -> ""
     | (x,t)::c, Some (false::mark) ->
-       Printf.sprintf "{%s,%s} %s"
-	 (CVar.to_string x)
+       Printf.sprintf "%s {%s,%s}"
+         (to_string {list = c; marking = (Some mark)})
+         (CVar.to_string x)
          (Ty.to_string t)
-         (to_string {list = c; marking = Some mark})
     | (x,t)::c, Some (true::mark) ->
-       Printf.sprintf "(%s,%s) %s"
+       Printf.sprintf "%s (%s,%s)"
+         (to_string {list = c; marking = (Some mark)})
 	 (CVar.to_string x)
          (Ty.to_string t)
-         (to_string {list = c; marking = Some mark})
     | (x,t)::c, None ->
-       Printf.sprintf "(%s,%s) %s"
+       Printf.sprintf "%s (%s,%s)"
+         (to_string {list = c; marking = None})
 	 (CVar.to_string x)
          (Ty.to_string t)
-         (to_string {list = c; marking = None})
     | _,_ -> assert false
-
-
-
+                      
   (** dimension of a context is the maximal dimension of its variables *)
   let dim ctx =
     let rec aux c i = match c with
@@ -652,35 +640,37 @@ struct
       | Obj -> ps
       | Arr (tx,_,_) -> close (PDrop ps) tx
     in
-    let x0,ty,l =
-      match (Ctx.value l) with
-      | (x,ty)::l when ty.e = Obj -> x,ty,l
-      | _ -> raise Invalid
-    in
-    let rec aux ps = function
-      | (y,ty)::(f,tf)::l ->
-         begin
-           let open Tm in
-           let open Ty in
-           match tf.e with
-           | Arr (_, {e = CVar fx}, {e = CVar fy}) ->
-              if (y <> fy) then raise Invalid;
-              let x,tx = marker ps in
-              if x = fx then
-                let varps = PS.domain ps in
-                if (List.mem f varps) then raise (DoubledVar (CVar.to_string f));
-                if (List.mem y varps) then raise (DoubledVar (CVar.to_string y));
-                let ps = PCons (ps,(y,ty),(f,tf)) in
-                aux ps l
-                else
-                  aux (PDrop ps) ((y,ty)::(f,tf)::l)
-           | _ -> raise Invalid
-         end
-      | [x,tx] -> raise Invalid
-      | [] ->
-	 let x,tx = marker ps in close ps tx 
-    in
-    aux (PNil (x0,ty)) l
+    let build l = 
+      let x0,ty,l =
+        match l with
+        | (x,ty)::l when ty.e = Obj -> x,ty,l
+        | _ -> raise Invalid
+      in
+      let rec aux ps = function
+        | (y,ty)::(f,tf)::l ->
+           begin
+             let open Tm in
+             let open Ty in
+             match tf.e with
+             | Arr (_, {e = CVar fx}, {e = CVar fy}) ->
+                if (y <> fy) then raise Invalid;
+                let x,tx = marker ps in
+                if x = fx then
+                  let varps = PS.domain ps in
+                  if (List.mem f varps) then raise (DoubledVar (CVar.to_string f));
+                  if (List.mem y varps) then raise (DoubledVar (CVar.to_string y));
+                  let ps = PCons (ps,(y,ty),(f,tf)) in
+                  aux ps l
+                  else
+                    aux (PDrop ps) ((y,ty)::(f,tf)::l)
+             | _ -> raise Invalid
+           end
+        | [x,tx] -> raise Invalid
+        | [] ->
+	   let x,tx = marker ps in close ps tx 
+      in
+      aux (PNil (x0,ty)) l
+    in build (List.rev (Ctx.value l))
 
      (* ---------------------
       Structural operations

@@ -3,8 +3,8 @@ DOC_FILES = kernel.ml
 RESULT = catt
 ANNOTATE = true
 
-# all: dnc
-all: pnc
+all: dnc
+# all: pnc
 	# ./catt ../examples/sam.catt
 	# ./catt ../examples/test.catt
 	# ./catt ../examples/double-braiding-dim4.catt
