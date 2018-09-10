@@ -1487,11 +1487,6 @@ CubComp4 (step1D2DR a r)
 
 
 
-
-
-
-
-
 let id2 (x : *) = id (id x)
 
 

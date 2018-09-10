@@ -389,37 +389,6 @@ struct
     |[] -> assert false
     |_::l -> l
                    
-  (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
-  let suspend (ctx : t) i =
-    assert (i>=1);
-    let rec aux k c ty=
-      match k with
-      | k when k = i -> c,ty
-      | k ->
-	 let k' = k+1 in
-	 let ty = Arr (Var (New (2*k-1)), Var (New (2*k))) in
-	 let ty' = Arr (Var (New (2*k'-1)), Var (New (2*k'))) in
-         aux k'
-	   (Ctx.add 
-	      (Ctx.add c (New ((2*k')-1)) ty)
-	      (New (2*k'))
-	      ty)
-	   ty'
-    in
-    let ctx' =
-      Ctx.add 
-	(Ctx.add (Ctx.empty ()) (New 1) Obj)
-	(New 2)
-	Obj    
-    in
-    let ctx',ty = aux 1 ctx' (Arr (Var (New 1), Var (New 2))) in
-    let open Ty in
-    let rec comp c res = match c with
-      | (x,(tx,_))::c when tx.e = Obj-> comp c (Ctx.add res (var_of_cvar x) ty)
-      | (x,(tx,_))::c -> comp c (Ctx.add res (var_of_cvar x) (Ty.reinit tx))
-      | [] -> res
-    in
-    comp (List.rev ctx) ctx'
        
   (* --------------------
      Syntactic properties
@@ -445,6 +414,50 @@ struct
   let is_empty (c:t) =
     c = []
 
+  let maxNewVar l =
+    let rec aux n l =
+      match l with
+      |[] -> n
+      |v::l ->
+        match CVar.to_var v with
+        |Name _ -> aux n l 
+        |New k -> aux (max k n) l
+    in aux 0 l
+          
+  (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
+  let suspend (ctx : t) i =
+    let n = maxNewVar (domain ctx) in
+    assert (i>=1);
+    let rec aux k c ty=
+      match k with
+      | k when k = i -> c,ty
+      | k ->
+	 let k' = k+1 in
+	 let ty = Arr (Var (New (2*k-1)), Var (New (2*k))) in
+	 let ty' = Arr (Var (New (2*k'-1)), Var (New (2*k'))) in
+         aux k'
+	   (Ctx.add 
+	      (Ctx.add c (New ((2*k')-1)) ty)
+	      (New (2*k'))
+	      ty)
+	   ty'
+    in
+    let ctx' =
+      Ctx.add 
+	(Ctx.add (Ctx.empty ()) (New (n+1)) Obj)
+	(New (n+2))
+	Obj    
+    in
+    let ctx',ty = aux (n+1) ctx' (Arr (Var (New (n+1)), Var (New (n+2)))) in
+    let open Ty in
+    let rec comp c res = match c with
+      | (x,(tx,_))::c when tx.e = Obj-> comp c (Ctx.add res (var_of_cvar x) ty)
+      | (x,(tx,_))::c -> comp c (Ctx.add res (var_of_cvar x) (Ty.reinit tx))
+      | [] -> res
+    in
+    comp (List.rev ctx) ctx'
+
+          
   (** Check whether a context is included in another one. *)
   (* TODO: this is a bit worrying as a function, is it really necessary or can
      we get rid of it? *)
@@ -543,7 +556,8 @@ sig
   val source : int -> t -> t
   val target : int -> t -> t
   val suspend : t -> int -> t
-       
+  (* val functorialize : t -> int -> t *)
+                              
   (* Printing *)
   val to_string : t -> string
 end
@@ -680,7 +694,10 @@ struct
   (* TODO: implement this more efficiently *)
   let rec suspend ps i =
     mk (Ctx.suspend (Ctx.of_ps ps) i)
-       
+
+  (* let rec functorialize ps i = match ps,i with *)
+  (*   |PNil x, 0 -> PCons(PNil x, EVar.New 0, EVar.New 1)  *)
+    
   (* --------
      Printing
      -------- *)
