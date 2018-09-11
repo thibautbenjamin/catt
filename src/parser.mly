@@ -3,7 +3,15 @@
     open Command
     open Syntax
 
-%}
+    let generate_functorialize l =
+    	let rec aux l i = match l with
+	|[] -> [],[]
+	|(x,true)::l -> let (res,func) = aux l (i+1)
+		        in x::res,i::func
+	|(x,false)::l -> let (res,func) = aux l (i+1)
+		      	 in x::res,func
+	in aux l 0 
+%} 
 
 %token COH OBJ PIPE MOR
 %token LPAR RPAR LBRA RBRA COL
@@ -17,6 +25,7 @@
 %start prog
 %type <Command.prog> prog
 %%
+
 
 prog:
     | cmd prog { $1::$2 }
@@ -39,12 +48,16 @@ list_replace:
     | { [] }
 
 sub:
-    | simple_tmexpr sub { $1::$2 }	
+    | simple_tmexpr sub { ($1,false)::$2 }
+    | functorialized_tmexpr sub { ($1,true)::$2 }
     | { [] }
 
 simple_tmexpr:
     | LPAR tmexpr RPAR { $2 }
     | IDENT { Var (make_var $1) }
+
+functorialized_tmexpr:
+    | LBRA simple_tmexpr RBRA { $2 }
 
 simple_tyexpr:
     | LPAR tyexpr RPAR { $2 }
@@ -52,7 +65,8 @@ simple_tyexpr:
 
 subst_tmexpr:
     | simple_tmexpr { $1 }	
-    | simple_tmexpr simple_tmexpr sub { Sub ($1,$2::$3,[]) }
+    | simple_tmexpr simple_tmexpr sub { let sub,func = generate_functorialize (($2,false)::$3) in Sub ($1,sub,func) }
+    | simple_tmexpr functorialized_tmexpr sub { let sub,func = generate_functorialize (($2,true)::$3) in Sub($1,sub,func) }
 
 tmexpr:
     | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (make_var $2, $4, $6) }
