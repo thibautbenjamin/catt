@@ -71,3 +71,10 @@ let make_var s = Name s
   let remove_let_ty e =
     replace_ty [] e
 
+  (** replace the term tm1 by the term tm2 in the list l *)
+  let rec replace_tm_list l v1 v2 =
+    match l with
+    |[] -> assert false
+    |(Var v)::l when v == v1-> (Var v2)::l
+    |t::l -> t::(replace_tm_list l v1 v2)
+    

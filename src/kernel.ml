@@ -299,6 +299,7 @@ sig
   (* Syntactic properties *)
   val ty_var : t -> cvar -> Ty.t
   val domain : t -> cvar list
+  val max_used_var : t -> int
   val value : t -> (cvar * (Ty.t * bool)) list
   val mem : t -> cvar -> bool
   val dim : t -> int
@@ -414,7 +415,7 @@ struct
   let is_empty (c:t) =
     c = []
 
-  let maxNewVar l =
+  let max_used_var ctx =
     let rec aux n l =
       match l with
       |[] -> n
@@ -422,11 +423,12 @@ struct
         match CVar.to_var v with
         |Name _ -> aux n l 
         |New k -> aux (max k n) l
-    in aux 0 l
+    in aux 0 (domain ctx)
           
   (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
   let suspend (ctx : t) i =
-    let n = maxNewVar (domain ctx) in
+    (* picking a fresh number for the new variable in context ctx*)
+    let n = max_used_var ctx in 
     assert (i>=1);
     let rec aux k c ty=
       match k with
@@ -556,7 +558,7 @@ sig
   val source : int -> t -> t
   val target : int -> t -> t
   val suspend : t -> int -> t
-  (* val functorialize : t -> int -> t *)
+  val functorialize : t -> int -> t * tm list * tm list
                               
   (* Printing *)
   val to_string : t -> string
@@ -695,8 +697,39 @@ struct
   let rec suspend ps i =
     mk (Ctx.suspend (Ctx.of_ps ps) i)
 
-  (* let rec functorialize ps i = match ps,i with *)
-  (*   |PNil x, 0 -> PCons(PNil x, EVar.New 0, EVar.New 1)  *)
+  (*TODO : Create a good method to pick fresh variables*)
+  let functorialize ps i =
+    let originalctx = Ctx.of_ps ps in
+    let n = Ctx.max_used_var originalctx in
+    let rec compute_ctx ps i=
+    match ps,i with
+    |(PNil (x,_) as ps), 0 ->
+      let x = CVar.to_var x in
+      let ctx1 = (Ctx.add (Ctx.of_ps ps) (New (n+1)) Obj) in
+      Ctx.add ctx1 (New (n+2)) (Arr(Var x,Var (New (n+1)))), x 
+    |((PDrop (PCons (_,_,(x,ty)))) as ps), 0 ->
+      let x = CVar.to_var x in
+      let ctx1 = Ctx.add (Ctx.of_ps ps) (New (n+1)) (Ty.reinit ty) in
+      Ctx.add ctx1 (New (n+2)) (Arr(Var x, Var (New (n+1)))), x
+    |(PDrop (PCons (ps,(x1,ty1),(x2,ty2)))), i ->
+      let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
+      let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
+      let ctx,t = compute_ctx ps (i-1) in
+      Ctx.add (Ctx.add ctx x1 ty1) x2 ty2, t
+    |PDrop(ps), i -> compute_ctx ps i
+    |PCons(ps,(x1,ty1),(x2,ty2)), i ->
+      let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
+      let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
+      let ctx,t = compute_ctx ps i in
+      Ctx.add (Ctx.add ctx x1 ty1) x2 ty2, t
+    |PNil (x,_), i -> assert(false)
+    in
+    let newps,x = compute_ctx ps i in
+    let src = List.map (fun v -> Var (CVar.to_var v)) (domain ps) in
+    let tgt = replace_tm_list src x (New (n+1)) in
+    PS.mk newps,src,tgt
+      
+      
     
   (* --------
      Printing
@@ -737,6 +770,7 @@ sig
   val mk_let : Tm.t -> t
 
   val suspend : t -> int -> t
+  val functorialize : t -> int -> var -> t
                          
   val ty :  t -> (Ctx.t * Ty.t)
   val ctx : t -> Ctx.t
@@ -762,7 +796,14 @@ struct
       let newtm = Tm.mark_ctx newtm in
       Let newtm
 
-                     
+  let functorialize v i evar =
+    match v with
+    |Coh coh ->
+      let newcoh = Coh.functorialize coh i evar in
+      Coh newcoh
+    |Let tm -> assert (false)
+  (* TODO : functorialize let definitions *)
+
   let ty value =
     match value with
     |Coh coh -> (Ctx.of_ps (Coh.ps coh), Coh.target coh)
@@ -986,14 +1027,12 @@ sig
 end
   =
 struct
-  (* TODO: change Cut to EVar *)
   (** An expression. *)
   type expr =
     | CVar of cvar (** a context variable *)
     | Sub of evar * EnvVal.t * Sub.t (** a substituted environment variable *)
   (** A term, i.e. an expression with given type in given context. *)
   and t = {c : Ctx.t; ty : Ty.t; e : expr}
-
             
   exception Unknown
              
@@ -1128,6 +1167,7 @@ and Coh
   val ps : t -> PS.t
   val target : t -> Ty.t
   val suspend : t -> int -> t
+  val functorialize : t -> int -> var ->  t
 end
 =
 struct
@@ -1186,6 +1226,11 @@ struct
   let suspend (ps,t) i =
     let t = Ty.reinit t in
     let ps = PS.suspend ps i in
+    (Coh.mk ps t)
+
+  let functorialize (ps,t) i evar =
+    let newps,src,tgt = PS.functorialize ps i in
+    let t = Arr(Sub(Var evar, src),(Sub(Var evar, tgt))) in
     (Coh.mk ps t)
 end
 
