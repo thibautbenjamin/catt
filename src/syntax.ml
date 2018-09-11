@@ -23,18 +23,19 @@ let make_var s = Name s
    and tm =
     | Letin_tm of var * tm * tm
     | Var of var
-    | Sub of tm * (tm list)
+    | Sub of tm * (tm list) * (int list) (*list of variables that are functorialised*)
              
   let rec string_of_ty e =
     match e with
     | Letin_ty (v,e,ty) -> Printf.sprintf "let %s = %s in %s" (string_of_var v) (string_of_tm e) (string_of_ty ty)
     | Obj -> "*"
     | Arr (u,v) -> Printf.sprintf "%s -> %s" (string_of_tm u) (string_of_tm v)
+  (*TODO : print functorialization*)
   and string_of_tm e =
     match e with
     | Letin_tm (v,e,tm) -> Printf.sprintf "let %s = %s in %s" (string_of_var v) (string_of_tm e) (string_of_tm tm)
     | Var x -> string_of_var x
-    | Sub (t,s) -> Printf.sprintf "(%s %s)" (string_of_tm t) (string_of_sub s)
+    | Sub (t,s,_) -> Printf.sprintf "(%s %s)" (string_of_tm t) (string_of_sub s)
   and string_of_sub s =
     match s with
     | [] -> ""
@@ -46,7 +47,7 @@ let make_var s = Name s
     match e with
     | Letin_tm _ -> assert false
     | Var v -> [v]
-    | Sub (e,l) -> List.unions (List.map list_vars l)
+    | Sub (e,l,_) -> List.unions (List.map list_vars l)
 
   (** remove the let in in a term *)  
   let rec replace_tm l e =
@@ -57,7 +58,7 @@ let make_var s = Name s
          with
            Not_found -> Var a
        end
-    | Sub (e,s) -> Sub(replace_tm l e, List.map (replace_tm l) s)
+    | Sub (e,s,func) -> Sub(replace_tm l e, List.map (replace_tm l) s,func)
     | Letin_tm (v,t,tm) -> replace_tm ((v,t)::l) tm
   and replace_ty l t =
     match t with

@@ -52,7 +52,7 @@ simple_tyexpr:
 
 subst_tmexpr:
     | simple_tmexpr { $1 }	
-    | simple_tmexpr simple_tmexpr sub { Sub ($1,$2::$3) }
+    | simple_tmexpr simple_tmexpr sub { Sub ($1,$2::$3,[]) }
 
 tmexpr:
     | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (make_var $2, $4, $6) }

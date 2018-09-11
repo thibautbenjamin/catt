@@ -834,7 +834,7 @@ sig
   val init : unit -> unit
   val add_coh : var -> Coh.t -> unit
   val add_let : var -> Tm.t -> unit
-  val val_var : EVar.t -> int -> EnvVal.t
+  val val_var : EVar.t -> int -> int list -> EnvVal.t
 end
   =
 struct
@@ -864,7 +864,8 @@ struct
     env := (EVar.make x,(dim, [0,u]))::!env
 
   (** Coherence associated to a variable. The second argument is the dimension for expected term *)
-  let val_var x i =
+  (* TODO : implement the functiorialization*)
+  let val_var x i func =
     (* debug "getting the value of id %s in env" (EVar.to_string x); *)
     let rec replace a b l =
       match l with
@@ -1080,7 +1081,7 @@ struct
   let rec reinit tm =
     match tm.e with
     | CVar v -> Var (CVar.to_var v)
-    | Sub (x,v,s) -> Sub (Var (EVar.to_var x), Sub.reinit s)
+    | Sub (x,v,s) -> Sub (Var (EVar.to_var x), Sub.reinit s,[])
 
   let rec list_expl_vars tm : var list =
     match tm.e with
@@ -1114,7 +1115,7 @@ struct
            let e = CVar (CVar.make v) in
            let ty = infer_expr c e in
            ({c = c; ty = ty; e = e}, ty)
-        | Sub (t,s) ->
+        | Sub (t,s,func) ->
            let max_list l = let rec max l i =
                        match l with
                        | [] -> i
@@ -1126,9 +1127,8 @@ struct
            let s = List.map (Tm.make c) s in
            let i = (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
            let v,t = match t with
-             |Var v -> let v = EVar.make v in (v, Env.val_var v i)
-             |Sub (_,_) -> raise BadUnderSub
-             |Letin_tm _ -> assert false
+             |Var v -> let v = EVar.make v in (v, Env.val_var v i func)
+             |(Sub (_,_,_) | Letin_tm(_,_,_)) -> assert false
            in let tar,ty = EnvVal.ty t in
            let s = Sub.mk (List.map fst s) c tar in
            let ty = Sub.apply_Ty s ty in
@@ -1230,8 +1230,8 @@ struct
 
   let functorialize (ps,t) i evar =
     let newps,src,tgt = PS.functorialize ps i in
-    let t = Arr(Sub(Var evar, src),(Sub(Var evar, tgt))) in
-    (Coh.mk ps t)
+    let t = Arr(Sub(Var evar, src,[]),(Sub(Var evar, tgt,[]))) in
+    (Coh.mk newps t)
 end
 
 and Hash
