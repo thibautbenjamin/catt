@@ -697,7 +697,6 @@ struct
   let rec suspend ps i =
     mk (Ctx.suspend (Ctx.of_ps ps) i)
 
-  (*TODO : Create a good method to pick fresh variables*)
   let functorialize ps i =
     let originalctx = Ctx.of_ps ps in
     let n = Ctx.max_used_var originalctx in
@@ -769,6 +768,8 @@ sig
   val mk_coh : Coh.t -> t
   val mk_let : Tm.t -> t
 
+  val dim : t -> int
+                         
   val suspend : t -> int -> t
   val functorialize : t -> int -> var -> t
                          
@@ -786,6 +787,11 @@ struct
 
   let mk_let t = Let t
 
+  (* TODO : make a good notion of dimension for let definitions*)
+  let dim value =  match value with
+    |Coh c -> Coh.dim c
+    |Let _ -> assert(false)
+                     
   let suspend v i =
     match v with
     |Coh coh ->
@@ -824,6 +830,7 @@ struct
 end
     
 (** Operations on environments. *)
+(* TODO : Store functorialized coherence, to avoid computing them over and over again*)
 and Env
 :
 sig
@@ -840,7 +847,7 @@ end
 struct
   (** An environment associates to each environment variable a term together with
      various possible suspensions. It also stores the initial dimension of the unsuspended term *)
-  type t = (evar * (int * (int * EnvVal.t) list)) list
+  type t = (evar * EnvVal.t) list
 
   (** The environment, i.e. the list of defined variables. *)
   let env = ref ([] :> t)
@@ -850,41 +857,43 @@ struct
 
   (** Add a variable together with the corresponding coherence*)
   let add_coh x u =
-    let dim = PS.dim (Coh.ps u) in
     let u = EnvVal.mk_coh u in 
-    env := (EVar.make x,(dim, [0,u]))::!env
+    env := (EVar.make x,u)::!env
 
   (** Add a variable together with the corresponding let term*)
   let add_let x u =
     (* debug "adding %s" (Var.to_string x); *)
     let open Tm in
     let u = Tm.mark_ctx u in
-    let dim = Ctx.dim u.c in
     let u = EnvVal.mk_let u in
-    env := (EVar.make x,(dim, [0,u]))::!env
-
+    env := (EVar.make x,u)::!env
+                          
   (** Coherence associated to a variable. The second argument is the dimension for expected term *)
   (* TODO : implement the functiorialization*)
   let val_var x i func =
     (* debug "getting the value of id %s in env" (EVar.to_string x); *)
-    let rec replace a b l =
-      match l with
-      | (x,y)::l when x = a -> (x,b)::(replace a b l)
-      | (x,y)::l -> (x,y)::(replace a b l)
-      | [] -> []
-    in
-    let dim,family =
+    let coh =
       try List.assoc x !env
       with Not_found -> raise (UnknownCoh (EVar.to_string x))
     in
+    let value = 
+      match func with
+      |[j] -> EnvVal.functorialize coh j (EVar.to_var x)
+      |[] -> coh
+      |_ -> assert false
+    in
+    let dim = EnvVal.dim value in
     let i = i - dim in
-    if i < 0 then failwith "dimension of arguments too low";
-    try (List.assoc i family) 
-    with Not_found ->
-      try let newval = EnvVal.suspend (List.assoc 0 family) i
-          in env := replace x (dim,((i,newval)::family)) (!env);
-             newval
-      with Not_found -> assert false
+    if i >= 1 then EnvVal.suspend value i
+    else value
+    (* let i = i - dim in *)
+    (* if i < 0 then failwith "dimension of arguments too low"; *)
+    (* try (List.assoc i family)  *)
+    (* with Not_found -> *)
+    (*   try let newval = EnvVal.suspend (List.assoc 0 family) i *)
+    (*       in env := replace x (dim,((i,newval)::family)) (!env); *)
+    (*          newval *)
+    (*   with Not_found -> assert false *)
 end
 
 and Ty
@@ -1165,6 +1174,7 @@ and Coh
   val to_string : t -> string
   val check_equal : t -> t -> Ctx.t
   val ps : t -> PS.t
+  val dim : t -> int
   val target : t -> Ty.t
   val suspend : t -> int -> t
   val functorialize : t -> int -> var ->  t
@@ -1223,6 +1233,8 @@ struct
 
   let target (ps,t) = t
 
+  let dim (ps,t) = PS.dim ps
+    
   let suspend (ps,t) i =
     let t = Ty.reinit t in
     let ps = PS.suspend ps i in
