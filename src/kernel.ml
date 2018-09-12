@@ -553,6 +553,7 @@ sig
 
   (* Syntactic properties *)
   val domain : t -> cvar list
+  val explicit_domain : t -> cvar list
   (* val to_expr : t -> (var * Expr.ty) list *)
 
   (* Structural operations *)
@@ -561,7 +562,7 @@ sig
   val source : int -> t -> t
   val target : int -> t -> t
   val suspend : t -> int -> t
-  val functorialize : t -> int -> t * tm list * tm list
+  val functorialize : t -> int -> t * (var * var)
                               
   (* Printing *)
   val to_string : t -> string
@@ -728,10 +729,11 @@ struct
       Ctx.add (Ctx.add ctx x1 ty1) x2 ty2, t
     |PNil (x,_), i -> assert(false)
     in
-    let src = List.rev(List.map (fun v -> Var (CVar.to_var v)) (explicit_domain ps)) in
-    let newps,x = compute_ctx ps ((List.length src) - 1) in
-    let tgt = replace_tm_list src x (New (n+1)) in
-    PS.mk newps,src,tgt
+    let nb_explicit = List.length (explicit_domain ps) in
+    let newps,x = compute_ctx ps (nb_explicit - 1) in
+    (* let src = List.rev(List.map (fun v -> Var (CVar.to_var v)) (explicit_domain ps)) in *)
+    (* let tgt = replace_tm_list src x (New (n+1)) in *)
+    PS.mk newps,(x,New(n+1))
       
       
     
@@ -775,7 +777,7 @@ sig
   val dim : t -> int
                          
   val suspend : t -> int -> t
-  val functorialize : t -> int -> var -> t
+  val functorialize : t -> int list -> var -> t
                          
   val ty :  t -> (Ctx.t * Ty.t)
   val ctx : t -> Ctx.t
@@ -806,12 +808,15 @@ struct
       let newtm = Tm.mark_ctx newtm in
       Let newtm
 
-  let functorialize v i evar =
-    match v with
-    |Coh coh ->
-      let newcoh = Coh.functorialize coh i evar in
-      Coh newcoh
-    |Let tm -> assert (false)
+  let functorialize v l evar =
+    match l with
+    |[] -> v
+    |_ as l -> 
+      match v with
+      |Coh coh ->
+        let newcoh = Coh.functorialize coh l evar in
+        Coh newcoh
+      |Let tm -> assert (false)
   (* TODO : functorialize let definitions *)
 
   let ty value =
@@ -878,12 +883,7 @@ struct
       try List.assoc x !env
       with Not_found -> raise (UnknownCoh (EVar.to_string x))
     in
-    let value = 
-      match func with
-      |[j] -> EnvVal.functorialize value j (EVar.to_var x)
-      |[] -> value
-      |_ -> assert false
-    in
+    let value = EnvVal.functorialize value func (EVar.to_var x) in
     let dim = EnvVal.dim value in
     let i = i - dim in
     if i >= 1 then EnvVal.suspend value i
@@ -1183,7 +1183,7 @@ and Coh
   val dim : t -> int
   val target : t -> Ty.t
   val suspend : t -> int -> t
-  val functorialize : t -> int -> var ->  t
+  val functorialize : t -> int list -> var ->  t
 end
 =
 struct
@@ -1246,10 +1246,27 @@ struct
     let ps = PS.suspend ps i in
     (Coh.mk ps t)
 
-  let functorialize (ps,t) i evar =
-    let newps,src,tgt = PS.functorialize ps i in
-    let t = Arr(Sub(Var evar, src,[]),(Sub(Var evar, tgt,[]))) in
-    (Coh.mk newps t)
+  let functorialize (ps,t) l evar =
+    match l with
+    |[] -> assert(false)
+    |i::l ->
+      let rec funcps l = match l with
+        |[] -> let ps,repl = PS.functorialize ps i in
+               ps,[repl]
+        |(j::l) -> let ps,repl = funcps l in
+                   let newps,newrepl = PS.functorialize ps j in
+                   newps,newrepl::repl
+      in
+      let newps,replacements = funcps l in
+      let src = List.rev(List.map (fun v -> Var (CVar.to_var v)) (PS.explicit_domain ps)) in
+      let rec replace_all repl l =
+        match repl with
+        |[] -> l
+        |(v1,v2) :: repl -> replace_all repl (replace_tm_list l v1 v2)
+      in
+      let tgt = replace_all replacements src in
+      let t = Arr(Sub(Var evar, src,[]),(Sub(Var evar, tgt,[]))) in
+      (Coh.mk newps t) 
 end
 
 and Hash

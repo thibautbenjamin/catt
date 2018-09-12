@@ -6,3 +6,6 @@ let whiskl (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
 let whiskr (x : *) (y : *) (f : x -> y)
                    (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') =
 		   comp f [a]
+let horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                  (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') =
+		  comp [a] [b]
