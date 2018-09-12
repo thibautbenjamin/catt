@@ -1,10 +1,8 @@
 coh id (x : *) : x -> x
 coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
-
-let test (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
-                 (z : *) (g : y -> z) =
-		 comp [a] g
-
-let test1 (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
-                 (z : *) (g : y -> z) =
-		 comp f g
+let whiskl (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                   (z : *) (g : y -> z) =
+		   comp [a] g
+let whiskr (x : *) (y : *) (f : x -> y)
+                   (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') =
+		   comp f [a]

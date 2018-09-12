@@ -794,7 +794,7 @@ struct
   (* TODO : make a good notion of dimension for let definitions*)
   let dim value =  match value with
     |Coh c -> Coh.dim c
-    |Let _ -> assert(false)
+    |Let t -> Tm.dim t
                      
   let suspend v i =
     match v with
@@ -849,8 +849,7 @@ sig
 end
   =
 struct
-  (** An environment associates to each environment variable a term together with
-     various possible suspensions. It also stores the initial dimension of the unsuspended term *)
+  (** An environment associates to each environment variable a value together with its dimension *)
   type t = (evar * EnvVal.t) list
 
   (** The environment, i.e. the list of defined variables. *)
@@ -873,17 +872,16 @@ struct
     env := (EVar.make x,u)::!env
                           
   (** Coherence associated to a variable. The second argument is the dimension for expected term *)
-  (* TODO : implement the functiorialization*)
   let val_var x i func =
     (* debug "getting the value of id %s in env" (EVar.to_string x); *)
-    let coh =
+    let value =
       try List.assoc x !env
       with Not_found -> raise (UnknownCoh (EVar.to_string x))
     in
     let value = 
       match func with
-      |[j] -> EnvVal.functorialize coh j (EVar.to_var x)
-      |[] -> coh
+      |[j] -> EnvVal.functorialize value j (EVar.to_var x)
+      |[] -> value
       |_ -> assert false
     in
     let dim = EnvVal.dim value in
@@ -1029,7 +1027,8 @@ sig
   val check_equal : Ctx.t -> t -> t -> unit
   val check_type : Ctx.t -> t -> Ty.t -> unit
   val make : Ctx.t -> tm -> t * Ty.t
-       
+  val dim : t -> int
+                                  
   val reinit : t -> tm
   val list_expl_vars : t -> var list
 
@@ -1109,7 +1108,10 @@ struct
     let ct = Ctx.suspend ct i in
     let tm = reinit tm in
     fst (Tm.make ct tm)
-    
+
+  let dim tm =
+    Ctx.dim tm.c
+        
   (** Create a term from an expression. *)
   (* TODO: return a value of type t instead of a pair *)                    
   let rec make c e =
