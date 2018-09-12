@@ -38,35 +38,32 @@ cmd:
     | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (make_var $2,$3,$7,Some $5) }
     | LET IDENT args EQUAL tmexpr { Decl (make_var $2,$3,$5, None) }
     
-
 args:
     | LPAR IDENT COL tyexpr RPAR args { (make_var $2, $4)::$6 }
     | { [] }
 
-list_replace:
-    | LET IDENT EQUAL tmexpr IN list_replace { (make_var $2, $4)::$6 }
-    | { [] }
-
 sub:
     | simple_tmexpr sub { ($1,false)::$2 }
-    | functorialized_tmexpr sub { ($1,true)::$2 }
+    | functed_tmexpr sub { ($1,true)::$2 }
     | { [] }
 
 simple_tmexpr:
     | LPAR tmexpr RPAR { $2 }
     | IDENT { Var (make_var $1) }
 
-functorialized_tmexpr:
-    | LBRA simple_tmexpr RBRA { $2 }
+functed_tmexpr:
+    | LBRA tmexpr RBRA { $2 }
 
 simple_tyexpr:
     | LPAR tyexpr RPAR { $2 }
     | OBJ { Obj }
 
 subst_tmexpr:
-    | simple_tmexpr { $1 }	
-    | simple_tmexpr simple_tmexpr sub { let sub,func = generate_functorialize (($2,false)::$3) in Sub ($1,sub,func) }
-    | simple_tmexpr functorialized_tmexpr sub { let sub,func = generate_functorialize (($2,true)::$3) in Sub($1,sub,func) }
+    | simple_tmexpr { $1 }
+    | simple_tmexpr simple_tmexpr sub { let sub,func = generate_functorialize (($2,false)::$3)
+      		    		      	in Sub ($1,sub,func) }
+    | simple_tmexpr functed_tmexpr sub { let sub,func = generate_functorialize (($2,true)::$3)
+      		    		      	 in Sub ($1,sub,func) }
 
 tmexpr:
     | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (make_var $2, $4, $6) }
