@@ -299,6 +299,7 @@ sig
   (* Syntactic properties *)
   val ty_var : t -> cvar -> Ty.t
   val domain : t -> cvar list
+  val explicit_domain : t -> cvar list
   val max_used_var : t -> int
   val value : t -> (cvar * (Ty.t * bool)) list
   val mem : t -> cvar -> bool
@@ -396,6 +397,8 @@ struct
      -------------------- *)
   (** Domain of definition of a context. *)
   let domain ctx = List.map fst ctx
+
+  let explicit_domain ctx = List.map fst (List.filter (fun x -> snd (snd x)) ctx)
 
   let value (ctx : t) = ctx
     
@@ -578,6 +581,8 @@ struct
       -------------------- *)
   (** Domain of definition. *)
   let domain ps = Ctx.domain (Ctx.of_ps ps)
+
+  let explicit_domain ps = Ctx.explicit_domain (Ctx.of_ps ps)
 		      
   (* -----
     Maker
@@ -700,31 +705,31 @@ struct
   let functorialize ps i =
     let originalctx = Ctx.of_ps ps in
     let n = Ctx.max_used_var originalctx in
-    let rec compute_ctx ps i=
+    let rec compute_ctx ps k=
     match ps,i with
     |(PNil (x,_) as ps), 0 ->
       let x = CVar.to_var x in
       let ctx1 = (Ctx.add (Ctx.of_ps ps) (New (n+1)) Obj) in
       Ctx.add ctx1 (New (n+2)) (Arr(Var x,Var (New (n+1)))), x 
-    |((PDrop (PCons (_,_,(x,ty)))) as ps), 0 ->
+    |((PDrop (PCons (_,_,(x,ty)))) as ps), i when i = k ->
       let x = CVar.to_var x in
       let ctx1 = Ctx.add (Ctx.of_ps ps) (New (n+1)) (Ty.reinit ty) in
       Ctx.add ctx1 (New (n+2)) (Arr(Var x, Var (New (n+1)))), x
     |(PDrop (PCons (ps,(x1,ty1),(x2,ty2)))), i ->
       let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
       let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
-      let ctx,t = compute_ctx ps (i-1) in
+      let ctx,t = compute_ctx ps (k-1) in
       Ctx.add (Ctx.add ctx x1 ty1) x2 ty2, t
-    |PDrop(ps), i -> compute_ctx ps i
+    |PDrop(ps), i -> compute_ctx ps k
     |PCons(ps,(x1,ty1),(x2,ty2)), i ->
       let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
       let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
-      let ctx,t = compute_ctx ps i in
+      let ctx,t = compute_ctx ps k in
       Ctx.add (Ctx.add ctx x1 ty1) x2 ty2, t
     |PNil (x,_), i -> assert(false)
     in
-    let newps,x = compute_ctx ps i in
-    let src = List.map (fun v -> Var (CVar.to_var v)) (domain ps) in
+    let src = List.rev(List.map (fun v -> Var (CVar.to_var v)) (explicit_domain ps)) in
+    let newps,x = compute_ctx ps ((List.length src) - 1) in
     let tgt = replace_tm_list src x (New (n+1)) in
     PS.mk newps,src,tgt
       
@@ -756,7 +761,6 @@ struct
 	    (print ps)
       in print ps	  
 end
-
 
 and EnvVal
 :
