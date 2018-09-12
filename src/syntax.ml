@@ -35,12 +35,14 @@ let make_var s = Name s
     match e with
     | Letin_tm (v,e,tm) -> Printf.sprintf "let %s = %s in %s" (string_of_var v) (string_of_tm e) (string_of_tm tm)
     | Var x -> string_of_var x
-    | Sub (t,s,_) -> Printf.sprintf "(%s %s)" (string_of_tm t) (string_of_sub s)
-  and string_of_sub s =
-    match s with
-    | [] -> ""
-    | t::[] -> Printf.sprintf "%s" (string_of_tm t)
-    | t::s -> Printf.sprintf "%s %s" (string_of_tm t) (string_of_sub s)
+    | Sub (t,s,l) -> Printf.sprintf "(%s %s)" (string_of_tm t) (string_of_sub s l 0)
+  and string_of_sub s l i=
+    match s,l with
+    | [],_ -> ""
+    | t::[], k::l when k = i -> Printf.sprintf "[%s]" (string_of_tm t)
+    | t::[], _ -> Printf.sprintf "%s" (string_of_tm t)
+    | t::s, k::l when k = i -> Printf.sprintf "[%s] %s" (string_of_tm t) (string_of_sub s l (i+1))
+    | t::s,l -> Printf.sprintf "%s %s" (string_of_tm t) (string_of_sub s l (i+1))
 
   (** List the variables of an non-checked term (ie only the explicit variables)*)
   let rec list_vars e =
