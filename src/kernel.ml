@@ -774,7 +774,7 @@ sig
   val dim : t -> int
                          
   val suspend : t -> int -> t
-  val functorialize : t -> int list -> var -> t
+  val functorialize : t -> cvar list -> var -> t
                          
   val ty :  t -> (Ctx.t * Ty.t)
   val ctx : t -> Ctx.t
@@ -816,21 +816,16 @@ struct
     |Let t -> let open Tm in t.c
 
   let functorialize v l evar =
-    let vars = List.rev (Ctx.explicit_domain (ctx v)) in
-    let rec names l = match l with
-      |[] -> []
-      |i::l -> (List.get i vars)::(names l)
-    in
-    match (names l) with
+    match l with
     |[] -> v
     |_ as l -> 
       match v with
       |Coh coh ->
         let newcoh = Coh.functorialize coh l evar in
         Coh newcoh
-      |Let tm -> assert (false)
-  (* TODO : functorialize let definitions *)
-
+      |Let tm ->
+        let newtm = Tm.functorialize tm l in
+        Let newtm
                                
   let check_equal v1 tm1 s1 v2 tm2 s2 src =
     match (v1, v2) with
@@ -887,7 +882,12 @@ struct
       try List.assoc x !env
       with Not_found -> raise (UnknownCoh (EVar.to_string x))
     in
-    let value = EnvVal.functorialize value func (EVar.to_var x) in
+    let vars = List.rev (Ctx.explicit_domain (EnvVal.ctx value)) in
+    let rec names l = match l with
+      |[] -> []
+      |i::l -> (List.get i vars)::(names l)
+    in
+    let value = EnvVal.functorialize value (names func) (EVar.to_var x) in
     let dim = EnvVal.dim value in
     let i = i - dim in
     if i >= 1 then EnvVal.suspend value i
@@ -1038,7 +1038,8 @@ sig
 
   val mark_ctx : t -> t
   val suspend : t -> int -> t
-                        
+  val functorialize : t -> cvar list -> t
+                              
   val unify : t -> t -> ((CVar.t * Ty.t) * t option * bool) list -> ((CVar.t * Ty.t) * t option * bool) list
 
 end
@@ -1113,6 +1114,8 @@ struct
     let tm = reinit tm in
     fst (Tm.make ct tm)
 
+  let functorialize tm l = assert false
+                                 
   let dim tm =
     Ctx.dim tm.c
         
