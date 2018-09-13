@@ -15,4 +15,11 @@ module List = struct
 
   let diff l1 l2 =
     filter (fun x  -> not (mem x l2)) l1
+
+  let rec get i l =
+    match l,i with
+    |[],_ -> raise (Not_found)
+    |t::l,0 -> t
+    |_::l,i -> get (i-1) l 
+
 end

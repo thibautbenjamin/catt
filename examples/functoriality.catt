@@ -1,4 +1,7 @@
+### Functoriality does not support the second coherence rule yet
+
 coh id (x : *) : x -> x
+# let transport (x : *) (y : *) (f : x -> y) = id [f]
 coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
 let whiskl (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                    (z : *) (g : y -> z) =
@@ -9,3 +12,13 @@ let whiskr (x : *) (y : *) (f : x -> y)
 let horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                   (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') =
 		  comp [a] [b]
+
+coh comp3 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : x -> w
+let test (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                 (z : *) (g : y -> z)
+		 (w : *) (h : z -> w) (h' : z -> w) (c : h -> h') =
+		 comp3 [a] g [c]
+let test (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                 (z : *) (g : y -> z) (g' : y -> z) (b : g -> g')
+		 (w : *) (h : z -> w) (h' : z -> w) (c : h -> h') =
+		 comp3 [a] [b] [c]

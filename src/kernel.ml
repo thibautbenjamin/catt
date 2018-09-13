@@ -562,7 +562,7 @@ sig
   val source : int -> t -> t
   val target : int -> t -> t
   val suspend : t -> int -> t
-  val functorialize : t -> int -> t * (var * var)
+  val functorialize : t -> cvar -> t * var
                               
   (* Printing *)
   val to_string : t -> string
@@ -703,37 +703,34 @@ struct
   let rec suspend ps i =
     mk (Ctx.suspend (Ctx.of_ps ps) i)
 
-  let functorialize ps i =
+  let functorialize ps v =
     let originalctx = Ctx.of_ps ps in
     let n = Ctx.max_used_var originalctx in
-    let rec compute_ctx ps k=
-    match ps,i with
-    |(PNil (x,_) as ps), 0 ->
+    let rec compute_ctx ps =
+    match ps with
+    |(PNil (x,_) as ps) when x = v ->
       let x = CVar.to_var x in
       let ctx1 = (Ctx.add (Ctx.of_ps ps) (New (n+1)) Obj) in
-      Ctx.add ctx1 (New (n+2)) (Arr(Var x,Var (New (n+1)))), x 
-    |((PDrop (PCons (_,_,(x,ty)))) as ps), i when i = k ->
+      Ctx.add ctx1 (New (n+2)) (Arr(Var x,Var (New (n+1))))
+    |((PDrop (PCons (_,_,(x,ty)))) as ps) when x = v ->
       let x = CVar.to_var x in
       let ctx1 = Ctx.add (Ctx.of_ps ps) (New (n+1)) (Ty.reinit ty) in
-      Ctx.add ctx1 (New (n+2)) (Arr(Var x, Var (New (n+1)))), x
-    |(PDrop (PCons (ps,(x1,ty1),(x2,ty2)))), i ->
+      Ctx.add ctx1 (New (n+2)) (Arr(Var x, Var (New (n+1))))
+    |(PDrop (PCons (ps,(x1,ty1),(x2,ty2)))) ->
       let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
       let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
-      let ctx,t = compute_ctx ps (k-1) in
-      Ctx.add (Ctx.add ctx x1 ty1) x2 ty2, t
-    |PDrop(ps), i -> compute_ctx ps k
-    |PCons(ps,(x1,ty1),(x2,ty2)), i ->
+      let ctx= compute_ctx ps in
+      Ctx.add (Ctx.add ctx x1 ty1) x2 ty2
+    |PDrop(ps) -> compute_ctx ps
+    |PCons(ps,(x1,ty1),(x2,ty2)) ->
       let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
       let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
-      let ctx,t = compute_ctx ps k in
-      Ctx.add (Ctx.add ctx x1 ty1) x2 ty2, t
-    |PNil (x,_), i -> assert(false)
+      let ctx = compute_ctx ps in
+      Ctx.add (Ctx.add ctx x1 ty1) x2 ty2
+    |PNil (x,_) -> assert(false)
     in
-    let nb_explicit = List.length (explicit_domain ps) in
-    let newps,x = compute_ctx ps (nb_explicit - 1) in
-    (* let src = List.rev(List.map (fun v -> Var (CVar.to_var v)) (explicit_domain ps)) in *)
-    (* let tgt = replace_tm_list src x (New (n+1)) in *)
-    PS.mk newps,(x,New(n+1))
+    let newps = compute_ctx ps in
+    PS.mk newps,New(n+1)
       
       
     
@@ -808,17 +805,6 @@ struct
       let newtm = Tm.mark_ctx newtm in
       Let newtm
 
-  let functorialize v l evar =
-    match l with
-    |[] -> v
-    |_ as l -> 
-      match v with
-      |Coh coh ->
-        let newcoh = Coh.functorialize coh l evar in
-        Coh newcoh
-      |Let tm -> assert (false)
-  (* TODO : functorialize let definitions *)
-
   let ty value =
     match value with
     |Coh coh -> (Ctx.of_ps (Coh.ps coh), Coh.target coh)
@@ -828,6 +814,23 @@ struct
     match value with
     |Coh c -> (Ctx.of_ps (Coh.ps c))
     |Let t -> let open Tm in t.c
+
+  let functorialize v l evar =
+    let vars = List.rev (Ctx.explicit_domain (ctx v)) in
+    let rec names l = match l with
+      |[] -> []
+      |i::l -> (List.get i vars)::(names l)
+    in
+    match (names l) with
+    |[] -> v
+    |_ as l -> 
+      match v with
+      |Coh coh ->
+        let newcoh = Coh.functorialize coh l evar in
+        Coh newcoh
+      |Let tm -> assert (false)
+  (* TODO : functorialize let definitions *)
+
                                
   let check_equal v1 tm1 s1 v2 tm2 s2 src =
     match (v1, v2) with
@@ -840,6 +843,7 @@ end
     
 (** Operations on environments. *)
 (* TODO : Store functorialized coherence, to avoid computing them over and over again*)
+(* TODO : Same with suspended coherences and all the combinations of both*)
 and Env
 :
 sig
@@ -1183,7 +1187,7 @@ and Coh
   val dim : t -> int
   val target : t -> Ty.t
   val suspend : t -> int -> t
-  val functorialize : t -> int list -> var ->  t
+  val functorialize : t -> cvar list -> var ->  t
 end
 =
 struct
@@ -1249,13 +1253,13 @@ struct
   let functorialize (ps,t) l evar =
     match l with
     |[] -> assert(false)
-    |i::l ->
+    |v::l ->
       let rec funcps l = match l with
-        |[] -> let ps,repl = PS.functorialize ps i in
-               ps,[repl]
-        |(j::l) -> let ps,repl = funcps l in
-                   let newps,newrepl = PS.functorialize ps j in
-                   newps,newrepl::repl
+        |[] -> let ps,repl = PS.functorialize ps v in
+               ps,[CVar.to_var v,repl]
+        |(v::l) -> let ps,repl = funcps l in
+                   let newps,newrepl = PS.functorialize ps v in
+                   newps,(CVar.to_var v,newrepl)::repl
       in
       let newps,replacements = funcps l in
       let src = List.rev(List.map (fun v -> Var (CVar.to_var v)) (PS.explicit_domain ps)) in
