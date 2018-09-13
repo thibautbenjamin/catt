@@ -562,7 +562,7 @@ sig
   val source : int -> t -> t
   val target : int -> t -> t
   val suspend : t -> int -> t
-  val functorialize : t -> cvar -> t * var
+  val functorialize : t -> cvar -> var -> var -> t
                               
   (* Printing *)
   val to_string : t -> string
@@ -703,19 +703,17 @@ struct
   let rec suspend ps i =
     mk (Ctx.suspend (Ctx.of_ps ps) i)
 
-  let functorialize ps v =
-    let originalctx = Ctx.of_ps ps in
-    let n = Ctx.max_used_var originalctx in
+  let functorialize ps v v' al =
     let rec compute_ctx ps =
     match ps with
     |(PNil (x,_) as ps) when x = v ->
       let x = CVar.to_var x in
-      let ctx1 = (Ctx.add (Ctx.of_ps ps) (New (n+1)) Obj) in
-      Ctx.add ctx1 (New (n+2)) (Arr(Var x,Var (New (n+1))))
+      let ctx1 = (Ctx.add (Ctx.of_ps ps) v' Obj) in
+      Ctx.add ctx1 al (Arr(Var x,Var v'))
     |((PDrop (PCons (_,_,(x,ty)))) as ps) when x = v ->
       let x = CVar.to_var x in
-      let ctx1 = Ctx.add (Ctx.of_ps ps) (New (n+1)) (Ty.reinit ty) in
-      Ctx.add ctx1 (New (n+2)) (Arr(Var x, Var (New (n+1))))
+      let ctx1 = Ctx.add (Ctx.of_ps ps) v' (Ty.reinit ty) in
+      Ctx.add ctx1 al (Arr(Var x, Var v'))
     |(PDrop (PCons (ps,(x1,ty1),(x2,ty2)))) ->
       let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
       let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
@@ -730,7 +728,7 @@ struct
     |PNil (x,_) -> assert(false)
     in
     let newps = compute_ctx ps in
-    PS.mk newps,New(n+1)
+    PS.mk newps
       
       
     
@@ -774,7 +772,7 @@ sig
   val dim : t -> int
                          
   val suspend : t -> int -> t
-  val functorialize : t -> cvar list -> var -> t
+  val functorialize : t -> (cvar * (var * var)) list -> var -> t
                          
   val ty :  t -> (Ctx.t * Ty.t)
   val ctx : t -> Ctx.t
@@ -882,12 +880,15 @@ struct
       try List.assoc x !env
       with Not_found -> raise (UnknownCoh (EVar.to_string x))
     in
-    let vars = List.rev (Ctx.explicit_domain (EnvVal.ctx value)) in
-    let rec names l = match l with
+    let ctx = EnvVal.ctx value in
+    let fresh = Ctx.max_used_var ctx in
+    let vars = List.rev (Ctx.explicit_domain ctx) in
+    let rec names l fresh =
+      match l with
       |[] -> []
-      |i::l -> (List.get i vars)::(names l)
+      |i::l -> (List.get i vars, (New (fresh), New (fresh + 1)))::(names l (fresh + 2))
     in
-    let value = EnvVal.functorialize value (names func) (EVar.to_var x) in
+    let value = EnvVal.functorialize value (names func (fresh + 1)) (EVar.to_var x) in
     let dim = EnvVal.dim value in
     let i = i - dim in
     if i >= 1 then EnvVal.suspend value i
@@ -1038,7 +1039,7 @@ sig
 
   val mark_ctx : t -> t
   val suspend : t -> int -> t
-  val functorialize : t -> cvar list -> t
+  val functorialize : t -> (cvar * (var * var)) list -> t
                               
   val unify : t -> t -> ((CVar.t * Ty.t) * t option * bool) list -> ((CVar.t * Ty.t) * t option * bool) list
 
@@ -1190,7 +1191,7 @@ and Coh
   val dim : t -> int
   val target : t -> Ty.t
   val suspend : t -> int -> t
-  val functorialize : t -> cvar list -> var ->  t
+  val functorialize : t -> (cvar * (var * var)) list -> var ->  t
 end
 =
 struct
@@ -1256,13 +1257,13 @@ struct
   let functorialize (ps,t) l evar =
     match l with
     |[] -> assert(false)
-    |v::l ->
+    |(v,(v',al))::l ->
       let rec funcps l = match l with
-        |[] -> let ps,repl = PS.functorialize ps v in
-               ps,[CVar.to_var v,repl]
-        |(v::l) -> let ps,repl = funcps l in
-                   let newps,newrepl = PS.functorialize ps v in
-                   newps,(CVar.to_var v,newrepl)::repl
+        |[] -> let ps = PS.functorialize ps v v' al in
+               ps,[CVar.to_var v,v']
+        |(v,(v',al))::l -> let ps,repl = funcps l in
+                   let newps = PS.functorialize ps v v' al in
+                   newps,(CVar.to_var v,v')::repl
       in
       let newps,replacements = funcps l in
       let src = List.rev(List.map (fun v -> Var (CVar.to_var v)) (PS.explicit_domain ps)) in
