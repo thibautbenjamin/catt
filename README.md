@@ -42,3 +42,9 @@ let rewrite-in-comp (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                             (z : *) (g : y -> z)
 	            : comp f g -> comp f' g = comp [a] g
 ```
+One can also use fuctoriality with respect to multiple variables at the same time. On the previous example, one can define for instance
+```
+let rewrite-in-comp-both (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                                 (z : *) (g : y -> z) (g' : y -> z) (b : g -> g')
+ 	            : comp f g -> comp f' g' = comp [a] [b]
+```
