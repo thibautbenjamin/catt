@@ -68,6 +68,8 @@ sig
   (* Equality procedures *)
   val check_equal : t -> t -> unit
 
+  val explicit : t -> Tm.t list
+
   (* Printing *)	
   val to_string : t ->  string
 
@@ -232,11 +234,11 @@ struct
     in {list = aux (List.rev l) tar; src = src; tar = tar}
 
   (** Create a substitution described by maximal elements. *)
-  let mk (l:Tm.t list) src tar = 
+  let mk (l:Tm.t list) src tar =
     let list = elaborate (List.rev l) src tar in
     mk_elaborated (List.rev list) src tar
                   
-  (** Keep only the the maximal elements of a substitution ("unealborate"). *)
+  (** Make the expression into a substitution *)
   let reinit (s:t) =
     let rec aux s c = 
       match s,c with
@@ -247,7 +249,21 @@ struct
           |(_,(_,false)) -> aux s (Ctx.tail c)
         end
       |_,_ -> assert false
+    in List.rev (aux s.list s.tar)
+
+  (** Keep only the the maximal elements of a substitution ("unealborate"). *)
+  let explicit (s:t) =
+    let rec aux s c = 
+      match s,c with
+      |[], c when Ctx.is_empty c -> []
+      |(u::s),c -> begin
+          match Ctx.head c with
+          |(_,(_,true)) -> u::(aux s (Ctx.tail c)) 
+          |(_,(_,false)) -> aux s (Ctx.tail c)
+        end
+      |_,_ -> assert false
       in List.rev (aux s.list s.tar)
+
 
   (** List the explicit variables of a substitution. *)
   let list_expl_vars (s:t) =
@@ -262,6 +278,7 @@ struct
       |_,_ -> assert false
     in (aux s.list s.tar)
 
+         
   let unify s s' l =
     let rec unify_list s s' l = 
       match s ,s' with
@@ -295,7 +312,8 @@ sig
   val head : t -> cvar * (Ty.t * bool)
   val tail : t -> t
   val suspend : t -> int -> t
-       
+  val functorialize : t -> (CVar.t * (var * var)) list -> t
+                              
   (* Syntactic properties *)
   val ty_var : t -> cvar -> Ty.t
   val domain : t -> cvar list
@@ -348,6 +366,15 @@ struct
   let add_norm ctx x u =
     Ty.check ctx u;
     add_norm ctx x u
+
+  let add_explicit (ctx : Ctx.t) x u =
+    let u = Ty.make ctx u in
+    let x = CVar.make x in
+    try
+      ignore (List.assoc x (ctx :> t));
+      raise (DoubleDef (CVar.to_string x))
+    with Not_found -> (x,(u,true))::(ctx :> t)
+
 
   (** Create a context from a list of terms. *)
   let rec make l =
@@ -462,6 +489,19 @@ struct
     in
     comp (List.rev ctx) ctx'
 
+  let rec functorialize (c : Ctx.t) l =
+    match (c :> (CVar.t * (Ty.t * bool)) list) with
+    |[] -> []
+    |(x,(tx,false))::_ -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) (Ty.reinit tx)
+    |(x,(tx,true))::_ ->
+      let tx = Ty.reinit tx in
+      try let (y,f) = List.assoc x l in
+          let x = CVar.to_var x in
+          let c = Ctx.add (Ctx.functorialize (Ctx.tail c) l) x tx in
+          let c = Ctx.add c y tx in
+          add_explicit c f (Arr(Var x,Var y)) 
+      with Not_found -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) tx 
+                              
           
   (** Check whether a context is included in another one. *)
   (* TODO: this is a bit worrying as a function, is it really necessary or can
@@ -893,6 +933,7 @@ struct
     let i = i - dim in
     if i >= 1 then EnvVal.suspend value i
     else value
+           
     (* let i = i - dim in *)
     (* if i < 0 then failwith "dimension of arguments too low"; *)
     (* try (List.assoc i family)  *)
@@ -1115,7 +1156,43 @@ struct
     let tm = reinit tm in
     fst (Tm.make ct tm)
 
-  let functorialize tm l = assert false
+  let rec print_func_list l =
+    match l with
+    |[] -> ""
+    |(v,(v',v''))::l ->
+      Printf.sprintf "(%s,%s,%s) %s"
+        (CVar.to_string v)
+        (string_of_var v')
+        (string_of_var v'')
+        (print_func_list l)
+        
+  let functorialize tm l =
+    let c = Ctx.functorialize tm.c l in
+    let rec func_expr e =
+      match e with
+      | CVar v -> begin
+          try Var (snd (List.assoc v l))
+          with Not_found -> Var (CVar.to_var v)
+        end
+      | Sub (x,v,s) ->
+         let vars = List.map (fun x -> CVar.to_var (fst x)) l in
+         let reinit_s = Sub.reinit s in
+         let functed_s = List.map (fun t -> func_expr t.e) (Sub.explicit s) in
+         let rec func s i =
+           match s with
+           |[] -> []
+           |(a::s) when List.exists (fun v -> List.mem v vars) (list_vars a) -> i::(func s (i+1))
+           |(_::s) -> func s (i+1)
+         in
+         debug "func list is %s" (print_func_list l);
+         (* let rec replace_vars_in_s l = *)
+         (*   match l with *)
+         (*   | [] -> s *)
+         (*   | (v,(_,v'))::l -> replace_tm_list (replace_vars_in_s l) (CVar.to_var v) v' *)
+         (* in *)
+         (* debug "new sub is %s" (string_of_sub s [] 0); *)
+         Sub (Var (EVar.to_var x),(functed_s),func (reinit_s) 0)
+    in fst (Tm.make c (func_expr (tm.e)))
                                  
   let dim tm =
     Ctx.dim tm.c
@@ -1131,7 +1208,7 @@ struct
     in
     try aux already_known
     with Unknown ->
-      (* debug "building term %s" (string_of_tm e); *)
+      (* debug "building term %s" (string_of_tm e);  *)
       let newtm,newty = 
         match e with
         | Var v ->
@@ -1153,9 +1230,9 @@ struct
              |Var v -> let v = EVar.make v in (v, Env.val_var v i func)
              |(Sub (_,_,_) | Letin_tm(_,_,_)) -> assert false
            in let tar,ty = EnvVal.ty t in
-           let s = Sub.mk (List.map fst s) c tar in
-           let ty = Sub.apply_Ty s ty in
-           ({c = c; ty = ty; e = Sub(v,t,s)}, ty)
+              let s = Sub.mk (List.map fst s) c tar in
+              let ty = Sub.apply_Ty s ty in
+              ({c = c; ty = ty; e = Sub(v,t,s)}, ty)
         | Letin_tm _ -> assert false
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 

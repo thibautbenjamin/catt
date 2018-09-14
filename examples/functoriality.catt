@@ -22,3 +22,8 @@ let test (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                  (z : *) (g : y -> z) (g' : y -> z) (b : g -> g')
 		 (w : *) (h : z -> w) (h' : z -> w) (c : h -> h') =
 		 comp3 [a] [b] [c]
+
+let sq (x : *) (f : x -> x) =
+       	       comp f f
+let testsq (x : *) (f : x -> x) (g : x -> x) (a : f -> g) =
+    	      	sq [a]
