@@ -6,10 +6,10 @@ The implementation is written in OCaml and is based of [Samuel Mimram's implemen
 
 ## Syntax
 There are two keywords to define a new operation  
-    coh name ps : ty  
+     coh name ps : ty  
 to define a primitive coherence with arguments ps forming a pasting scheme and return type ty  
-    let name args : ty = tm  
-    let name args = tm  
+     let name args : ty = tm  
+     let name args = tm  
 to declare an operation with arguments args and whose definition is tm, the type ty can be specified to be checked or left implicit.
 
 ## Additional features
