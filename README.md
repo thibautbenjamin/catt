@@ -28,7 +28,7 @@ coh id (x : *) : x
 ```
 and then apply it freely to higher dimensional cells
 ```
-let id1 (x : *) (y : *) (f : x -> y) = id f
+let id1 (x : *) (y : *) (f : x -> y) : f -> f = id f
 ```
 
 ### Functoriality of operations
@@ -38,5 +38,7 @@ coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
 ```
 then applying functoriality with respect to the first variable would look like   
 ```
-let rewrite-in-comp (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (z : *) (g : y -> z) : comp f g -> comp f' g = comp [a] g
+let rewrite-in-comp (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                            (z : *) (g : y -> z)
+	            : comp f g -> comp f' g = comp [a] g
 ```
