@@ -27,7 +27,3 @@ let sq (x : *) (f : x -> x) =
        	       comp f f
 let testsq (x : *) (f : x -> x) (g : x -> x) (a : f -> g) =
     	      	sq [a]
-
-let double-whiskl (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (a' : f -> f') (b : a -> a')
-                  (z : *) (g : y -> z) =
-		  whiskl [b] g

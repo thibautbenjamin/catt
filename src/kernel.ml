@@ -359,7 +359,6 @@ struct
 
   (** Add a typed variable to a context. *)
   let add (ctx : Ctx.t) x u : t =
-    (* debug "adding variable %s of type %s in context %s" (string_of_var x)(string_of_ty u)(Ctx.to_string ctx); *)
     let u = Ty.make ctx u in
     add_norm ctx x u
 
@@ -456,35 +455,32 @@ struct
         |New k -> aux (max k n) l
     in aux 0 (domain ctx)
           
-  (** Suspend a context, i.e. replace types "*" by arrow types (forgets the marking).*)
+  (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
   let suspend (ctx : t) i =
     (* picking a fresh number for the new variable in context ctx*)
     let n = max_used_var ctx in 
     assert (i>=1);
-    let rec aux k varnum c ty=
+    let rec aux k c ty=
       match k with
       | k when k = i -> c,ty
       | k ->
-	 let newvar = varnum+1 in
-	 let ty = Arr (Var (New (2*varnum-1)), Var (New (2*varnum))) in
-	 let ty' = Arr (Var (New (2*newvar-1)), Var (New (2*newvar))) in
-         (* debug "called aux with k = %d" varnum; *)
-         (* debug "adding vars _%d and _%d" (2*newvar -1) (2*newvar); *)
-         aux (k+1) newvar
+	 let k' = k+1 in
+	 let ty = Arr (Var (New (2*k-1)), Var (New (2*k))) in
+	 let ty' = Arr (Var (New (2*k'-1)), Var (New (2*k'))) in
+         aux k'
 	   (Ctx.add 
-	      (Ctx.add c (New ((2*newvar)-1)) ty)
-	      (New (2*newvar))
+	      (Ctx.add c (New ((2*k')-1)) ty)
+	      (New (2*k'))
 	      ty)
 	   ty'
     in
-    (* debug "adding vars _%d and _%d" (n+1) (n+2); *)
     let ctx' =
       Ctx.add 
 	(Ctx.add (Ctx.empty ()) (New (n+1)) Obj)
 	(New (n+2))
 	Obj    
     in
-    let ctx',ty = aux 1 ((n+2)/2) ctx' (Arr (Var (New (n+1)), Var (New (n+2)))) in
+    let ctx',ty = aux (n+1) ctx' (Arr (Var (New (n+1)), Var (New (n+2)))) in
     let open Ty in
     let rec comp c res = match c with
       | (x,(tx,_))::c when tx.e = Obj-> comp c (Ctx.add res (var_of_cvar x) ty)
@@ -821,8 +817,6 @@ sig
   val ty :  t -> (Ctx.t * Ty.t)
   val ctx : t -> Ctx.t
   val check_equal : t -> Tm.t -> Sub.t -> t -> Tm.t -> Sub.t -> Ctx.t -> unit
-
-  val to_string : t -> string
 end
 = 
 struct
@@ -858,7 +852,7 @@ struct
     match value with
     |Coh c -> (Ctx.of_ps (Coh.ps c))
     |Let t -> let open Tm in t.c
-                               
+
   let functorialize v l evar =
     match l with
     |[] -> v
@@ -878,10 +872,6 @@ struct
     |Let t, Coh c -> Tm.check_equal src (Sub.apply_Tm s1 t) tm2
     |Coh c, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t)
 
-  let to_string value =
-    match value with
-    |Coh c -> Coh.to_string c
-    |Let t -> Tm.to_string t
 end
     
 (** Operations on environments. *)
@@ -982,6 +972,7 @@ struct
       try List.assoc 0 (functed_values)
       with Not_found -> assert (false)
     in
+<<<<<<< HEAD
     let dim = EnvVal.dim functed_value in
     let i = i - dim in
     (* debug "going to suspend %d times" i; *)
@@ -989,6 +980,13 @@ struct
     with Not_found -> let suspended_value = EnvVal.suspend functed_value i
                       in add_suspended_val x func i suspended_value;
                          suspended_value
+=======
+    let value = EnvVal.functorialize value (names func (fresh + 1)) (EVar.to_var x) in
+    let dim = EnvVal.dim value in
+    let i = i - dim in
+    if i >= 1 then EnvVal.suspend value i
+    else value
+>>>>>>> parent of 583d95c... fixed variable numbering for suspension
            
     (* let i = i - dim in *)
     (* if i < 0 then failwith "dimension of arguments too low"; *)
@@ -1079,7 +1077,6 @@ struct
     in
     try aux already_known
     with Unknown ->
-      (* debug "building type %s" (string_of_ty e); *)
       let newty = 
         match e with
         | Obj -> {c = c; e = Obj}
@@ -1104,7 +1101,6 @@ struct
     | Arr(_,u,v) -> Arr (Tm.reinit u, Tm.reinit v)
 
   let rec unify (ty1 : t) (ty2 : t) l =
-    (* debug "unifying types %s and %s" (to_string ty1) (to_string ty2); *)
     match ty1.e ,ty2.e with
     | Obj, _ -> l
     | Arr(a,u,v), Arr(a',u',v') ->
@@ -1214,15 +1210,15 @@ struct
     let tm = reinit tm in
     fst (Tm.make ct tm)
 
-  (* let rec print_func_list l = *)
-  (*   match l with *)
-  (*   |[] -> "" *)
-  (*   |(v,(v',v''))::l -> *)
-  (*     Printf.sprintf "(%s,%s,%s) %s" *)
-  (*       (CVar.to_string v) *)
-  (*       (string_of_var v') *)
-  (*       (string_of_var v'') *)
-  (*       (print_func_list l) *)
+  let rec print_func_list l =
+    match l with
+    |[] -> ""
+    |(v,(v',v''))::l ->
+      Printf.sprintf "(%s,%s,%s) %s"
+        (CVar.to_string v)
+        (string_of_var v')
+        (string_of_var v'')
+        (print_func_list l)
         
   let functorialize tm l =
     let c = Ctx.functorialize tm.c l in
@@ -1242,7 +1238,7 @@ struct
            |(a::s) when List.exists (fun v -> List.mem v vars) (list_vars a) -> i::(func s (i+1))
            |(_::s) -> func s (i+1)
          in
-         (* debug "func list is %s" (print_func_list l); *)
+         debug "func list is %s" (print_func_list l);
          (* let rec replace_vars_in_s l = *)
          (*   match l with *)
          (*   | [] -> s *)
@@ -1250,8 +1246,7 @@ struct
          (* in *)
          (* debug "new sub is %s" (string_of_sub s [] 0); *)
          Sub (Var (EVar.to_var x),(functed_s),func (reinit_s) 0)
-    in
-    fst (Tm.make c (func_expr (tm.e)))
+    in fst (Tm.make c (func_expr (tm.e)))
                                  
   let dim tm =
     Ctx.dim tm.c
@@ -1267,8 +1262,7 @@ struct
     in
     try aux already_known
     with Unknown ->
-      (* debug "building term %s in ctx : %s" (string_of_tm e) (Ctx.to_string c); *)
-      (* debug "building term %s" (string_of_tm e); *)
+      (* debug "building term %s" (string_of_tm e);  *)
       let newtm,newty = 
         match e with
         | Var v ->
