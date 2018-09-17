@@ -1,4 +1,4 @@
-SOURCES = stdlib.ml settings.ml common.ml syntax.ml kernel.ml lexer.mll parser.mly command.ml prover.ml catt.ml
+SOURCES = stdlib.ml settings.ml common.ml gassoc.ml syntax.ml kernel.ml lexer.mll parser.mly command.ml prover.ml catt.ml
 DOC_FILES = kernel.ml
 RESULT = catt
 ANNOTATE = true

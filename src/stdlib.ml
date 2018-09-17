@@ -13,6 +13,9 @@ module List = struct
   let included l1 l2 =
     for_all (fun x -> mem x l2) l1
 
+  let set_equal l1 l2 =
+    included l1 l2 && included l2 l1
+
   let diff l1 l2 =
     filter (fun x  -> not (mem x l2)) l1
 
