@@ -901,8 +901,8 @@ sig
 end
   =
 struct
-  (** An environment associates to each environment variable a value together with its dimension *)
-  type t = (evar * EnvVal.t) list
+  (** An environment associates to each environment variable a value, then for each possible functorialization list, a list mapping each integer to the coherence functorialized then suspended according the that list and that integer *)
+  type t = (evar * (EnvVal.t * (int list * (int * EnvVal.t) list) list)) list
 
   (** The environment, i.e. the list of defined variables. *)
   let env = ref ([] :> t)
@@ -913,7 +913,7 @@ struct
   (** Add a variable together with the corresponding coherence*)
   let add_coh x u =
     let u = EnvVal.mk_coh u in 
-    env := (EVar.make x,u)::!env
+    env := (EVar.make x,(u,[]))::!env
 
   (** Add a variable together with the corresponding let term*)
   let add_let x u =
@@ -921,31 +921,74 @@ struct
     let open Tm in
     let u = Tm.mark_ctx u in
     let u = EnvVal.mk_let u in
-    env := (EVar.make x,u)::!env
-                          
+    env := (EVar.make x,(u,[]))::!env
+
+  let add_functed_val name l value =
+    let rec replace env_list =
+      match env_list with
+      |[] -> assert(false)
+      |(n,(v,functed))::env_list when name = n ->
+        begin
+          try let _ = List.assoc l functed in (n,(v,functed))::env_list
+          with Not_found -> (n,(v,((l,[0,value])::functed)))::env_list
+        end
+      |(n,v)::env_list -> (n,v)::replace env_list
+    in env := replace (!env)
+
+  let add_suspended_val name (l: int list) (i : int) (value : EnvVal.t) = 
+    let rec replace (env_list : t) =
+      match env_list with
+      |[] -> assert(false)
+      |(n,(v,functed))::env_list when name = n ->
+        let rec replace_susp (functed : (int list * (int * EnvVal.t) list)list) = 
+          match functed with
+          |[] -> assert false
+          |(l',values)::functed when l = l' ->
+            begin
+              try let _ = List.assoc i values in (l',values)::functed
+              with Not_found -> (l',((i,value)::values))::functed
+            end
+          |l'::functed -> l'::(replace_susp functed)
+        in let newfuncted = replace_susp functed
+           in (n,(v,newfuncted))::env_list
+      |(n,v)::env_list -> (n,v)::replace env_list
+    in env := replace (!env)
+                               
   (** Coherence associated to a variable. The second argument is the dimension for expected term *)
   let val_var x i func =
     (* debug "getting the value of id %s in env" (EVar.to_string x); *)
-    let value =
+    let value_list =
       try List.assoc x !env
       with Not_found -> raise (UnknownCoh (EVar.to_string x))
     in
-    let ctx = EnvVal.ctx value in
-    let fresh = Ctx.max_used_var ctx in
-    let vars = List.rev (Ctx.explicit_domain ctx) in
-    let rec names l fresh =
-      match l with
-      |[] -> []
-      |i::l -> (List.get i vars, (New (fresh), New (fresh + 1)))::(names l (fresh + 2))
+    let functed_values =
+      try List.assoc func (snd value_list)
+      with Not_found ->
+        let orig_value = fst value_list in
+        let ctx = EnvVal.ctx orig_value in
+        let fresh = Ctx.max_used_var ctx in
+        let vars = List.rev (Ctx.explicit_domain ctx) in
+        let rec names l fresh =
+          match l with
+          |[] -> []
+          |i::l -> (List.get i vars, (New (fresh), New (fresh + 1)))::(names l (fresh + 2))
+        in
+        debug "value found is %s" (EnvVal.to_string orig_value);
+        let value = EnvVal.functorialize orig_value (names func (fresh + 1)) (EVar.to_var x) in
+        add_functed_val x func value;
+        [0,value]
     in
-    debug "value found is %s" (EnvVal.to_string value);
-    let value = EnvVal.functorialize value (names func (fresh + 1)) (EVar.to_var x) in
-    let dim = EnvVal.dim value in
+    let functed_value =
+      try List.assoc 0 (functed_values)
+      with Not_found -> assert (false)
+    in
+    let dim = EnvVal.dim functed_value in
     let i = i - dim in
-    debug "functorialized as  %s" (EnvVal.to_string value);
-    debug "going to suspend %d times" i;
-    if i >= 1 then EnvVal.suspend value i
-    else value
+    (* debug "going to suspend %d times" i; *)
+    try List.assoc i (functed_values)
+    with Not_found -> let suspended_value = EnvVal.suspend functed_value i
+                      in add_suspended_val x func i suspended_value;
+                         suspended_value
            
     (* let i = i - dim in *)
     (* if i < 0 then failwith "dimension of arguments too low"; *)
