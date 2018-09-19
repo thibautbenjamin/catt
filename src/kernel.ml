@@ -202,7 +202,6 @@ struct
       | _ -> assert false
     in print_list s.list s.tar (List.length (Ctx.explicit_domain s.tar))
     
-
   (** Given a list of terms of maximal dimension, complete it into a
      full-fledged substitution. *)
   exception Completed of ((CVar.t * Ty.t) * Tm.t option * bool) list
@@ -516,20 +515,6 @@ struct
       | [] -> res
     in
     comp (List.rev ctx) ctx'
-
-  let rec functorialize (c : Ctx.t) l =
-    match (c :> (CVar.t * (Ty.t * bool)) list) with
-    |[] -> []
-    |(x,(tx,false))::_ -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) (Ty.reinit tx)
-    |(x,(tx,true))::_ ->
-      let tx = Ty.reinit tx in
-      try let (y,f) = List.assoc x l in
-          let x = CVar.to_var x in
-          let c = Ctx.add (Ctx.functorialize (Ctx.tail c) l) x tx in
-          let c = Ctx.add c y tx in
-          add_explicit c f (Arr(Var x,Var y)) 
-      with Not_found -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) tx 
-                              
           
   (** Check whether a context is included in another one. *)
   (* it is just a prefix, to check if we can spare some type checking *)
@@ -570,7 +555,24 @@ struct
       |((x,(t,_))::c) -> (x, (t, (not (appears x c)))) :: (traversal c)
       |[] -> []
     in List.rev (traversal (List.rev c))
-             
+
+
+  let functorialize (c:Ctx.t) l = 
+    let rec compute (c : Ctx.t) =
+      match (c :> (CVar.t * (Ty.t * bool)) list) with
+      |[] -> []
+      |(x,(tx,false))::_ -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) (Ty.reinit tx)
+      |(x,(tx,true))::_ ->
+        let tx = Ty.reinit tx in
+        try let (y,f) = List.assoc x l in
+            let x = CVar.to_var x in
+            let c = Ctx.add (Ctx.functorialize (Ctx.tail c) l) x tx in
+            let c = Ctx.add c y tx in
+            add_explicit c f (Arr(Var x,Var y)) 
+        with Not_found -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) tx 
+    in mark (compute c)
+
+                
      (* --------
       Printing
       -------- *)	      
@@ -913,7 +915,7 @@ struct
       let newprint =
         match v.print with
         |nm,[] -> nm,func
-        |_ -> assert false
+        |_ -> "internal name should not be printed", []
       in
       let ctx = ctx v in
       let func = to_names ctx func in
@@ -1146,15 +1148,6 @@ struct
     let tm = reinit tm in
     fst (Tm.make ct tm)
 
-  let rec print_func_list l =
-    match l with
-    |[] -> ""
-    |(v,(v',v''))::l ->
-      Printf.sprintf "(%s,%s,%s) %s"
-        (CVar.to_string v)
-        (string_of_var v')
-        (string_of_var v'')
-        (print_func_list l)
         
   let functorialize tm l =
     let c = Ctx.functorialize tm.c l in
@@ -1174,15 +1167,8 @@ struct
            |(a::s) when List.exists (fun v -> List.mem v vars) (list_vars a) -> i::(func s (i+1))
            |(_::s) -> func s (i+1)
          in
-         debug "func list is %s" (print_func_list l);
-         (* let rec replace_vars_in_s l = *)
-         (*   match l with *)
-         (*   | [] -> s *)
-         (*   | (v,(_,v'))::l -> replace_tm_list (replace_vars_in_s l) (CVar.to_var v) v' *)
-         (* in *)
-         (* debug "new sub is %s" (string_of_sub s [] 0); *)
          Sub (Var (EVar.to_var x),(functed_s),func (reinit_s) 0)
-    in fst (Tm.make c (func_expr (tm.e)))
+    in fst (Tm.make c (func_expr (tm.e))) 
                                  
   let dim tm =
     Ctx.dim tm.c
@@ -1220,6 +1206,7 @@ struct
              |Var v -> let v = EVar.make v in Env.val_var v i func
              |(Sub (_,_,_) | Letin_tm(_,_,_)) -> assert false
            in let tar,ty = EnvVal.ty t in
+              (* debug "got the context %s" (Ctx.to_string tar); *)
               let s = Sub.mk (List.map fst s) c tar in
               let ty = Sub.apply_Ty s ty in
               ({c = c; ty = ty; e = Sub(v,t,s)}, ty)

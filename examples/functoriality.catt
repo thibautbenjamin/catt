@@ -13,12 +13,26 @@ let horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                   (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') =
 		  comp [a] [b]
 
+let compbis (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) =
+comp f g
+
+let whisklbis (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                   (z : *) (g : y -> z) =
+		   compbis [a] g
+let whiskrbis (x : *) (y : *) (f : x -> y)
+                   (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') =
+		   compbis f [a]
+let horizbis (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                  (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') =
+		  compbis [a] [b]
+
+
 coh comp3 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : x -> w
-let test (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+let test1 (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                  (z : *) (g : y -> z)
 		 (w : *) (h : z -> w) (h' : z -> w) (c : h -> h') =
 		 comp3 [a] g [c]
-let test (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+let test2 (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                  (z : *) (g : y -> z) (g' : y -> z) (b : g -> g')
 		 (w : *) (h : z -> w) (h' : z -> w) (c : h -> h') =
 		 comp3 [a] [b] [c]
@@ -27,3 +41,7 @@ let sq (x : *) (f : x -> x) =
        	       comp f f
 let testsq (x : *) (f : x -> x) (g : x -> x) (a : f -> g) =
     	      	sq [a]
+
+let double-whiskl (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (a' : f -> f') (b : a -> a')
+                  (z : *) (g : y -> z) =
+		  whiskl [b] g
