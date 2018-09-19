@@ -2,7 +2,7 @@ open Syntax
        
 type kTy
 type kTm
-type env
+(* type env *)
 
 val init_env : unit -> unit
 val add_coh_env : var -> (var * ty) list -> ty -> unit

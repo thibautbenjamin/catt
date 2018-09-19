@@ -2,6 +2,7 @@ open Stdlib
 open Settings
 open Common
 open Syntax
+open Gassoc
 
 (** Environment variables (i.e. defined coherences). *)
 module EVar
@@ -10,17 +11,27 @@ module EVar
   val to_string : t -> string
   val make : var -> t
   val to_var : t -> var
+  val new_fresh : unit -> t
 end
 =
 struct
   type t = var
 
+  let next_fresh = ref (New 0)
+             
   let to_string v =
     string_of_var v
 
   let make v = v
 
   let to_var v = v
+
+  let new_fresh () =
+    let res = !next_fresh in
+    let nxt = match res with
+           |New k -> New (k+1)
+           |_ -> assert (false)
+    in next_fresh := nxt; res                      
 end
 
 (** Context variables (i.e. "arguments of functions"). *)
@@ -806,13 +817,15 @@ sig
     |Coh of Coh.t
     |Let of Tm.t
 
-  val mk_coh : Coh.t -> t
-  val mk_let : Tm.t -> t
+  val mk_coh : (var * ty) list -> ty -> t
+  val mk_let : (var * ty) list -> tm -> t * string
+  val mk_let_check : (var * ty) list -> tm -> ty -> t * string
 
   val dim : t -> int
                          
   val suspend : t -> int -> t
-  val functorialize : t -> (cvar * (var * var)) list -> var -> t
+  val functorialize : t -> int list -> var -> t
+  (* val functorialize : t -> (cvar * (var * var)) list -> var -> t *)
                          
   val ty :  t -> (Ctx.t * Ty.t)
   val ctx : t -> Ctx.t
@@ -824,9 +837,31 @@ struct
     |Coh of Coh.t
     |Let of Tm.t
 
-  let mk_coh c = Coh c
 
-  let mk_let t = Let t
+  let mk_coh ps t =
+  let ps = PS.mk (Ctx.make ps) in
+  let c = Coh.mk ps t in
+  Coh c
+
+
+  (* let mk_coh c = Coh c *)
+
+  let mk_let c u = 
+  let c = Ctx.make c in
+  let u,ty = Tm.make c u in
+  let u = Tm.mark_ctx u in
+  Let u, Ty.to_string ty
+
+  let mk_let_check c u t = 
+  let c = Ctx.make c in
+  let u,ty = Tm.make c u in
+  let t = Ty.make c t in
+  Ty.check_equal c t ty;
+  let u = Tm.mark_ctx u in
+  Let u, Ty.to_string t
+
+      
+  (* let mk_let t = Let t *)
 
   (* TODO : make a good notion of dimension for let definitions*)
   let dim value =  match value with
@@ -853,17 +888,36 @@ struct
     |Coh c -> (Ctx.of_ps (Coh.ps c))
     |Let t -> let open Tm in t.c
 
-  let functorialize v l evar =
-    match l with
+  (* let functorialize v l evar = *)
+  (*   match l with *)
+  (*   |[] -> v *)
+  (*   |_ as l ->  *)
+  (*     match v with *)
+  (*     |Coh coh -> *)
+  (*       let newcoh = Coh.functorialize coh l evar in *)
+  (*       Coh newcoh *)
+  (*     |Let tm -> *)
+  (*       let newtm = Tm.functorialize tm l in *)
+  (*       Let newtm *)
+
+  let to_names ctx func =
+    let fresh = Ctx.max_used_var ctx in
+    let vars = List.rev (Ctx.explicit_domain ctx) in
+    let rec names l fresh =
+      match l with
+      |[] -> []
+      |i::l -> (List.get i vars, (New (fresh), New (fresh + 1)))::(names l (fresh + 2))
+    in names (func) (fresh + 1)
+
+                               
+  let functorialize v func evar =
+    match func with
     |[] -> v
-    |_ as l -> 
-      match v with
-      |Coh coh ->
-        let newcoh = Coh.functorialize coh l evar in
-        Coh newcoh
-      |Let tm ->
-        let newtm = Tm.functorialize tm l in
-        Let newtm
+    |_ -> let ctx = ctx v in
+          let func = to_names ctx func
+          in match v with
+             |Coh coh -> Coh (Coh.functorialize coh func evar)
+             |Let tm -> Let (Tm.functorialize tm func)
                                
   let check_equal v1 tm1 s1 v2 tm2 s2 src =
     match (v1, v2) with
@@ -877,72 +931,82 @@ end
 (** Operations on environments. *)
 (* TODO : Store functorialized coherence, to avoid computing them over and over again*)
 (* TODO : Same with suspended coherences and all the combinations of both*)
-and Env
-:
-sig
-  type t
-  val env : t ref
+(* and Env *)
+(* : *)
+(* sig *)
+(*   type t *)
+(*   val env : t ref *)
        
-  (* Makers *)
+(*   (\* Makers *\) *)
+(*   val init : unit -> unit *)
+(*   val add_coh : var -> Coh.t -> unit *)
+(*   val add_let : var -> Tm.t -> unit *)
+(*   val val_var : EVar.t -> int -> int list -> EnvVal.t *)
+(* end *)
+(*   = *)
+(* struct *)
+(*   (\** An environment associates to each environment variable a value together with its dimension *\) *)
+(*   type t = (evar * EnvVal.t) list *)
+
+(*   (\** The environment, i.e. the list of defined variables. *\) *)
+(*   let env = ref ([] :> t) *)
+
+(*   (\** Initialize the environment. *\) *)
+(*   let init () = env := [] *)
+
+(*   (\** Add a variable together with the corresponding coherence*\) *)
+(*   let add_coh x u = *)
+(*     let u = EnvVal.mk_coh u in  *)
+(*     env := (EVar.make x,u)::!env *)
+
+(*   (\** Add a variable together with the corresponding let term*\) *)
+(*   let add_let x u = *)
+(*     (\* debug "adding %s" (Var.to_string x); *\) *)
+(*     let open Tm in *)
+(*     let u = Tm.mark_ctx u in *)
+(*     let u = EnvVal.mk_let u in *)
+(*     env := (EVar.make x,u)::!env *)
+                          
+(*   (\** Coherence associated to a variable. The second argument is the dimension for expected term *\) *)
+(*   let val_var x i func = *)
+(*     (\* debug "getting the value of id %s in env" (EVar.to_string x); *\) *)
+(*     let value = *)
+(*       try List.assoc x !env *)
+(*       with Not_found -> raise (UnknownCoh (EVar.to_string x)) *)
+(*     in *)
+(*     let ctx = EnvVal.ctx value in *)
+(*     let fresh = Ctx.max_used_var ctx in *)
+(*     let vars = List.rev (Ctx.explicit_domain ctx) in *)
+(*     let rec names l fresh = *)
+(*       match l with *)
+(*       |[] -> [] *)
+(*       |i::l -> (List.get i vars, (New (fresh), New (fresh + 1)))::(names l (fresh + 2)) *)
+(*     in *)
+(*     let value = EnvVal.functorialize value (names func (fresh + 1)) (EVar.to_var x) in *)
+(*     let dim = EnvVal.dim value in *)
+(*     let i = i - dim in *)
+(*     if i >= 1 then EnvVal.suspend value i *)
+(*     else value            *)
+(*     (\* let i = i - dim in *\) *)
+(*     (\* if i < 0 then failwith "dimension of arguments too low"; *\) *)
+(*     (\* try (List.assoc i family)  *\) *)
+(*     (\* with Not_found -> *\) *)
+(*     (\*   try let newval = EnvVal.suspend (List.assoc 0 family) i *\) *)
+(*     (\*       in env := replace x (dim,((i,newval)::family)) (!env); *\) *)
+(*     (\*          newval *\) *)
+(*     (\*   with Not_found -> assert false *\) *)
+(* end *)
+
+and Env : sig 
+
+  val add_let : var -> (var * ty) list -> tm -> string
+  val add_let_check : var -> (var * ty) list -> tm -> ty -> string
+  val add_coh : var -> (var * ty) list -> ty -> unit
   val init : unit -> unit
-  val add_coh : var -> Coh.t -> unit
-  val add_let : var -> Tm.t -> unit
   val val_var : EVar.t -> int -> int list -> EnvVal.t
 end
-  =
-struct
-  (** An environment associates to each environment variable a value together with its dimension *)
-  type t = (evar * EnvVal.t) list
-
-  (** The environment, i.e. the list of defined variables. *)
-  let env = ref ([] :> t)
-
-  (** Initialize the environment. *)
-  let init () = env := []
-
-  (** Add a variable together with the corresponding coherence*)
-  let add_coh x u =
-    let u = EnvVal.mk_coh u in 
-    env := (EVar.make x,u)::!env
-
-  (** Add a variable together with the corresponding let term*)
-  let add_let x u =
-    (* debug "adding %s" (Var.to_string x); *)
-    let open Tm in
-    let u = Tm.mark_ctx u in
-    let u = EnvVal.mk_let u in
-    env := (EVar.make x,u)::!env
-                          
-  (** Coherence associated to a variable. The second argument is the dimension for expected term *)
-  let val_var x i func =
-    (* debug "getting the value of id %s in env" (EVar.to_string x); *)
-    let value =
-      try List.assoc x !env
-      with Not_found -> raise (UnknownCoh (EVar.to_string x))
-    in
-    let ctx = EnvVal.ctx value in
-    let fresh = Ctx.max_used_var ctx in
-    let vars = List.rev (Ctx.explicit_domain ctx) in
-    let rec names l fresh =
-      match l with
-      |[] -> []
-      |i::l -> (List.get i vars, (New (fresh), New (fresh + 1)))::(names l (fresh + 2))
-    in
-    let value = EnvVal.functorialize value (names func (fresh + 1)) (EVar.to_var x) in
-    let dim = EnvVal.dim value in
-    let i = i - dim in
-    if i >= 1 then EnvVal.suspend value i
-    else value           
-    (* let i = i - dim in *)
-    (* if i < 0 then failwith "dimension of arguments too low"; *)
-    (* try (List.assoc i family)  *)
-    (* with Not_found -> *)
-    (*   try let newval = EnvVal.suspend (List.assoc 0 family) i *)
-    (*       in env := replace x (dim,((i,newval)::family)) (!env); *)
-    (*          newval *)
-    (*   with Not_found -> assert false *)
-end
-
+  = GAssoc(EVar)(EnvVal) 
+  
 and Ty
     :
 sig
@@ -1368,29 +1432,26 @@ type kTm = Tm.t
 type kTy = Ty.t
 
     
-type env = Env.t
+(* type env = Env.t *)
 type ctx = Ctx.t
 
 let init_env = Env.init
                  
-let add_coh_env v ps t =
-  let ps = PS.mk (Ctx.make ps) in
-  let c = Coh.mk ps t in
-  Env.add_coh v c
+let add_coh_env = Env.add_coh 
 
 let add_let_env v c u =
-  let c = Ctx.make c in
-  let u,t = Tm.make c u in
-  Env.add_let v u;
-  Ty.to_string t
+  Env.add_let v c u
+(*   Ty.to_string t *)
 
 let add_let_env_of_ty v c u t =
-  let c = Ctx.make c in
-  let u,t' = Tm.make c u in
-  let t = Ty.make c t in
-  Ty.check_equal c t' t;
-  Env.add_let v u;
-  Ty.to_string t
+  Env.add_let_check v c u t
+
+(*   let c = Ctx.make c in *)
+(*   let u,t' = Tm.make c u in *)
+(*   let t = Ty.make c t in *)
+(*   Ty.check_equal c t' t; *)
+(*   Env.add_let v u; *)
+(*   Ty.to_string t *)
                
                     
 let mk_tm c e =
