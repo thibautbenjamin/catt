@@ -11,9 +11,9 @@ end
 module type EVal = sig
   type t
 
-  val mk_coh : (var * ty) list -> ty -> t
-  val mk_let : (var * ty) list -> tm -> t * string
-  val mk_let_check : (var * ty) list -> tm -> ty -> t * string
+  val mk_coh : string -> (var * ty) list -> ty -> t
+  val mk_let : string -> (var * ty) list -> tm -> t * string
+  val mk_let_check : string -> (var * ty) list -> tm -> ty -> t * string
                        
   val suspend : t -> int -> t
   val functorialize : t -> int list -> var -> t
@@ -158,14 +158,14 @@ module GAssoc (A : EVar) (B : EVal) = struct
 
   (** Add a variable together with the corresponding coherence*)
   let add_coh x ps t =
-    let t = B.mk_coh ps t in
+    let t = B.mk_coh (string_of_var x) ps t in
     let x = A.make x in
     env := Node (x,t)::!env
 
   (** Add a variable together with the corresponding let term*)
   let add_let x c u =
     (* debug "adding %s" (Var.to_string x); *)
-    let u,msg = B.mk_let c u in
+    let u,msg = B.mk_let (string_of_var x) c u in
     let x = A.make x in
     env := Node (x,u)::!env;
     msg
@@ -173,7 +173,7 @@ module GAssoc (A : EVar) (B : EVal) = struct
   (** Add a variable together with the corresponding let term whose type is checked by the user*)
   let add_let_check x c u t =
     (* debug "adding %s" (Var.to_string x); *)
-    let u,msg = B.mk_let_check c u t in
+    let u,msg = B.mk_let_check (string_of_var x) c u t in
     let x = A.make x in
     env := Node (x,u)::!env;
     msg
