@@ -62,8 +62,8 @@ module GAssoc (A : EVar) (B : EVal) = struct
 
   let top_value g =
     match g with
-    |Node(_,res) -> res
-    |Inner((_,res),_,_) -> res
+    |Node(v,res) -> v,res
+    |Inner((v,res),_,_) -> v,res
     
   (** follow an already existing suspension edge or add a new one *)
   let rec suspend v i g =
@@ -75,7 +75,7 @@ module GAssoc (A : EVar) (B : EVal) = struct
     |Node(_,_) as g -> g, None 
     |Inner((w,value),susp,func) as g when w = v ->
       begin
-        try let res = List.assoc i susp in g, Some (top_value res)            
+        try let res = List.assoc i susp in g, Some (snd (top_value res))            
         with Not_found ->
           let n = A.new_fresh() in
           let newval = B.suspend value i in
@@ -116,7 +116,7 @@ module GAssoc (A : EVar) (B : EVal) = struct
     |Node(w,value) when w = v ->
       let n = A.new_fresh() in
       let newval = B.functorialize value f x in
-      Inner ((w,value),[],[f, Node (n, newval)]), Some newval
+      Inner ((w,value),[],[f, Node (n, newval)]), Some (n,newval)
     |Node(_,_) as g -> g, None
     |Inner((w,value),susp,func) as g when w = v ->
       begin
@@ -125,7 +125,7 @@ module GAssoc (A : EVar) (B : EVal) = struct
           let n = A.new_fresh() in
           let newval = B.functorialize value f x in
           let func = (f, Node (n, newval))::func
-          in Inner((w,value),susp,func), Some newval
+          in Inner((w,value),susp,func), Some (n,newval)
       end
     |Inner(p,l,l') -> 
       let rec functorialize_list l =
@@ -181,13 +181,10 @@ module GAssoc (A : EVar) (B : EVal) = struct
       
   (** Retrieves the value associated to a variable in the environment, with possible suspension and functorialisations*)
   let val_var x i func =
-    let value =
-      assoc x
-    in
-    let value = B.functorialize value func (A.to_var x) in
+    let x,value = functorialize x func (A.to_var x) in
     let dim = B.dim value in
     let i = i - dim in
-    if i >= 1 then B.suspend value i
-    else value           
+    if i >= 1 then x,suspend x i
+    else x,value           
 
 end

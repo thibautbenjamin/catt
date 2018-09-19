@@ -532,8 +532,7 @@ struct
                               
           
   (** Check whether a context is included in another one. *)
-  (* TODO: this is a bit worrying as a function, is it really necessary or can
-     we get rid of it? *)
+  (* it is just a prefix, to check if we can spare some type checking *)
   let check_sub_ctx ctx1 ctx2 =
     (* debug "checking that ctx %s is a sub of %s" (Ctx.to_string ctx1) (Ctx.to_string ctx2); *)
     let rec sub c (ctx1 : Ctx.t) (ctx2 : Ctx.t) =
@@ -1218,7 +1217,7 @@ struct
            let s = List.map (Tm.make c) s in
            let i = (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
            let v,t = match t with
-             |Var v -> let v = EVar.make v in (v, Env.val_var v i func)
+             |Var v -> let v = EVar.make v in Env.val_var v i func
              |(Sub (_,_,_) | Letin_tm(_,_,_)) -> assert false
            in let tar,ty = EnvVal.ty t in
               let s = Sub.mk (List.map fst s) c tar in
@@ -1362,7 +1361,7 @@ and Env : sig
   val add_let_check : var -> (var * ty) list -> tm -> ty -> string
   val add_coh : var -> (var * ty) list -> ty -> unit
   val init : unit -> unit
-  val val_var : EVar.t -> int -> int list -> EnvVal.t
+  val val_var : EVar.t -> int -> int list -> EVar.t * EnvVal.t
 end
   = GAssoc(EVar)(EnvVal) 
 
