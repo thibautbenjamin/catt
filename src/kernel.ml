@@ -843,9 +843,6 @@ struct
   let c = Coh.mk ps t in
   Coh c
 
-
-  (* let mk_coh c = Coh c *)
-
   let mk_let c u = 
   let c = Ctx.make c in
   let u,ty = Tm.make c u in
@@ -859,9 +856,6 @@ struct
   Ty.check_equal c t ty;
   let u = Tm.mark_ctx u in
   Let u, Ty.to_string t
-
-      
-  (* let mk_let t = Let t *)
 
   (* TODO : make a good notion of dimension for let definitions*)
   let dim value =  match value with

@@ -1268,7 +1268,7 @@ coh rrew3@1 (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a : f1 -> g1) (b 
 	rew3@1 a f2 f3 -> rew3@1 b f2 f3
 
 
-coh rew3[rew3@1]@2- (x0 : *) (x1 : *) (f1 : x0 -> x1)
+coh rew3{rew3@1}@2- (x0 : *) (x1 : *) (f1 : x0 -> x1)
     	    	     (x2 : *) (f2 : x1 -> x2)  (g2 : x1 -> x2) (a : f2 -> g2)
 		     (x3 : *) (f3 : x2 -> x3)
 		     (x4 : *) (f4 : x3 -> x4)
@@ -1276,7 +1276,7 @@ coh rew3[rew3@1]@2- (x0 : *) (x1 : *) (f1 : x0 -> x1)
 	rew5@2 f1 a f3 f4 f5 ->
 	comp3 (assoc1+3+1 f1 f2 f3 f4 f5) (rew3@2 f1 (rew3@1 a f3 f4) f5) (assoc1+3+1- f1 g2 f3 f4 f5)
 
-coh rew3[rew3@3]@2- (x0 : *) (x1 : *) (f1 : x0 -> x1)
+coh rew3{rew3@3}@2- (x0 : *) (x1 : *) (f1 : x0 -> x1)
     	    	     (x2 : *) (f2 : x1 -> x2)  
 		     (x3 : *) (f3 : x2 -> x3)
 		     (x4 : *) (f4 : x3 -> x4) (g4 : x3 -> x4) (a : f4 -> g4)
@@ -1286,7 +1286,7 @@ coh rew3[rew3@3]@2- (x0 : *) (x1 : *) (f1 : x0 -> x1)
 
 
 
-coh rew3[comp3]@2 (x0 : *) (x1 : *) (f1 : x0 -> x1)
+coh rew3{comp3}@2 (x0 : *) (x1 : *) (f1 : x0 -> x1)
     		      	 (x2 : *) (f2 : x1 -> x2) (g2 : x1 -> x2) (a : f2 -> g2)
 			       	      	      	  (h2 : x1 -> x2) (b : g2 -> h2)
 						  (k2 : x1 -> x2) (c : h2 -> k2)
@@ -1456,7 +1456,7 @@ coh step3D2DRcoh (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
 let step3U2UL (x : *)  (a : (id x) -> (id x)) (b : (id x) -> (id x)) (r : a -> b)  
     	      	      	      	         (c : (id x) -> (id x)) = 
 	comp (rrew3@2 (id2@2- (id x)) (step3U2ULcoh r c) (id2@1 (id x)))
-	     (rew3[comp3]@2 (id2@2- (id x)) (id3@2 (rew2@1 a (id x)) (rew2@2 (id x) c))
+	     (rew3{comp3}@2 (id2@2- (id x)) (id3@2 (rew2@1 a (id x)) (rew2@2 (id x) c))
 	     		  	      	    (rrewUL r c)
 					    (id3@2- (rew2@1 b (id x)) (rew2@2 (id x) c))
 			    (id2@1 (id x)))
@@ -1464,7 +1464,7 @@ let step3U2UL (x : *)  (a : (id x) -> (id x)) (b : (id x) -> (id x)) (r : a -> b
 let step3D2DR (x : *)  (a : (id x) -> (id x)) 
     	      	       (b : (id x) -> (id x)) (c : (id x) -> (id x)) (r : b -> c)= 
 	comp (rrew3@2 (id2@2- (id x)) (step3D2DRcoh a r) (id2@1 (id x)))
-	     (rew3[comp3]@2 (id2@2- (id x)) (id3@2 (rew2@1 a (id x)) (rew2@2 (id x) b))
+	     (rew3{comp3}@2 (id2@2- (id x)) (id3@2 (rew2@1 a (id x)) (rew2@2 (id x) b))
 	     		  	      	    (rrewDR a r)
 					    (id3@2- (rew2@1 a (id x)) (rew2@2 (id x) c))
 			    (id2@1 (id x)))
@@ -1473,14 +1473,14 @@ let U2UL (x : *)  (a : (id x) -> (id x)) (b : (id x) -> (id x)) (r : a -> b)
     	      	      	      	         (c : (id x) -> (id x)) =
 CubComp4 (step1U2UL r c)
 	 (step2U2UL r c)
-	 (rew3[rew3@1]@2- (id2@2- (id x)) (rrew2@1 r (id x)) (id (comp (id x) (id x))) (rew2@2 (id x) c) ((id2@1 (id x))))
+	 (rew3{rew3@1}@2- (id2@2- (id x)) (rrew2@1 r (id x)) (id (comp (id x) (id x))) (rew2@2 (id x) c) ((id2@1 (id x))))
 	 (step3U2UL r c)
 
 let D2DR (x : *)  (a : (id x) -> (id x)) 
     	      	  (b : (id x) -> (id x)) (c : (id x) -> (id x)) (r : b -> c)= 
 CubComp4 (step1D2DR a r)
 	 (step2D2DR a r)
-	 (rew3[rew3@3]@2- (id2@2- (id x)) (rew2@1 a (id x)) (id (comp (id x) (id x))) (rrew2@2 (id x) r) ((id2@1 (id x))))
+	 (rew3{rew3@3}@2- (id2@2- (id x)) (rew2@1 a (id x)) (id (comp (id x) (id x))) (rrew2@2 (id x) r) ((id2@1 (id x))))
 	 (step3D2DR a r)
 
 
@@ -1499,7 +1499,7 @@ coh changerew (x: *) (y : *) (f0 : x -> y) (f1 : x -> y) (a1 : f0 -> f1)
 	comp (rew2@1 (comp3 a1 a2 a3) g0) (rew2@2 f3 (comp3 b1 b2 b3)) -> comp3 (rew2A a1 b1) (comp (rew2@1 a2 g1) (rew2@2 f2 b2)) (rew2A a3 b3)
 
 #Use inverse computation to simplify this term
-let redrew2[Cub]A
+let redrew2{Cub}A
     (x0 : *) (x1 : *) 
     (y0 : *) (y1 : *) 
     (z0 : *) (z1 : *) 
@@ -1516,7 +1516,7 @@ let redrew2[Cub]A
 
 let inside (x : *) (r : id (id x) -> id (id x)) 
     	           (s : id (id x) -> id (id x)) =
-    redrew2[Cub]A (U2UL r (id (id x)))
+    redrew2{Cub}A (U2UL r (id (id x)))
     		  (D2DR (id (id x)) s)
     		  (simpl4F (simplrew3 (id2@2- (id x)) (id3@2CU (rew2@1 (id (id x)) (id x)) (rew2@2 (id x) (id (id x)))) (id2@1 (id x)))
 		    	   (assoc1+3+1CU (id2@2- (id x)) (rew2@1 (id (id x)) (id x)) (id (comp (id x) (id x))) (rew2@2 (id x) (id (id x))) (id2@1 (id x)))

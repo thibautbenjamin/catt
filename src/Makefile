@@ -9,6 +9,6 @@ all: dnc
 	  ./catt ../examples/test.catt
 	  ./catt ../examples/functoriality.catt
 	# ./catt ../examples/double-braiding-dim4.catt
-	# ./catt ../examples/syllepsis.catt
+	  ./catt ../examples/syllepsis.catt
 
 include OCamlMakefile
