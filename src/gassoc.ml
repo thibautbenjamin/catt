@@ -1,5 +1,7 @@
 open Syntax
 
+
+       
 module type EVar = sig
   type t
 
@@ -7,7 +9,7 @@ module type EVar = sig
   val new_fresh : unit -> t
   val to_var : t -> var
 end                         
-
+                       
 module type EVal = sig
   type t
 
@@ -20,7 +22,7 @@ module type EVal = sig
 
   val dim : t -> int
 end
-
+                     
 module GAssoc (A : EVar) (B : EVal) = struct
 
   type a = A.t

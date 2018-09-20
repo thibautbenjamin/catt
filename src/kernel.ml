@@ -908,6 +908,13 @@ struct
       |i::l -> (List.get i vars, (New (fresh), New (fresh + 1)))::(names l (fresh + 2))
     in names (func) (fresh + 1)
 
+  let print_list l = 
+    let rec aux l =
+      match l with
+      |[] -> ""
+      |i::l -> Printf.sprintf "%d %s" i (aux l)
+    in Printf.sprintf "[%s]" (aux l)
+             
   let functorialize v func evar =
     match func with
     |[] -> v
@@ -915,7 +922,7 @@ struct
       let newprint =
         match v.print with
         |nm,[] -> nm,func
-        |_ -> "internal name should not be printed", []
+        |nm,l -> Printf.sprintf "nm_#%s" (print_list l), func
       in
       let ctx = ctx v in
       let func = to_names ctx func in
