@@ -4,7 +4,7 @@ open Common
 open Syntax
 open Gassoc
 
-(** Environment variables (i.e. defined coherences). *)
+(** Environment variables (i.e. defined coherences or let definitions). *)
 module EVar
 : sig
   type t
