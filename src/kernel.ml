@@ -487,19 +487,18 @@ struct
     (* picking a fresh number for the new variable in context ctx*)
     let n = max_used_var ctx in 
     assert (i>=1);
-    let rec aux k c ty=
-      match k with
-      | k when k = i -> c,ty
-      | k ->
-	 let k' = k+1 in
-	 let ty = Arr (Var (New (2*k-1)), Var (New (2*k))) in
-	 let ty' = Arr (Var (New (2*k'-1)), Var (New (2*k'))) in
-         aux k'
+    let rec aux k j c = (*k is the last used var, j the number of time we functorialized*)
+      match j with
+      | j when j = i -> c,Arr (Var (New (k)), Var (New (k+1)))
+      | j ->
+	 let k' = k+2 in
+	 let ty = Arr (Var (New (k)), Var (New (k+1))) in
+         aux (k')
+           (j+1)
 	   (Ctx.add 
-	      (Ctx.add c (New ((2*k')-1)) ty)
-	      (New (2*k'))
+	      (Ctx.add c (New (k')) ty)
+	      (New (k'+1))
 	      ty)
-	   ty'
     in
     let ctx' =
       Ctx.add 
@@ -507,7 +506,7 @@ struct
 	(New (n+2))
 	Obj    
     in
-    let ctx',ty = aux (n+1) ctx' (Arr (Var (New (n+1)), Var (New (n+2)))) in
+    let ctx',ty = aux (n+1) 1 ctx'  in
     let open Ty in
     let rec comp c res = match c with
       | (x,(tx,_))::c when tx.e = Obj-> comp c (Ctx.add res (var_of_cvar x) ty)
@@ -1191,7 +1190,7 @@ struct
     in
     try aux already_known
     with Unknown ->
-      (* debug "building term %s" (string_of_tm e);  *)
+      (* debug "building term %s in context %s" (string_of_tm e) (Ctx.to_string c); *)
       let newtm,newty = 
         match e with
         | Var v ->

@@ -1,6 +1,5 @@
 open Syntax
-
-
+open Common
        
 module type EVar = sig
   type t
@@ -8,6 +7,7 @@ module type EVar = sig
   val make : var -> t
   val new_fresh : unit -> t
   val to_var : t -> var
+  val to_string : t -> string
 end                         
                        
 module type EVal = sig
