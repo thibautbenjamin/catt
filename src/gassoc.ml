@@ -186,7 +186,12 @@ module GAssoc (A : EVar) (B : EVal) = struct
     let x,value = functorialize x func (A.to_var x) in
     let dim = B.dim value in
     let i = i - dim in
-    if i >= 1 then x,suspend x i
-    else x,value           
+    if i >= 1 then
+      begin
+        (* debug "trying to suspend %s" (A.to_string x); *)
+        (* assert(false); *)
+        x,suspend x i
+      end
+        else x,value           
 
 end

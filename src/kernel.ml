@@ -484,7 +484,7 @@ struct
           
   (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
   let suspend (ctx : t) i =
-    (* picking a fresh number for the new variable in context ctx*)
+        (* picking a fresh number for the new variable in context ctx*)
     let n = max_used_var ctx in 
     assert (i>=1);
     let rec aux k j c = (*k is the last used var, j the number of time we functorialized*)
