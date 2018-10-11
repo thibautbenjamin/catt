@@ -86,59 +86,6 @@ coh id2@2- (x : *) (y : *) (f : x -> y) : f -> comp f (id y)
 coh id3@2 (x0 : *) (x1 : *) (f1 : x0 -> x1)
                    (x2 : *) (f2 : x1 -> x2) :
 		   comp3 f1 (id x1) f2 -> comp f1 f2
-
-
-### Defitions of rewritings (= whiskerings)
-# Format = rew(n)@(k) (n = arity, k < n, k = argument where to perform the rewriting)
-#          rew(n)A  (n = arity, A = rewrite in all the arguments)
-coh rew2@1 (x : *) (y : *) (f1 : x -> y) (f2 : x -> y) (a : f1 -> f2) (z : *) (g : y -> z) :
-comp f1 g -> comp f2 g
-
-coh rew2@2 (x : *) (y : *) (f : x -> y) (z : *) (g1 : y -> z) (g2 : y -> z) (a : g1 -> g2) :
-comp f g1 -> comp f g2
-
-coh rew2A (x : *) (y : *) (f1 : x -> y) (f2 : x -> y) (a : f1 -> f2) (z : *) (g1 : y -> z) (g2 : y -> z) (b : g1 -> g2) :
-comp f1 g1 -> comp f2 g2
-
-
-coh rew3@2 (x0 : *) (x1 : *) (f1 : x0 -> x1)
-                  (x2 : *) (f2 : x1 -> x2) (g2 : x1 -> x2) (a : f2 -> g2)	
-		  (x3 : *) (f3 : x2 -> x3) : 
-		  comp3 f1 f2 f3 -> comp3 f1 g2 f3
-
-coh rew3A (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a : f1 -> g1)
-    	       	   (x2 : *) (f2 : x1 -> x2) (g2 : x1 -> x2) (b : f2 -> g2)
-		   (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (c : f3 -> g3) :
-		   comp3 f1 f2 f3 -> comp3 g1 g2 g3
-
-coh rew5@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
-                  (x2 : *) (f2 : x1 -> x2)
-		  (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (a : f3 -> g3)
-		  (x4 : *) (f4 : x3 -> x4)
-		  (x5 : *) (f5 : x4 -> x5) :
-		  comp5 f1 f2 f3 f4 f5 -> comp5 f1 f2 g3 f4 f5
-
-coh rew7@4 (x0 : *) (x1 : *) (f1 : x0 -> x1)
-                    (x2 : *) (f2 : x1 -> x2)
-		    (x3 : *) (f3 : x2 -> x3) 
-		    (x4 : *) (f4 : x3 -> x4) (g4 : x3 -> x4) (a : f4 -> g4)
-		    (x5 : *) (f5 : x4 -> x5) 
-                    (x6 : *) (f6 : x5 -> x6) 
-		    (x7 : *) (f7 : x6 -> x7)  : 
-		    comp7 f1 f2 f3 f4 f5 f6 f7 -> comp7 f1 f2 f3 g4 f5 f6 f7
-
-coh rew9@5 (x0 : *) (x1 : *) (f1 : x0 -> x1)
-                    (x2 : *) (f2 : x1 -> x2)
-		    (x3 : *) (f3 : x2 -> x3) 
-		    (x4 : *) (f4 : x3 -> x4)
-		    (x5 : *) (f5 : x4 -> x5) (g5 : x4 -> x5) (a : f5 -> g5)
-                    (x6 : *) (f6 : x5 -> x6) 
-		    (x7 : *) (f7 : x6 -> x7) 
-		    (x8 : *) (f8 : x7 -> x8)
-		    (x9 : *) (f9 : x8 -> x9) : 
-		    comp9 f1 f2 f3 f4 f5 f6 f7 f8 f9 -> comp9 f1 f2 f3 f4 g5 f6 f7 f8 f9
-
-
 ### Coherences for rewriting a composition
 # Format = rew(n)comp@(k) (n = arity, k < n, k = argument where to perform the rewriting)
 #          rew(n)compA
@@ -148,7 +95,7 @@ coh rew2compA (x : *) (y : *) (f1 : x -> y)
 		       (z : *) (g1 : y -> z)
 		       	       (g2 : y -> z) (b1 : g1 -> g2)
 			       (g3 : y -> z) (b2 : g2 -> g3) :
-	       comp (rew2A a1 b1) (rew2A a2 b2) -> rew2A (comp a1 a2) (comp b1 b2)
+	       comp (comp [a1] [b1]) (comp [a2] [b2]) -> comp [comp a1 a2] [comp b1 b2]
 
 coh rew3compA (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1)
     	      	       	     	      	        (h1 : x0 -> x1) (a2 : g1 -> h1)
@@ -156,7 +103,7 @@ coh rew3compA (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1)
 		      	       	     	        (h2 : x1 -> x2) (b2 : g2 -> h2)
 		       (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (c1 : f3 -> g3)
 		       	     	      	    	(h3 : x2 -> x3) (c2 : g3 -> h3) : 
-     		       comp (rew3A a1 b1 c1) (rew3A a2 b2 c2) -> rew3A (comp a1 a2) (comp b1 b2) (comp c1 c2)
+     		       comp (comp3 [a1] [b1] [c1]) (comp3 [a2] [b2] [c2]) -> comp3 [comp a1 a2] [comp b1 b2] [comp c1 c2]
 
 coh rew5comp@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
                         (x2 : *) (f2 : x1 -> x2)
@@ -164,7 +111,7 @@ coh rew5comp@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
 		                               (h3 : x2 -> x3) (b : g3 -> h3)
 		        (x4 : *) (f4 : x3 -> x4)
 		        (x5 : *) (f5 : x4 -> x5) :
-		        comp (rew5@3 f1 f2 a f4 f5) (rew5@3 f1 f2 b f4 f5) -> rew5@3 f1 f2 (comp a b) f4 f5
+		        comp (comp5 f1 f2 [a] f4 f5) (comp5 f1 f2 [b] f4 f5) -> comp5 f1 f2 [comp a b] f4 f5
 
 
 ### Coherences for rewriting an identity
@@ -172,26 +119,26 @@ coh rew5comp@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
 #          rew(n)idA
 #          rew(n)Aid@(k) (n = arity, k < n, k = argument where to rewrite by identity)
 coh rew2idA (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) :
-rew2A (id f) (id g) -> id (comp f g)
+comp [id f] [id g] -> id (comp f g)
 
 coh rew3idA (x0 : *) (x1 : *) (f1 : x0 -> x1)
     	       	     (x2 : *) (f2 : x1 -> x2) 
 		     (x3 : *) (f3 : x2 -> x3) :
-		     rew3A (id f1) (id f2) (id f3) -> id (comp3 f1 f2 f3)
+		     comp3 [id f1] [id f2] [id f3] -> id (comp3 f1 f2 f3)
 
 coh rew5id@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
                       (x2 : *) (f2 : x1 -> x2)
 		      (x3 : *) (f3 : x2 -> x3)
 		      (x4 : *) (f4 : x3 -> x4)
 		      (x5 : *) (f5 : x4 -> x5) :
-		      rew5@3 f1 f2 (id f3) f4 f5 -> id (comp5 f1 f2 f3 f4 f5)
+		      comp5 f1 f2 [id f3] f4 f5 -> id (comp5 f1 f2 f3 f4 f5)
 
 
 ### Rewriting in a rewriting
 # Format : rrew(n)@(k) (n = arity, k < n, k = where to perform the rewriting)
 coh rrew2A (x : *) (y : *) (f : x -> y) (g : x -> y) (a0 : f -> g) (a1 : f -> g) (al : a0 -> a1)
     	      	   (z : *) (h : y -> z) (k : y -> z) (b0 : h -> k) (b1 : h -> k) (bet : b0 -> b1) :
-		   rew2A a0 b0 -> rew2A a1 b1
+		   comp [a0] [b0] -> comp [a1] [b1]
 
 coh rrew3A (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1) (a2 : f1 -> g1)
     	      	       	     	      	    	      	    	(al : a1 -> a2)
@@ -199,7 +146,7 @@ coh rrew3A (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1) (a2
 		       	     	      	    	      	    	(bet : b1 -> b2)
 		       (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (c1 : f3 -> g3) (c2 : f3 -> g3)
 		       	     	      	    	      	    	(gam : c1 -> c2) :
-     		       rew3A a1 b1 c1 -> rew3A a2 b2 c2
+     		       comp3 [a1] [b1] [c1] -> comp3 [a2] [b2] [c2]
 
 coh rrew5@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
                      (x2 : *) (f2 : x1 -> x2)
@@ -207,7 +154,7 @@ coh rrew5@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
 		       	    	     	    	     	      (b : f3 -> g3) (c : a -> b)
 		     (x4 : *) (f4 : x3 -> x4)
 		     (x5 : *) (f5 : x4 -> x5) :
-		     rew5@3 f1 f2 a f4 f5 -> rew5@3 f1 f2 b f4 f5
+		     comp5 f1 f2 [a] f4 f5 -> comp5 f1 f2 [b] f4 f5
 
 
 ### interchanging left and right unitors when possible 
@@ -257,7 +204,7 @@ comp9 f1 f2 f3 f4 (id x5) f5 f6 f7 f8 -> comp7 f1 f2 f3 (comp f4 f5) f6 f7 f8
 let simpl2 (x0 : *) (x1 : *) (x2 : *)
     	   (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x1) (f4 : x1 -> x0)
 	   (s1 : comp f1 f4 -> id x0) (s2 : comp f2 f3 -> id x1) =
-	   comp3 (rew3@2 f1 s2 f4)
+	   comp3 (comp3 f1 [s2] f4)
 	   	 (id3@2 f1 f4)
 		 s1
 
@@ -271,7 +218,7 @@ let simpl3 (x0 : *) (x1 : *) (x2 : *) (x3 : *)
     	   (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3)
 	   (f4 : x3 -> x2) (f5 : x2 -> x1) (f6 : x1 -> x0)
 	   (s1 : comp f1 f6 -> id x0) (s2 : comp f2 f5 -> id x1) (s3 : comp f3 f4 -> id x2) =
-	   comp3 (rew5@3 f1 f2 s3 f5 f6)
+	   comp3 (comp5 f1 f2 [s3] f5 f6)
 	   	 (id5@3F f1 f2 f5 f6)
 		 (simpl2 s1 s2)
 
@@ -280,7 +227,7 @@ let simpl4 (x0 : *) (x1 : *) (x2 : *) (x3 : *) (x4 : *)
 	   (f5 : x4 -> x3) (f6 : x3 -> x2) (f7 : x2 -> x1) (f8 : x1 -> x0)
 	   (s1 : comp f1 f8 -> id x0) (s2 : comp f2 f7 -> id x1)
 	   (s3 : comp f3 f6 -> id x2) (s4 : comp f4 f5 -> id x3) =
-	   comp3 (rew7@4 f1 f2 f3 s4 f6 f7 f8)
+	   comp3 (comp7 f1 f2 f3 [s4] f6 f7 f8)
 	   	 (id7@4F f1 f2 f3 f6 f7 f8)
 		 (simpl3 s1 s2 s3)
 
@@ -290,7 +237,7 @@ let simpl5 (x0 : *) (x1 : *) (x2 : *) (x3 : *) (x4 : *) (x5 : *)
 	   (s1 : comp f1 f10 -> id x0) (s2 : comp f2 f9 -> id x1)
 	   (s3 : comp f3 f8 -> id x2) (s4 : comp f4 f7 -> id x3)
 	   (s5 : comp f5 f6 -> id x4) =
-	   comp3 (rew9@5 f1 f2 f3 f4 s5 f7 f8 f9 f10)
+	   comp3 (comp9 f1 f2 f3 f4 [s5] f7 f8 f9 f10)
 	   	 (id9@5F f1 f2 f3 f4 f7 f8 f9 f10)
 		 (simpl4 s1 s2 s3 s4)
 
@@ -338,7 +285,7 @@ let red3 (x0 : *) (x1 : *) (x2 : *) (x2m : *) (x3 : *) (x4 : *)
     	  (f1 : x0 -> x1) (f2 : x1 -> x2)
 	  (f3 : x2 -> x2m) (f4 : x2m -> x2) (s : comp f3 f4 -> id x2)
 	  (f5 : x2 -> x3) (f6 : x3 -> x4) =
-	 comp (rew5@3 f1 f2 s f5 f6)
+	 comp (comp5 f1 f2 [s] f5 f6)
 	      (id5@3F f1 f2 f5 f6)
 
 let red3- (x0 : *) (x1 : *) (x2 : *) (x2m : *) (x3 : *) (x4 : *)
@@ -346,7 +293,7 @@ let red3- (x0 : *) (x1 : *) (x2 : *) (x2m : *) (x3 : *) (x4 : *)
 	  (f3 : x2 -> x2m) (f4 : x2m -> x2) (s : id x2 -> comp f3 f4)
 	  (f5 : x2 -> x3) (f6 : x3 -> x4) =
 	  comp (id5@3F- f1 f2 f5 f6)    
-     	       (rew5@3 f1 f2 s f5 f6)
+     	       (comp5 f1 f2 [s] f5 f6)
 
 let red3F (x0 : *) (x1 : *) (x2 : *) (x2m : *) (x3 : *) (x4 : *)
     	  (f1 : x0 -> x1) (f2 : x1 -> x2)
@@ -405,7 +352,7 @@ simpl2F (red3CU f1 f2 sU f5 f6)
 #                            (R = reduced)
 #          rew(n)@(k)id@(l)  :unitor for the substitution of id in the place l in the coherence rew(n)@(k)  
 let rew2@2id@1R (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) =
-    comp3 (id2@1- f) (rew2@2 (id x) a) (id2@1 g)
+    comp3 (id2@1- f) (comp (id x) [a]) (id2@1 g)
 
 coh rew2@2id@1 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
     rew2@2id@1R a -> a
@@ -414,7 +361,7 @@ coh rew2@2id@1- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
     a -> rew2@2id@1R a
 
 let rew2@1id@2R (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) =
-    comp3 (id2@2- f) (rew2@1 a (id y)) (id2@2 g)
+    comp3 (id2@2- f) (comp [a] (id y)) (id2@2 g)
 
 coh rew2@1id@2 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
     rew2@1id@2R a -> a
@@ -425,31 +372,30 @@ coh rew2@1id@2- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
 # Format = exch : exchange rule
 coh exch (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
     	      	 (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
-		 comp (rew2@1 a h) (rew2@2 g b) -> comp (rew2@2 f b) (rew2@1 a k)
+		 comp (comp [a] h) (comp g [b]) -> comp (comp f [b]) (comp [a] k)
 
 coh exch- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
     	      	  (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
-		  comp (rew2@2 f b) (rew2@1 a k) -> comp (rew2@1 a h) (rew2@2 g b)
+		  comp (comp f [b]) (comp [a] k) -> comp (comp [a] h) (comp g [b])
 
 coh exchU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
     	      	  (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
-comp (exch a b) (exch- a b) -> id (comp (rew2@1 a h) (rew2@2 g b))
+comp (exch a b) (exch- a b) -> id (comp (comp [a] h) (comp g [b]))
 
 ### Eckmann-Hilton morphism, inverse and cancellation
 let eh (x : *) (a : id x -> id x) (b : id x  -> id x) =
-    comp5 (rew2A (rew2@1id@2- a) (rew2@2id@1- b))
-	  (red3F (id2@2- (id x)) (rew2@1 a (id x)) (id2@2@1U x) (rew2@2 (id x) b) (id2@1 (id x)))
-	  (rew3A (id2@/1-,2-/- x) (exch a b) (id2@/1,2/ x))
-	  (red3F- (id2@1- (id x)) (rew2@2 (id x) b) (id2@1@2U- x) (rew2@1 a (id x)) (id2@2 (id x)))
-	  (rew2A (rew2@2id@1 b) (rew2@1id@2 a))
+    comp5 (comp [rew2@1id@2- a] [rew2@2id@1- b])
+	  (red3F (id2@2- (id x)) (comp [a] (id x)) (id2@2@1U x) (comp (id x) [b]) (id2@1 (id x)))
+	  (comp3 [id2@/1-,2-/- x] [exch a b] [id2@/1,2/ x])
+	  (red3F- (id2@1- (id x)) (comp (id x) [b]) (id2@1@2U- x) (comp [a] (id x)) (id2@2 (id x)))
+	  (comp [rew2@2id@1 b] [rew2@1id@2 a])
 
 let eh- (x : *) (a : id x -> id x) (b : id x  -> id x) =
-    comp5 (rew2A (rew2@2id@1- a) (rew2@1id@2- b))
-	  (red3F (id2@1- (id x)) (rew2@2 (id x) a) (id2@1@2U x) (rew2@1 b (id x)) (id2@2 (id x)))
-	  (rew3A (id2@/1-,2-/ x) (exch- b a) (id2@/1,2/- x))
-	  (red3F- (id2@2- (id x)) (rew2@1 b (id x)) (id2@2@1U- x) (rew2@2 (id x) a) (id2@1 (id x)))
-	  (rew2A (rew2@1id@2 b) (rew2@2id@1 a))
-
+    comp5 (comp [rew2@2id@1- a] [rew2@1id@2- b])
+	  (red3F (id2@1- (id x)) (comp (id x) [a]) (id2@1@2U x) (comp [b] (id x)) (id2@2 (id x)))
+	  (comp3 [id2@/1-,2-/ x] [exch- b a] [id2@/1,2/- x])
+	  (red3F- (id2@2- (id x)) (comp [b] (id x)) (id2@2@1U- x) (comp (id x) [a]) (id2@1 (id x)))
+	  (comp [rew2@1id@2 b] [rew2@2id@1 a])
 
 ### Higher Cells for cancelling Eckmann-Hilton morphism with its inverse
 coh rew2@1id@2U (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
@@ -470,9 +416,9 @@ coh id2@/1,2/U      (x : *) : comp (id2@/1,2/ x) (id2@/1,2/- x) -> (id (id2@1 (i
 let ehU (x : *) (a : id x -> id x) (b : id x  -> id x) :
 comp (eh a b) (eh- b a) -> id (comp a b) =
 simpl5F (simplrew2A (rew2@1id@2CU a) (rew2@2id@1CU b))
-	(red3FU (id2@2- (id x)) (rew2@1 a (id x)) (id2@2@1UU x) (rew2@2 (id x) b) (id2@1 (id x)))
+	(red3FU (id2@2- (id x)) (comp [a] (id x)) (id2@2@1UU x) (comp (id x) [b]) (id2@1 (id x)))
 	(simplrew3A (id2@/1-,2-/CU x) (exchU a b) (id2@/1,2/U x))
-	(red3FCU (id2@1- (id x)) (rew2@2 (id x) b) (id2@1@2UCU x) (rew2@1 a (id x)) (id2@2 (id x)))
+	(red3FCU (id2@1- (id x)) (comp (id x) [b]) (id2@1@2UCU x) (comp [a] (id x)) (id2@2 (id x)))
 	(simplrew2A (rew2@2id@1U b) (rew2@1id@2U a))
 
-#85 definitions in total
+#76 definitions

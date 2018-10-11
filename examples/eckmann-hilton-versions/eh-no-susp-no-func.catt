@@ -1,0 +1,537 @@
+### Definition of identity morphism
+coh id (x : *) : x -> x
+
+coh iid (x : *) (y : *) (f : x -> y) : f -> f #
+
+coh iiid (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) : a -> a #
+
+### Definition of compositions
+# Format = comp(n) (n = arity of the composition)
+coh comp (x1 : *) (x2 : *) (f1 : x1 -> x2) (x3 : *) (f2 : x2 -> x3) : x1 -> x3
+
+coh ccomp (x1 : *) (x2 : *) (f1 : x1 -> x2) (f2 : x1 -> x2) (a : f1 -> f2) (f3 : x1 -> x2) (b : f2 -> f3) : f1 -> f3#
+
+coh cccomp (x1 : *) (x2 : *) (f1 : x1 -> x2) (f2 : x1 -> x2) (a1 : f1 -> f2) (a2 : f1 -> f2) (u : a1 -> a2) (a3 : f1 -> f2) (v : a2 -> a3) : a1 -> a3#
+
+coh ccccomp (x1 : *) (x2 : *) (f1 : x1 -> x2) (f2 : x1 -> x2) (a1 : f1 -> f2) (a2 : f1 -> f2) (u1 : a1 -> a2) (u2 : a1 -> a2) (v1 : u1 -> u2) (u3 : a1 -> a2) (v2 : u2 -> u3) : u1 -> u3#
+
+coh ccomp3 (x1 : *) (x2 : *) (f1 : x1 -> x2) (f2 : x1 -> x2) (a1 : f1 -> f2) (f3 : x1 -> x2) (a2 : f2 -> f3) (f4 : x1 -> x2) (a3 : f3 -> f4) : f1 -> f4
+
+coh cccomp3 (x1 : *) (x2 : *) (f1 : x1 -> x2) (f2 : x1 -> x2) (a1 : f1 -> f2) (a2 : f1 -> f2) (u1 : a1 -> a2) (a3 : f1 -> f2) (u2 : a2 -> a3) (a4 : f1 -> f2) (u3 : a3 -> a4) : a1 -> a4#
+
+coh ccccomp3 (x1 : *) (x2 : *) (f1 : x1 -> x2) (f2 : x1 -> x2) (a1 : f1 -> f2) (a2 : f1 -> f2) (u1 : a1 -> a2) (u2 : a1 -> a2) (v1 : u1 -> u2) (u3 : a1 -> a2) (v2 : u2 -> u3) (u4 : a1 -> a2) (v3 : u3 -> u4) : u1 -> u4#
+
+coh ccomp5 (a : *) (b : *) (x1 : a -> b) (x2 : a -> b) (f1 : x1 -> x2) (x3 : a -> b) (f2 : x2 -> x3) (x4 : a -> b) (f3 : x3 -> x4) (x5 : a -> b) (f4 : x4 -> x5) (x6 : a -> b) (f5 : x5 -> x6):
+x1 -> x6#
+
+coh cccomp5 (c : *) (d : *) (a : c -> d) (b : c -> d) (x1 : a -> b) (x2 : a -> b) (f1 : x1 -> x2) (x3 : a -> b) (f2 : x2 -> x3) (x4 : a -> b) (f3 : x3 -> x4) (x5 : a -> b) (f4 : x4 -> x5) (x6 : a -> b) (f5 : x5 -> x6):
+x1 -> x6#
+
+coh cccomp7 (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (f1 : x1 -> x2) (x3 : nw1 -> nw2) (f2 : x2 -> x3) (x4 : nw1 -> nw2) (f3 : x3 -> x4) (x5 : nw1 -> nw2) (f4 : x4 -> x5) (x6 : nw1 -> nw2) (f5 : x5 -> x6) (x7 : nw1 -> nw2) (f6 : x6 -> x7) (x8 : nw1 -> nw2) (f7 : x7 -> x8):
+x1 -> x8#
+
+coh cccomp9 (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (f1 : x1 -> x2) (x3 : nw1 -> nw2) (f2 : x2 -> x3) (x4 : nw1 -> nw2) (f3 : x3 -> x4) (x5 : nw1 -> nw2) (f4 : x4 -> x5) (x6 : nw1 -> nw2) (f5 : x5 -> x6) (x7 : nw1 -> nw2) (f6 : x6 -> x7) (x8 : nw1 -> nw2) (f7 : x7 -> x8) (x9 : nw1 -> nw2) (f8 : x8 -> x9) (x10 : nw1 -> nw2) (f9 : x9 -> x10):
+x1 -> x10#
+
+### Definition of associators
+# Format = focus(n) (n = half the arity)
+# Ex : focus 3 == (f1 f2 f3) (f4 f5 f6) -> f1 f2 (f3 f4) f5 f6
+
+coh fffocus2 (nw1 : *) (nw2 : *) (x0 : nw1 -> nw2) (x1 : nw1 -> nw2)
+    	     	     (f0 : x0 -> x1) (f1 : x0 -> x1) (a1 : f0 -> f1)
+                     (f2 : x0 -> x1) (a2 : f1 -> f2)	
+		     (f3 : x0 -> x1) (a3 : f2 -> f3) 
+		     (f4 : x0 -> x1) (a4 : f3 -> f4) :
+		     cccomp (cccomp a1 a2) (cccomp a3 a4) -> cccomp3 a1 (cccomp a2 a3) a4#
+
+coh ffocus3 (a : *) (b : *)
+    	       	    (x0 : a -> b) (x1 : a -> b) (f1 : x0 -> x1)
+    	       	    (x2 : a -> b) (f2 : x1 -> x2)
+		    (x3 : a -> b) (f3 : x2 -> x3)
+		    (x4 : a -> b) (f4 : x3 -> x4)
+		    (x5 : a -> b) (f5 : x4 -> x5)
+		    (x6 : a -> b) (f6 : x5 -> x6) :
+		    ccomp (ccomp3 f1 f2 f3) (ccomp3 f4 f5 f6) -> ccomp5 f1 f2 (ccomp f3 f4) f5 f6#
+
+coh fffocus5 (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4)
+    	   (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1)
+	   (x2 : nw1 -> nw2) (f2 : x1 -> x2)	
+	   (x3 : nw1 -> nw2) (f3 : x2 -> x3) 
+	   (x4 : nw1 -> nw2) (f4 : x3 -> x4)
+	   (x5 : nw1 -> nw2) (f5 : x4 -> x5)
+	   (x6 : nw1 -> nw2) (f6 : x5 -> x6)	
+	   (x7 : nw1 -> nw2) (f7 : x6 -> x7) 
+	   (x8 : nw1 -> nw2) (f8 : x7 -> x8)
+	   (x9 : nw1 -> nw2) (f9 : x8 -> x9)
+	   (x10 : nw1 -> nw2) (f10 : x9 -> x10)	:
+	   cccomp (cccomp5 f1 f2 f3 f4 f5) (cccomp5 f6 f7 f8 f9 f10) -> cccomp9 f1 f2 f3 f4 (cccomp f5 f6) f7 f8 f9 f10#
+
+### Inverses of associators
+# Format = name- (name = name of the coherence) : inverse of name
+coh ffocus3- (a : *) (b : *)
+    	     	     (x0 : a -> b) (x1 : a -> b) (f1 : x0 -> x1)
+    	       	     (x2 : a -> b) (f2 : x1 -> x2)
+		     (x3 : a -> b) (f3 : x2 -> x3)
+		     (x4 : a -> b) (f4 : x3 -> x4)
+		     (x5 : a -> b) (f5 : x4 -> x5)
+		     (x6 : a -> b) (f6 : x5 -> x6) :
+		     ccomp5 f1 f2 (ccomp f3 f4) f5 f6 -> ccomp (ccomp3 f1 f2 f3) (ccomp3 f4 f5 f6)#
+
+### Higher coherences for associators (cancellation lemmas)
+# Format = nameU (name = name of the coherence) : cancellation of name and name-
+#          nameCU                               : cancellation of name- and name
+coh ffocus3U (nw1 : *) (nw2 : *)
+    	     (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1)
+             (x2 : nw1 -> nw2) (f2 : x1 -> x2)
+             (x3 : nw1 -> nw2) (f3 : x2 -> x3)
+             (x4 : nw1 -> nw2) (f4 : x3 -> x4)
+             (x5 : nw1 -> nw2) (f5 : x4 -> x5)
+             (x6 : nw1 -> nw2) (f6 : x5 -> x6) :
+	     cccomp (ffocus3 f1 f2 f3 f4 f5 f6) (ffocus3- f1 f2 f3 f4 f5 f6) -> iiid (ccomp (ccomp3 f1 f2 f3) (ccomp3 f4 f5 f6))#
+
+coh ffocus3CU (nw1 : *) (nw2 : *)
+    	      (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1)
+	      (x2 : nw1 -> nw2) (f2 : x1 -> x2)
+	      (x3 : nw1 -> nw2) (f3 : x2 -> x3)
+	      (x4 : nw1 -> nw2) (f4 : x3 -> x4)
+	      (x5 : nw1 -> nw2) (f5 : x4 -> x5)
+	      (x6 : nw1 -> nw2) (f6 : x5 -> x6) :
+	      cccomp (ffocus3- f1 f2 f3 f4 f5 f6) (ffocus3 f1 f2 f3 f4 f5 f6) -> iiid (ccomp5  f1 f2 (ccomp f3 f4) f5 f6)#
+
+### Unitors for composition
+# Format = id(n)@(k) (n = arity, k < n, k = where to insert the identity)
+coh id2@1 (x : *) (y : *) (f : x -> y) : comp (id x) f -> f
+coh id2@1- (x : *) (y : *) (f : x -> y) : f -> comp (id x) f
+
+coh id2@2 (x : *) (y : *) (f : x -> y) : comp f (id y) -> f
+coh id2@2- (x : *) (y : *) (f : x -> y) : f -> comp f (id y)
+
+coh iiid3@2 (nw1 : *) (nw2 : *) (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f0 : x0 -> x1) (f1 : x0 -> x1) (a1 : f0 -> f1)
+                    (f2 : x0 -> x1) (a2 : f1 -> f2) :
+		    cccomp3 a1 (iiid f1) a2 -> cccomp a1 a2#
+
+
+### Defitions of rewritings (= whiskerings)
+# Format = rew(n)@(k) (n = arity, k < n, k = argument where to perform the rewriting)
+#          rew(n)A  (n = arity, A = rewrite in all the arguments)
+coh rew2@1 (x : *) (y : *) (f1 : x -> y) (f2 : x -> y) (a : f1 -> f2) (z : *) (g : y -> z) :
+comp f1 g -> comp f2 g
+
+coh rew2@2 (x : *) (y : *) (f : x -> y) (z : *) (g1 : y -> z) (g2 : y -> z) (a : g1 -> g2) :
+comp f g1 -> comp f g2
+
+coh rew2AS1 (x : *) (y : *) (f : x -> y) (g : x -> y) (a1 : f -> g) (a2 : f -> g) (u : a1 -> a2) (h : x -> y) (b1 : g -> h) (b2 : g -> h) (v : b1 -> b2) :
+ccomp a1 b1 -> ccomp a2 b2#
+
+coh rew3@2S2 (nw1 : *) (nw2 : *)
+    	     (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f0 : x0 -> x1) (f1 : x0 -> x1) (a1 : f0 -> f1)
+                               (f2 : x0 -> x1) (a2 : f1 -> f2) (b2 : f1 -> f2) (u : a2 -> b2)	
+		               (f3 : x0 -> x1) (a3 : f2 -> f3) : 
+		  cccomp3 a1 a2 a3 -> cccomp3 a1 b2 a3#
+
+coh rew3AS1 (x0 : *) (x1 : *) (f0 : x0 -> x1) (f1 : x0 -> x1) (a1 : f0 -> f1) (b1 : f0 -> f1) (u : a1 -> b1)
+    	       	     	                      (f2 : x0 -> x1) (a2 : f1 -> f2) (b2 : f1 -> f2) (v : a2 -> b2)
+		   			      (f3 : x0 -> x1) (a3 : f2 -> f3) (b3 : f2 -> f3) (w : a3 -> b3) :
+		   ccomp3 a1 a2 a3 -> ccomp3 b1 b2 b3#
+
+coh rew5@3S1 (a : *) (b : *)
+    	      	  (x0 : a -> b) (x1 : a -> b) (f1 : x0 -> x1)
+                  (x2 : a -> b) (f2 : x1 -> x2)
+		  (x3 : a -> b) (f3 : x2 -> x3) (g3 : x2 -> x3) (s : f3 -> g3)
+		  (x4 : a -> b) (f4 : x3 -> x4)
+		  (x5 : a -> b) (f5 : x4 -> x5) :
+		  ccomp5 f1 f2 f3 f4 f5 -> ccomp5 f1 f2 g3 f4 f5#
+		  
+coh rew5@3S2 (nw1 : *) (nw2 : *)(a : nw1 -> nw2) (b : nw1 -> nw2)
+    	      	  (x0 : a -> b) (x1 : a -> b) (f1 : x0 -> x1)
+                  (x2 : a -> b) (f2 : x1 -> x2)
+		  (x3 : a -> b) (f3 : x2 -> x3) (g3 : x2 -> x3) (s : f3 -> g3)
+		  (x4 : a -> b) (f4 : x3 -> x4)
+		  (x5 : a -> b) (f5 : x4 -> x5) :
+		  cccomp5 f1 f2 f3 f4 f5 -> cccomp5 f1 f2 g3 f4 f5#
+
+coh rew7@4S2 (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4)
+    	     (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1)
+	     (x2 : nw1 -> nw2) (f2 : x1 -> x2)
+	     (x3 : nw1 -> nw2) (f3 : x2 -> x3) 
+	     (x4 : nw1 -> nw2) (f4 : x3 -> x4) (g4 : x3 -> x4) (a : f4 -> g4)
+	     (x5 : nw1 -> nw2) (f5 : x4 -> x5) 
+	     (x6 : nw1 -> nw2) (f6 : x5 -> x6) 
+	     (x7 : nw1 -> nw2) (f7 : x6 -> x7)  : 
+	     cccomp7 f1 f2 f3 f4 f5 f6 f7 -> cccomp7 f1 f2 f3 g4 f5 f6 f7#
+
+coh rew9@5S2 (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4)
+    	   (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1)
+	   (x2 : nw1 -> nw2) (f2 : x1 -> x2)
+	   (x3 : nw1 -> nw2) (f3 : x2 -> x3) 
+	   (x4 : nw1 -> nw2) (f4 : x3 -> x4)
+	   (x5 : nw1 -> nw2) (f5 : x4 -> x5) (g5 : x4 -> x5) (a : f5 -> g5)
+	   (x6 : nw1 -> nw2) (f6 : x5 -> x6) 
+	   (x7 : nw1 -> nw2) (f7 : x6 -> x7) 
+	   (x8 : nw1 -> nw2) (f8 : x7 -> x8)
+	   (x9 : nw1 -> nw2) (f9 : x8 -> x9) : 
+	   cccomp9 f1 f2 f3 f4 f5 f6 f7 f8 f9 -> cccomp9 f1 f2 f3 f4 g5 f6 f7 f8 f9#
+
+### Coherences for rewriting a composition
+# Format = rew(n)comp@(k) (n = arity, k < n, k = argument where to perform the rewriting)
+#          rew(n)compA
+coh rew2compAS1 (nw1 : *) (nw2 : *) (x : nw1 -> nw2) (y : nw1 -> nw2) (f1 : x -> y)
+    	      	      	       (f2 : x -> y) (a1 : f1 -> f2)
+			       (f3 : x -> y) (a2 : f2 -> f3)
+		       (z : nw1 -> nw2) (g1 : y -> z)
+		       	       (g2 : y -> z) (b1 : g1 -> g2)
+			       (g3 : y -> z) (b2 : g2 -> g3) :
+	       cccomp (rew2AS1 a1 b1) (rew2AS1 a2 b2) -> rew2AS1 (cccomp a1 a2) (cccomp b1 b2)#
+
+coh rew3compAS1 (nw1 : *) (nw2 : *) (x0 : nw1 -> nw2) (x1 : nw1 -> nw2)
+    		(f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1)
+    	      	       	     	(h1 : x0 -> x1) (a2 : g1 -> h1)
+		(x2 : nw1 -> nw2) (f2 : x1 -> x2) (g2 : x1 -> x2) (b1 : f2 -> g2)
+		      	       	  (h2 : x1 -> x2) (b2 : g2 -> h2)
+                (x3 : nw1 -> nw2) (f3 : x2 -> x3) (g3 : x2 -> x3) (c1 : f3 -> g3)
+		       	     	      	    	  (h3 : x2 -> x3) (c2 : g3 -> h3) : 
+     		       cccomp (rew3AS1 a1 b1 c1) (rew3AS1 a2 b2 c2) -> rew3AS1 (cccomp a1 a2) (cccomp b1 b2) (cccomp c1 c2)#
+
+coh rew5comp@3S1 (nw1 : *) (nw2 : *)
+    		 (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1)
+		 (x2 : nw1 -> nw2) (f2 : x1 -> x2)
+		 (x3 : nw1 -> nw2) (f3 : x2 -> x3) (g3 : x2 -> x3) (a : f3 -> g3)
+		                                   (h3 : x2 -> x3) (b : g3 -> h3)
+                 (x4 : nw1 -> nw2) (f4 : x3 -> x4)
+		 (x5 : nw1 -> nw2) (f5 : x4 -> x5) :
+		 cccomp (rew5@3S1 f1 f2 a f4 f5) (rew5@3S1 f1 f2 b f4 f5) -> rew5@3S1 f1 f2 (cccomp a b) f4 f5#
+
+### Coherences for rewriting an identity
+# Format = rew(n)id@(k) (n = arity, k < n, k = argument where to perform the rewriting)
+#          rew(n)idA
+#          rew(n)Aid@(k) (n = arity, k < n, k = argument where to rewrite by identity)
+coh rew2idAS1 (a : *) (b : *) (x : a -> b) (y : a -> b) (f : x -> y) (z : a -> b) (g : y -> z) :
+rew2AS1 (iiid f) (iiid g) -> iiid (ccomp f g)#
+
+coh rew3idAS1 (nw1 : *) (nw2 : *)
+    	      (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1)
+	      (x2 : nw1 -> nw2) (f2 : x1 -> x2) 
+	      (x3 : nw1 -> nw2) (f3 : x2 -> x3) :
+	      rew3AS1 (iiid f1) (iiid f2) (iiid f3) -> iiid (ccomp3 f1 f2 f3)#
+	      
+coh rew5id@3S1 (nw1 : *) (nw2 : *)
+    	     (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1)
+	     (x2 : nw1 -> nw2) (f2 : x1 -> x2)
+	     (x3 : nw1 -> nw2) (f3 : x2 -> x3)
+	     (x4 : nw1 -> nw2) (f4 : x3 -> x4)
+	     (x5 : nw1 -> nw2) (f5 : x4 -> x5) :
+	     rew5@3S1 f1 f2 (iiid f3) f4 f5 -> iiid (ccomp5 f1 f2 f3 f4 f5)#
+
+
+### Rewriting in a rewriting
+# Format : rrew(n)@(k) (n = arity, k < n, k = where to perform the rewriting)
+coh rrew2AS1 (nw1 : *) (nw2 : *) (x : nw1 -> nw2) (y : nw1 -> nw2) (f : x -> y) (g : x -> y) (a0 : f -> g) (a1 : f -> g) (al : a0 -> a1)
+    	      	   (z : nw1 -> nw2) (h : y -> z) (k : y -> z) (b0 : h -> k) (b1 : h -> k) (bet : b0 -> b1) :
+		   rew2AS1 a0 b0 -> rew2AS1 a1 b1#
+
+coh rrew3AS1 (nw1 : *) (nw2 : *)
+    	     (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1) (a2 : f1 -> g1)
+    	       	       	     	      	    	      	    	                                 (al : a1 -> a2)
+             (x2 : nw1 -> nw2) (f2 : x1 -> x2) (g2 : x1 -> x2) (b1 : f2 -> g2) (b2 : f2 -> g2)
+		       	     	      	    	      	    	               (bet : b1 -> b2)
+             (x3 : nw1 -> nw2) (f3 : x2 -> x3) (g3 : x2 -> x3) (c1 : f3 -> g3) (c2 : f3 -> g3)
+		       	     	      	    	      	    	               (gam : c1 -> c2) :
+             rew3AS1 a1 b1 c1 -> rew3AS1 a2 b2 c2#
+
+coh rrew5@3S1 (nw1 : *) (nw2 : *)
+    	      (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (f1 : x0 -> x1)
+	      (x2 : nw1 -> nw2) (f2 : x1 -> x2)
+	      (x3 : nw1 -> nw2) (f3 : x2 -> x3) (g3 : x2 -> x3) (a : f3 -> g3)
+		       	    	     	    	     	        (b : f3 -> g3) (c : a -> b)
+              (x4 : nw1 -> nw2) (f4 : x3 -> x4)
+	      (x5 : nw1 -> nw2) (f5 : x4 -> x5) :
+	      rew5@3S1 f1 f2 a f4 f5 -> rew5@3S1 f1 f2 b f4 f5#
+
+### interchanging left and right unitors when possible 
+coh id2@/1-,2-/     (x : *) :  id2@1- (id x) -> id2@2- (id x)
+coh id2@/1-,2-/-    (x : *) :  id2@2- (id x) -> id2@1- (id x)
+
+coh id2@/1,2/       (x : *) : id2@1 (id x) -> id2@2 (id x)
+coh id2@/1,2/-      (x : *) : id2@2 (id x) -> id2@1 (id x)
+
+### cancelling left and right unitors
+coh id2@2@1U  (x : *) : ccomp (id2@2 (id x)) (id2@1- (id x)) -> iid (comp (id x) (id x))
+coh id2@2@1U- (x : *) : iid (comp (id x) (id x)) -> ccomp (id2@2 (id x)) (id2@1- (id x))
+
+coh id2@1@2U   (x : *) : ccomp (id2@1 (id x)) (id2@2- (id x)) -> iid (comp (id x) (id x))
+coh id2@1@2U-  (x : *) : iid (comp (id x) (id x)) -> ccomp (id2@1 (id x)) (id2@2- (id x))
+
+
+
+### DEFINITION OF TACTICS
+
+### Some "focused" versions of cancellation lemmas
+# Format = "nameF" (F = focused) : cancellation and association combined
+coh iid5@3F (a : *) (b : *) (x1 : a -> b) (x2 : a -> b) (f1 : x1 -> x2) (x3 : a -> b) (f2 : x2 -> x3) (x4 : a -> b) (f3 : x3 -> x4) (x5 : a -> b) (f4 : x4 -> x5) :
+ccomp5 f1 f2 (iid x3) f3 f4 -> ccomp3 f1 (ccomp f2 f3) f4#
+
+coh iiid5@3F (nw1 : *) (nw2 : *) (a : nw1 -> nw2) (b : nw1 -> nw2) (x1 : a -> b) (x2 : a -> b) (f1 : x1 -> x2) (x3 : a -> b) (f2 : x2 -> x3) (x4 : a -> b) (f3 : x3 -> x4) (x5 : a -> b) (f4 : x4 -> x5) :
+cccomp5 f1 f2 (iiid x3) f3 f4 -> cccomp3 f1 (cccomp f2 f3) f4#
+
+coh iid5@3F- (a : *) (b : *) (x1 : a -> b) (x2 : a -> b) (f1 : x1 -> x2) (x3 : a -> b) (f2 : x2 -> x3) (x4 : a -> b) (f3 : x3 -> x4) (x5 : a -> b) (f4 : x4 -> x5) :
+ccomp3 f1 (ccomp f2 f3) f4 -> ccomp5 f1 f2 (iid x3) f3 f4#
+
+coh iid5@3FU (nw1 : *) (nw2 : *) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (f1 : x1 -> x2) (x3 : nw1 -> nw2) (f2 : x2 -> x3) (x4 : nw1 -> nw2) (f3 : x3 -> x4) (x5 : nw1 -> nw2) (f4 : x4 -> x5) :
+cccomp (iid5@3F f1 f2 f3 f4) (iid5@3F- f1 f2 f3 f4) -> iiid (ccomp5 f1 f2 (iid x3) f3 f4)#
+
+coh iid5@3FCU (nw1 : *) (nw2 : *) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (f1 : x1 -> x2) (x3 : nw1 -> nw2) (f2 : x2 -> x3) (x4 : nw1 -> nw2) (f3 : x3 -> x4) (x5 : nw1 -> nw2) (f4 : x4 -> x5) :
+cccomp (iid5@3F- f1 f2 f3 f4) (iid5@3F f1 f2 f3 f4) -> iiid (ccomp3 f1 (ccomp f2 f3) f4)#
+
+coh iiid7@4F (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (f1 : x1 -> x2) (x3 : nw1 -> nw2) (f2 : x2 -> x3) (x4 : nw1 -> nw2) (f3 : x3 -> x4) (x5 : nw1 -> nw2) (f4 : x4 -> x5) (x6 : nw1 -> nw2) (f5 : x5 -> x6) (x7 : nw1 -> nw2) (f6 : x6 -> x7) :
+cccomp7 f1 f2 f3 (iiid x4) f4 f5 f6 -> cccomp5 f1 f2 (cccomp f3 f4) f5 f6#
+
+coh iiid9@5F (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (f1 : x1 -> x2) (x3 : nw1 -> nw2) (f2 : x2 -> x3) (x4 : nw1 -> nw2) (f3 : x3 -> x4) (x5 : nw1 -> nw2) (f4 : x4 -> x5) (x6 : nw1 -> nw2) (f5 : x5 -> x6) (x7 : nw1 -> nw2) (f6 : x6 -> x7) (x8 : nw1 -> nw2) (f7 : x7 -> x8) (x9 : nw1 -> nw2) (f8 : x8 -> x9) :
+cccomp9 f1 f2 f3 f4 (iiid x5) f5 f6 f7 f8 -> cccomp7 f1 f2 f3 (cccomp f4 f5) f6 f7 f8#
+
+### Tactics for simplification
+# format = simpl(n) (n = arity) : simplifies f1 f2  f(2n-1) f(2n) into identity
+let sssimpl2 (nw1 : *) (nw2 : *)
+    	     (x0 : nw1 -> nw2) (x1 : nw1 -> nw2)
+    	     (f0 : x0 -> x1) (f1 : x0 -> x1) (f2 : x0 -> x1)
+    	     (a1 : f0 -> f1) (a2 : f1 -> f2) (a3 : f2 -> f1) (a4 : f1 -> f0)
+	     (s1 : cccomp a1 a4 -> iiid f0) (s2 : cccomp a2 a3 -> iiid f1) =
+	     ccccomp3 (rew3@2S2 a1 s2 a4)
+	   	      (iiid3@2 a1 a4)
+		      s1#
+
+let sssimpl2F (nw1 : *) (nw2 : *)
+    	      (x0 : nw1 -> nw2) (x1 : nw1 -> nw2)
+    	      (f0 : x0 -> x1) (f1 : x0 -> x1) (f2 : x0 -> x1)
+    	      (a1 : f0 -> f1) (a2 : f1 -> f2) (a3 : f2 -> f1) (a4 : f1 -> f0)
+	      (s1 : cccomp a1 a4 -> iiid f0) (s2 : cccomp a2 a3 -> iiid f1) =
+	      ccccomp (fffocus2 a1 a2 a3 a4)
+	      	      (sssimpl2 s1 s2)#
+
+let sssimpl3 (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4)
+    	    (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (x3 : nw1 -> nw2)
+    	    (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3)
+	    (f4 : x3 -> x2) (f5 : x2 -> x1) (f6 : x1 -> x0)
+	    (s1 : cccomp f1 f6 -> iiid x0) (s2 : cccomp f2 f5 -> iiid x1) (s3 : cccomp f3 f4 -> iiid x2) =
+	    ccccomp3 (rew5@3S2 f1 f2 s3 f5 f6)
+	   	     (iiid5@3F f1 f2 f5 f6)
+		     (sssimpl2 s1 s2)#
+
+let sssimpl4 (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4)
+    	   (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (x3 : nw1 -> nw2) (x4 : nw1 -> nw2)
+    	   (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3) (f4 : x3 -> x4)
+	   (f5 : x4 -> x3) (f6 : x3 -> x2) (f7 : x2 -> x1) (f8 : x1 -> x0)
+	   (s1 : cccomp f1 f8 -> iiid x0) (s2 : cccomp f2 f7 -> iiid x1)
+	   (s3 : cccomp f3 f6 -> iiid x2) (s4 : cccomp f4 f5 -> iiid x3) =
+	   ccccomp3 (rew7@4S2 f1 f2 f3 s4 f6 f7 f8)
+	   	    (iiid7@4F f1 f2 f3 f6 f7 f8)
+		    (sssimpl3 s1 s2 s3)#
+
+let sssimpl5 (nw1 : *) (nw2 : *)
+	    (nw3 : nw1 -> nw2) (nw4 : nw1 -> nw2)
+	    (x0 : nw3 -> nw4) (x1 : nw3 -> nw4) (x2 : nw3 -> nw4) (x3 : nw3 -> nw4) (x4 : nw3 -> nw4) (x5 : nw3 -> nw4)
+	    (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3) (f4 : x3 -> x4) (f5 : x4 -> x5)
+	    (f6 : x5 -> x4) (f7 : x4 -> x3) (f8 : x3 -> x2) (f9 : x2 -> x1) (f10 : x1 -> x0)
+	    (s1 : cccomp f1 f10 -> iiid x0) (s2 : cccomp f2 f9 -> iiid x1)
+	    (s3 : cccomp f3 f8 -> iiid x2) (s4 : cccomp f4 f7 -> iiid x3)
+	    (s5 : cccomp f5 f6 -> iiid x4) =
+	    ccccomp3 (rew9@5S2 f1 f2 f3 f4 s5 f7 f8 f9 f10)
+	   	     (iiid9@5F f1 f2 f3 f4 f7 f8 f9 f10)
+		     (sssimpl4 s1 s2 s3 s4)#
+
+let sssimpl5F (nw3 : *) (nw4 : *) (nw1 : nw3 -> nw4) (nw2 : nw3 -> nw4)
+	     (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (x3 : nw1 -> nw2) (x4 : nw1 -> nw2) (x5 : nw1 -> nw2)
+    	     (f1 : x0 -> x1) (f2 : x1 -> x2) (f3 : x2 -> x3) (f4 : x3 -> x4) (f5 : x4 -> x5)
+	     (f6 : x5 -> x4) (f7 : x4 -> x3) (f8 : x3 -> x2) (f9 : x2 -> x1) (f10 : x1 -> x0)
+	     (s1 : cccomp f1 f10 -> iiid x0) (s2 : cccomp f2 f9 -> iiid x1)
+	     (s3 : cccomp f3 f8 -> iiid x2) (s4 : cccomp f4 f7 -> iiid x3)
+	     (s5 : cccomp f5 f6 -> iiid x4) =
+	     ccccomp (fffocus5 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10)
+	   	      (sssimpl5 s1 s2 s3 s4 s5)#
+
+
+### Tactics to simplify rewriting
+# simplifies any rewriting by a cell then its inverse into the identity
+let ssimplrew2A (nw1 : *) (nw2 : *)
+		(x : nw1 -> nw2) (y : nw1 -> nw2) (z : nw1 -> nw2)
+    	       (f1 : x -> y) (f2 : x -> y) (g1 : y -> z) (g2 : y -> z)
+	       (a1 : f1 -> f2) (a2 : f2 -> f1) (b1 : g1 -> g2) (b2 : g2 -> g1)
+	       (aU : cccomp a1 a2 -> iiid f1) (bU : cccomp b1 b2 -> iiid g1) =
+	       ccccomp3 (rew2compAS1 a1 a2 b1 b2)
+	       	        (rrew2AS1 aU bU)
+		        (rew2idAS1 f1 g1)#
+
+let ssimplrew3A (nw1 : *) (nw2 : *)
+    		(x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (x3 : nw1 -> nw2)
+    	       	(f1 : x0 -> x1) (g1 : x0 -> x1) (f2 : x1 -> x2) (g2 : x1 -> x2)
+	       	     	       	     	        (f3 : x2 -> x3) (g3 : x2 -> x3)
+	       	(a1 : f1 -> g1) (a2 : g1 -> f1) (b1 : f2 -> g2) (b2 : g2 -> f2)
+	       	     	       	     	        (c1 : f3 -> g3) (c2 : g3 -> f3)
+	        (aU : cccomp a1 a2 -> iiid f1) (bU : cccomp b1 b2 -> iiid f2) (cU : cccomp c1 c2 -> iiid f3) =
+ccccomp3 (rew3compAS1 a1 a2 b1 b2 c1 c2)
+         (rrew3AS1 aU bU cU)
+         (rew3idAS1 f1 f2 f3)#
+
+let ssimplrew5 (nw1 : *) (nw2 : *)
+	       (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (x3 : nw1 -> nw2) (x4 : nw1 -> nw2) (x5 : nw1 -> nw2)
+    	       (f1 : x0 -> x1) (f2 : x1 -> x2)
+	       (f3 : x2 -> x3) (g3 : x2 -> x3) (a : f3 -> g3) (b : g3 -> f3) (abU : cccomp a b -> iiid f3)
+	       (f4 : x3 -> x4) (f5 : x4 -> x5)  =
+ccccomp3 (rew5comp@3S1 f1 f2 a b f4 f5)
+      	 (rrew5@3S1 f1 f2 abU f4 f5)
+      	 (rew5id@3S1 f1 f2 f3 f4 f5)#
+	 
+### Tactics for reducing
+# simplifies a composition f1 f2  f(2n-1) f(2n) into a smaller composition when some intermediate cells cancel
+let rred3 (a : *) (b : *)
+	  (x0 : a -> b) (x1 : a -> b) (x2 : a -> b) (x2m : a -> b) (x3 : a -> b) (x4 : a -> b)
+    	  (f1 : x0 -> x1) (f2 : x1 -> x2)
+	  (f3 : x2 -> x2m) (f4 : x2m -> x2) (s : ccomp f3 f4 -> iid x2)
+	  (f5 : x2 -> x3) (f6 : x3 -> x4) =
+	 cccomp (rew5@3S1 f1 f2 s f5 f6)
+	        (iid5@3F f1 f2 f5 f6)#
+		
+let rred3- (a : *) (b : *)
+    	   (x0 : a -> b) (x1 : a -> b) (x2 : a -> b) (x2m : a -> b) (x3 : a -> b) (x4 : a -> b)
+    	   (f1 : x0 -> x1) (f2 : x1 -> x2)
+	   (f3 : x2 -> x2m) (f4 : x2m -> x2) (s : iid x2 -> ccomp f3 f4)
+	   (f5 : x2 -> x3) (f6 : x3 -> x4) =
+	   cccomp (iid5@3F- f1 f2 f5 f6)    
+     	       	  (rew5@3S1 f1 f2 s f5 f6)#
+
+let rred3F (a : *) (b : *)
+	  (x0 : a -> b) (x1 : a -> b) (x2 : a -> b) (x2m : a -> b) (x3 : a -> b) (x4 : a -> b)
+    	  (f1 : x0 -> x1) (f2 : x1 -> x2)
+	  (f3 : x2 -> x2m) (f4 : x2m -> x2) (s : ccomp f3 f4 -> iid x2)
+	  (f5 : x2 -> x3) (f6 : x3 -> x4) =
+	  cccomp (ffocus3 f1 f2 f3 f4 f5 f6)
+	         (rred3 f1 f2 s f5 f6)#
+
+let rred3F- (a : *) (b : *)
+	    (x0 : a -> b) (x1 : a -> b) (x2 : a -> b) (x2m : a -> b) (x3 : a -> b) (x4 : a -> b)
+    	    (f1 : x0 -> x1) (f2 : x1 -> x2)
+	    (f3 : x2 -> x2m) (f4 : x2m -> x2) (s : iid x2 -> ccomp f3 f4)
+	    (f5 : x2 -> x3) (f6 : x3 -> x4) =
+	   cccomp (rred3- f1 f2 s f5 f6)
+	          (ffocus3- f1 f2 f3 f4 f5 f6)#
+
+let rred3U (nw1 : *) (nw2 : *)
+    	   (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (x2m : nw1 -> nw2) (x3 : nw1 -> nw2) (x4 : nw1 -> nw2)
+    	   (f1 : x0 -> x1) (f2 : x1 -> x2)
+	   (f3 : x2 -> x2m) (f4 : x2m -> x2) (s1 : ccomp f3 f4 -> iid x2) (s2 : iid x2 -> ccomp f3 f4)
+	   (sU : cccomp s1 s2 -> iiid (ccomp f3 f4))
+	   (f5 : x2 -> x3) (f6 : x3 -> x4) :
+cccomp (rred3 f1 f2 s1 f5 f6) (rred3- f1 f2 s2 f5 f6) -> iiid (ccomp5 f1 f2 (ccomp f3 f4) f5 f6) =
+sssimpl2F (ssimplrew5 f1 f2 sU f5 f6)
+	  (iid5@3FU f1 f2 f5 f6)#
+
+let rred3FU (nw1 : *) (nw2 : *)
+    	     (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (x2m : nw1 -> nw2) (x3 : nw1 -> nw2) (x4 : nw1 -> nw2)
+    	     (f1 : x0 -> x1) (f2 : x1 -> x2)
+	     (f3 : x2 -> x2m) (f4 : x2m -> x2) (s1 : ccomp f3 f4 -> iid x2) (s2 : iid x2 -> ccomp f3 f4)
+	     (sU : cccomp s1 s2 -> iiid (ccomp f3 f4))
+	     (f5 : x2 -> x3) (f6 : x3 -> x4) 
+: cccomp (rred3F f1 f2 s1 f5 f6) (rred3F- f1 f2 s2 f5 f6) -> iiid (ccomp (ccomp3 f1 f2 f3) (ccomp3 f4 f5 f6)) =
+sssimpl2F (ffocus3U f1 f2 f3 f4 f5 f6)
+	  (rred3U f1 f2 sU f5 f6)#
+
+let rred3CU (nw1 : *) (nw2 : *)
+    	    (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (x2m : nw1 -> nw2) (x3 : nw1 -> nw2) (x4 : nw1 -> nw2)
+    	    (f1 : x0 -> x1) (f2 : x1 -> x2)
+	    (f3 : x2 -> x2m) (f4 : x2m -> x2)  (s1 : iid x2 -> ccomp f3 f4) (s2 : ccomp f3 f4 -> iid x2)
+	    (sU : cccomp s1 s2 -> iiid (iid x2))
+	    (f5 : x2 -> x3) (f6 : x3 -> x4) :
+cccomp (rred3- f1 f2 s1 f5 f6) (rred3 f1 f2 s2 f5 f6) -> iiid (ccomp3 f1 (ccomp f2 f5) f6)  =
+sssimpl2F (iid5@3FCU f1 f2 f5 f6)
+	  (ssimplrew5 f1 f2 sU f5 f6)#
+
+let rred3FCU (nw1 : *) (nw2 : *)
+    	     (x0 : nw1 -> nw2) (x1 : nw1 -> nw2) (x2 : nw1 -> nw2) (x2m : nw1 -> nw2) (x3 : nw1 -> nw2) (x4 : nw1 -> nw2)
+    	     (f1 : x0 -> x1) (f2 : x1 -> x2)
+	     (f3 : x2 -> x2m) (f4 : x2m -> x2)  (s1 : iid x2 -> ccomp f3 f4) (s2 : ccomp f3 f4 -> iid x2)
+	     (sU : cccomp s1 s2 -> iiid (iid x2))
+	     (f5 : x2 -> x3) (f6 : x3 -> x4) :
+cccomp (rred3F- f1 f2 s1 f5 f6) (rred3F f1 f2 s2 f5 f6) -> iiid (ccomp3 f1 (ccomp f2 f5) f6)  =
+sssimpl2F (rred3CU f1 f2 sU f5 f6)
+	  (ffocus3CU f1 f2 f3 f4 f5 f6)#
+
+
+### Some operations on 2-cells
+# Format = rew(n)@(k)id@(l)R :substituting id in the place l in the coherence rew(n)@(k), and rewriting the source and target to match with the orginal two cell
+#                            (R = reduced)
+#          rew(n)@(k)id@(l)  :unitor for the substitution of id in the place l in the coherence rew(n)@(k)  
+let rew2@2id@1R (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) =
+    ccomp3 (id2@1- f) (rew2@2 (id x) a) (id2@1 g)
+
+coh rew2@2id@1 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    rew2@2id@1R a -> a
+
+coh rew2@2id@1- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    a -> rew2@2id@1R a
+
+let rew2@1id@2R (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) =
+    ccomp3 (id2@2- f) (rew2@1 a (id y)) (id2@2 g)
+
+coh rew2@1id@2 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    rew2@1id@2R a -> a
+
+coh rew2@1id@2- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    a -> rew2@1id@2R a
+
+# Format = exch : exchange rule
+coh exch (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
+    	      	 (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
+		 ccomp (rew2@1 a h) (rew2@2 g b) -> ccomp (rew2@2 f b) (rew2@1 a k)
+
+coh exch- (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
+    	      	  (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
+		  ccomp (rew2@2 f b) (rew2@1 a k) -> ccomp (rew2@1 a h) (rew2@2 g b)
+
+coh exchU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g)
+    	      	  (z : *) (h : y -> z) (k : y -> z) (b : h -> k) :
+cccomp (exch a b) (exch- a b) -> iiid (ccomp (rew2@1 a h) (rew2@2 g b))
+
+### Eckmann-Hilton morphism, inverse and cancellation
+let eh (x : *) (a : id x -> id x) (b : id x  -> id x) =
+    cccomp5 (rew2AS1 (rew2@1id@2- a) (rew2@2id@1- b))
+	    (rred3F (id2@2- (id x)) (rew2@1 a (id x)) (id2@2@1U x) (rew2@2 (id x) b) (id2@1 (id x)))
+	    (rew3AS1 (id2@/1-,2-/- x) (exch a b) (id2@/1,2/ x))
+	    (rred3F- (id2@1- (id x)) (rew2@2 (id x) b) (id2@1@2U- x) (rew2@1 a (id x)) (id2@2 (id x)))
+	    (rew2AS1 (rew2@2id@1 b) (rew2@1id@2 a))
+
+let eh- (x : *) (a : id x -> id x) (b : id x  -> id x) =
+    cccomp5 (rew2AS1 (rew2@2id@1- a) (rew2@1id@2- b))
+	    (rred3F (id2@1- (id x)) (rew2@2 (id x) a) (id2@1@2U x) (rew2@1 b (id x)) (id2@2 (id x)))
+	    (rew3AS1 (id2@/1-,2-/ x) (exch- b a) (id2@/1,2/- x))
+	    (rred3F- (id2@2- (id x)) (rew2@1 b (id x)) (id2@2@1U- x) (rew2@2 (id x) a) (id2@1 (id x)))
+	    (rew2AS1 (rew2@1id@2 b) (rew2@2id@1 a))
+
+
+### Higher Cells for cancelling Eckmann-Hilton morphism with its inverse
+coh rew2@1id@2U (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    cccomp (rew2@1id@2 a) (rew2@1id@2- a) -> iiid (rew2@1id@2R a)
+coh rew2@1id@2CU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    cccomp (rew2@1id@2- a) (rew2@1id@2 a) -> iiid a
+
+coh rew2@2id@1U (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    cccomp (rew2@2id@1 a) (rew2@2id@1- a) -> iiid (rew2@2id@1R a)
+coh rew2@2id@1CU (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) :
+    cccomp (rew2@2id@1- a) (rew2@2id@1 a) -> iiid a
+
+coh id2@1@2UCU (x: *) : cccomp (id2@1@2U- x) (id2@1@2U x) -> iiid (iid (comp (id x) (id x)))
+coh id2@2@1UU (x: *) : cccomp (id2@2@1U x) (id2@2@1U- x) -> iiid (ccomp (id2@2 (id x)) (id2@1- (id x)))
+coh id2@/1-,2-/CU   (x : *) : cccomp (id2@/1-,2-/- x) (id2@/1-,2-/ x) ->  iiid (id2@2- (id x))
+coh id2@/1,2/U      (x : *) : cccomp (id2@/1,2/ x) (id2@/1,2/- x) -> (iiid (id2@1 (id x)))
+
+let ehU (x : *) (a : id x -> id x) (b : id x  -> id x)
+: cccomp (eh a b) (eh- b a) -> iiid (ccomp a b) =
+sssimpl5F (ssimplrew2A (rew2@1id@2CU a) (rew2@2id@1CU b))
+	 (rred3FU (id2@2- (id x)) (rew2@1 a (id x)) (id2@2@1UU x) (rew2@2 (id x) b) (id2@1 (id x)))
+	 (ssimplrew3A (id2@/1-,2-/CU x) (exchU a b) (id2@/1,2/U x))
+	 (rred3FCU (id2@1- (id x)) (rew2@2 (id x) b) (id2@1@2UCU x) (rew2@1 a (id x)) (id2@2 (id x)))
+	 (ssimplrew2A (rew2@2id@1U b) (rew2@1id@2U a))
+
+#93 definitions in total
+#58 definitions could be simplified using suspension
+#4 of them would be simplified into a single definition
+#2 groups of 3 would be simplified into a single definition
+#3 groups of 2 would be simplified into a single definition
