@@ -34,3 +34,11 @@ let exec s =
     exit 0
   else
 Command.exec (parse s)
+
+(** Interactive loop. *)
+let loop () =
+  while true do
+    init ();
+    let s = read_line () in
+    exec s
+  done

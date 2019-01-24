@@ -71,7 +71,6 @@ let rec exec prog =
     | [] -> ()
     | (t::l)  -> exec_cmd t; aux l
   in
-  Kernel.init_env ();
   aux prog
 
 
