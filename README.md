@@ -2,7 +2,9 @@
 
 Catt is an implementation of a type system checking coherences in [Grothendieck-Maltsiotis infinity categories](https://arxiv.org/abs/1009.2331). The underlying type theoretical translation is described by [Finster-Mimram](https://arxiv.org/abs/1706.02866).
 
-The implementation is written in OCaml and is based of [Samuel Mimram's implementation](https://github.com/smimram/catt), with additional features and corrections. There is also an [Haskell implementation by Eric Finster](https://github.com/ericfinster/catt)
+The implementation is written in OCaml and is based of [Samuel Mimram's implementation](https://github.com/smimram/catt), with additional features and corrections. There is also an [Haskell implementation by Eric Finster](https://github.com/ericfinster/catt).
+
+There is an [online version](https://thiben.github.io/catt/) of this implementation
 
 ## Syntax
 There are two keywords to define a new operation  
