@@ -12,9 +12,8 @@ all: dnc
 	  ./catt ../examples/syllepsis.catt
 
 web: web.ml dc
-	$(OCAMLC) -annot -I `ocamlfind query js_of_ocaml` -pp "camlp4o -I `ocamlfind query js_of_ocaml` pa_js.cmo" -c web.ml
-	$(OCAMLC) -I `ocamlfind query js_of_ocaml` js_of_ocaml.cma $(IMPL_CMO) web.cmo -o $(RESULT)
+	ocamlfind $(OCAMLC) -package js_of_ocaml -package js_of_ocaml.syntax -syntax camlp4o -linkpkg -c  web.ml
+	ocamlfind $(OCAMLC) -package js_of_ocaml -package js_of_ocaml.syntax -syntax camlp4o -linkpkg $(IMPL_CMO) web.cmo -o $(RESULT)
 	js_of_ocaml $(RESULT)
-
 
 include OCamlMakefile
