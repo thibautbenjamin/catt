@@ -1,4 +1,4 @@
-open Stdlib
+open Std
 open Settings
 open Common
 open Syntax
@@ -18,7 +18,7 @@ struct
   type t = var
 
   let next_fresh = ref (New 0)
-             
+
   let to_string v =
     string_of_var v
 
@@ -31,7 +31,7 @@ struct
     let nxt = match res with
            |New k -> New (k+1)
            |_ -> assert (false)
-    in next_fresh := nxt; res                      
+    in next_fresh := nxt; res
 end
 
 (** Context variables (i.e. "arguments of functions"). *)
@@ -48,10 +48,10 @@ struct
 
   let to_string v =
     string_of_var v
-	       
+
   let make v = v
 
-  let to_var v = v 
+  let to_var v = v
 end
 
 type evar = EVar.t
@@ -879,7 +879,7 @@ struct
     match v.value with
     |Coh c -> Coh.dim c
     |Let t -> Tm.dim t
-                     
+
   let suspend v i =
     match v.value with
     |Coh coh -> {print = v.print; value = Coh (Coh.suspend coh i)}

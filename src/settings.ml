@@ -7,4 +7,3 @@ let print_lifting = ref false
 
 (* simulate the theory of k-suspended categories, ie different sort of coherent monoidal categories*)
 let suspended = ref 0
-                      

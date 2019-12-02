@@ -1,9 +1,20 @@
-module List = struct
+module List : sig
+  include module type of List
+
+  val remove : 'a -> ('a list) -> 'a list
+  val union : ('a list) -> ('a list) -> 'a list
+  val unions : ('a list) list -> 'a list
+  val included : ('a list) -> ('a list) -> bool
+  val set_equal : ('a list) -> ('a list) -> bool
+  val diff : ('a list) -> ('a list) -> 'a list
+  val get : int -> ('a list) -> 'a
+end
+= struct
   include List
 
   let remove x l =
     filter (fun y -> y <> x) l
-            
+
   let union l1 l2 =
     fold_left (fun l x -> if not (mem x l) then x::l else l) l1 l2
 
@@ -23,6 +34,6 @@ module List = struct
     match l,i with
     |[],_ -> raise (Not_found)
     |t::l,0 -> t
-    |_::l,i -> get (i-1) l 
+    |_::l,i -> get (i-1) l
 
 end

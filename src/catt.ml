@@ -18,9 +18,9 @@ let interactive = ref false
 let () =
   Printexc.record_backtrace true;
   let file_in = ref [] in
-  Arg.parse
+  Stdlib.Arg.parse 
     [
-      "-i", Arg.Set interactive, " Interactive mode."
+      "-i", Stdlib.Arg.Set interactive, " Interactive mode."
     ]
     (fun s -> file_in := s::!file_in)
     usage;
