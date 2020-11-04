@@ -41,3 +41,10 @@ pre {
     overflow-x: scroll;
     overflow-y: visible;
 }
+
+table{
+    border-collapse: collapse;
+}
+table td, table td * {
+    vertical-align: top;
+}
