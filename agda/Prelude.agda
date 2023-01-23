@@ -6,18 +6,18 @@
 
 module Prelude where
 
-  open import Agda.Primitive public 
+  open import Agda.Primitive public
 
   record ⊤ : Set where
     constructor tt
 
   {-# BUILTIN UNIT ⊤ #-}
-  
+
   record Σ {i j} (A : Set i) (B : A → Set j) : Set (i ⊔ j) where
     constructor _,_
     field
       fst : A
-      snd : B fst 
+      snd : B fst
 
   open Σ public
 
@@ -26,11 +26,11 @@ module Prelude where
     S : ℕ → ℕ
 
   {-# BUILTIN NATURAL ℕ #-}
-  
+
   uncurry : ∀ {i j k} {A : Set i} {B : A → Set j} {C : Set k} →
             (φ : (a : A) → (b : B a) → C) →
             Σ A B → C
-  uncurry φ (a , b) = φ a b            
+  uncurry φ (a , b) = φ a b
 
   curry : ∀ {i j k} {A : Set i} {B : A → Set j} {C : Set k} →
           (ψ : Σ A B → C) →
@@ -63,13 +63,13 @@ module Prelude where
   tr! : ∀{i j} {A : Set i} (P : A → Set j) {a₀ a₁ : A} (p : a₀ == a₁) (q : a₀ == a₁) (x : P a₀) → transport P p x == transport P q x
   tr! P p q x = elimtransport P p q (proof-irrelevance p q) x
 
-  tr² : ∀{i j} {A : Set i} (P : A → Set j) {a₀ a₁ a₂ : A} (p : a₀ == a₁) (q : a₁ == a₂) (x : P a₀) → transport P q (transport P p x) == transport P (etrans p q) x 
+  tr² : ∀{i j} {A : Set i} (P : A → Set j) {a₀ a₁ a₂ : A} (p : a₀ == a₁) (q : a₁ == a₂) (x : P a₀) → transport P q (transport P p x) == transport P (etrans p q) x
   tr² P idp idp x = idp
 
-  tr³ : ∀{i j} {A : Set i} (P : A → Set j) {a₀ a₁ a₂ a₃ : A} (p₀ : a₀ == a₁) (p₁ : a₁ == a₂) (p₂ : a₂ == a₃) (x : P a₀) → transport P p₂ (transport P p₁ (transport P p₀ x)) == transport P (etrans p₀ (etrans p₁ p₂)) x 
+  tr³ : ∀{i j} {A : Set i} (P : A → Set j) {a₀ a₁ a₂ a₃ : A} (p₀ : a₀ == a₁) (p₁ : a₁ == a₂) (p₂ : a₂ == a₃) (x : P a₀) → transport P p₂ (transport P p₁ (transport P p₀ x)) == transport P (etrans p₀ (etrans p₁ p₂)) x
   tr³ P idp idp idp x = idp
 
-  tr⁴ : ∀{i j} {A : Set i} (P : A → Set j) {a₀ a₁ a₂ a₃ a₄ : A} (p₀ : a₀ == a₁) (p₁ : a₁ == a₂) (p₂ : a₂ == a₃) (p₃ : a₃ == a₄) (x : P a₀) → transport P p₃ (transport P p₂ (transport P p₁ (transport P p₀ x))) == transport P (etrans p₀ (etrans p₁ (etrans p₂ p₃))) x 
+  tr⁴ : ∀{i j} {A : Set i} (P : A → Set j) {a₀ a₁ a₂ a₃ a₄ : A} (p₀ : a₀ == a₁) (p₁ : a₁ == a₂) (p₂ : a₂ == a₃) (p₃ : a₃ == a₄) (x : P a₀) → transport P p₃ (transport P p₂ (transport P p₁ (transport P p₀ x))) == transport P (etrans p₀ (etrans p₁ (etrans p₂ p₃))) x
   tr⁴ P idp idp idp idp x = idp
 
 
@@ -90,10 +90,10 @@ module Prelude where
   Σ-in {A = A} {B = B} C a = Σ (B a) (λ b → C a b)
 
   infix 30 _↦_
-  
+
   postulate
     _↦_ : ∀ {i} {A : Set i} → A → A → Set i
-    
+
   {-# BUILTIN REWRITE _↦_ #-}
 
 
@@ -106,7 +106,7 @@ module Prelude where
 
   if_then_else : ∀ {a} {A : Set a} →  bool → A → A → A
   if true then A else B = A
-  if false then A else B = B 
+  if false then A else B = B
 
   _≤_ : ℕ → ℕ → bool
   O ≤ n₁ = true
