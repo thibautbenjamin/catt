@@ -14,15 +14,14 @@ let make_cvar = Variables.CVar.make
 let make_evar = Variables.EVar.make
 
 (** Operations on substitutions. *)
-module rec Sub
- :
-sig
+module rec Sub : sig
   type t
 
   (* Structural functions *)
   val mk : Tm.t list -> Ctx.t -> Ctx.t  -> t
   val mk_elaborated : Tm.t list -> Ctx.t -> Ctx.t -> t
   val reinit : t -> tm list
+  val _forget : t -> sub
   val list_expl_vars : t -> var list
 
   (* Syntactic properties *)
@@ -44,10 +43,7 @@ end
   =
 struct
   (** A substitution. *)
-  (* In current implementation, the variable names are given by the codomain. *)
-  (* TODO: add variable names *)
   type t = {list : Tm.t list; src : Ctx.t; tar : Ctx.t}
-
 
   (** Free context variables. *)
   let free_vars s =
@@ -234,6 +230,18 @@ struct
         end
       |_,_ -> assert false
     in List.rev (aux s.list s.tar)
+
+  (** forget the type-checking down to untyped syntax *)
+  let _forget (s:t) =
+    let rec aux s c =
+      match s,c with
+      |[], c when Ctx.is_empty c -> []
+      |(u::s),c -> begin
+          match Ctx.head c with
+          |(x,_) -> (var_of_cvar x, Tm._forget u)::(aux s (Ctx.tail c))
+        end
+      |_,_ -> assert false
+    in Elaborated (List.rev (aux s.list s.tar))
 
   (** Keep only the the maximal elements of a substitution ("unealborate"). *)
   let explicit (s:t) =
@@ -430,10 +438,10 @@ struct
     assert (i>=1);
     let rec aux k j c = (*k is the last used var, j the number of time we functorialized*)
       match j with
-      | j when j = i -> c,Arr (Var (New (k)), Var (New (k+1)))
+      | j when j = i -> c,Arr (None,Var (New (k)), Var (New (k+1)))
       | j ->
 	 let k' = k+2 in
-	 let ty = Arr (Var (New (k)), Var (New (k+1))) in
+	 let ty = Arr (None,Var (New (k)), Var (New (k+1))) in
          aux (k')
            (j+1)
 	   (Ctx.add
@@ -507,7 +515,7 @@ struct
             let x = var_of_cvar x in
             let c = Ctx.add (Ctx.functorialize (Ctx.tail c) l) x tx in
             let c = Ctx.add c y tx in
-            add_explicit c f (Arr(Var x,Var y))
+            add_explicit c f (Arr(None,Var x,Var y))
         with Not_found -> add (Ctx.functorialize (Ctx.tail c) l) (var_of_cvar x) tx
     in mark (compute c)
 
@@ -716,11 +724,11 @@ struct
     |(PNil (x,_) as ps) when x = v ->
       let x = var_of_cvar x in
       let ctx1 = (Ctx.add (Ctx.of_ps ps) v' Obj) in
-      Ctx.add ctx1 al (Arr(Var x,Var v'))
+      Ctx.add ctx1 al (Arr(None,Var x,Var v'))
     |((PDrop (PCons (_,_,(x,ty)))) as ps) when x = v ->
       let x = var_of_cvar x in
       let ctx1 = Ctx.add (Ctx.of_ps ps) v' (Ty.reinit ty) in
-      Ctx.add ctx1 al (Arr(Var x, Var v'))
+      Ctx.add ctx1 al (Arr(None,Var x, Var v'))
     |(PDrop (PCons (ps,(x1,ty1),(x2,ty2)))) ->
       let x1 = var_of_cvar x1 and x2 = var_of_cvar x2 in
       let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
@@ -894,6 +902,7 @@ sig
 
   val dim : t -> int
   val reinit : t -> ty
+  val _forget : t -> ty
 
   val unify : t -> t -> ((cvar * t) * Tm.t option * bool) list -> ((cvar * t) * Tm.t option * bool) list
 
@@ -959,10 +968,11 @@ struct
       let newty =
         match e with
         | Obj -> {c = c; e = Obj}
-        | Arr (u,v) ->
+        | Arr (None,u,v) ->
            let u,tu = Tm.make c u in
            let v,tv = Tm.make c v in
            let () = check_equal c tu tv in {c = c; e = Arr(tu,u,v)}
+        | Arr (Some _,_,_) -> assert false
         | Letin_ty _ -> assert false
       in Hashtbl.add Hash.tbty e newty; newty
 
@@ -977,7 +987,13 @@ struct
   let reinit t : ty =
     match t.e with
     | Obj -> Obj
-    | Arr(_,u,v) -> Arr (Tm.reinit u, Tm.reinit v)
+    | Arr(_,u,v) -> Arr (None,Tm.reinit u, Tm.reinit v)
+
+  let rec _forget t : ty =
+    match t.e with
+    | Obj -> Obj
+    | Arr(a,u,v) -> Arr (Some (_forget a),Tm._forget u, Tm._forget v)
+
 
   let rec unify (ty1 : t) (ty2 : t) l =
     match ty1.e ,ty2.e with
@@ -1009,6 +1025,7 @@ sig
   val dim : t -> int
 
   val reinit : t -> tm
+  val _forget : t -> tm
   val list_expl_vars : t -> var list
 
   val mark_ctx : t -> t
@@ -1076,7 +1093,12 @@ struct
   let reinit tm =
     match tm.e with
     | CVar v -> Var (var_of_cvar v)
-    | Sub (x,_,s) -> Sub (Var (var_of_evar x), Sub.reinit s,[])
+    | Sub (x,_,s) -> Sub (Var (var_of_evar x), Unelaborated (Sub.reinit s, []))
+
+  let _forget tm =
+    match tm.e with
+    | CVar v -> Var (var_of_cvar v)
+    | Sub (x,_,s) -> Sub (Var (var_of_evar x), Sub._forget s)
 
   let list_expl_vars tm : var list =
     match tm.e with
@@ -1111,7 +1133,7 @@ struct
            |(a::s) when List.exists (fun v -> List.mem v vars) (list_vars a) -> i::(func s (i+1))
            |(_::s) -> func s (i+1)
          in
-         Sub (Var (var_of_evar x),(functed_s),func (reinit_s) 0)
+         Sub (Var (var_of_evar x),Unelaborated ((functed_s), func (reinit_s) 0))
     in fst (Tm.make c (func_expr (tm.e)))
 
   let dim tm =
@@ -1135,7 +1157,7 @@ struct
            let e = CVar (make_cvar v) in
            let ty = infer_expr c e in
            ({c = c; ty = ty; e = e}, ty)
-        | Sub (t,s,func) ->
+        | Sub (t,Unelaborated(s,func)) ->
            let max_list l = let rec max l i =
                        match l with
                        | [] -> i
@@ -1148,12 +1170,13 @@ struct
            let i = (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
            let v,t = match t with
              |Var v -> let v = make_evar v in Env.val_var v i func
-             |(Sub (_,_,_) | Letin_tm(_,_,_)) -> assert false
+             |(Sub (_,_) | Letin_tm(_,_,_)) -> assert false
            in let tar,ty = EnvVal.ty t in
               (* debug "got the context %s" (Ctx.to_string tar); *)
               let s = Sub.mk (List.map fst s) c tar in
               let ty = Sub.apply_Ty s ty in
               ({c = c; ty = ty; e = Sub(v,t,s)}, ty)
+        | Sub (_, Elaborated _) -> assert false
         | Letin_tm _ -> assert false
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 
@@ -1265,7 +1288,7 @@ struct
         |(v1,v2) :: repl -> replace_all repl (replace_tm_list l v1 v2)
       in
       let tgt = replace_all replacements src in
-      let t = Arr(Sub(Var evar, src,[]),(Sub(Var evar, tgt,[]))) in
+      let t = Arr(None, Sub(Var evar, Unelaborated(src,[])),(Sub(Var evar, Unelaborated(tgt,[])))) in
       (Coh.mk newps t)
 end
 

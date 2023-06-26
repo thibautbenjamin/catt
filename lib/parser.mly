@@ -57,9 +57,9 @@ simple_tyexpr:
 subst_tmexpr:
     | simple_tmexpr { $1 }
     | simple_tmexpr simple_tmexpr sub { let sub,func = generate_functorialize (($2,false)::$3)
-      		    		      	in Sub ($1,sub,func) }
+      		    		      	in Sub ($1,Unelaborated(sub,func)) }
     | simple_tmexpr functed_tmexpr sub { let sub,func = generate_functorialize (($2,true)::$3)
-      		    		      	 in Sub ($1,sub,func) }
+      		    		      	 in Sub ($1,Unelaborated(sub,func)) }
 
 tmexpr:
     | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (make_var $2, $4, $6) }
@@ -68,4 +68,4 @@ tmexpr:
 tyexpr:
     | LET IDENT EQUAL tmexpr IN tyexpr { Letin_ty (make_var $2, $4, $6) }
     | simple_tyexpr { $1 }
-    | subst_tmexpr MOR subst_tmexpr { Arr ($1,$3) }
+    | subst_tmexpr MOR subst_tmexpr { Arr (None,$1,$3) }
