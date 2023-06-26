@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Examples for CaTT</title>
+    <meta http-equiv="Content-type" content="text/html;charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="catt.css"/>
+  </head>
+  <body>
+    <h1> Examples for CaTT </h1>
+
+    <p>
+      Here are some examples to get used to the syntax and understand how the system works
+
+      <pre>
+        # Identity
+        coh id (x : *) : x -> x
+
+        # Composition
+        coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
+      </pre>
+      Redundant arguments must be kept implicit when using previously defined coherence
+      <pre>
+        # Left unit
+        coh unit-l (x : *) (y : *) (f : x -> y) : comp (id x) f -> f
+        # instead of "comp x x (id x) y f", one only writes "comp (id x) f"
+
+        # Right unit
+        coh unit-r (x : *) (y : *) (f : x -> y) : comp f (id y) -> f
+
+        # Unitor
+        coh unit-lr (x : *) : unit-l (id x) -> unit-r (id x)
+
+        # Associativity
+        coh assoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : comp (comp f g) h -> comp f (comp g h)
+      </pre>
+      The system also supports terms that are not immediately coherence
+      <pre>
+        # Identity over an identity
+        let id2 (x : *) = id (id x)
+
+        # Square of an endomorphism
+        let sq (x : *) (f : x -> x) = comp f f
+      </pre>
+      Operations are polymorphic with respect to the type of object
+      <pre>
+        # 2-composition
+        let comp2 (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (f'' : x -> y) (b : f' -> f'') = comp a b
+        ## Even though a and b are 2-cells, one can still use comp to compose like the as usual 1-cells
+      </pre>
+      More examples are available on <a href="https://github.com/thibautbenjamin/catt/tree/master/examples"> my GitHub project page </a>
+    </p>
+  </body>
+</html>
