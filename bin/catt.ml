@@ -1,6 +1,4 @@
 (** Main for CATT. *)
-open Common
-
 let parse_file f =
   let sin =
     let fi = open_in f in
@@ -10,7 +8,7 @@ let parse_file f =
     close_in fi;
     buf
   in
-  Prover.parse (Bytes.to_string sin)
+  Catt.Prover.parse (Bytes.to_string sin)
 
 let usage = "catt [options] [file]"
 let interactive = ref false
@@ -18,14 +16,14 @@ let interactive = ref false
 let () =
   Printexc.record_backtrace true;
   let file_in = ref [] in
-  Stdlib.Arg.parse 
+  Stdlib.Arg.parse
     [
       "-i", Stdlib.Arg.Set interactive, " Interactive mode."
     ]
     (fun s -> file_in := s::!file_in)
     usage;
-  Kernel.init_env ();
+  Catt.Kernel.init_env ();
   let _ = match !file_in with
-    | [f] -> Command.exec (parse_file f)
+    | [f] -> Catt.Command.exec (parse_file f)
     | _ -> ()
-  in if !interactive then Prover.loop ()
+  in if !interactive then Catt.Prover.loop ()

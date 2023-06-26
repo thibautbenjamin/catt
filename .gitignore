@@ -13,3 +13,5 @@ catt
 *.log
 *.pdf
 *.conflicts
+/_build/
+/catt.opam

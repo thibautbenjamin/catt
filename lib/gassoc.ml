@@ -1,6 +1,5 @@
 open Std
 open Syntax
-open Common
 
 module type EVar = sig
   type t
@@ -76,7 +75,7 @@ module GAssoc (A : EVar) (B : EVal) = struct
       let n = A.new_fresh() in
       let newval = B.suspend value i in
       Inner ((w,value) ,[i, Node (n, newval)],[]), Some newval
-    |Node(_,_) as g -> g, None 
+    |Node(_,_) as g -> g, None
     |Inner((w,value),susp,func) as g when w = v ->
       begin
         try let res = List.assoc i susp in g, Some (snd (top_value res))

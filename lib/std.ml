@@ -33,7 +33,7 @@ end
   let rec get i l =
     match l,i with
     |[],_ -> raise (Not_found)
-    |t::l,0 -> t
+    |t::_,0 -> t
     |_::l,i -> get (i-1) l
 
 end

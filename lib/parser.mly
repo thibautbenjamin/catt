@@ -1,5 +1,4 @@
 %{
-    open Common
     open Command
     open Syntax
 
@@ -10,17 +9,14 @@
 		        in x::res,i::func
 	|(x,false)::l -> let (res,func) = aux l (i+1)
 		      	 in x::res,func
-	in aux l 0 
-%} 
+	in aux l 0
+%}
 
-%token COH OBJ PIPE MOR
+%token COH OBJ MOR
 %token LPAR RPAR LBRA RBRA COL
-%token <string> IDENT STRING
-%token CHECK EVAL HYP ENV EQUAL LET IN
+%token <string> IDENT
+%token CHECK EQUAL LET IN
 %token EOF
-
-%left PIPE
-%right MOR
 
 %start prog
 %type <Command.prog> prog
@@ -37,7 +33,7 @@ cmd:
     | CHECK args EQUAL tmexpr { Check ($2,$4,None) }
     | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (make_var $2,$3,$7,Some $5) }
     | LET IDENT args EQUAL tmexpr { Decl (make_var $2,$3,$5, None) }
-    
+
 args:
     | LPAR IDENT COL tyexpr RPAR args { (make_var $2, $4)::$6 }
     | { [] }
@@ -71,5 +67,5 @@ tmexpr:
 
 tyexpr:
     | LET IDENT EQUAL tmexpr IN tyexpr { Letin_ty (make_var $2, $4, $6) }
-    | simple_tyexpr { $1 } 
+    | simple_tyexpr { $1 }
     | subst_tmexpr MOR subst_tmexpr { Arr ($1,$3) }

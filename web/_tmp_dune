@@ -1,0 +1,3 @@
+(executable
+ (name web)
+ (modes js))

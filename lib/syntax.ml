@@ -1,7 +1,4 @@
 open Std
-open Settings
-open Common
-
 
 type var =
   | Name of string
@@ -39,7 +36,7 @@ let rec string_of_ty e =
   and string_of_sub s l i=
     match s,l with
     | [],_ -> ""
-    | t::[], k::l when k = i -> Printf.sprintf "[%s]" (string_of_tm t)
+    | t::[], k::_ when k = i -> Printf.sprintf "[%s]" (string_of_tm t)
     | t::[], _ -> Printf.sprintf "%s" (string_of_tm t)
     | t::s, k::l when k = i -> Printf.sprintf "[%s] %s" (string_of_tm t) (string_of_sub s l (i+1))
     | t::s,l -> Printf.sprintf "%s %s" (string_of_tm t) (string_of_sub s l (i+1))
@@ -49,7 +46,7 @@ let rec string_of_ty e =
     match e with
     | Letin_tm _ -> assert false
     | Var v -> [v]
-    | Sub (e,l,_) -> List.unions (List.map list_vars l)
+    | Sub (_,l,_) -> List.unions (List.map list_vars l)
 
   (** remove the let in in a term *)
   let rec replace_tm l e =

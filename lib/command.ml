@@ -1,9 +1,8 @@
-open Kernel
 open Settings
 open Common
 open Syntax
 
-              
+
 (** A command. *)
 type cmd =
   | Coh of var * (var * ty) list * ty (** a coherence *)
@@ -23,13 +22,13 @@ let rec print_vars l =
   match l with
   | x::l -> Printf.sprintf "(%s) %s" (string_of_var x) (print_vars l);
   | [] -> ""
-           
+
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
      command "let %s = %s" (string_of_var x) (string_of_ty e);
      let env =
-       if !debug_mode then 
+       if !debug_mode then
 	 Kernel.add_coh_env x ps e
        else
 	 try Kernel.add_coh_env x ps e
@@ -39,7 +38,7 @@ let exec_cmd cmd =
 	 | IsNotType s -> error "got %s, but a type was expected" s
 	 | HasNoType s -> error "the term %s has no type" s
 	 | NotEqual (s1,s2) -> error "got %s, but %s was expected" s1 s2
-     in 
+     in
      info "defined";
      env
   | Check (l, e, t) ->
@@ -64,16 +63,11 @@ let exec_cmd cmd =
           let t = Kernel.add_let_env v l e in t
      in
      info "defined term of type %s" t
-     
-     
-let rec exec prog =
+
+
+let exec prog =
   let rec aux = function
     | [] -> ()
     | (t::l)  -> exec_cmd t; aux l
   in
   aux prog
-
-
-
-
-                        
