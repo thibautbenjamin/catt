@@ -1,6 +1,0 @@
-coh id (x : *) : x -> x
-
-let f (x : *) =
-  let i = id x in
-  let j = id i in
-  j
