@@ -1,0 +1,5 @@
+(executable
+ (name web)
+ (modes js)
+ (libraries catt)
+ (preprocess (pps js_of_ocaml-ppx)))

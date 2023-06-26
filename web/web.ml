@@ -1,65 +1,68 @@
 (** Interaction with a webpage. *)
 
-module Html = Dom_html
+module Dom = Js_of_ocaml.Dom
+module Html = Js_of_ocaml.Dom_html
+module Js = Js_of_ocaml.Js
+module Firebug = Js_of_ocaml.Firebug
 
-(* let envs = ref Lang.Envs.empty  *) 
+(* let envs = ref Lang.Envs.empty  *)
 
 let doc = Html.document
 let button txt action =
   let button_type = Js.string "button" in
   let b = Html.createInput ~_type:button_type doc in
-  b##value <- Js.string txt;
-  b##onclick <- Dom_html.handler (fun _ -> action (); Js._true);
+  b##.value := Js.string txt;
+  b##.onclick := Html.handler (fun _ -> action (); Js._true);
   b
 
-let debug s =
+let _debug s =
   Firebug.console##debug (Js.string s)
 
 let loop s =
-  Prover.exec s;
+  Catt.Prover.exec s;
   (* envs := Prover.exec !envs s; *)
-  Prover.init ()
+  Catt.Prover.init ()
 
 let run _ =
   let top =
     Js.Opt.get
-      (doc##getElementById(Js.string "toplevel"))
+      (doc##getElementById (Js.string "toplevel"))
       (fun () -> assert false)
   in
 
   let output = Html.createDiv doc in
-  output##id <- Js.string "output";
-  output##style##whiteSpace <- Js.string "pre";
+  output##.id := Js.string "output";
+  output##.style##.whiteSpace := Js.string "pre";
   Dom.appendChild top output;
 
   let textbox = Html.createTextarea doc in
-  textbox##id <- Js.string "input";
-  textbox##cols <- 80;
-  textbox##rows <- 25;
+  textbox##.id := Js.string "input";
+  textbox##.cols := 80;
+  textbox##.rows := 25;
   (* textbox##value <- Js.string "# "; *)
   Dom.appendChild top textbox;
   Dom.appendChild top (Html.createBr doc);
-  textbox##focus();
-  textbox##select();
+  textbox##focus;
+  textbox##select;
 
   (* Current offset in textbox. *)
   let tb_off = ref 0 in
   let print s =
-    let s = Js.to_string textbox##value ^ s in
+    let s = Js.to_string textbox##.value ^ s in
     tb_off := String.length s;
-    textbox##value <- Js.string s;
+    textbox##.value := Js.string s;
     (* Scroll down. *)
     Js.Unsafe.set textbox (Js.string "scrollTop") (Js.Unsafe.get textbox (Js.string "scrollHeight"))
   in
   let read () =
-    let s = Js.to_string textbox##value in
+    let s = Js.to_string textbox##.value in
     let cmd = String.sub s !tb_off (String.length s - !tb_off) in
     tb_off := String.length s;
     cmd
   in
 
-  Common.print_string_fun := print;
-  Prover.init ();
+  Catt.Common.print_string_fun := print;
+  Catt.Prover.init ();
 
   let b =
     button
@@ -80,10 +83,10 @@ let run _ =
           !s
         in
         loop s;
-        textbox##focus();
-        doc##documentElement##scrollTop <- doc##body##scrollHeight)
+        textbox##focus;
+        doc##.documentElement##.scrollTop := doc##.body##.scrollHeight)
   in
-  b##id <- Js.string "send";
+  b##.id := Js.string "send";
   Dom.appendChild top b;
 
   ignore (Js.Unsafe.eval_string "init();");
@@ -91,4 +94,4 @@ let run _ =
   Js._false
 
 let () =
-  Html.window##onload <- Html.handler run
+  Html.window##.onload := Html.handler run
