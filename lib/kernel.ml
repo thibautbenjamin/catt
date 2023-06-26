@@ -4,60 +4,14 @@ open Common
 open Syntax
 open Gassoc
 
-(** Environment variables (i.e. defined coherences or let definitions). *)
-module EVar
-: sig
-  type t
-  val to_string : t -> string
-  val make : var -> t
-  val to_var : t -> var
-  val new_fresh : unit -> t
-end
-=
-struct
-  type t = var
+type evar = Variables.EVar.t
+type cvar = Variables.CVar.t
 
-  let next_fresh = ref (New 0)
-
-  let to_string v =
-    string_of_var v
-
-  let make v = v
-
-  let to_var v = v
-
-  let new_fresh () =
-    let res = !next_fresh in
-    let nxt = match res with
-           |New k -> New (k+1)
-           |_ -> assert (false)
-    in next_fresh := nxt; res
-end
-
-(** Context variables (i.e. "arguments of functions"). *)
-module CVar
-: sig
-    type t
-    val to_string : t -> string
-    val make : var -> t
-    val to_var : t -> var
-end
-=
-struct
-  type t = var
-
-  let to_string v =
-    string_of_var v
-
-  let make v = v
-
-  let to_var v = v
-end
-
-type evar = EVar.t
-type cvar = CVar.t
-
-let var_of_cvar = CVar.to_var
+let var_of_cvar = Variables.CVar.to_var
+let var_of_evar = Variables.EVar.to_var
+let cvar_to_string = Variables.CVar.to_string
+let make_cvar = Variables.CVar.make
+let make_evar = Variables.EVar.make
 
 (** Operations on substitutions. *)
 module rec Sub
@@ -85,7 +39,7 @@ sig
   val _to_string : t ->  string
   val to_string_func : t -> int list -> string
 
-  val unify : Sub.t -> Sub.t -> ((CVar.t * Ty.t) * Tm.t option * bool) list -> ((CVar.t * Ty.t) * Tm.t option * bool) list
+  val unify : Sub.t -> Sub.t -> ((cvar * Ty.t) * Tm.t option * bool) list -> ((cvar * Ty.t) * Tm.t option * bool) list
 end
   =
 struct
@@ -207,7 +161,7 @@ struct
 
   (** Given a list of terms of maximal dimension, complete it into a
      full-fledged substitution. *)
-  exception Completed of ((CVar.t * Ty.t) * Tm.t option * bool) list
+  exception Completed of ((cvar * Ty.t) * Tm.t option * bool) list
   let elaborate (l: Tm.t list) src tar : Tm.t list =
     (* debug "elaborating substitution %s in context %s" (print_list l) (Ctx.to_string tar); *)
     let rec create_assoc tar (l : Tm.t list) =
@@ -341,7 +295,7 @@ sig
   val head : t -> cvar * (Ty.t * bool)
   val tail : t -> t
   val suspend : t -> int -> t
-  val functorialize : t -> (CVar.t * (var * var)) list -> t
+  val functorialize : t -> (cvar * (var * var)) list -> t
 
   (* Syntactic properties *)
   val ty_var : t -> cvar -> Ty.t
@@ -371,7 +325,7 @@ struct
     try
       fst (List.assoc x ctx)
     with
-    | Not_found -> raise (UnknownId (CVar.to_string x))
+    | Not_found -> raise (UnknownId (cvar_to_string x))
 
   (* ------ Makers ------ *)
   (** Empty context. *)
@@ -379,10 +333,10 @@ struct
 
   (** adding an already marked term to a context (forgets the marking)*)
   let add_norm (ctx : Ctx.t) x u =
-    let x = CVar.make x in
+    let x = make_cvar x in
     try
       ignore (List.assoc x (ctx :> t));
-      raise (DoubleDef (CVar.to_string x))
+      raise (DoubleDef (cvar_to_string x))
     with Not_found -> (x,(u,false))::(ctx :> t)
 
   (** Add a typed variable to a context. *)
@@ -392,10 +346,10 @@ struct
 
   let add_explicit (ctx : Ctx.t) x u =
     let u = Ty.make ctx u in
-    let x = CVar.make x in
+    let x = make_cvar x in
     try
       ignore (List.assoc x (ctx :> t));
-      raise (DoubleDef (CVar.to_string x))
+      raise (DoubleDef (cvar_to_string x))
     with Not_found -> (x,(u,true))::(ctx :> t)
 
 
@@ -464,7 +418,7 @@ struct
       match l with
       |[] -> n
       |v::l ->
-        match CVar.to_var v with
+        match var_of_cvar v with
         |Name _ -> aux n l
         |New k -> aux (max k n) l
     in aux 0 (domain ctx)
@@ -544,17 +498,17 @@ struct
 
   let functorialize (c:Ctx.t) l =
     let compute (c : Ctx.t) =
-      match (c :> (CVar.t * (Ty.t * bool)) list) with
+      match (c :> (cvar * (Ty.t * bool)) list) with
       |[] -> []
-      |(x,(tx,false))::_ -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) (Ty.reinit tx)
+      |(x,(tx,false))::_ -> add (Ctx.functorialize (Ctx.tail c) l) (var_of_cvar x) (Ty.reinit tx)
       |(x,(tx,true))::_ ->
         let tx = Ty.reinit tx in
         try let (y,f) = List.assoc x l in
-            let x = CVar.to_var x in
+            let x = var_of_cvar x in
             let c = Ctx.add (Ctx.functorialize (Ctx.tail c) l) x tx in
             let c = Ctx.add c y tx in
             add_explicit c f (Arr(Var x,Var y))
-        with Not_found -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) tx
+        with Not_found -> add (Ctx.functorialize (Ctx.tail c) l) (var_of_cvar x) tx
     in mark (compute c)
 
 
@@ -568,12 +522,12 @@ struct
     | (x,(t,false))::c ->
        Printf.sprintf "%s {%s,%s}"
          (to_string c)
-         (CVar.to_string x)
+         (cvar_to_string x)
          (Ty.to_string t)
     | (x,(t,true))::c ->
        Printf.sprintf "%s (%s,%s)"
          (to_string c)
-	 (CVar.to_string x)
+	 (cvar_to_string x)
          (Ty.to_string t)
 
   (** dimension of a context is the maximal dimension of its variables *)
@@ -691,8 +645,8 @@ struct
                 let x,_ = marker ps in
                 if x = fx then
                   let varps = PS.domain ps in
-                  if (List.mem f varps) then raise (DoubledVar (CVar.to_string f));
-                  if (List.mem y varps) then raise (DoubledVar (CVar.to_string y));
+                  if (List.mem f varps) then raise (DoubledVar (cvar_to_string f));
+                  if (List.mem y varps) then raise (DoubledVar (cvar_to_string y));
                   let ps = PCons (ps,(y,ty),(f,tf)) in
                   aux ps l
                   else
@@ -760,21 +714,21 @@ struct
     let rec compute_ctx ps =
     match ps with
     |(PNil (x,_) as ps) when x = v ->
-      let x = CVar.to_var x in
+      let x = var_of_cvar x in
       let ctx1 = (Ctx.add (Ctx.of_ps ps) v' Obj) in
       Ctx.add ctx1 al (Arr(Var x,Var v'))
     |((PDrop (PCons (_,_,(x,ty)))) as ps) when x = v ->
-      let x = CVar.to_var x in
+      let x = var_of_cvar x in
       let ctx1 = Ctx.add (Ctx.of_ps ps) v' (Ty.reinit ty) in
       Ctx.add ctx1 al (Arr(Var x, Var v'))
     |(PDrop (PCons (ps,(x1,ty1),(x2,ty2)))) ->
-      let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
+      let x1 = var_of_cvar x1 and x2 = var_of_cvar x2 in
       let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
       let ctx= compute_ctx ps in
       Ctx.add (Ctx.add ctx x1 ty1) x2 ty2
     |PDrop(ps) -> compute_ctx ps
     |PCons(ps,(x1,ty1),(x2,ty2)) ->
-      let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
+      let x1 = var_of_cvar x1 and x2 = var_of_cvar x2 in
       let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
       let ctx = compute_ctx ps in
       Ctx.add (Ctx.add ctx x1 ty1) x2 ty2
@@ -795,14 +749,14 @@ struct
 	match ps with
 	| PNil (x,t) ->
 	  Printf.sprintf "[(%s,%s)]"
-	    (CVar.to_string x)
+	    (cvar_to_string x)
 	    (Ty.to_string t)
 	| PCons (ps,(x1,t1),(x2,t2)) ->
 	  Printf.sprintf "%s [(%s,%s) (%s,%s)]"
 	    (print ps)
-	    (CVar.to_string x1)
+	    (cvar_to_string x1)
 	    (Ty.to_string t1)
-	    (CVar.to_string x2)
+	    (cvar_to_string x2)
 	    (Ty.to_string t2)
 	| PDrop ps ->
 	  Printf.sprintf " %s ! "
@@ -941,7 +895,7 @@ sig
   val dim : t -> int
   val reinit : t -> ty
 
-  val unify : t -> t -> ((CVar.t * t) * Tm.t option * bool) list -> ((CVar.t * t) * Tm.t option * bool) list
+  val unify : t -> t -> ((cvar * t) * Tm.t option * bool) list -> ((cvar * t) * Tm.t option * bool) list
 
 end
   =
@@ -1061,7 +1015,7 @@ sig
   val suspend : t -> int -> t
   val functorialize : t -> (cvar * (var * var)) list -> t
 
-  val unify : t -> t -> ((CVar.t * Ty.t) * t option * bool) list -> ((CVar.t * Ty.t) * t option * bool) list
+  val unify : t -> t -> ((cvar * Ty.t) * t option * bool) list -> ((cvar * Ty.t) * t option * bool) list
 
 end
   =
@@ -1083,7 +1037,7 @@ struct
 
   let to_string tm =
     match tm.e with
-    | CVar x -> CVar.to_string x
+    | CVar x -> cvar_to_string x
     | Sub (_,v,s) ->
        let open EnvVal in
        Printf.sprintf "(%s %s)" (fst(v.print)) (Sub.to_string_func s (snd(v.print)))
@@ -1121,12 +1075,12 @@ struct
   (* TODO: do we really need this? *)
   let reinit tm =
     match tm.e with
-    | CVar v -> Var (CVar.to_var v)
-    | Sub (x,_,s) -> Sub (Var (EVar.to_var x), Sub.reinit s,[])
+    | CVar v -> Var (var_of_cvar v)
+    | Sub (x,_,s) -> Sub (Var (var_of_evar x), Sub.reinit s,[])
 
   let list_expl_vars tm : var list =
     match tm.e with
-    | CVar v -> [(CVar.to_var v)]
+    | CVar v -> [(var_of_cvar v)]
     | Sub (_,_,s) -> Sub.list_expl_vars s
 
   let mark_ctx t =
@@ -1145,10 +1099,10 @@ struct
       match e with
       | CVar v -> begin
           try Var (snd (List.assoc v l))
-          with Not_found -> Var (CVar.to_var v)
+          with Not_found -> Var (var_of_cvar v)
         end
       | Sub (x,_,s) ->
-         let vars = List.map (fun x -> CVar.to_var (fst x)) l in
+         let vars = List.map (fun x -> var_of_cvar (fst x)) l in
          let reinit_s = Sub.reinit s in
          let functed_s = List.map (fun t -> func_expr t.e) (Sub.explicit s) in
          let rec func s i =
@@ -1157,7 +1111,7 @@ struct
            |(a::s) when List.exists (fun v -> List.mem v vars) (list_vars a) -> i::(func s (i+1))
            |(_::s) -> func s (i+1)
          in
-         Sub (Var (EVar.to_var x),(functed_s),func (reinit_s) 0)
+         Sub (Var (var_of_evar x),(functed_s),func (reinit_s) 0)
     in fst (Tm.make c (func_expr (tm.e)))
 
   let dim tm =
@@ -1178,7 +1132,7 @@ struct
       let newtm,newty =
         match e with
         | Var v ->
-           let e = CVar (CVar.make v) in
+           let e = CVar (make_cvar v) in
            let ty = infer_expr c e in
            ({c = c; ty = ty; e = e}, ty)
         | Sub (t,s,func) ->
@@ -1193,7 +1147,7 @@ struct
            let s = List.map (Tm.make c) s in
            let i = (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
            let v,t = match t with
-             |Var v -> let v = EVar.make v in Env.val_var v i func
+             |Var v -> let v = make_evar v in Env.val_var v i func
              |(Sub (_,_,_) | Letin_tm(_,_,_)) -> assert false
            in let tar,ty = EnvVal.ty t in
               (* debug "got the context %s" (Ctx.to_string tar); *)
@@ -1298,13 +1252,13 @@ struct
     |(v,(v',al))::l ->
       let rec funcps l = match l with
         |[] -> let ps = PS.functorialize ps v v' al in
-               ps,[CVar.to_var v,v']
+               ps,[var_of_cvar v,v']
         |(v,(v',al))::l -> let ps,repl = funcps l in
                    let newps = PS.functorialize ps v v' al in
-                   newps,(CVar.to_var v,v')::repl
+                   newps,(var_of_cvar v,v')::repl
       in
       let newps,replacements = funcps l in
-      let src = List.rev(List.map (fun v -> Var (CVar.to_var v)) (PS.explicit_domain ps)) in
+      let src = List.rev(List.map (fun v -> Var (var_of_cvar v)) (PS.explicit_domain ps)) in
       let rec replace_all repl l =
         match repl with
         |[] -> l
@@ -1333,9 +1287,9 @@ and Env : sig
   val add_let_check : var -> (var * ty) list -> tm -> ty -> string
   val add_coh : var -> (var * ty) list -> ty -> unit
   val init : unit -> unit
-  val val_var : EVar.t -> int -> int list -> EVar.t * EnvVal.t
+  val val_var : evar -> int -> int list -> evar * EnvVal.t
 end
-  = GAssoc(EVar)(EnvVal)
+  = GAssoc(Variables.EVar)(EnvVal)
 
 type kTm = Tm.t
 type kTy = Ty.t
