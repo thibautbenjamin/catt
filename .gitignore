@@ -15,3 +15,4 @@ catt
 *.conflicts
 /_build/
 /catt.opam
+/_install/
