@@ -20,6 +20,9 @@ sig
   val mk : Tm.t list -> Ctx.t -> Ctx.t  -> t
   val mk_elaborated : Tm.t list -> Ctx.t -> Ctx.t -> t
   val reinit : t -> tm list
+  val _forget : t -> Unchecked.sub
+  val _forget_to_ps : t -> Unchecked.sub_ps
+
   val list_expl_vars : t -> var list
 
   (* Syntactic properties *)
@@ -232,6 +235,9 @@ struct
       |_,_ -> assert false
     in List.rev (aux s.list s.tar)
 
+  let _forget s = List.map2 (fun (v,_) t -> (var_of_cvar v, Tm._forget t)) s.tar s.list
+  let _forget_to_ps s = List.map Tm._forget s.list
+
   (** Keep only the the maximal elements of a substitution ("unealborate"). *)
   let explicit (s:t) =
     let rec aux s c =
@@ -244,7 +250,6 @@ struct
         end
       |_,_ -> assert false
       in List.rev (aux s.list s.tar)
-
 
   (** List the explicit variables of a substitution. *)
   let list_expl_vars (s:t) =
@@ -259,7 +264,6 @@ struct
       |_,_ -> assert false
     in (aux s.list s.tar)
 
-
   let unify s s' l =
     let rec unify_list s s' l =
       match s ,s' with
@@ -267,7 +271,6 @@ struct
       | [],[] -> l
       | _,_ -> raise UnableUnify
     in unify_list s.list s'.list l
-
 
 end
 
@@ -280,7 +283,7 @@ end
 and Ctx
     :
 sig
-  type t = private (cvar * (Ty.t * bool)) list
+  type t = (cvar * (Ty.t * bool)) list
 
   (* Makers *)
   val empty : unit -> t
@@ -301,6 +304,9 @@ sig
   val max_used_var : t -> int
   val value : t -> (cvar * (Ty.t * bool)) list
   val dim : t -> int
+
+  val _forget : t -> Unchecked.ctx
+
 
   (* Equality procedure *)
   val is_empty : t -> bool
@@ -535,6 +541,9 @@ struct
       |_::c -> aux c i
     in aux ctx 0
 
+
+  let _forget c = List.map (fun (x,(a,_)) -> (var_of_cvar x, Ty._forget a)) c
+
 end
 
 
@@ -567,6 +576,8 @@ sig
   val target : int -> t -> t
   val suspend : t -> int -> t
   val functorialize : t -> cvar -> var -> var -> t
+
+  val _forget : t -> Unchecked.ps
 
   (* Printing *)
   val to_string : t -> string
@@ -734,6 +745,23 @@ struct
     let newps = compute_ctx ps in
     PS.mk newps
 
+  (* assumes that all ps are completed with enough PDrop in the end *)
+  let _forget ps =
+    let rec find_previous ps list =
+      match ps with
+      | PNil x -> (list, PNil x)
+      | PCons (ps,_,_) -> (list, ps)
+      | PDrop ps ->
+         let p,ps = build_till_previous ps in
+         find_previous ps (List.append list [p])
+    and build_till_previous ps =
+      match ps with
+      | PNil x -> Unchecked.Br [], PNil x
+      | PCons (_,_,_) -> assert false
+      | PDrop ps -> let p,ps = find_previous ps [] in Unchecked.Br p,ps
+    in
+    fst (build_till_previous ps)
+
   (* --------
      Printing
      -------- *)
@@ -891,6 +919,7 @@ sig
 
   val dim : t -> int
   val reinit : t -> ty
+  val _forget : t -> Unchecked.ty
 
   val unify : t -> t -> ((CVar.t * t) * Tm.t option * bool) list -> ((CVar.t * t) * Tm.t option * bool) list
 
@@ -976,6 +1005,11 @@ struct
     | Obj -> Obj
     | Arr(_,u,v) -> Arr (Tm.reinit u, Tm.reinit v)
 
+  let rec _forget t =
+    match t.e with
+    | Obj -> Unchecked.Obj
+    | Arr (a,u,v) -> Unchecked.Arr (_forget a, Tm._forget u, Tm._forget v)
+
   let rec unify (ty1 : t) (ty2 : t) l =
     match ty1.e ,ty2.e with
     | Obj, _ -> l
@@ -1006,6 +1040,7 @@ sig
   val dim : t -> int
 
   val reinit : t -> tm
+  val _forget : t -> Unchecked.tm
   val list_expl_vars : t -> var list
 
   val mark_ctx : t -> t
@@ -1075,6 +1110,15 @@ struct
     | CVar v -> Var (CVar.to_var v)
     | Sub (x,_,s) -> Sub (Var (EVar.to_var x), Sub.reinit s,[])
 
+  let rec _forget tm =
+    match tm.e with
+    | CVar v -> Unchecked.Var (CVar.to_var v)
+    | Sub (x,_,s) ->
+       let _,t = Env.val_var x 0 [] in
+       match t.value with
+       | Coh (ps,ty) -> Unchecked.Coh(PS._forget ps, Ty._forget ty, Sub._forget_to_ps s)
+       | Let t -> Unchecked.tm_apply_sub (_forget t) (Sub._forget s)
+
   let list_expl_vars tm : var list =
     match tm.e with
     | CVar v -> [(CVar.to_var v)]
@@ -1088,7 +1132,6 @@ struct
     let ct = Ctx.suspend ct i in
     let tm = reinit tm in
     fst (Tm.make ct tm)
-
 
   let functorialize tm l =
     let c = Ctx.functorialize tm.c l in
@@ -1177,7 +1220,7 @@ end
 (** A coherence. *)
 and Coh
     : sig
-  type t = private (PS.t * Ty.t)
+  type t = PS.t * Ty.t
 
   val mk : PS.t -> ty -> t
   val _to_string : t -> string
