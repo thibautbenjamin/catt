@@ -1,4 +1,5 @@
 open Std
+open Variables
 open Syntax
 
 module type EVar = sig

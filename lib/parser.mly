@@ -1,5 +1,6 @@
 %{
     open Command
+    open Variables
     open Syntax
 
     let generate_functorialize l =

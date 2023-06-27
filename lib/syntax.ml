@@ -1,15 +1,5 @@
 open Std
-
-type var =
-  | Name of string
-  | New of int
-
-let string_of_var v =
-  match v with
-  | Name s -> s
-  | New i -> "_" ^ string_of_int i
-
-let make_var s = Name s
+open Variables
 
   (** A raw type. *)
   type ty =

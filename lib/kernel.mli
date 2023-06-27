@@ -1,5 +1,6 @@
 open Syntax
-       
+open Variables
+
 type kTy
 type kTm
 (* type env *)
@@ -11,7 +12,3 @@ val add_let_env_of_ty : var -> (var * ty) list -> tm -> ty -> string
 
 val mk_tm : (var * ty) list -> tm -> string * string
 val mk_tm_of_ty : (var * ty) list -> tm -> ty -> unit
-
-
-
-
