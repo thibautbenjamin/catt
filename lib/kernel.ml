@@ -247,7 +247,7 @@ struct
     in {list = expr (List.rev s) tgt; src = src; tar = tgt}
 
   let check_to_ps src s tgt =
-    let tgt = Ctx.of_ps tgt in
+    let tgt = PS.to_ctx tgt in
     let rec expr s tgt =
       match s, Ctx.value tgt with
       | [], [] -> []
@@ -329,7 +329,6 @@ sig
   val empty : unit -> t
   val add : t -> var -> ty -> t
   val make : (var * ty) list -> t
-  val of_ps : PS.t -> t
 
   (* Structural operations *)
   val head : t -> cvar * (Ty.t * bool)
@@ -408,22 +407,6 @@ struct
 	 aux l ctx
     in aux l (Ctx.empty ())
 
-  (** Create a context from a pasting scheme. *)
-  let of_ps ps =
-    let open PS in
-    match ps with
-    |PNil (x,t) -> [(x,(t,true))]
-    |_ ->
-      let rec aux ps =
-        match ps with
-        |PDrop (PCons (ps,(x1,t1),(x2,t2))) -> let c = aux ps in
-                                               (x2,(t2,true))::(x1,(t1, false))::c
-        |PDrop ps -> aux ps
-        |PCons (ps,(x1,t1),(x2,t2)) -> let c = aux ps in
-                                       (x2,(t2,false))::(x1,(t1,false))::c
-        |PNil (x,t) -> [(x,(t,false))]
-      in (aux ps)
-
   (* ---------------------
       Structural operations
       --------------------- *)
@@ -439,7 +422,6 @@ struct
     match ctx with
     |[] -> assert false
     |_::l -> l
-
 
   (* --------------------
      Syntactic properties
@@ -613,10 +595,7 @@ end
 and PS
     :
 sig
-  type t = private
-         | PNil of (cvar * Ty.t)
-         | PCons of t * (cvar * Ty.t) * (cvar * Ty.t)
-         | PDrop of t
+  type t
 
   (* Maker *)
   val mk : Ctx.t -> t
@@ -624,12 +603,13 @@ sig
   (* Syntactic properties *)
   val domain : t -> cvar list
   val explicit_domain : t -> cvar list
+  val to_ctx : t -> Ctx.t
   (* val to_expr : t -> (var * Expr.ty) list *)
 
   (* Structural operations *)
   val dim : t -> int
-  val source : int -> t -> t
-  val target : int -> t -> t
+  val source : int -> t -> cvar list
+  val target : int -> t -> cvar list
   val suspend : t -> int -> t
   val functorialize : t -> cvar -> var -> var -> t
 
@@ -644,24 +624,43 @@ struct
   exception Invalid
 
   (** A pasting scheme. *)
-  type t =
+  type oldrep =
     | PNil of (cvar * Ty.t)
-    | PCons of PS.t * (cvar * Ty.t) * (cvar * Ty.t)
-    | PDrop of PS.t
+    | PCons of oldrep * (cvar * Ty.t) * (cvar * Ty.t)
+    | PDrop of oldrep
+
+  type newt = { tree : Unchecked.ps; ctx : Ctx.t}
+
+  type t = {oldrep : oldrep; newrep : newt}
 
      (* --------------------
       Syntactic properties
       -------------------- *)
-  (** Domain of definition. *)
-  let domain ps = Ctx.domain (Ctx.of_ps ps)
+  (** Create a context from a pasting scheme. *)
+  let old_rep_to_ctx ps =
+    match ps with
+    |PNil (x,t) -> [(x,(t,true))]
+    |_ ->
+      let rec aux ps =
+        match ps with
+        |PDrop (PCons (ps,(x1,t1),(x2,t2))) -> let c = aux ps in
+                                               (x2,(t2,true))::(x1,(t1, false))::c
+        |PDrop ps -> aux ps
+        |PCons (ps,(x1,t1),(x2,t2)) -> let c = aux ps in
+                                       (x2,(t2,false))::(x1,(t1,false))::c
+        |PNil (x,t) -> [(x,(t,false))]
+      in (aux ps)
 
-  let explicit_domain ps = Ctx.explicit_domain (Ctx.of_ps ps)
+  (** Domain of definition. *)
+  let domain ps = Ctx.domain ps.newrep.ctx
+
+  let explicit_domain ps = Ctx.explicit_domain ps.newrep.ctx
 
   (* -----
     Maker
     ----- *)
   (** Dangling variable. *)
-  let rec marker ps =
+  let rec marker (ps : oldrep) =
     match ps with
     | PNil (x,t) -> x,t
     | PCons (_,_,f) -> f
@@ -686,7 +685,7 @@ struct
        | _ -> raise Invalid
 
   (** Create a pasting scheme from a context. *)
-  let mk (l : Ctx.t) : t =
+  let make_old (l : Ctx.t)  =
     let open Ty in
     let rec close ps tx =
       match tx.e with
@@ -709,7 +708,7 @@ struct
                 if (y <> fy) then raise Invalid;
                 let x,_ = marker ps in
                 if x = fx then
-                  let varps = PS.domain ps in
+                  let varps = Ctx.domain (old_rep_to_ctx ps) in
                   if (List.mem f varps) then raise (DoubledVar (CVar.to_string f));
                   if (List.mem y varps) then raise (DoubledVar (CVar.to_string y));
                   let ps = PCons (ps,(y,ty),(f,tf)) in
@@ -725,6 +724,29 @@ struct
       aux (PNil (x0,ty)) l
     in build (List.rev (Ctx.value l))
 
+  (* assumes that all ps are completed with enough PDrop in the end *)
+  let make_tree ps =
+    let rec find_previous ps list =
+      match ps with
+      | PNil x -> (list, PNil x)
+      | PCons (ps,_,_) -> (list, ps)
+      | PDrop ps ->
+         let p,ps = build_till_previous ps in
+         find_previous ps (List.append list [p])
+    and build_till_previous ps =
+      match ps with
+      | PNil x -> Unchecked.Br [], PNil x
+      | PCons (_,_,_) -> assert false
+      | PDrop ps -> let p,ps = find_previous ps [] in Unchecked.Br p,ps
+    in
+    fst (build_till_previous ps)
+
+  let mk (l : Ctx.t) =
+    let oldrep = make_old l in
+    {oldrep; newrep = {tree = make_tree oldrep; ctx = l}}
+
+  let _forget ps = ps.newrep.tree
+
   let susp (_ps : t) : t = assert false
   let concat (_ps : t list) : t = assert false
 
@@ -733,66 +755,77 @@ struct
     | Unchecked.Br [] -> assert false
     | Unchecked.Br l -> concat (List.map (fun ps -> susp (check ps)) l)
 
+  (** Create a context from a pasting scheme. *)
+  let to_ctx ps =
+    ps.newrep.ctx
+
+
      (* ---------------------
       Structural operations
       --------------------- *)
   (** Height of a pasting scheme. *)
-  let rec height = function
+  let rec height_old = function
     | PNil _ -> 0
-    | PCons (ps,_,_) -> height ps + 1
-    | PDrop ps -> height ps - 1
+    | PCons (ps,_,_) -> height_old ps + 1
+    | PDrop ps -> height_old ps - 1
 
   (** Dimension of a pasting scheme. *)
-  let rec dim = function
+  let rec dim_old = function
     | PNil _ -> 0
-    | PCons (ps,_,_) -> max (dim ps) (height ps + 1)
-    | PDrop ps -> dim ps
+    | PCons (ps,_,_) -> max (dim_old ps) (height_old ps + 1)
+    | PDrop ps -> dim_old ps
+
+  (* let height ps = height_old ps.oldrep *)
+  let dim ps = dim_old ps.oldrep
 
   (** Source of a pasting scheme. *)
-  let source i ps =
+  let source_old i ps =
     assert (i >= 0);
     let rec aux = function
-      | PNil _ as ps -> ps
-      | PCons (ps,_,_) when height ps >= i -> aux ps
-      | PCons (ps,y,f) -> PCons (aux ps,y,f)
-      | PDrop ps when height ps > i -> aux ps
-      | PDrop ps -> PDrop (aux ps)
+      | PNil (x,_) -> [x]
+      | PCons (ps,_,_) when height_old ps >= i -> aux ps
+      | PCons (ps,(y,_),(f,_)) -> f :: y :: (aux ps)
+      | PDrop ps when height_old ps > i -> aux ps
+      | PDrop ps -> (aux ps)
     in
     aux ps
 
+  let source i ps = source_old i ps.oldrep
+
   (** Target of a pasting scheme. *)
-  let target i ps =
+  let target_old i ps =
     assert (i >= 0);
     let replace g = function
-      | PNil _ -> PNil g
-      | PCons (ps,y,_) -> PCons (ps,y,g)
-      | _ -> assert false
+      | [] -> assert false
+      | _::l -> g::l
     in
     let rec aux = function
-      | PNil _ as ps -> ps
-      | PCons (ps,_,_) when height ps > i -> aux ps
-      | PCons (ps,y,_) when height ps = i -> replace y (aux ps)
-      | PCons (ps,y,f) -> PCons (aux ps,y,f)
-      | PDrop ps when height ps > i -> aux ps
-      | PDrop ps -> PDrop (aux ps)
+      | PNil (x,_) -> [x]
+      | PCons (ps,_,_) when height_old ps > i -> aux ps
+      | PCons (ps,(y,_),_) when height_old ps = i -> replace y (aux ps)
+      | PCons (ps,(y,_),(f,_)) -> f :: y :: (aux ps)
+      | PDrop ps when height_old ps > i -> aux ps
+      | PDrop ps -> aux ps
     in
     aux ps
+
+  let target i ps = target_old i ps.oldrep
 
   (** Suspend a pasting scheme. *)
   (* TODO: implement this more efficiently *)
   let suspend ps i =
-    mk (Ctx.suspend (Ctx.of_ps ps) i)
+    mk (Ctx.suspend ps.newrep.ctx i)
 
-  let functorialize ps v v' al =
+  let _functorialize_old ps v v' al =
     let rec compute_ctx ps =
     match ps with
     |(PNil (x,_) as ps) when x = v ->
       let x = CVar.to_var x in
-      let ctx1 = (Ctx.add (Ctx.of_ps ps) v' Obj) in
+      let ctx1 = (Ctx.add (old_rep_to_ctx ps) v' Obj) in
       Ctx.add ctx1 al (Arr(Var x,Var v'))
     |((PDrop (PCons (_,_,(x,ty)))) as ps) when x = v ->
       let x = CVar.to_var x in
-      let ctx1 = Ctx.add (Ctx.of_ps ps) v' (Ty.reinit ty) in
+      let ctx1 = Ctx.add (old_rep_to_ctx ps) v' (Ty.reinit ty) in
       Ctx.add ctx1 al (Arr(Var x, Var v'))
     |(PDrop (PCons (ps,(x1,ty1),(x2,ty2)))) ->
       let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
@@ -810,30 +843,15 @@ struct
     let newps = compute_ctx ps in
     PS.mk newps
 
-  (* assumes that all ps are completed with enough PDrop in the end *)
-  let _forget ps =
-    let rec find_previous ps list =
-      match ps with
-      | PNil x -> (list, PNil x)
-      | PCons (ps,_,_) -> (list, ps)
-      | PDrop ps ->
-         let p,ps = build_till_previous ps in
-         find_previous ps (List.append list [p])
-    and build_till_previous ps =
-      match ps with
-      | PNil x -> Unchecked.Br [], PNil x
-      | PCons (_,_,_) -> assert false
-      | PDrop ps -> let p,ps = find_previous ps [] in Unchecked.Br p,ps
-    in
-    fst (build_till_previous ps)
+  let functorialize _ps _v _v' _al = assert false
 
   (* --------
      Printing
      -------- *)
   (** String representation of a pasting scheme. *)
-  let to_string ps =
+  let _to_string_old ps =
     if !abbrev then
-      Ctx.to_string (Ctx.of_ps ps)
+      Ctx.to_string (old_rep_to_ctx ps)
     else
       let rec print ps =
 	match ps with
@@ -852,6 +870,8 @@ struct
 	  Printf.sprintf " %s ! "
 	    (print ps)
       in print ps
+
+  let to_string _ps = assert false
 end
 
 and EnvVal
@@ -917,12 +937,12 @@ struct
 
   let ty v =
     match v.value with
-    |Coh coh -> (Ctx.of_ps (Coh.ps coh), Coh.target coh)
+    |Coh coh -> (PS.to_ctx (Coh.ps coh), Coh.target coh)
     |Let t -> let open Tm in (t.c, t.ty)
 
   let ctx v =
     match v.value with
-    |Coh c -> (Ctx.of_ps (Coh.ps c))
+    |Coh c -> (PS.to_ctx (Coh.ps c))
     |Let t -> let open Tm in t.c
 
   let to_names ctx func =
@@ -978,7 +998,6 @@ sig
   val free_vars : t -> cvar list
   val to_string : t -> string
 
-  val check : Ctx.t -> t -> unit
   val check_equal : Ctx.t -> t -> t -> unit
   val make : Ctx.t -> ty -> t
 
@@ -1025,18 +1044,6 @@ struct
        if !abbrev then
          Printf.sprintf "%s -> %s" (Tm.to_string u) (Tm.to_string v)
        else Printf.sprintf "%s | %s -> %s" (to_string t) (Tm.to_string u) (Tm.to_string v)
-
-  (** Ensure that a type is well-formed in given context. *)
-  let rec check ctx ty =
-    try Ctx.check_sub_ctx ty.c ctx with
-    | _ -> check_hidden ctx ty.e
-  and check_hidden ctx tye =
-    match tye with
-    | Obj -> ()
-    | Arr (t,u,v) ->
-       check ctx t;
-       Tm.check_type ctx u t;
-       Tm.check_type ctx v t
 
   (** Test for equality. *)
   let rec check_equal ctx ty1 ty2 =
@@ -1117,7 +1124,6 @@ sig
 
   val infer : Ctx.t -> t -> Ty.t
   val check_equal : Ctx.t -> t -> t -> unit
-  val check_type : Ctx.t -> t -> Ty.t -> unit
   val make : Ctx.t -> tm -> t * Ty.t
   val check : Ctx.t -> Unchecked.tm -> t
   val dim : t -> int
@@ -1188,10 +1194,6 @@ struct
   let infer ctx tm =
     try Ctx.check_sub_ctx tm.c ctx; tm.ty
     with _ -> infer_expr ctx tm.e
-
-  (** Check that term has given type. *)
-  let check_type ctx e t  =
-    Ty.check_equal ctx (infer ctx e) t
 
   (* TODO: do we really need this? *)
   let reinit tm =
@@ -1301,7 +1303,7 @@ struct
        ({c; ty; e})
     | Unchecked.Coh (ps,t,s) ->
        let ps = PS.check ps in
-       let t = Ty._from_unchecked (Ctx.of_ps ps) t in
+       let t = Ty._from_unchecked (PS.to_ctx ps) t in
        let coh = Coh.check ps t in
        let sub = Sub.check_to_ps c s ps in
        let e, ty = Coh(coh,sub), Ty.apply t sub in
@@ -1357,30 +1359,15 @@ struct
         | _ -> raise NotAlgebraic
       in
       let i = PS.dim ps in
-      let pss = PS.source (i-1) ps
-      and pst = PS.target (i-1) ps in
-      let ctxs = Ctx.of_ps pss
-      and ctxt = Ctx.of_ps pst in
-      let fvf = List.union (Tm.free_vars f) (Ty.free_vars a)
-      and fvg = List.union (Tm.free_vars g) (Ty.free_vars a) in
-      try
-	let tf = Tm.infer ctxs f in
-	let tg = Tm.infer ctxt g in
-	begin
-	  Ty.check ctxs tf;
-	  Ty.check ctxt tg;
-	  if List.included (PS.domain pss)
-	       fvf &&
-	       List.included (PS.domain pst)
-		 fvg
-	  then (ps,t)
-	  else raise NotAlgebraic
-	end;
-      with
-      |UnknownId _ -> raise NotAlgebraic
+      let pss, pst = PS.source (i-1) ps, PS.target (i-1) ps in
+      let fvf = List.union (Tm.free_vars f) (Ty.free_vars a) in
+      let fvg = List.union (Tm.free_vars g) (Ty.free_vars a) in
+      if (List.set_equal pss fvf && List.set_equal pst fvg)
+      then (ps,t)
+      else raise NotAlgebraic
 
   let mk ps t =
-    let t = Ty.make (Ctx.of_ps ps) t in
+    let t = Ty.make (PS.to_ctx ps) t in
     check ps t
 
   let _to_string (ps,t) =
