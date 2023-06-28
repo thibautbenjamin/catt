@@ -19,6 +19,8 @@ sig
   (* Structural functions *)
   val mk : Tm.t list -> Ctx.t -> Ctx.t  -> t
   val mk_elaborated : Tm.t list -> Ctx.t -> Ctx.t -> t
+  val _check : Ctx.t -> Unchecked.sub -> Ctx.t -> t
+  val check_to_ps : Ctx.t -> Unchecked.sub_ps -> PS.t -> t
   val reinit : t -> tm list
   val _forget : t -> Unchecked.sub
   val _forget_to_ps : t -> Unchecked.sub_ps
@@ -40,6 +42,8 @@ sig
   val to_string_func : t -> int list -> string
 
   val unify : Sub.t -> Sub.t -> ((CVar.t * Ty.t) * Tm.t option * bool) list -> ((CVar.t * Ty.t) * Tm.t option * bool) list
+
+  val src : t -> Ctx.t
 end
   =
 struct
@@ -52,6 +56,8 @@ struct
   (** Free context variables. *)
   let free_vars s =
     List.concat (List.map Tm.free_vars s.list)
+
+  let src s = s.src
 
   (** Sequential composition of substitutions. *)
   let rec apply_list_var l tar x =
@@ -225,6 +231,37 @@ struct
     let list = elaborate (List.rev l) src tar in
     mk_elaborated (List.rev list) src tar
 
+  let _check src s tgt =
+    let rec expr s tgt =
+      match s, Ctx.value tgt with
+      | [], [] -> []
+      | (_::_,[] |[],_::_) -> raise NotValid
+      | (x1,_)::_, (x2,(_,_))::_ when x1 != (var_of_cvar x2) -> raise NotValid
+      | (_,t)::s, (_,(u,_))::tgt ->
+	 let s = expr s tgt in
+         let t = Tm.check src t in
+	 let ty = t.ty in
+         (* TODO: replace this *)
+	 Ty.check_equal src ty (apply_list_Ty s tgt src u);
+	 t::s
+    in {list = expr (List.rev s) tgt; src = src; tar = tgt}
+
+  let check_to_ps src s tgt =
+    let tgt = Ctx.of_ps tgt in
+    let rec expr s tgt =
+      match s, Ctx.value tgt with
+      | [], [] -> []
+      | (_::_,[] |[],_::_) -> raise NotValid
+      | t::s, (_,(u,_))::tgt ->
+	 let s = expr s tgt in
+         let t = Tm.check src t in
+	 let ty = t.ty in
+         (* TODO: replace this *)
+	 Ty.check_equal src ty (apply_list_Ty s tgt src u);
+	 t::s
+    in {list = expr (List.rev s) tgt; src = src; tar = tgt}
+
+
   (** Make the expression into a substitution *)
   let reinit (s:t) =
     let rec aux s c =
@@ -309,6 +346,8 @@ sig
   val dim : t -> int
 
   val _forget : t -> Unchecked.ctx
+  val _check : Unchecked.ctx -> t
+  val _extend : t -> var -> Unchecked.ty -> t
 
 
   (* Equality procedure *)
@@ -544,8 +583,21 @@ struct
       |_::c -> aux c i
     in aux ctx 0
 
-
   let _forget c = List.map (fun (x,(a,_)) -> (var_of_cvar x, Ty._forget a)) c
+
+  let check_notin c x =
+    try
+      ignore (List.assoc x c);
+      raise (DoubleDef (CVar.to_string x))
+    with Not_found -> ()
+
+  let _extend c x t =
+    let t = Ty._from_unchecked c t in
+    let x = CVar.make x in
+    check_notin c x;
+    (x,(t,true))::c
+
+  let _check c = List.fold_right (fun (x,t) c -> _extend c x t) c (Ctx.empty ())
 
 end
 
@@ -581,6 +633,7 @@ sig
   val functorialize : t -> cvar -> var -> var -> t
 
   val _forget : t -> Unchecked.ps
+  val check : Unchecked.ps -> t
 
   (* Printing *)
   val to_string : t -> string
@@ -670,6 +723,14 @@ struct
       in
       aux (PNil (x0,ty)) l
     in build (List.rev (Ctx.value l))
+
+  let susp (_ps : t) : t = assert false
+  let concat (_ps : t list) : t = assert false
+
+  let rec check ps =
+    match ps with
+    | Unchecked.Br [] -> assert false
+    | Unchecked.Br l -> concat (List.map (fun ps -> susp (check ps)) l)
 
      (* ---------------------
       Structural operations
@@ -923,6 +984,8 @@ sig
   val dim : t -> int
   val reinit : t -> ty
   val _forget : t -> Unchecked.ty
+  val _from_unchecked : Ctx.t -> Unchecked.ty -> t
+  val apply : t -> Sub.t -> t
 
   val unify : t -> t -> ((CVar.t * t) * Tm.t option * bool) list -> ((CVar.t * t) * Tm.t option * bool) list
 
@@ -936,6 +999,17 @@ struct
   and t = {c : Ctx.t; e : expr}
 
   exception Unknown
+
+  let rec _from_unchecked c t =
+    let e =
+      match t with
+      | Unchecked.Obj -> Obj
+      | Unchecked.Arr(a,u,v) ->
+         let a = _from_unchecked c a in
+         let u = Tm.check c u in
+         let v = Tm.check c v in
+         Arr(a,u,v)
+  in {c; e}
 
   (** Free variables of a type. *)
   let rec free_vars ty =
@@ -1022,6 +1096,9 @@ struct
        in Tm.unify v v' l
     | _, _ -> raise UnableUnify
 
+  let apply t s =
+    _from_unchecked (Sub.src s) (Unchecked.ty_apply_sub (_forget t) (Sub._forget s))
+
 end
 
 (** Operations on terms. *)
@@ -1041,6 +1118,7 @@ sig
   val check_equal : Ctx.t -> t -> t -> unit
   val check_type : Ctx.t -> t -> Ty.t -> unit
   val make : Ctx.t -> tm -> t * Ty.t
+  val check : Ctx.t -> Unchecked.tm -> t
   val dim : t -> int
 
   val reinit : t -> tm
@@ -1214,6 +1292,20 @@ struct
         | Letin_tm _ -> assert false
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 
+  let check c t =
+    match t with
+    | Unchecked.Var x ->
+       let x = CVar.make x in
+       let e, ty  = CVar x, Ctx.ty_var c x in
+       ({c; ty; e})
+    | Unchecked.Coh (ps,t,s) ->
+       let ps = PS.check ps in
+       let t = Ty._from_unchecked (Ctx.of_ps ps) t in
+       let coh = Coh.check ps t in
+       let sub = Sub.check_to_ps c s ps in
+       let e, ty = Coh(coh,sub), Ty.apply t sub in
+       {c; ty; e}
+
 
   let unify (tm1 : t) (tm2 : t) l =
     match tm1.e, tm2.e with
@@ -1248,6 +1340,7 @@ and Coh
   val suspend : t -> int -> t
   val functorialize : t -> (cvar * (var * var)) list -> var ->  t
   val _forget : t -> Unchecked.ps * Unchecked.ty
+  val check : PS.t -> Ty.t -> t
 end
 =
 struct
