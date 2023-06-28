@@ -1,11 +1,13 @@
 type var =
   | Name of string
   | New of int
+  | Db of int (* storing de Bruijn levels for coherences *)
 
 let string_of_var v =
   match v with
   | Name s -> s
   | New i -> "_" ^ string_of_int i
+  | Db i -> "." ^ string_of_int i
 
 let make_var s = Name s
 
@@ -35,7 +37,7 @@ struct
     let res = !next_fresh in
     let nxt = match res with
            |New k -> New (k+1)
-           |_ -> assert (false)
+           |Name _ | Db _  -> assert false
     in next_fresh := nxt; res
 end
 

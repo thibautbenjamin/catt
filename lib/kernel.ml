@@ -464,8 +464,9 @@ struct
       |[] -> n
       |v::l ->
         match CVar.to_var v with
-        |Name _ -> aux n l
-        |New k -> aux (max k n) l
+        | Name _ -> aux n l
+        | New k -> aux (max k n) l
+        | Db _ -> aux n l
     in aux 0 (domain ctx)
 
   (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
