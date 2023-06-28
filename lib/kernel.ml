@@ -77,6 +77,7 @@ struct
       |Sub (x,v,s') ->
         let newtar = EnvVal.ctx v in
         Sub (x,v, Sub.mk_elaborated (compose_lists src tar s s'.list) src newtar)
+      | Coh _ -> assert false
     in {c = src; ty = apply_list_Ty s tar src tm.ty; e = e}
 
   (** Apply a substitution to a type. *)
@@ -96,11 +97,13 @@ struct
     let open Tm in
     let e1 = match tm1.e with
       |CVar x -> apply_list_var s tar x
+      |Coh _ -> assert false
       |Sub (x,v,s') ->
         let newtar = EnvVal.ctx v in
         Sub (x,v, Sub.mk_elaborated (compose_lists src tar s s'.list) src newtar) in
     let e2 = match tm2.e with
       |CVar x -> apply_list_var s tar x
+      | Coh _ -> assert false
       |Sub (x,v,s') ->
         let newtar = EnvVal.ctx v in
         Sub (x,v, Sub.mk_elaborated (compose_lists src tar s s'.list) src newtar) in
@@ -1028,6 +1031,7 @@ sig
   type expr =
     | CVar of cvar
     | Sub of evar * EnvVal.t * Sub.t
+    | Coh of Coh.t * Sub.t
   and t = {c : Ctx.t; ty : Ty.t; e : expr}
 
   val free_vars : t -> cvar list
@@ -1056,6 +1060,7 @@ struct
   type expr =
     | CVar of cvar (** a context variable *)
     | Sub of evar * EnvVal.t * Sub.t (** a substituted environment variable *)
+    | Coh of Coh.t * Sub.t
 
   (** A term, i.e. an expression with given type in given context. *)
   and t = {c : Ctx.t; ty : Ty.t; e : expr}
@@ -1066,6 +1071,7 @@ struct
     match tm.e with
     | CVar x -> [x]
     | Sub (_,_,sub) -> Sub.free_vars sub
+    | Coh (_,sub) -> Sub.free_vars sub
 
   let to_string tm =
     match tm.e with
@@ -1073,6 +1079,7 @@ struct
     | Sub (_,v,s) ->
        let open EnvVal in
        Printf.sprintf "(%s %s)" (fst(v.print)) (Sub.to_string_func s (snd(v.print)))
+    | Coh (_,_) -> assert false
 
   let check_equal ctx tm1 tm2 =
     (* debug "checking equality between %s and %s" (to_string tm1)(to_string tm2); *)
@@ -1084,7 +1091,9 @@ struct
       else ()
     | Sub(_,v1,s1),Sub(_,v2,s2) ->
        EnvVal.check_equal v1 tm1 s1 v2 tm2 s2 ctx
-    | (CVar _|Sub _),_ ->
+    | Coh(_,_),Coh(_,_) -> assert false
+    | Coh _, Sub _ | Sub _, Coh _ -> assert false
+    | CVar _, Sub _ |Sub _, CVar _ | CVar _, Coh _ | Coh _, CVar _ ->
        raise (NotEqual (to_string tm1, to_string tm2))
 
   (** Infer the type of an expression. *)
@@ -1094,6 +1103,7 @@ struct
     | Sub (_,v,s) ->
        let _,ty = EnvVal.ty v in
        Sub.apply_Ty s ty
+    | Coh (_,_) -> assert false
 
   (** Infer the type of a term. *)
   let infer ctx tm =
@@ -1109,10 +1119,15 @@ struct
     match tm.e with
     | CVar v -> Var (CVar.to_var v)
     | Sub (x,_,s) -> Sub (Var (EVar.to_var x), Sub.reinit s,[])
+    | Coh(_,_) -> assert false
 
   let rec _forget tm =
     match tm.e with
     | CVar v -> Unchecked.Var (CVar.to_var v)
+    | Coh(c,s) ->
+       let ps,t = Coh._forget c in
+       let s = Sub._forget_to_ps s in
+       Unchecked.Coh (ps,t,s)
     | Sub (x,_,s) ->
        let _,t = Env.val_var x 0 [] in
        match t.value with
@@ -1123,6 +1138,7 @@ struct
     match tm.e with
     | CVar v -> [(CVar.to_var v)]
     | Sub (_,_,s) -> Sub.list_expl_vars s
+    | Coh(_,s) -> Sub.list_expl_vars s
 
   let mark_ctx t =
     {c = Ctx.mark t.c; ty = t.ty; e = t.e}
@@ -1152,6 +1168,7 @@ struct
            |(_::s) -> func s (i+1)
          in
          Sub (Var (EVar.to_var x),(functed_s),func (reinit_s) 0)
+      | Coh(_,_) -> assert false
     in fst (Tm.make c (func_expr (tm.e)))
 
   let dim tm =
@@ -1213,6 +1230,7 @@ struct
     | Sub(_,_,s), Sub (_,_,s') ->
        Sub.unify s s' l
     | _, CVar _ -> raise UnableUnify
+    | _,_ -> assert false
 end
 
 (* -- Module with a specific type for well-defined coherences
@@ -1229,6 +1247,7 @@ and Coh
   val target : t -> Ty.t
   val suspend : t -> int -> t
   val functorialize : t -> (cvar * (var * var)) list -> var ->  t
+  val _forget : t -> Unchecked.ps * Unchecked.ty
 end
 =
 struct
@@ -1307,6 +1326,8 @@ struct
       let tgt = replace_all replacements src in
       let t = Arr(Sub(Var evar, src,[]),(Sub(Var evar, tgt,[]))) in
       (Coh.mk newps t)
+
+  let _forget (ps,t) = (PS._forget ps, Ty._forget t)
 end
 
 and Hash
