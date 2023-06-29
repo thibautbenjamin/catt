@@ -871,7 +871,7 @@ struct
 	    (print ps)
       in print ps
 
-  let to_string _ps = assert false
+  let to_string ps = Unchecked.ps_to_string ps.newrep.tree
 end
 
 and EnvVal
@@ -1021,6 +1021,8 @@ struct
   exception Unknown
 
   let rec _from_unchecked c t =
+    debug "building kernel type %s in context %s"
+    (Unchecked.ty_to_string t) (Ctx.to_string c);
     let e =
       match t with
       | Unchecked.Obj -> Obj
@@ -1368,9 +1370,12 @@ struct
   let mk ps t =
     (* TODO: take an unchecked context as argument to avoid checking the same thing twice *)
     let t = Ty.make ps t in
+    debug "normalizing ps %s" (Ctx.to_string ps);
     let ps, names,_ = Unchecked.db_levels (Ctx._forget ps) in
+    debug "normalized to %s" (Unchecked.ctx_to_string ps);
     let cps = Ctx._check ps in
     let ps = PS.mk cps in
+    debug "built pasting scheme %s" (PS.to_string ps);
     let t = Ty._from_unchecked cps (Unchecked.rename_ty (Ty._forget t) names) in
     check ps t names
 
