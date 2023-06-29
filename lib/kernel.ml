@@ -750,18 +750,18 @@ struct
 
   let _forget ps = ps.newrep.tree
 
-  let susp (_ps : t) : t = assert false
-  let concat (_ps : t list) : t = assert false
-
-  let rec check ps =
-    match ps with
-    | Unchecked.Br [] -> assert false
-    | Unchecked.Br l -> concat (List.map (fun ps -> susp (check ps)) l)
+  let check ps =
+    debug "checking ps %s" (Unchecked.ps_to_string ps);
+    debug "corresponding context: %s" (Unchecked.(ctx_to_string (ps_to_ctx ps)));
+    let res = PS.mk (Ctx._check (Unchecked.ps_to_ctx ps)) in
+    (* sanity check: we have the tree we started from *)
+    assert (res.newrep.tree == ps);
+    assert (res.newrep.tree = ps);
+    res
 
   (** Create a context from a pasting scheme. *)
   let to_ctx ps =
     ps.newrep.ctx
-
 
      (* ---------------------
       Structural operations
@@ -1301,13 +1301,16 @@ struct
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 
   let check c t =
+    debug "building kernel term %s in context %s" (Unchecked.tm_to_string t) (Ctx.to_string c);
     match t with
     | Unchecked.Var x ->
        let x = CVar.make x in
        let e, ty  = CVar x, Ctx.ty_var c x in
        ({c; ty; e})
     | Unchecked.Coh (ps,t,s) ->
+       debug "checking the pasting scheme";
        let ps = PS.check ps in
+       debug "checking the type";
        let t = Ty._from_unchecked (PS.to_ctx ps) t in
        let coh = Coh.check ps t [] in
        let sub = Sub.check_to_ps c s ps in
@@ -1379,7 +1382,9 @@ struct
     let cps = Ctx._check ps in
     let ps = PS.mk cps in
     debug "built pasting scheme %s" (PS.to_string ps);
+    debug "normalizing type %s" (Ty.to_string t);
     let t = Ty._from_unchecked cps (Unchecked.rename_ty (Ty._forget t) names) in
+    debug "type normalized to %s" (Ty.to_string t);
     check ps t names
 
   let _to_string (ps,t,_) =

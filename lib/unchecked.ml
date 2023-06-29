@@ -61,31 +61,27 @@ and check_equal_tm tm1 tm2 =
 and check_equal_sub_ps s1 s2 =
   List.iter2 check_equal_tm s1 s2
 
-let rec tm_apply_sub tm s =
+let rec tm_do_on_variables tm f =
   match tm with
-  | Var v -> List.assoc v s
-  | Coh(ps,ty,s1) -> Coh (ps,ty, sub_ps_apply_sub s1 s)
-and sub_ps_apply_sub s1 s2 = List.map (fun t -> tm_apply_sub t s2) s1
+  | Var v -> (f v)
+  | Coh(ps,ty,s) -> Coh (ps,ty, sub_ps_do_on_variables s f)
+and sub_ps_do_on_variables s f = List.map (fun t -> tm_do_on_variables t f) s
 
-let rec ty_apply_sub ty s =
+
+let rec ty_do_on_variables ty f =
   match ty with
   | Obj -> Obj
-  | Arr(a,u,v) -> Arr(ty_apply_sub a s, tm_apply_sub u s, tm_apply_sub v s)
+  | Arr(a,u,v) -> Arr(ty_do_on_variables a f, tm_do_on_variables u f, tm_do_on_variables v f)
+
+let apply_sub_fn s = fun v -> List.assoc v s
+
+let tm_apply_sub tm s = tm_do_on_variables tm (apply_sub_fn s)
+let ty_apply_sub ty s = ty_do_on_variables ty (apply_sub_fn s)
 
 let sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
 
 (* rename is applying a variable to de Bruijn levels substitutions *)
-let rec rename_tm tm l =
-  match tm with
-  | Var v -> Var (Db (List.assoc v l))
-  | Coh (ps, ty, sub) -> Coh (ps, ty, rename_sub_ps sub l)
-and rename_sub_ps s l =
-  List.map (fun tm -> rename_tm tm l) s
-
-let rec rename_ty ty l =
-  match ty with
-  | Obj -> Obj
-  | Arr(a,u,v) -> Arr (rename_ty a l, rename_tm u l, rename_tm v l)
+let rename_ty ty l = ty_do_on_variables ty (fun v -> Var (Db (List.assoc v l)))
 
 let rec db_levels c =
     match c with
@@ -97,3 +93,48 @@ let rec db_levels c =
        else
          let lvl = max + 1 in
          (Db lvl, rename_ty t l) ::c, (x, lvl)::l, lvl
+
+let increase_lv_var v i m =
+  match v with
+  | Db j -> if  j == 0 then Db (i) else Db (j + m)
+  | Name _ | New _ -> assert false
+let increase_lv_ty ty i m = ty_do_on_variables ty (fun v -> Var (increase_lv_var v i m))
+
+let suspend_var = function
+  | Db i -> Db (i+2)
+  | Name _ | New _ as v -> v
+
+let rec suspend_ty = function
+  | Obj -> Arr(Obj, Var (Db 0), Var (Db 1))
+  | Arr(a,v,u) -> Arr(suspend_ty a, suspend_tm v, suspend_tm u)
+and suspend_tm = function
+  | Var v -> Var (suspend_var v)
+  | Coh _ -> assert false
+
+let rec suspend_ctx : ctx -> ctx = function
+  | [] -> (Db 1, Obj) :: (Db 0, Obj) :: []
+  | (v,t)::c -> (suspend_var v, suspend_ty t) :: (suspend_ctx c)
+
+let rec ps_to_ctx_aux ps =
+  match ps with
+  | Br [] -> [(Db 0), Obj], 0, 0
+  | Br l -> ps_concat (List.map
+                         (fun ps -> let ps,_,m = ps_to_ctx_aux ps in (suspend_ctx ps, 1, m+2))
+                         l)
+and ps_concat = function
+  | [] -> assert false
+  | ps :: [] -> ps
+  | ps :: l -> ps_glue (ps_concat l) ps
+and ps_glue (p1,t1,m1) (p2,t2,m2) =
+  List.append (chop_and_increase p2 t1 m1) p1, t2+m1, m1+m2
+and chop_and_increase ctx i m =
+  match ctx with
+  | [] -> assert false
+  | _ :: [] -> []
+  | (v,t) :: ctx ->
+     let v = increase_lv_var v i m in
+     let t = increase_lv_ty t i m in
+     let ctx = chop_and_increase ctx i m in
+     (v,t)::ctx
+
+let ps_to_ctx ps = let c,_,_ = ps_to_ctx_aux ps in c
