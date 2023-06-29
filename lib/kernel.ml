@@ -1157,7 +1157,7 @@ struct
     | Sub (_,v,s) ->
        let open EnvVal in
        Printf.sprintf "(%s %s)" (fst(v.print)) (Sub.to_string_func s (snd(v.print)))
-    | Coh (_,_) -> assert false
+    | Coh (c,s) -> Printf.sprintf "%s[%s]" (Coh._to_string c) (Sub._to_string s)
 
   let check_equal ctx tm1 tm2 =
     (* debug "checking equality between %s and %s" (to_string tm1)(to_string tm2); *)
