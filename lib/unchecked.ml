@@ -1,6 +1,7 @@
 open Variables
 
 exception Not_Equal
+exception DoubleDef
 
 type ps = Br of ps list
 
@@ -55,3 +56,27 @@ let rec ty_apply_sub ty s =
   | Arr(a,u,v) -> Arr(ty_apply_sub a s, tm_apply_sub u s, tm_apply_sub v s)
 
 let sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
+
+(* rename is applying a variable to de Bruijn levels substitutions *)
+let rec rename_tm tm l =
+  match tm with
+  | Var v -> Var (Db (List.assoc v l))
+  | Coh (ps, ty, sub) -> Coh (ps, ty, rename_sub_ps sub l)
+and rename_sub_ps s l =
+  List.map (fun tm -> rename_tm tm l) s
+
+let rec rename_ty ty l =
+  match ty with
+  | Obj -> Obj
+  | Arr(a,u,v) -> Arr (rename_ty a l, rename_tm u l, rename_tm v l)
+
+let rec db_levels c =
+    match c with
+    | [] -> [], [], -1
+    | (x,t)::c ->
+       let c,l,max = db_levels c in
+       if List.mem_assoc x l then
+         raise DoubleDef
+       else
+         let lvl = max + 1 in
+         (Db lvl, rename_ty t l) ::c, (x, lvl)::l, lvl

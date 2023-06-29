@@ -904,23 +904,23 @@ struct
   type t = {print : string * int list; value : v}
 
   let mk_coh nm ps t =
-  let ps = PS.mk (Ctx.make ps) in
-  let c = Coh.mk ps t in
-  {print = (nm,[]); value = Coh c}
+    let ps = Ctx.make ps in
+    let c = Coh.mk ps t in
+    {print = (nm,[]); value = Coh c}
 
   let mk_let nm c u =
-  let c = Ctx.make c in
-  let u,ty = Tm.make c u in
-  let u = Tm.mark_ctx u in
-  {print = (nm,[]); value = Let u}, Ty.to_string ty
+    let c = Ctx.make c in
+    let u,ty = Tm.make c u in
+    let u = Tm.mark_ctx u in
+    {print = (nm,[]); value = Let u}, Ty.to_string ty
 
   let mk_let_check nm c u t =
-  let c = Ctx.make c in
-  let u,ty = Tm.make c u in
-  let t = Ty.make c t in
-  Ty.check_equal c t ty;
-  let u = Tm.mark_ctx u in
-  {print = (nm,[]); value = Let u}, Ty.to_string t
+    let c = Ctx.make c in
+    let u,ty = Tm.make c u in
+    let t = Ty.make c t in
+    Ty.check_equal c t ty;
+    let u = Tm.mark_ctx u in
+    {print = (nm,[]); value = Let u}, Ty.to_string t
 
   let dim v =
     match v.value with
@@ -1212,7 +1212,7 @@ struct
     | Sub (x,_,s) ->
        let _,t = Env.val_var x 0 [] in
        match t.value with
-       | Coh (ps,ty) -> Unchecked.Coh(PS._forget ps, Ty._forget ty, Sub._forget_to_ps s)
+       | Coh (ps,ty,_) -> Unchecked.Coh(PS._forget ps, Ty._forget ty, Sub._forget_to_ps s)
        | Let t -> Unchecked.tm_apply_sub (_forget t) (Sub._forget s)
 
   let list_expl_vars tm : var list =
@@ -1304,11 +1304,10 @@ struct
     | Unchecked.Coh (ps,t,s) ->
        let ps = PS.check ps in
        let t = Ty._from_unchecked (PS.to_ctx ps) t in
-       let coh = Coh.check ps t in
+       let coh = Coh.check ps t [] in
        let sub = Sub.check_to_ps c s ps in
        let e, ty = Coh(coh,sub), Ty.apply t sub in
        {c; ty; e}
-
 
   let unify (tm1 : t) (tm2 : t) l =
     match tm1.e, tm2.e with
@@ -1333,9 +1332,9 @@ end
 (** A coherence. *)
 and Coh
     : sig
-  type t = PS.t * Ty.t
+  type t = PS.t * Ty.t * (cvar * int) list
 
-  val mk : PS.t -> ty -> t
+  val mk : Ctx.t -> ty -> t
   val _to_string : t -> string
   val ps : t -> PS.t
   val dim : t -> int
@@ -1343,15 +1342,15 @@ and Coh
   val suspend : t -> int -> t
   val functorialize : t -> (cvar * (var * var)) list -> var ->  t
   val _forget : t -> Unchecked.ps * Unchecked.ty
-  val check : PS.t -> Ty.t -> t
+  val check : PS.t -> Ty.t -> (cvar * int) list -> t
 end
 =
 struct
-  type t = PS.t * Ty.t
+  type t = PS.t * Ty.t * (cvar * int) list
 
-  let check ps t =
+  let check ps t l =
     if List.included (PS.domain ps) (Ty.free_vars t)
-    then (ps,t)
+    then (ps,t,l)
     else
       let open Ty in
       let a,f,g = match t.e with
@@ -1363,30 +1362,35 @@ struct
       let fvf = List.union (Tm.free_vars f) (Ty.free_vars a) in
       let fvg = List.union (Tm.free_vars g) (Ty.free_vars a) in
       if (List.set_equal pss fvf && List.set_equal pst fvg)
-      then (ps,t)
+      then (ps,t,l)
       else raise NotAlgebraic
 
   let mk ps t =
-    let t = Ty.make (PS.to_ctx ps) t in
-    check ps t
+    (* TODO: take an unchecked context as argument to avoid checking the same thing twice *)
+    let t = Ty.make ps t in
+    let ps, names,_ = Unchecked.db_levels (Ctx._forget ps) in
+    let cps = Ctx._check ps in
+    let ps = PS.mk cps in
+    let t = Ty._from_unchecked cps (Unchecked.rename_ty (Ty._forget t) names) in
+    check ps t names
 
-  let _to_string (ps,t) =
+  let _to_string (ps,t,_) =
     Printf.sprintf "Coh {%s |- %s}"
       (PS.to_string ps)
       (Ty.to_string t)
 
-  let ps (ps,_) = ps
+  let ps (ps,_,_) = ps
 
-  let target (_,t) = t
+  let target (_,t,_) = t
 
-  let dim (ps,_) = PS.dim ps
+  let dim (ps,_,_) = PS.dim ps
 
-  let suspend (ps,t) i =
+  let suspend (ps,t,_) i =
     let t = Ty.reinit t in
-    let ps = PS.suspend ps i in
+    let ps = PS.to_ctx (PS.suspend ps i) in
     (Coh.mk ps t)
 
-  let functorialize (ps,_) l evar =
+  let functorialize (ps,_,_) l evar =
     match l with
     |[] -> assert(false)
     |(v,(v',al))::l ->
@@ -1406,9 +1410,9 @@ struct
       in
       let tgt = replace_all replacements src in
       let t = Arr(Sub(Var evar, src,[]),(Sub(Var evar, tgt,[]))) in
-      (Coh.mk newps t)
+      (Coh.mk (PS.to_ctx newps) t)
 
-  let _forget (ps,t) = (PS._forget ps, Ty._forget t)
+  let _forget (ps,t,_) = (PS._forget ps, Ty._forget t)
 end
 
 and Hash

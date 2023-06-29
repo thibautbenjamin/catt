@@ -44,7 +44,7 @@ end
 (** Context variables (i.e. "arguments of functions"). *)
 module CVar
 : sig
-    type t
+    type t = var
     val to_string : t -> string
     val make : var -> t
     val to_var : t -> var
