@@ -231,36 +231,26 @@ struct
     let list = elaborate (List.rev l) src tar in
     mk_elaborated (List.rev list) src tar
 
-  let _check src s tgt =
-    let rec expr s tgt =
+  let rec _check (src : Ctx.t) s tgt =
+    let expr (s : Unchecked.sub) tgt =
       match s, Ctx.value tgt with
       | [], [] -> []
       | (_::_,[] |[],_::_) -> raise NotValid
       | (x1,_)::_, (x2,(_,_))::_ when x1 != (var_of_cvar x2) -> raise NotValid
-      | (_,t)::s, (_,(u,_))::tgt ->
-	 let s = expr s tgt in
+      | (_,t)::s, (_,(a,_))::tgt ->
+	 let sub = _check src s tgt in
          let t = Tm.check src t in
 	 let ty = t.ty in
          (* TODO: replace this *)
-	 Ty.check_equal src ty (apply_list_Ty s tgt src u);
-	 t::s
-    in {list = expr (List.rev s) tgt; src = src; tar = tgt}
+	 Ty.check_equal src ty (Ty._from_unchecked src (Unchecked.ty_apply_sub (Ty._forget a) s));
+	 t::sub.list
+    in
+    {list = expr s tgt; src = src; tar = tgt}
 
   let check_to_ps src s tgt =
     let tgt = PS.to_ctx tgt in
-    let rec expr s tgt =
-      match s, Ctx.value tgt with
-      | [], [] -> []
-      | (_::_,[] |[],_::_) -> raise NotValid
-      | t::s, (_,(u,_))::tgt ->
-	 let s = expr s tgt in
-         let t = Tm.check src t in
-	 let ty = t.ty in
-         (* TODO: replace this *)
-	 Ty.check_equal src ty (apply_list_Ty s tgt src u);
-	 t::s
-    in {list = expr (List.rev s) tgt; src = src; tar = tgt}
-
+    let s = List.map2 (fun (x,_) t -> (x,t)) tgt s in
+    _check src s tgt
 
   (** Make the expression into a substitution *)
   let reinit (s:t) =
@@ -581,7 +571,6 @@ struct
     (x,(t,true))::c
 
   let _check c = List.fold_right (fun (x,t) c -> _extend c x t) c (Ctx.empty ())
-
 end
 
 
@@ -755,7 +744,6 @@ struct
     debug "corresponding context: %s" (Unchecked.(ctx_to_string (ps_to_ctx ps)));
     let res = PS.mk (Ctx._check (Unchecked.ps_to_ctx ps)) in
     (* sanity check: we have the tree we started from *)
-    assert (res.newrep.tree == ps);
     assert (res.newrep.tree = ps);
     res
 
