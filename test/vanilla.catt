@@ -1,0 +1,11 @@
+### Functoriality does not support the second coherence rule yet
+
+coh id (x : *) : x -> x
+coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
+coh whiskl (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                   (z : *) (g : y -> z) : comp f g -> comp f' g
+coh whiskr (x : *) (y : *) (f : x -> y)
+                   (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') :  f g -> comp f g'
+coh horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                  (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') :
+		  comp f g -> comp f' g'

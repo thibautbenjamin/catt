@@ -17,6 +17,23 @@ type ctx = (var * ty) list
 
 type sub = (var * tm) list
 
+let rec ps_to_string = function
+  | Br l -> Printf.sprintf "[%s]"
+              (List.fold_left (fun s ps -> Printf.sprintf "%s%s" s (ps_to_string ps)) "" l)
+
+let rec ty_to_string = function
+  | Obj -> "*"
+  | Arr (a,u,v) -> Printf.sprintf "%s | %s -> %s" (ty_to_string a) (tm_to_string u) (tm_to_string v)
+and tm_to_string = function
+  | Var v -> string_of_var v
+  | Coh (ps,ty,s) -> Printf.sprintf "coh(%s,%s)[%s]" (ps_to_string ps) (ty_to_string ty) (ps_sub_to_string s)
+and ps_sub_to_string s =
+  List.fold_left (fun str t -> Printf.sprintf "%s %s" str (tm_to_string t)) "" s
+
+let rec ctx_to_string = function
+  | [] -> ""
+  | (x,t)::c -> Printf.sprintf "%s (%s: %s)" (ctx_to_string c) (string_of_var x) (ty_to_string t)
+
 let rec check_equal_ps ps1 ps2 =
   match ps1, ps2 with
   | Br [], Br[] -> ()
