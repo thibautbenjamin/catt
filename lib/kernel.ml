@@ -728,18 +728,21 @@ struct
   let make_tree ps =
     let rec find_previous ps list =
       match ps with
-      | PNil x -> (list, PNil x)
-      | PCons (ps,_,_) -> (list, ps)
+      | PNil x -> (Unchecked.Br list, PNil x)
+      | PCons (ps,_,_) -> (Unchecked.Br list, ps)
       | PDrop ps ->
          let p,ps = build_till_previous ps in
-         find_previous ps (List.append list [p])
+         Unchecked.Br p, ps
     and build_till_previous ps =
       match ps with
-      | PNil x -> Unchecked.Br [], PNil x
-      | PCons (_,_,_) -> assert false
-      | PDrop ps -> let p,ps = find_previous ps [] in Unchecked.Br p,ps
+      | PNil x -> [], PNil x
+      | PCons (ps,_,_) -> [], ps
+      | PDrop ps ->
+         let p,ps = find_previous ps [] in
+         let prev,ps = build_till_previous ps in
+                 p::prev, ps
     in
-    fst (build_till_previous ps)
+    Unchecked.Br (fst (build_till_previous ps))
 
   let mk (l : Ctx.t) =
     let oldrep = make_old l in
