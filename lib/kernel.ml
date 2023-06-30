@@ -235,7 +235,6 @@ sig
   (* Structural operations *)
   val head : t -> cvar * (Ty.t * bool)
   val tail : t -> t
-  val functorialize : t -> (CVar.t * (var * var)) list -> t
 
   (* Syntactic properties *)
   val ty_var : t -> cvar -> Ty.t
@@ -285,15 +284,6 @@ struct
     let u = Ty.make ctx u in
     add_norm ctx x u
 
-  let add_explicit (ctx : Ctx.t) x u =
-    let u = Ty.make ctx u in
-    let x = CVar.make x in
-    try
-      ignore (List.assoc x (ctx :> t));
-      raise (DoubleDef (CVar.to_string x))
-    with Not_found -> (x,(u,true))::(ctx :> t)
-
-
   (** Create a context from a list of terms. *)
   let make l =
     let rec aux l ctx =
@@ -340,7 +330,6 @@ struct
   (** Check whether a context is included in another one. *)
   (* it is just a prefix, to check if we can spare some type checking *)
   let check_sub_ctx ctx1 ctx2 =
-    (* debug "checking that ctx %s is a sub of %s" (Ctx.to_string ctx1) (Ctx.to_string ctx2); *)
     let rec sub c (ctx1 : Ctx.t) (ctx2 : Ctx.t) =
       if Ctx.is_empty ctx1 then ()
       else if Ctx.is_empty ctx2 then raise NotValid
@@ -365,33 +354,6 @@ struct
          equal ctx1 t1 t2
       | _,_ -> raise NotValid
     in equal (Ctx.empty ()) ctx1 ctx2
-
-  let mark c =
-    let rec appears x c = match c with
-      |(_,(a,_))::q -> (List.mem x (Ty.free_vars a)) || (appears x q)
-      |[] -> false
-    in
-    let rec traversal c =
-      match c with
-      |((x,(t,_))::c) -> (x, (t, (not (appears x c)))) :: (traversal c)
-      |[] -> []
-    in List.rev (traversal (List.rev c))
-
-  let functorialize (c:Ctx.t) l =
-    let compute (c : Ctx.t) =
-      match (c :> (CVar.t * (Ty.t * bool)) list) with
-      |[] -> []
-      |(x,(tx,false))::_ -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) (Ty.reinit tx)
-      |(x,(tx,true))::_ ->
-        let tx = Ty.reinit tx in
-        try let (y,f) = List.assoc x l in
-            let x = CVar.to_var x in
-            let c = Ctx.add (Ctx.functorialize (Ctx.tail c) l) x tx in
-            let c = Ctx.add c y tx in
-            add_explicit c f (Arr(Var x,Var y))
-        with Not_found -> add (Ctx.functorialize (Ctx.tail c) l) (CVar.to_var x) tx
-    in mark (compute c)
-
 
      (* --------
       Printing
@@ -737,7 +699,6 @@ sig
   val check_equal : Ctx.t -> t -> t -> unit
   val make : Ctx.t -> ty -> t
 
-  val reinit : t -> ty
   val _forget : t -> Unchecked.ty
   val _from_unchecked : Ctx.t -> Unchecked.ty -> t
   val apply : t -> Sub.t -> t
@@ -813,13 +774,6 @@ struct
            let () = check_equal c tu tv in {c = c; e = Arr(tu,u,v)}
         | Letin_ty _ -> assert false
       in Hashtbl.add Hash.tbty e newty; newty
-
-  (** Expression from a type. *)
-  (* TODO: can we remove this? *)
-  let reinit t : ty =
-    match t.e with
-    | Obj -> Obj
-    | Arr(_,u,v) -> Arr (Tm.reinit u, Tm.reinit v)
 
   let rec _forget t =
     match t.e with
