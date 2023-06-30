@@ -40,6 +40,7 @@ sig
   val unify : Sub.t -> Sub.t -> ((CVar.t * Ty.t) * Tm.t option * bool) list -> ((CVar.t * Ty.t) * Tm.t option * bool) list
 
   val src : t -> Ctx.t
+  val tgt : t -> Ctx.t
 end
   =
 struct
@@ -53,6 +54,7 @@ struct
     List.concat (List.map Tm.free_vars s.list)
 
   let src s = s.src
+  let tgt s = s.tar
 
   (** Check equality of substitutions. *)
   (* TODO : Check the sources too*)
@@ -955,8 +957,8 @@ struct
     | _, _ -> raise UnableUnify
 
   let apply t s =
+    Ctx.check_equal t.c (Sub.tgt s);
     _from_unchecked (Sub.src s) (Unchecked.ty_apply_sub (_forget t) (Sub._forget s))
-
 end
 
 (** Operations on terms. *)
@@ -1160,7 +1162,9 @@ struct
        debug "all done";
        {c; ty; e}
 
-  let apply tm s = check (Sub.src s) (Unchecked.tm_apply_sub (_forget tm) (Sub._forget s))
+  let apply tm s =
+    Ctx.check_equal tm.c (Sub.tgt s);
+    check (Sub.src s) (Unchecked.tm_apply_sub (_forget tm) (Sub._forget s))
 
   let unify (tm1 : t) (tm2 : t) l =
     match tm1.e, tm2.e with
