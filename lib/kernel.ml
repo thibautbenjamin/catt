@@ -17,7 +17,6 @@ sig
 
   (* Structural functions *)
   val mk : Tm.t list -> Ctx.t -> Ctx.t  -> t
-  val mk_elaborated : Tm.t list -> Ctx.t -> Ctx.t -> t
   val _check : Ctx.t -> Unchecked.sub -> Ctx.t -> t
   val check_to_ps : Ctx.t -> Unchecked.sub_ps -> PS.t -> t
   val reinit : t -> tm list
@@ -28,8 +27,6 @@ sig
 
   (* Syntactic properties *)
   val free_vars : t -> cvar list
-  val apply_Ty : t -> Ty.t -> Ty.t
-  val apply_Tm : t -> Tm.t -> Tm.t
 
   (* Equality procedures *)
   val check_equal : t -> t -> unit
@@ -51,78 +48,11 @@ struct
   (* TODO: add variable names *)
   type t = {list : Tm.t list; src : Ctx.t; tar : Ctx.t}
 
-
   (** Free context variables. *)
   let free_vars s =
     List.concat (List.map Tm.free_vars s.list)
 
   let src s = s.src
-
-  (** Sequential composition of substitutions. *)
-  let rec apply_list_var l tar x =
-      match l,tar with
-      |_,_ when Ctx.is_empty tar ->
-        assert false
-      |t::l, _ ->
-        let open Tm in
-        let ((y,(_,_)),tar) = (Ctx.head tar, Ctx.tail tar) in
-        if y = x
-        then t.e
-        else apply_list_var l tar x
-      |[], _ -> assert false
-  and compose_lists src tar s s' =
-    List.rev (List.map (fun t -> apply_list_Tm s tar src t) s')
-
-  (** Apply a substitution to a term. *)
-  and apply_list_Tm s tar src tm =
-    let open Tm in
-    let e =
-      match tm.e with
-      |CVar x -> apply_list_var s tar x
-      |Sub (x,v,s') ->
-        let newtar = EnvVal.ctx v in
-        Sub (x,v, Sub.mk_elaborated (compose_lists src tar s s'.list) src newtar)
-      | Coh _ -> assert false
-    in {c = src; ty = apply_list_Ty s tar src tm.ty; e = e}
-
-  (** Apply a substitution to a type. *)
-  and apply_list_Ty s tar src ty =
-    let open Ty in
-    let e =
-      match ty.e with
-      | Obj -> Obj
-      | Arr (a,u,v) -> let a,u,v = (apply_list_arr s tar src a u v) in Arr(a,u,v)
-    in {c = src; e = e}
-
-  (** Apply a substitution to a triple argument of an arrow
-   This avoids computing the same type thrice, using that both terms have the same known type
-   This function is unsafe and thus is not exported and should be used only in one place *)
-  and apply_list_arr s tar src ty tm1 tm2 =
-    let ty = apply_list_Ty s tar src ty in
-    let open Tm in
-    let e1 = match tm1.e with
-      |CVar x -> apply_list_var s tar x
-      |Coh _ -> assert false
-      |Sub (x,v,s') ->
-        let newtar = EnvVal.ctx v in
-        Sub (x,v, Sub.mk_elaborated (compose_lists src tar s s'.list) src newtar) in
-    let e2 = match tm2.e with
-      |CVar x -> apply_list_var s tar x
-      | Coh _ -> assert false
-      |Sub (x,v,s') ->
-        let newtar = EnvVal.ctx v in
-        Sub (x,v, Sub.mk_elaborated (compose_lists src tar s s'.list) src newtar) in
-    (ty, {c = src; ty = ty; e = e1}, {c = src; ty = ty; e = e2})
-
-  let apply_Tm s tm =
-    let open Tm in
-    Ctx.check_sub_ctx (tm.c) s.tar;
-    apply_list_Tm s.list s.tar s.src tm
-
-  let apply_Ty s ty =
-    let open Ty in
-    Ctx.check_sub_ctx (ty.c) s.tar;
-    apply_list_Ty s.list s.tar s.src ty
 
   (** Check equality of substitutions. *)
   (* TODO : Check the sources too*)
@@ -218,12 +148,13 @@ struct
       |[],[] -> []
       |(_::_,[] |[],_::_) -> raise NotValid
       |t::s,_ ->
-	let (_,(u,_)),tar = (Ctx.head tar,Ctx.tail tar) in
+	let (x,(u,_)),tar = (Ctx.head tar,Ctx.tail tar) in
 	let s = aux s tar in
+        let su = List.map (fun (x,t) -> x,Tm._forget t) s in
 	let ty = Tm.infer src t in
-	let () = Ty.check_equal src ty (apply_list_Ty s tar src u)
-	in t::s
-    in {list = aux (List.rev l) tar; src = src; tar = tar}
+	let () = Ty.check_equal src ty (Ty._from_unchecked src (Unchecked.ty_apply_sub (Ty._forget u) su))
+	in (x,t)::s
+    in {list = List.map snd (aux (List.rev l) tar); src = src; tar = tar}
 
   (** Create a substitution described by maximal elements. *)
   let mk (l:Tm.t list) src tar =
@@ -300,7 +231,6 @@ struct
       | [],[] -> l
       | _,_ -> raise UnableUnify
     in unify_list s.list s'.list l
-
 end
 
   (* -- Contexts are association lists of variables and terms in normal form.
@@ -873,7 +803,6 @@ and EnvVal : sig
   type t = {print : string * int list; value : v}
 
   val ty :  t -> (Ctx.t * Ty.t)
-  val ctx : t -> Ctx.t
   val check_equal : t -> Tm.t -> Sub.t -> t -> Tm.t -> Sub.t -> Ctx.t -> unit
 
   val check : Environment.value -> t
@@ -891,17 +820,12 @@ struct
     |Coh coh -> (PS.to_ctx (Coh.ps coh), Coh.target coh)
     |Let t -> let open Tm in (t.c, t.ty)
 
-  let ctx v =
-    match v.value with
-    |Coh c -> (PS.to_ctx (Coh.ps c))
-    |Let t -> let open Tm in t.c
-
   let check_equal v1 tm1 s1 v2 tm2 s2 src =
     match (v1.value, v2.value) with
     |Coh _, Coh _ -> Sub.check_equal s1 s2
-    |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1) (Sub.apply_Tm s2 t2)
-    |Let t, Coh _ -> Tm.check_equal src (Sub.apply_Tm s1 t) tm2
-    |Coh _, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t)
+    |Let t1, Let t2 -> Tm.check_equal src (Tm.apply t1 s1) (Tm.apply t2 s2)
+    |Let t, Coh _ -> Tm.check_equal src (Tm.apply t s1) tm2
+    |Coh _, Let t -> Tm.check_equal src tm1 (Tm.apply t s2)
 
   let check v =
     let value = match v with
@@ -1053,6 +977,7 @@ sig
   val make : Ctx.t -> tm -> t * Ty.t
   val check : Ctx.t -> Unchecked.tm -> t
   val _dim : t -> int
+  val apply : t -> Sub.t -> t
 
   val reinit : t -> tm
   val _forget : t -> Unchecked.tm
@@ -1113,7 +1038,7 @@ struct
     | CVar x -> Ctx.ty_var ctx x
     | Sub (_,v,s) ->
        let _,ty = EnvVal.ty v in
-       Sub.apply_Ty s ty
+       Ty.apply ty s
     | Coh (_,_) -> assert false
 
   (** Infer the type of a term. *)
@@ -1209,7 +1134,7 @@ struct
            in let tar,ty = EnvVal.ty t in
               (* debug "got the context %s" (Ctx.to_string tar); *)
               let s = Sub.mk (List.map fst s) c tar in
-              let ty = Sub.apply_Ty s ty in
+              let ty = Ty.apply ty s in
               ({c = c; ty = ty; e = Sub(v,t,s)}, ty)
         | Letin_tm _ -> assert false
       in Hashtbl.add Hash.tbtm e newtm; newtm,newty
@@ -1234,6 +1159,8 @@ struct
        let e, ty = Coh(coh,sub), Ty.apply t sub in
        debug "all done";
        {c; ty; e}
+
+  let apply tm s = check (Sub.src s) (Unchecked.tm_apply_sub (_forget tm) (Sub._forget s))
 
   let unify (tm1 : t) (tm2 : t) l =
     match tm1.e, tm2.e with
