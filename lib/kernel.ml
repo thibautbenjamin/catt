@@ -29,8 +29,6 @@ module rec Sub : sig
   (* Equality procedures *)
   val check_equal : t -> t -> unit
 
-  val explicit : t -> Tm.t list
-
   (* Printing *)
   val _to_string : t ->  string
   val to_string_func : t -> int list -> string
@@ -196,19 +194,6 @@ end
   let _forget s = List.map2 (fun (v,_) t -> (var_of_cvar v, Tm._forget t)) s.tgt s.list
   let _forget_to_ps s = List.map Tm._forget s.list
 
-  (** Keep only the the maximal elements of a substitution ("unealborate"). *)
-  let explicit (s:t) =
-    let rec aux s c =
-      match s,c with
-      |[], c when Ctx.is_empty c -> []
-      |(u::s),c -> begin
-          match Ctx.head c with
-          |(_,(_,true)) -> u::(aux s (Ctx.tail c))
-          |(_,(_,false)) -> aux s (Ctx.tail c)
-        end
-      |_,_ -> assert false
-      in List.rev (aux s.list s.tgt)
-
   (** List the explicit variables of a substitution. *)
   let list_expl_vars (s:t) =
     let rec aux s c =
@@ -250,7 +235,6 @@ sig
   (* Structural operations *)
   val head : t -> cvar * (Ty.t * bool)
   val tail : t -> t
-  val suspend : t -> int -> t
   val functorialize : t -> (CVar.t * (var * var)) list -> t
 
   (* Syntactic properties *)
@@ -258,7 +242,6 @@ sig
   val domain : t -> cvar list
   val explicit_domain : t -> cvar list
   val value : t -> (cvar * (Ty.t * bool)) list
-  val dim : t -> int
 
   val _forget : t -> Unchecked.ctx
   val _check : Unchecked.ctx -> t
@@ -269,8 +252,6 @@ sig
   val is_empty : t -> bool
   val check_sub_ctx : t -> t -> unit
   val check_equal : t -> t -> unit
-
-  val mark : Ctx.t -> Ctx.t
 
   (* Printing *)
   val to_string : t -> string
@@ -356,50 +337,6 @@ struct
   let is_empty (c:t) =
     c = []
 
-  let max_used_var ctx =
-    let rec aux n l =
-      match l with
-      |[] -> n
-      |v::l ->
-        match CVar.to_var v with
-        | Name _ -> aux n l
-        | New k -> aux (max k n) l
-        | Db _ -> aux n l
-    in aux 0 (domain ctx)
-
-  (** Suspend a context, i.e. rempace types "*" by arrow types (forgets the marking).*)
-  let suspend (ctx : t) i =
-        (* picking a fresh number for the new variable in context ctx*)
-    let n = max_used_var ctx in
-    assert (i>=1);
-    let rec aux k j c = (*k is the last used var, j the number of time we functorialized*)
-      match j with
-      | j when j = i -> c,Arr (Var (New (k)), Var (New (k+1)))
-      | j ->
-	 let k' = k+2 in
-	 let ty = Arr (Var (New (k)), Var (New (k+1))) in
-         aux (k')
-           (j+1)
-	   (Ctx.add
-	      (Ctx.add c (New (k')) ty)
-	      (New (k'+1))
-	      ty)
-    in
-    let ctx' =
-      Ctx.add
-	(Ctx.add (Ctx.empty ()) (New (n+1)) Obj)
-	(New (n+2))
-	Obj
-    in
-    let ctx',ty = aux (n+1) 1 ctx'  in
-    let open Ty in
-    let rec comp c res = match c with
-      | (x,(tx,_))::c when tx.e = Obj-> comp c (Ctx.add res (var_of_cvar x) ty)
-      | (x,(tx,_))::c -> comp c (Ctx.add res (var_of_cvar x) (Ty.reinit tx))
-      | [] -> res
-    in
-    comp (List.rev ctx) ctx'
-
   (** Check whether a context is included in another one. *)
   (* it is just a prefix, to check if we can spare some type checking *)
   let check_sub_ctx ctx1 ctx2 =
@@ -474,14 +411,6 @@ struct
 	 (CVar.to_string x)
          (Ty.to_string t)
 
-  (** dimension of a context is the maximal dimension of its variables *)
-  let dim ctx =
-    let rec aux c i = match c with
-      |[] -> i
-      |(_,(ty,_))::c when Ty.dim ty>i -> aux c (Ty.dim ty)
-      |_::c -> aux c i
-    in aux ctx 0
-
   let _forget c = List.map (fun (x,(a,_)) -> (var_of_cvar x, Ty._forget a)) c
 
   let check_notin c x =
@@ -517,7 +446,6 @@ sig
 
   (* Syntactic properties *)
   val domain : t -> cvar list
-  val explicit_domain : t -> cvar list
   val to_ctx : t -> Ctx.t
   (* val to_expr : t -> (var * Expr.ty) list *)
 
@@ -525,8 +453,6 @@ sig
   val dim : t -> int
   val source : int -> t -> cvar list
   val target : int -> t -> cvar list
-  val suspend : t -> int -> t
-  val functorialize : t -> cvar -> var -> var -> t
 
   val _forget : t -> Unchecked.ps
   val check : Unchecked.ps -> t
@@ -568,8 +494,6 @@ struct
 
   (** Domain of definition. *)
   let domain ps = Ctx.domain ps.newrep.ctx
-
-  let explicit_domain ps = Ctx.explicit_domain ps.newrep.ctx
 
   (* -----
     Maker
@@ -731,40 +655,6 @@ struct
 
   let target i ps = target_old i ps.oldrep
 
-  (** Suspend a pasting scheme. *)
-  (* TODO: implement this more efficiently *)
-  let suspend ps i =
-    mk (Ctx.suspend ps.newrep.ctx i)
-
-  let _functorialize_old ps v v' al =
-    let rec compute_ctx ps =
-    match ps with
-    |(PNil (x,_) as ps) when x = v ->
-      let x = CVar.to_var x in
-      let ctx1 = (Ctx.add (old_rep_to_ctx ps) v' Obj) in
-      Ctx.add ctx1 al (Arr(Var x,Var v'))
-    |((PDrop (PCons (_,_,(x,ty)))) as ps) when x = v ->
-      let x = CVar.to_var x in
-      let ctx1 = Ctx.add (old_rep_to_ctx ps) v' (Ty.reinit ty) in
-      Ctx.add ctx1 al (Arr(Var x, Var v'))
-    |(PDrop (PCons (ps,(x1,ty1),(x2,ty2)))) ->
-      let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
-      let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
-      let ctx= compute_ctx ps in
-      Ctx.add (Ctx.add ctx x1 ty1) x2 ty2
-    |PDrop(ps) -> compute_ctx ps
-    |PCons(ps,(x1,ty1),(x2,ty2)) ->
-      let x1 = CVar.to_var x1 and x2 = CVar.to_var x2 in
-      let ty1 = Ty.reinit ty1 and ty2 = Ty.reinit ty2 in
-      let ctx = compute_ctx ps in
-      Ctx.add (Ctx.add ctx x1 ty1) x2 ty2
-    |PNil (_,_) -> assert(false)
-    in
-    let newps = compute_ctx ps in
-    PS.mk newps
-
-  let functorialize _ps _v _v' _al = assert false
-
   (* --------
      Printing
      -------- *)
@@ -847,7 +737,6 @@ sig
   val check_equal : Ctx.t -> t -> t -> unit
   val make : Ctx.t -> ty -> t
 
-  val dim : t -> int
   val reinit : t -> ty
   val _forget : t -> Unchecked.ty
   val _from_unchecked : Ctx.t -> Unchecked.ty -> t
@@ -925,12 +814,6 @@ struct
         | Letin_ty _ -> assert false
       in Hashtbl.add Hash.tbty e newty; newty
 
-  (** Dimension of a type. *)
-  let rec dim ty =
-    match ty.e with
-    | Obj -> 0
-    | Arr(a,_,_) -> 1 + dim a
-
   (** Expression from a type. *)
   (* TODO: can we remove this? *)
   let reinit t : ty =
@@ -974,16 +857,11 @@ sig
   val check_equal : Ctx.t -> t -> t -> unit
   val make : Ctx.t -> tm -> t * Ty.t
   val check : Ctx.t -> Unchecked.tm -> t
-  val _dim : t -> int
   val apply : t -> Sub.t -> t
 
   val reinit : t -> tm
   val _forget : t -> Unchecked.tm
   val list_expl_vars : t -> var list
-
-  val _mark_ctx : t -> t
-  val _suspend : t -> int -> t
-  val _functorialize : t -> (cvar * (var * var)) list -> t
 
   val unify : t -> t -> ((CVar.t * Ty.t) * t option * bool) list -> ((CVar.t * Ty.t) * t option * bool) list
 
@@ -1069,40 +947,6 @@ struct
     | CVar v -> [(CVar.to_var v)]
     | Sub (_,_,s) -> Sub.list_expl_vars s
     | Coh(_,s) -> Sub.list_expl_vars s
-
-  let _mark_ctx t =
-    {c = Ctx.mark t.c; ty = t.ty; e = t.e}
-
-  let _suspend tm i =
-    let ct = tm.c in
-    let ct = Ctx.suspend ct i in
-    let tm = reinit tm in
-    fst (Tm.make ct tm)
-
-  let _functorialize tm l =
-    let c = Ctx.functorialize tm.c l in
-    let rec func_expr e =
-      match e with
-      | CVar v -> begin
-          try Var (snd (List.assoc v l))
-          with Not_found -> Var (CVar.to_var v)
-        end
-      | Sub (x,_,s) ->
-         let vars = List.map (fun x -> CVar.to_var (fst x)) l in
-         let reinit_s = Sub.reinit s in
-         let functed_s = List.map (fun t -> func_expr t.e) (Sub.explicit s) in
-         let rec func s i =
-           match s with
-           |[] -> []
-           |(a::s) when List.exists (fun v -> List.mem v vars) (list_vars a) -> i::(func s (i+1))
-           |(_::s) -> func s (i+1)
-         in
-         Sub (Var (EVar.to_var x),(functed_s),func (reinit_s) 0)
-      | Coh(_,_) -> assert false
-    in fst (Tm.make c (func_expr (tm.e)))
-
-  let _dim tm =
-    Ctx.dim tm.c
 
   (** Create a term from an expression. *)
   (* TODO: return a value of type t instead of a pair *)
@@ -1190,10 +1034,7 @@ and Coh
   val mk : Ctx.t -> ty -> t
   val _to_string : t -> string
   val ps : t -> PS.t
-  val _dim : t -> int
   val target : t -> Ty.t
-  val _suspend : t -> int -> t
-  val _functorialize : t -> (cvar * (var * var)) list -> var ->  t
   val _forget : t -> Unchecked.ps * Unchecked.ty
   val check : PS.t -> Ty.t -> (cvar * int) list -> t
   val from_unchecked : Unchecked.ps -> Unchecked.ty -> t
@@ -1247,35 +1088,6 @@ struct
   let ps (ps,_,_) = ps
 
   let target (_,t,_) = t
-
-  let _dim (ps,_,_) = PS.dim ps
-
-  let _suspend (ps,t,_) i =
-    let t = Ty.reinit t in
-    let ps = PS.to_ctx (PS.suspend ps i) in
-    (Coh.mk ps t)
-
-  let _functorialize (ps,_,_) l evar =
-    match l with
-    |[] -> assert(false)
-    |(v,(v',al))::l ->
-      let rec funcps l = match l with
-        |[] -> let ps = PS.functorialize ps v v' al in
-               ps,[CVar.to_var v,v']
-        |(v,(v',al))::l -> let ps,repl = funcps l in
-                   let newps = PS.functorialize ps v v' al in
-                   newps,(CVar.to_var v,v')::repl
-      in
-      let newps,replacements = funcps l in
-      let src = List.rev(List.map (fun v -> Var (CVar.to_var v)) (PS.explicit_domain ps)) in
-      let rec replace_all repl l =
-        match repl with
-        |[] -> l
-        |(v1,v2) :: repl -> replace_all repl (replace_tm_list l v1 v2)
-      in
-      let tgt = replace_all replacements src in
-      let t = Arr(Sub(Var evar, src,[]),(Sub(Var evar, tgt,[]))) in
-      (Coh.mk (PS.to_ctx newps) t)
 
   let _forget (ps,t,_) = (PS._forget ps, Ty._forget t)
 end
