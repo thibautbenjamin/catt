@@ -3,9 +3,7 @@ open Variables
 
 type kTy
 type kTm
-(* type env *)
 
-val init_env : unit -> unit
 val add_coh_env : var -> (var * ty) list -> ty -> unit
 val add_let_env : var -> (var * ty) list -> tm -> string
 val add_let_env_of_ty : var -> (var * ty) list -> tm -> ty -> string

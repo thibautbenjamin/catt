@@ -2,7 +2,6 @@ open Std
 open Settings
 open Common
 open Syntax
-open Gassoc
 open Variables
 
 type evar = EVar.t
@@ -330,7 +329,6 @@ sig
   val ty_var : t -> cvar -> Ty.t
   val domain : t -> cvar list
   val explicit_domain : t -> cvar list
-  val max_used_var : t -> int
   val value : t -> (cvar * (Ty.t * bool)) list
   val dim : t -> int
 
@@ -744,6 +742,9 @@ struct
     debug "corresponding context: %s" (Unchecked.(ctx_to_string (ps_to_ctx ps)));
     let res = PS.mk (Ctx._check (Unchecked.ps_to_ctx ps)) in
     (* sanity check: we have the tree we started from *)
+    debug "original tree: %s, new tree: %s"
+      (Unchecked.ps_to_string ps)
+      (Unchecked.ps_to_string res.newrep.tree);
     assert (res.newrep.tree = ps);
     res
 
@@ -865,26 +866,17 @@ struct
   let to_string ps = Unchecked.ps_to_string ps.newrep.tree
 end
 
-and EnvVal
-:
-sig
+and EnvVal : sig
   type v =
     |Coh of Coh.t
     |Let of Tm.t
   type t = {print : string * int list; value : v}
 
-  val mk_coh : string -> (var * ty) list -> ty-> t
-  val mk_let : string -> (var * ty) list -> tm -> t * string
-  val mk_let_check : string -> (var * ty) list -> tm -> ty -> t * string
-
-  val dim : t -> int
-
-  val suspend : t -> int -> t
-  val functorialize : t -> int list -> var -> t
-
   val ty :  t -> (Ctx.t * Ty.t)
   val ctx : t -> Ctx.t
   val check_equal : t -> Tm.t -> Sub.t -> t -> Tm.t -> Sub.t -> Ctx.t -> unit
+
+  val check : Environment.value -> t
 end
 =
 struct
@@ -893,38 +885,6 @@ struct
     |Let of Tm.t
 
   type t = {print : string * int list; value : v}
-
-  let mk_coh nm ps t =
-    let ps = Ctx.make ps in
-    let c = Coh.mk ps t in
-    {print = (nm,[]); value = Coh c}
-
-  let mk_let nm c u =
-    let c = Ctx.make c in
-    let u,ty = Tm.make c u in
-    let u = Tm.mark_ctx u in
-    {print = (nm,[]); value = Let u}, Ty.to_string ty
-
-  let mk_let_check nm c u t =
-    let c = Ctx.make c in
-    let u,ty = Tm.make c u in
-    let t = Ty.make c t in
-    Ty.check_equal c t ty;
-    let u = Tm.mark_ctx u in
-    {print = (nm,[]); value = Let u}, Ty.to_string t
-
-  let dim v =
-    match v.value with
-    |Coh c -> Coh.dim c
-    |Let t -> Tm.dim t
-
-  let suspend v i =
-    match v.value with
-    |Coh coh -> {print = v.print; value = Coh (Coh.suspend coh i)}
-    |Let tm ->
-      let newtm = Tm.suspend tm i in
-      let newtm = Tm.mark_ctx newtm in
-      {print = v.print; value = Let newtm}
 
   let ty v =
     match v.value with
@@ -936,45 +896,18 @@ struct
     |Coh c -> (PS.to_ctx (Coh.ps c))
     |Let t -> let open Tm in t.c
 
-  let to_names ctx func =
-    let fresh = Ctx.max_used_var ctx in
-    let vars = List.rev (Ctx.explicit_domain ctx) in
-    let rec names l fresh =
-      match l with
-      |[] -> []
-      |i::l -> (List.get i vars, (New (fresh), New (fresh + 1)))::(names l (fresh + 2))
-    in names (func) (fresh + 1)
-
-  let print_list l =
-    let rec aux l =
-      match l with
-      |[] -> ""
-      |i::l -> Printf.sprintf "%d %s" i (aux l)
-    in Printf.sprintf "[%s]" (aux l)
-
-  let functorialize v func evar =
-    match func with
-    |[] -> v
-    |_ ->
-      let newprint =
-        match v.print with
-        |nm,[] -> nm,func
-        |_,l -> Printf.sprintf "nm_#%s" (print_list l), func
-      in
-      let ctx = ctx v in
-      let func = to_names ctx func in
-      let newval =
-        match v.value with
-        |Coh coh -> Coh (Coh.functorialize coh func evar)
-        |Let tm -> Let (Tm.functorialize tm func)
-      in {print = newprint; value = newval}
-
   let check_equal v1 tm1 s1 v2 tm2 s2 src =
     match (v1.value, v2.value) with
     |Coh _, Coh _ -> Sub.check_equal s1 s2
     |Let t1, Let t2 -> Tm.check_equal src (Sub.apply_Tm s1 t1) (Sub.apply_Tm s2 t2)
     |Let t, Coh _ -> Tm.check_equal src (Sub.apply_Tm s1 t) tm2
     |Coh _, Let t -> Tm.check_equal src tm1 (Sub.apply_Tm s2 t)
+
+  let check v =
+    let value = match v with
+      | Environment.Coh(ps,ty) -> Coh (Coh.from_unchecked ps ty)
+      | Environment.Tm(c,t) -> Let (Tm.check (Ctx._check c) t)
+    in {print = ("",[]); value}
 
 end
 
@@ -1119,15 +1052,15 @@ sig
   val check_equal : Ctx.t -> t -> t -> unit
   val make : Ctx.t -> tm -> t * Ty.t
   val check : Ctx.t -> Unchecked.tm -> t
-  val dim : t -> int
+  val _dim : t -> int
 
   val reinit : t -> tm
   val _forget : t -> Unchecked.tm
   val list_expl_vars : t -> var list
 
-  val mark_ctx : t -> t
-  val suspend : t -> int -> t
-  val functorialize : t -> (cvar * (var * var)) list -> t
+  val _mark_ctx : t -> t
+  val _suspend : t -> int -> t
+  val _functorialize : t -> (cvar * (var * var)) list -> t
 
   val unify : t -> t -> ((CVar.t * Ty.t) * t option * bool) list -> ((CVar.t * Ty.t) * t option * bool) list
 
@@ -1195,7 +1128,7 @@ struct
     | Sub (x,_,s) -> Sub (Var (EVar.to_var x), Sub.reinit s,[])
     | Coh(_,_) -> assert false
 
-  let rec _forget tm =
+  let _forget tm =
     match tm.e with
     | CVar v -> Unchecked.Var (CVar.to_var v)
     | Coh(c,s) ->
@@ -1203,10 +1136,10 @@ struct
        let s = Sub._forget_to_ps s in
        Unchecked.Coh (ps,t,s)
     | Sub (x,_,s) ->
-       let _,t = Env.val_var x 0 [] in
-       match t.value with
-       | Coh (ps,ty,_) -> Unchecked.Coh(PS._forget ps, Ty._forget ty, Sub._forget_to_ps s)
-       | Let t -> Unchecked.tm_apply_sub (_forget t) (Sub._forget s)
+       let t = Environment.val_var (EVar.to_var x) in
+       match t with
+       | Coh (ps,ty) -> Unchecked.Coh(ps, ty, Sub._forget_to_ps s)
+       | Tm (_, t) -> Unchecked.tm_apply_sub t (Sub._forget s)
 
   let list_expl_vars tm : var list =
     match tm.e with
@@ -1214,16 +1147,16 @@ struct
     | Sub (_,_,s) -> Sub.list_expl_vars s
     | Coh(_,s) -> Sub.list_expl_vars s
 
-  let mark_ctx t =
+  let _mark_ctx t =
     {c = Ctx.mark t.c; ty = t.ty; e = t.e}
 
-  let suspend tm i =
+  let _suspend tm i =
     let ct = tm.c in
     let ct = Ctx.suspend ct i in
     let tm = reinit tm in
     fst (Tm.make ct tm)
 
-  let functorialize tm l =
+  let _functorialize tm l =
     let c = Ctx.functorialize tm.c l in
     let rec func_expr e =
       match e with
@@ -1245,7 +1178,7 @@ struct
       | Coh(_,_) -> assert false
     in fst (Tm.make c (func_expr (tm.e)))
 
-  let dim tm =
+  let _dim tm =
     Ctx.dim tm.c
 
   (** Create a term from an expression. *)
@@ -1266,20 +1199,13 @@ struct
            let e = CVar (CVar.make v) in
            let ty = infer_expr c e in
            ({c = c; ty = ty; e = e}, ty)
-        | Sub (t,s,func) ->
-           let max_list l = let rec max l i =
-                       match l with
-                       | [] -> i
-                       | t::l -> if t > i then max l t else max l i
-                       in
-                       match l with
-                       | t::l -> max l t
-                       | [] -> raise EmptySub in
+        | Sub (t,s,_) ->
            let s = List.map (Tm.make c) s in
-           let i = (max_list (List.map (fun t -> Ty.dim (snd t)) s)) in
-           let v,t = match t with
-             |Var v -> let v = EVar.make v in Env.val_var v i func
+           let v,t =
+             match t with
+             |Var v -> let v = EVar.make v in v,Environment.val_var (EVar.to_var v)
              |(Sub (_,_,_) | Letin_tm(_,_,_)) -> assert false
+           in let t = EnvVal.check t
            in let tar,ty = EnvVal.ty t in
               (* debug "got the context %s" (Ctx.to_string tar); *)
               let s = Sub.mk (List.map fst s) c tar in
@@ -1300,9 +1226,13 @@ struct
        let ps = PS.check ps in
        debug "checking the type";
        let t = Ty._from_unchecked (PS.to_ctx ps) t in
+       debug "checking the algebraicity";
        let coh = Coh.check ps t [] in
+       debug "building the substitution to the pasting scheme";
        let sub = Sub.check_to_ps c s ps in
+       debug "creating the term";
        let e, ty = Coh(coh,sub), Ty.apply t sub in
+       debug "all done";
        {c; ty; e}
 
   let unify (tm1 : t) (tm2 : t) l =
@@ -1333,12 +1263,13 @@ and Coh
   val mk : Ctx.t -> ty -> t
   val _to_string : t -> string
   val ps : t -> PS.t
-  val dim : t -> int
+  val _dim : t -> int
   val target : t -> Ty.t
-  val suspend : t -> int -> t
-  val functorialize : t -> (cvar * (var * var)) list -> var ->  t
+  val _suspend : t -> int -> t
+  val _functorialize : t -> (cvar * (var * var)) list -> var ->  t
   val _forget : t -> Unchecked.ps * Unchecked.ty
   val check : PS.t -> Ty.t -> (cvar * int) list -> t
+  val from_unchecked : Unchecked.ps -> Unchecked.ty -> t
 end
 =
 struct
@@ -1375,6 +1306,12 @@ struct
     debug "type normalized to %s" (Ty.to_string t);
     check ps t names
 
+  let from_unchecked ps t =
+    let cps = Ctx._check (Unchecked.ps_to_ctx ps) in
+    let ps = PS.mk cps in
+    let t = Ty._from_unchecked cps t in
+    check ps t []
+
   let _to_string (ps,t,_) =
     Printf.sprintf "Coh {%s |- %s}"
       (PS.to_string ps)
@@ -1384,14 +1321,14 @@ struct
 
   let target (_,t,_) = t
 
-  let dim (ps,_,_) = PS.dim ps
+  let _dim (ps,_,_) = PS.dim ps
 
-  let suspend (ps,t,_) i =
+  let _suspend (ps,t,_) i =
     let t = Ty.reinit t in
     let ps = PS.to_ctx (PS.suspend ps i) in
     (Coh.mk ps t)
 
-  let functorialize (ps,_,_) l evar =
+  let _functorialize (ps,_,_) l evar =
     match l with
     |[] -> assert(false)
     |(v,(v',al))::l ->
@@ -1427,30 +1364,21 @@ struct
   let tbtm : (tm, Tm.t) Hashtbl.t = Hashtbl.create 10000
 end
 
-(** Operations on environments. *)
-and Env : sig
-
-  val add_let : var -> (var * ty) list -> tm -> string
-  val add_let_check : var -> (var * ty) list -> tm -> ty -> string
-  val add_coh : var -> (var * ty) list -> ty -> unit
-  val init : unit -> unit
-  val val_var : EVar.t -> int -> int list -> EVar.t * EnvVal.t
-end
-  = GAssoc(EVar)(EnvVal)
-
 type kTm = Tm.t
 type kTy = Ty.t
 
-let init_env = Env.init
-
-let add_coh_env = Env.add_coh
+let add_coh_env v ps ty =
+  let coh = Coh.mk (Ctx.make ps) ty in
+  let psf,tyf = Coh._forget coh in
+  Environment.add_coh v psf tyf
 
 let add_let_env v c u =
-  Env.add_let v c u
+  let ctx = Ctx.make c in
+  let tm,_ = Tm.make ctx u in
+  Environment.add_let v (Ctx._forget ctx) (Tm._forget tm);
+  Ty.to_string tm.ty
 
-let add_let_env_of_ty v c u t =
-  Env.add_let_check v c u t
-
+let add_let_env_of_ty _ _ _ _ = assert false
 
 let mk_tm c e =
   let c = Ctx.make c in

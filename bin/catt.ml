@@ -22,7 +22,6 @@ let () =
     ]
     (fun s -> file_in := s::!file_in)
     usage;
-  Catt.Kernel.init_env ();
   let _ = match !file_in with
     | [f] -> Catt.Command.exec (parse_file f)
     | _ -> ()
