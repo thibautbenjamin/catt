@@ -17,11 +17,8 @@ module rec Sub : sig
   val mk : Tm.t list -> Ctx.t -> Ctx.t  -> t
   val _check : Ctx.t -> Unchecked.sub -> Ctx.t -> t
   val check_to_ps : Ctx.t -> Unchecked.sub_ps -> PS.t -> t
-  val reinit : t -> tm list
   val _forget : t -> Unchecked.sub
   val _forget_to_ps : t -> Unchecked.sub_ps
-
-  val list_expl_vars : t -> var list
 
   (* Syntactic properties *)
   val free_vars : t -> cvar list
@@ -31,9 +28,6 @@ module rec Sub : sig
 
   (* Printing *)
   val _to_string : t ->  string
-  val to_string_func : t -> int list -> string
-
-  val unify : Sub.t -> Sub.t -> ((CVar.t * Ty.t) * Tm.t option * bool) list -> ((CVar.t * Ty.t) * Tm.t option * bool) list
 
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
@@ -78,67 +72,8 @@ end
       | _ -> assert false
     in print_list s.list s.tgt
 
-  let to_string_func s l =
-    let rec print_list s c i =
-      match s,c with
-      | [], c when Ctx.is_empty c -> ""
-      | (u::s),c -> begin
-          match Ctx.head c with
-          | (_, (_,true)) when List.mem i l ->
-             Printf.sprintf "%s [%s]" (print_list s (Ctx.tail c) (i-1)) (Tm.to_string u)
-          | (_, (_,true)) ->
-             Printf.sprintf "%s %s" (print_list s (Ctx.tail c) (i-1)) (Tm.to_string u)
-          | (_, (_,false)) -> Printf.sprintf "%s" (print_list s (Ctx.tail c) i)
-        end
-      | _ -> assert false
-    in print_list s.list s.tgt (List.length (Ctx.explicit_domain s.tgt))
-
-  (** Given a list of terms of maximal dimension, complete it into a
-     full-fledged substitution. *)
-  exception Completed of ((CVar.t * Ty.t) * Tm.t option * bool) list
-  let elaborate (l: Tm.t list) src tar : Tm.t list =
-    (* debug "elaborating substitution %s in context %s" (print_list l) (Ctx.to_string tar); *)
-    let rec create_assoc tar (l : Tm.t list) =
-      match l with
-      | (h::l')as l ->
-         if Ctx.is_empty tar then failwith (Printf.sprintf "too many arguments given");
-         let t = Ctx.tail tar in
-         begin
-           match Ctx.head tar with
-           |(v, (tv, false)) -> ((v,tv), None, false)::(create_assoc t l)
-           |(v, (tv, true)) -> ((v,tv), Some h, true)::(create_assoc t l')
-
-         end
-      | [] -> if Ctx.is_empty tar then []
-              else match Ctx.head tar with
-                   |(v,(tv, false)) -> ((v,tv), None, false)::(create_assoc (Ctx.tail tar) [])
-
-                   |_ -> failwith "not enough arguments given"
-    in
-    let rec next l res =
-      match l with
-      | ((a,Some b,true)::l) -> ((a, snd a),b, ((a,Some b, false)::l))
-      | ((_,None,true)::_) -> assert(false)
-      | (h::l) -> let (x,y,z) = next l res in (x,y,h::z)
-      | [] -> raise (Completed res)
-    in
-    let rec loop assoc =
-      let (a,b,assoc) = next assoc assoc in
-      let assoc = Ty.unify (snd a) (Tm.infer src b) assoc
-      in loop (assoc)
-    in
-    let rec clear l =
-      match l with
-      | (((_,_),Some b,_)::l) -> b :: (clear l)
-      | ((_, None,_)::_) -> assert(false)
-      | [] -> []
-    in
-    let assoc = create_assoc tar l in
-    try loop assoc
-    with Completed res -> clear res
-
-  (** Construct a substutition (which is already closed downward). *)
-  let mk_elaborated (l : Tm.t  list) src (tgt : Ctx.t) =
+  (** Create a substitution described by maximal elements. *)
+  let mk (l:Tm.t list) src tgt =
     let rec aux l (tgt : Ctx.t) =
       match l,Ctx.value tgt with
       |[],[] -> []
@@ -152,10 +87,6 @@ end
 	in (x,t)::s
     in {list = List.map snd (aux (List.rev l) tgt); src; tgt}
 
-  (** Create a substitution described by maximal elements. *)
-  let mk (l:Tm.t list) src tgt =
-    let list = elaborate (List.rev l) src tgt in
-    mk_elaborated (List.rev list) src tgt
 
   let rec _check (src : Ctx.t) s tgt =
     let expr (s : Unchecked.sub) tgt =
@@ -178,49 +109,10 @@ end
     let s = List.map2 (fun (x,_) t -> (x,t)) tgt s in
     _check src s tgt
 
-  (** Make the expression into a substitution *)
-  let reinit (s:t) =
-    let rec aux s c =
-      match s,c with
-      |[], c when Ctx.is_empty c -> []
-      |(u::s),c -> begin
-          match Ctx.head c with
-          |(_,(_,true)) -> (Tm.reinit u)::(aux s (Ctx.tail c))
-          |(_,(_,false)) -> aux s (Ctx.tail c)
-        end
-      |_,_ -> assert false
-    in List.rev (aux s.list s.tgt)
-
   let _forget s = List.map2 (fun (v,_) t -> (var_of_cvar v, Tm._forget t)) s.tgt s.list
   let _forget_to_ps s = List.map Tm._forget s.list
-
-  (** List the explicit variables of a substitution. *)
-  let list_expl_vars (s:t) =
-    let rec aux s c =
-      match s,c with
-      |[], c when Ctx.is_empty c -> []
-      |(u::s),c -> begin
-          match Ctx.head c with
-          |(_,(_,true)) -> (Tm.list_expl_vars u)@(aux s (Ctx.tail c))
-          |(_,(_,false)) -> aux s (Ctx.tail c)
-        end
-      |_,_ -> assert false
-    in (aux s.list s.tgt)
-
-  let unify s s' l =
-    let rec unify_list s s' l =
-      match s ,s' with
-      | (a::s),(a'::s') -> let l = Tm.unify a a' l in unify_list s s' l
-      | [],[] -> l
-      | _,_ -> raise UnableUnify
-    in unify_list s.list s'.list l
 end
 
-  (* -- Contexts are association lists of variables and terms in normal form.
-   -- They are provided with
-	 - maker (normalization and well-definedness)
-	 - equality decision procedure
-    *)
 (** A context, associating a type to each context variable. *)
 and Ctx
     :
@@ -239,7 +131,6 @@ sig
   (* Syntactic properties *)
   val ty_var : t -> cvar -> Ty.t
   val domain : t -> cvar list
-  val explicit_domain : t -> cvar list
   val value : t -> (cvar * (Ty.t * bool)) list
 
   val _forget : t -> Unchecked.ctx
@@ -315,8 +206,6 @@ struct
      -------------------- *)
   (** Domain of definition of a context. *)
   let domain ctx = List.map fst ctx
-
-  let explicit_domain ctx = List.map fst (List.filter (fun x -> snd (snd x)) ctx)
 
   let value (ctx : t) = ctx
 
@@ -702,9 +591,6 @@ sig
   val _forget : t -> Unchecked.ty
   val _from_unchecked : Ctx.t -> Unchecked.ty -> t
   val apply : t -> Sub.t -> t
-
-  val unify : t -> t -> ((CVar.t * t) * Tm.t option * bool) list -> ((CVar.t * t) * Tm.t option * bool) list
-
 end
   =
 struct
@@ -780,15 +666,6 @@ struct
     | Obj -> Unchecked.Obj
     | Arr (a,u,v) -> Unchecked.Arr (_forget a, Tm._forget u, Tm._forget v)
 
-  let rec unify (ty1 : t) (ty2 : t) l =
-    match ty1.e ,ty2.e with
-    | Obj, _ -> l
-    | Arr(a,u,v), Arr(a',u',v') ->
-       let l = unify a a' l in
-       let l = Tm.unify u u' l
-       in Tm.unify v v' l
-    | _, _ -> raise UnableUnify
-
   let apply t s =
     Ctx.check_equal t.c (Sub.tgt s);
     _from_unchecked (Sub.src s) (Unchecked.ty_apply_sub (_forget t) (Sub._forget s))
@@ -813,12 +690,7 @@ sig
   val check : Ctx.t -> Unchecked.tm -> t
   val apply : t -> Sub.t -> t
 
-  val reinit : t -> tm
   val _forget : t -> Unchecked.tm
-  val list_expl_vars : t -> var list
-
-  val unify : t -> t -> ((CVar.t * Ty.t) * t option * bool) list -> ((CVar.t * Ty.t) * t option * bool) list
-
 end
   =
 struct
@@ -844,7 +716,7 @@ struct
     | CVar x -> CVar.to_string x
     | Sub (_,v,s) ->
        let open EnvVal in
-       Printf.sprintf "(%s %s)" (fst(v.print)) (Sub.to_string_func s (snd(v.print)))
+       Printf.sprintf "(%s %s)" (fst(v.print)) (Sub._to_string s)
     | Coh (c,s) -> Printf.sprintf "%s[%s]" (Coh._to_string c) (Sub._to_string s)
 
   let check_equal ctx tm1 tm2 =
@@ -873,15 +745,8 @@ struct
 
   (** Infer the type of a term. *)
   let infer ctx tm =
-    try Ctx.check_sub_ctx tm.c ctx; tm.ty
+    try Ctx.check_equal tm.c ctx; tm.ty
     with _ -> infer_expr ctx tm.e
-
-  (* TODO: do we really need this? *)
-  let reinit tm =
-    match tm.e with
-    | CVar v -> Var (CVar.to_var v)
-    | Sub (x,_,s) -> Sub (Var (EVar.to_var x), Sub.reinit s,[])
-    | Coh(_,_) -> assert false
 
   let _forget tm =
     match tm.e with
@@ -895,12 +760,6 @@ struct
        match t with
        | Coh (ps,ty) -> Unchecked.Coh(ps, ty, Sub._forget_to_ps s)
        | Tm (_, t) -> Unchecked.tm_apply_sub t (Sub._forget s)
-
-  let list_expl_vars tm : var list =
-    match tm.e with
-    | CVar v -> [(CVar.to_var v)]
-    | Sub (_,_,s) -> Sub.list_expl_vars s
-    | Coh(_,s) -> Sub.list_expl_vars s
 
   (** Create a term from an expression. *)
   (* TODO: return a value of type t instead of a pair *)
@@ -959,23 +818,6 @@ struct
   let apply tm s =
     Ctx.check_equal tm.c (Sub.tgt s);
     check (Sub.src s) (Unchecked.tm_apply_sub (_forget tm) (Sub._forget s))
-
-  let unify (tm1 : t) (tm2 : t) l =
-    match tm1.e, tm2.e with
-    | CVar u, _ ->
-       let rec replace l =
-         match l with
-         | (((v,ty), None, _)::l) when u = v -> ((v,ty), Some tm2, true)::l
-         | ((((v,_), Some _, _)::_) as l) when u = v -> l
-         (* TODO : check compatibility between the constraints *)
-         | a::l -> a::(replace l)
-         | [] -> []
-       in
-       replace l
-    | Sub(_,_,s), Sub (_,_,s') ->
-       Sub.unify s s' l
-    | _, CVar _ -> raise UnableUnify
-    | _,_ -> assert false
 end
 
 (* -- Module with a specific type for well-defined coherences
