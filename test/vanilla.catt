@@ -9,3 +9,4 @@ coh whiskl (x : *) (y : *) (f : x -> y)
 coh horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                   (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') :
 		  comp x y f z g -> comp x y f' z g'
+let sq (x : *) (f : x -> x) = comp x x f x f
