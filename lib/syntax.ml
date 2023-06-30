@@ -10,7 +10,7 @@ open Variables
    and tm =
     | Letin_tm of var * tm * tm
     | Var of var
-    | Sub of tm * (tm list) * (int list) (*list of variables that are functorialised*)
+    | Sub of tm * (tm list) * (int list) (* list of variables that are functorialised *)
 
 let rec string_of_ty e =
     match e with

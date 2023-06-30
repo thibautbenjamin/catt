@@ -1,10 +1,8 @@
 open Std
 open Settings
 open Common
-open Syntax
 open Variables
 
-type evar = EVar.t
 type cvar = CVar.t
 
 let var_of_cvar = CVar.to_var
@@ -14,7 +12,6 @@ module rec Sub : sig
   type t
 
   (* Structural functions *)
-  val mk : Tm.t list -> Ctx.t -> Ctx.t  -> t
   val _check : Ctx.t -> Unchecked.sub -> Ctx.t -> t
   val check_to_ps : Ctx.t -> Unchecked.sub_ps -> PS.t -> t
   val _forget : t -> Unchecked.sub
@@ -22,9 +19,6 @@ module rec Sub : sig
 
   (* Syntactic properties *)
   val free_vars : t -> cvar list
-
-  (* Equality procedures *)
-  val check_equal : t -> t -> unit
 
   (* Printing *)
   val _to_string : t ->  string
@@ -44,20 +38,6 @@ end
   let src s = s.src
   let tgt s = s.tgt
 
-  (** Check equality of substitutions. *)
-  (* TODO : Check the sources too*)
-  let check_equal (s1:t) (s2:t) =
-    Ctx.check_equal s1.tgt s2.tgt;
-    let ctx = s1.tgt in
-    let rec check_list s1 s2 =
-      match s1,s2 with
-      | [],[] -> ()
-      | t1::s1,t2::s2 ->
-         Tm.check_equal ctx t1 t2;
-         check_list s1 s2
-      | _,_ -> raise NotValid
-    in check_list s1.list s2.list
-
   (** String representation of a substitution. We print only maximal elements *)
   let _to_string (s:t) =
     let rec print_list s c =
@@ -71,22 +51,6 @@ end
         end
       | _ -> assert false
     in print_list s.list s.tgt
-
-  (** Create a substitution described by maximal elements. *)
-  let mk (l:Tm.t list) src tgt =
-    let rec aux l (tgt : Ctx.t) =
-      match l,Ctx.value tgt with
-      |[],[] -> []
-      |(_::_,[] |[],_::_) -> raise NotValid
-      |t::s,_ ->
-	let (x,(u,_)),tgt = (Ctx.head tgt,Ctx.tail tgt) in
-	let s = aux s tgt in
-        let su = List.map (fun (x,t) -> x,Tm._forget t) s in
-	let ty = Tm.infer src t in
-	let () = Ty.check_equal src ty (Ty._from_unchecked src (Unchecked.ty_apply_sub (Ty._forget u) su))
-	in (x,t)::s
-    in {list = List.map snd (aux (List.rev l) tgt); src; tgt}
-
 
   let rec _check (src : Ctx.t) s tgt =
     let expr (s : Unchecked.sub) tgt =
@@ -121,8 +85,6 @@ sig
 
   (* Makers *)
   val empty : unit -> t
-  val add : t -> var -> ty -> t
-  val make : (var * ty) list -> t
 
   (* Structural operations *)
   val head : t -> cvar * (Ty.t * bool)
@@ -140,7 +102,6 @@ sig
 
   (* Equality procedure *)
   val is_empty : t -> bool
-  val check_sub_ctx : t -> t -> unit
   val check_equal : t -> t -> unit
 
   (* Printing *)
@@ -161,29 +122,6 @@ struct
   (* ------ Makers ------ *)
   (** Empty context. *)
   let empty () = []
-
-  (** adding an already marked term to a context (forgets the marking)*)
-  let add_norm (ctx : Ctx.t) x u =
-    let x = CVar.make x in
-    try
-      ignore (List.assoc x (ctx :> t));
-      raise (DoubleDef (CVar.to_string x))
-    with Not_found -> (x,(u,false))::(ctx :> t)
-
-  (** Add a typed variable to a context. *)
-  let add (ctx : Ctx.t) x u : t =
-    let u = Ty.make ctx u in
-    add_norm ctx x u
-
-  (** Create a context from a list of terms. *)
-  let make l =
-    let rec aux l ctx =
-      match l with
-      | [] -> ctx
-      | (x,t)::l ->
-	 let ctx = Ctx.add ctx x t in
-	 aux l ctx
-    in aux l (Ctx.empty ())
 
   (* ---------------------
       Structural operations
@@ -215,21 +153,6 @@ struct
   (** Is a context empty? *)
   let is_empty (c:t) =
     c = []
-
-  (** Check whether a context is included in another one. *)
-  (* it is just a prefix, to check if we can spare some type checking *)
-  let check_sub_ctx ctx1 ctx2 =
-    let rec sub c (ctx1 : Ctx.t) (ctx2 : Ctx.t) =
-      if Ctx.is_empty ctx1 then ()
-      else if Ctx.is_empty ctx2 then raise NotValid
-      else
-        let (v1,(x1,_)),t1 = Ctx.head ctx1, Ctx.tail ctx1 in
-        let (v2,(x2,_)),t2 = Ctx.head ctx2, Ctx.tail ctx2 in
-        if not (v1 = v2) then
-          sub c ctx1 t2
-        else (Ty.check_equal c x1 x2;
-              sub ctx1 t1 t2)
-    in sub (Ctx.empty ()) ctx1 ctx2
 
   (** Equality of contexts. *)
   let check_equal ctx1 ctx2 =
@@ -534,49 +457,7 @@ struct
 
   let to_string ps = Unchecked.ps_to_string ps.newrep.tree
 end
-
-and EnvVal : sig
-  type v =
-    |Coh of Coh.t
-    |Let of Tm.t
-  type t = {print : string * int list; value : v}
-
-  val ty :  t -> (Ctx.t * Ty.t)
-  val check_equal : t -> Tm.t -> Sub.t -> t -> Tm.t -> Sub.t -> Ctx.t -> unit
-
-  val check : Environment.value -> t
-end
-=
-struct
-  type v =
-    |Coh of Coh.t
-    |Let of Tm.t
-
-  type t = {print : string * int list; value : v}
-
-  let ty v =
-    match v.value with
-    |Coh coh -> (PS.to_ctx (Coh.ps coh), Coh.target coh)
-    |Let t -> let open Tm in (t.c, t.ty)
-
-  let check_equal v1 tm1 s1 v2 tm2 s2 src =
-    match (v1.value, v2.value) with
-    |Coh _, Coh _ -> Sub.check_equal s1 s2
-    |Let t1, Let t2 -> Tm.check_equal src (Tm.apply t1 s1) (Tm.apply t2 s2)
-    |Let t, Coh _ -> Tm.check_equal src (Tm.apply t s1) tm2
-    |Coh _, Let t -> Tm.check_equal src tm1 (Tm.apply t s2)
-
-  let check v =
-    let value = match v with
-      | Environment.Coh(ps,ty) -> Coh (Coh.from_unchecked ps ty)
-      | Environment.Tm(c,t) -> Let (Tm.check (Ctx._check c) t)
-    in {print = ("",[]); value}
-
-end
-
-and Ty
-    :
-sig
+and Ty : sig
   type expr =
     | Obj
     | Arr of t * Tm.t * Tm.t
@@ -586,7 +467,6 @@ sig
   val to_string : t -> string
 
   val check_equal : Ctx.t -> t -> t -> unit
-  val make : Ctx.t -> ty -> t
 
   val _forget : t -> Unchecked.ty
   val _from_unchecked : Ctx.t -> Unchecked.ty -> t
@@ -599,8 +479,6 @@ struct
     | Obj
     | Arr of t * Tm.t * Tm.t
   and t = {c : Ctx.t; e : expr}
-
-  exception Unknown
 
   let rec _from_unchecked c t =
     debug "building kernel type %s in context %s"
@@ -640,27 +518,6 @@ struct
     |(Obj |Arr _),_ ->
       raise (NotEqual (to_string ty1, to_string ty2))
 
-  (** Construct a type. *)
-  let make c e =
-    let e = remove_let_ty e in
-    let already_known = Hashtbl.find_all Hash.tbty e in
-    let rec aux l = match l with
-      | [] -> raise Unknown
-      | ty::q -> try Ctx.check_sub_ctx ty.c c; ty with
-                 |_ -> aux q
-    in
-    try aux already_known
-    with Unknown ->
-      let newty =
-        match e with
-        | Obj -> {c = c; e = Obj}
-        | Arr (u,v) ->
-           let u,tu = Tm.make c u in
-           let v,tv = Tm.make c v in
-           let () = check_equal c tu tv in {c = c; e = Arr(tu,u,v)}
-        | Letin_ty _ -> assert false
-      in Hashtbl.add Hash.tbty e newty; newty
-
   let rec _forget t =
     match t.e with
     | Obj -> Unchecked.Obj
@@ -677,18 +534,16 @@ and Tm
 sig
   type expr =
     | CVar of cvar
-    | Sub of evar * EnvVal.t * Sub.t
     | Coh of Coh.t * Sub.t
   and t = {c : Ctx.t; ty : Ty.t; e : expr}
+
+  val typ : t -> Ty.t
 
   val free_vars : t -> cvar list
   val to_string : t -> string
 
-  val infer : Ctx.t -> t -> Ty.t
   val check_equal : Ctx.t -> t -> t -> unit
-  val make : Ctx.t -> tm -> t * Ty.t
   val check : Ctx.t -> Unchecked.tm -> t
-  val apply : t -> Sub.t -> t
 
   val _forget : t -> Unchecked.tm
 end
@@ -697,29 +552,25 @@ struct
   (** An expression. *)
   type expr =
     | CVar of cvar (** a context variable *)
-    | Sub of evar * EnvVal.t * Sub.t (** a substituted environment variable *)
     | Coh of Coh.t * Sub.t
 
   (** A term, i.e. an expression with given type in given context. *)
   and t = {c : Ctx.t; ty : Ty.t; e : expr}
 
-  exception Unknown
+  let typ t = t.ty
 
   let free_vars tm =
     match tm.e with
     | CVar x -> [x]
-    | Sub (_,_,sub) -> Sub.free_vars sub
     | Coh (_,sub) -> Sub.free_vars sub
 
   let to_string tm =
     match tm.e with
     | CVar x -> CVar.to_string x
-    | Sub (_,v,s) ->
-       let open EnvVal in
-       Printf.sprintf "(%s %s)" (fst(v.print)) (Sub._to_string s)
     | Coh (c,s) -> Printf.sprintf "%s[%s]" (Coh._to_string c) (Sub._to_string s)
 
-  let check_equal ctx tm1 tm2 =
+  (* TODO: get rid of extra argument *)
+  let check_equal _ tm1 tm2 =
     (* debug "checking equality between %s and %s" (to_string tm1)(to_string tm2); *)
     match tm1.e, tm2.e with
     | CVar x,CVar y ->
@@ -727,26 +578,8 @@ struct
       then
 	raise (NotEqual (to_string tm1, to_string tm2))
       else ()
-    | Sub(_,v1,s1),Sub(_,v2,s2) ->
-       EnvVal.check_equal v1 tm1 s1 v2 tm2 s2 ctx
+    | Coh _, CVar _ | CVar _, Coh _ -> assert false
     | Coh(_,_),Coh(_,_) -> assert false
-    | Coh _, Sub _ | Sub _, Coh _ -> assert false
-    | CVar _, Sub _ |Sub _, CVar _ | CVar _, Coh _ | Coh _, CVar _ ->
-       raise (NotEqual (to_string tm1, to_string tm2))
-
-  (** Infer the type of an expression. *)
-  let infer_expr ctx tme =
-    match tme with
-    | CVar x -> Ctx.ty_var ctx x
-    | Sub (_,v,s) ->
-       let _,ty = EnvVal.ty v in
-       Ty.apply ty s
-    | Coh (_,_) -> assert false
-
-  (** Infer the type of a term. *)
-  let infer ctx tm =
-    try Ctx.check_equal tm.c ctx; tm.ty
-    with _ -> infer_expr ctx tm.e
 
   let _forget tm =
     match tm.e with
@@ -755,44 +588,6 @@ struct
        let ps,t = Coh._forget c in
        let s = Sub._forget_to_ps s in
        Unchecked.Coh (ps,t,s)
-    | Sub (x,_,s) ->
-       let t = Environment.val_var (EVar.to_var x) in
-       match t with
-       | Coh (ps,ty) -> Unchecked.Coh(ps, ty, Sub._forget_to_ps s)
-       | Tm (_, t) -> Unchecked.tm_apply_sub t (Sub._forget s)
-
-  (** Create a term from an expression. *)
-  (* TODO: return a value of type t instead of a pair *)
-  let make c e =
-    let e = remove_let_tm e in
-    let already_known = Hashtbl.find_all Hash.tbtm e in
-    let rec aux l = match l with
-      | [] -> raise Unknown
-      | tm::q -> try Ctx.check_sub_ctx tm.c c; (tm, tm.ty) with _ -> aux q
-    in
-    try aux already_known
-    with Unknown ->
-      (* debug "building term %s in context %s" (string_of_tm e) (Ctx.to_string c); *)
-      let newtm,newty =
-        match e with
-        | Var v ->
-           let e = CVar (CVar.make v) in
-           let ty = infer_expr c e in
-           ({c = c; ty = ty; e = e}, ty)
-        | Sub (t,s,_) ->
-           let s = List.map (Tm.make c) s in
-           let v,t =
-             match t with
-             |Var v -> let v = EVar.make v in v,Environment.val_var (EVar.to_var v)
-             |(Sub (_,_,_) | Letin_tm(_,_,_)) -> assert false
-           in let t = EnvVal.check t
-           in let tgt,ty = EnvVal.ty t in
-              (* debug "got the context %s" (Ctx.to_string tar); *)
-              let s = Sub.mk (List.map fst s) c tgt in
-              let ty = Ty.apply ty s in
-              ({c = c; ty = ty; e = Sub(v,t,s)}, ty)
-        | Letin_tm _ -> assert false
-      in Hashtbl.add Hash.tbtm e newtm; newtm,newty
 
   let check c t =
     debug "building kernel term %s in context %s" (Unchecked.tm_to_string t) (Ctx.to_string c);
@@ -802,22 +597,14 @@ struct
        let e, ty  = CVar x, Ctx.ty_var c x in
        ({c; ty; e})
     | Unchecked.Coh (ps,t,s) ->
-       debug "checking the pasting scheme";
-       let ps = PS.check ps in
-       debug "checking the type";
-       let t = Ty._from_unchecked (PS.to_ctx ps) t in
-       debug "checking the algebraicity";
+       debug "checking the coherence pasting scheme";
        let coh = Coh.check ps t [] in
        debug "building the substitution to the pasting scheme";
-       let sub = Sub.check_to_ps c s ps in
+       let sub = Sub.check_to_ps c s (Coh.ps coh) in
        debug "creating the term";
-       let e, ty = Coh(coh,sub), Ty.apply t sub in
+       let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
        debug "all done";
        {c; ty; e}
-
-  let apply tm s =
-    Ctx.check_equal tm.c (Sub.tgt s);
-    check (Sub.src s) (Unchecked.tm_apply_sub (_forget tm) (Sub._forget s))
 end
 
 (* -- Module with a specific type for well-defined coherences
@@ -827,19 +614,22 @@ and Coh
     : sig
   type t = PS.t * Ty.t * (cvar * int) list
 
-  val mk : Ctx.t -> ty -> t
-  val _to_string : t -> string
   val ps : t -> PS.t
-  val target : t -> Ty.t
+  val ty : t -> Ty.t
+
+  val _to_string : t -> string
+
   val _forget : t -> Unchecked.ps * Unchecked.ty
-  val check : PS.t -> Ty.t -> (cvar * int) list -> t
-  val from_unchecked : Unchecked.ps -> Unchecked.ty -> t
+  val check : Unchecked.ps -> Unchecked.ty -> (cvar * int) list -> t
 end
 =
 struct
   type t = PS.t * Ty.t * (cvar * int) list
 
-  let check ps t l =
+  let ps (ps,_,_) = ps
+  let ty (_,t,_) = t
+
+  let algebraic ps t l =
     if List.included (PS.domain ps) (Ty.free_vars t)
     then (ps,t,l)
     else
@@ -856,72 +646,16 @@ struct
       then (ps,t,l)
       else raise NotAlgebraic
 
-  let mk ps t =
-    (* TODO: take an unchecked context as argument to avoid checking the same thing twice *)
-    let t = Ty.make ps t in
-    debug "normalizing ps %s" (Ctx.to_string ps);
-    let ps, names,_ = Unchecked.db_levels (Ctx._forget ps) in
-    debug "normalized to %s" (Unchecked.ctx_to_string ps);
-    let cps = Ctx._check ps in
-    let ps = PS.mk cps in
-    debug "built pasting scheme %s" (PS.to_string ps);
-    debug "normalizing type %s" (Ty.to_string t);
-    let t = Ty._from_unchecked cps (Unchecked.rename_ty (Ty._forget t) names) in
-    debug "type normalized to %s" (Ty.to_string t);
-    check ps t names
-
-  let from_unchecked ps t =
+  let check ps t names =
     let cps = Ctx._check (Unchecked.ps_to_ctx ps) in
     let ps = PS.mk cps in
     let t = Ty._from_unchecked cps t in
-    check ps t []
+    algebraic ps t names
 
   let _to_string (ps,t,_) =
     Printf.sprintf "Coh {%s |- %s}"
       (PS.to_string ps)
       (Ty.to_string t)
 
-  let ps (ps,_,_) = ps
-
-  let target (_,t,_) = t
-
   let _forget (ps,t,_) = (PS._forget ps, Ty._forget t)
 end
-
-and Hash
-    : sig
-  val tbty : (ty, Ty.t) Hashtbl.t
-  val tbtm : (tm, Tm.t) Hashtbl.t
-end
-  =
-struct
-  let tbty : (ty, Ty.t) Hashtbl.t = Hashtbl.create 10000
-  let tbtm : (tm, Tm.t) Hashtbl.t = Hashtbl.create 10000
-end
-
-type kTm = Tm.t
-type kTy = Ty.t
-
-let add_coh_env v ps ty =
-  let coh = Coh.mk (Ctx.make ps) ty in
-  let psf,tyf = Coh._forget coh in
-  Environment.add_coh v psf tyf
-
-let add_let_env v c u =
-  let ctx = Ctx.make c in
-  let tm,_ = Tm.make ctx u in
-  Environment.add_let v (Ctx._forget ctx) (Tm._forget tm);
-  Ty.to_string tm.ty
-
-let add_let_env_of_ty _ _ _ _ = assert false
-
-let mk_tm c e =
-  let c = Ctx.make c in
-  let e,t = Tm.make c e in
-  (Tm.to_string e, Ty.to_string t)
-
-let mk_tm_of_ty c e t =
-  let c = Ctx.make c in
-  let _,t' = Tm.make c e in
-  let t = Ty.make c t in
-  Ty.check_equal c t' t
