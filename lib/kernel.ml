@@ -10,9 +10,7 @@ type cvar = CVar.t
 let var_of_cvar = CVar.to_var
 
 (** Operations on substitutions. *)
-module rec Sub
- :
-sig
+module rec Sub : sig
   type t
 
   (* Structural functions *)
@@ -42,25 +40,23 @@ sig
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
 end
-  =
-struct
+  = struct
   (** A substitution. *)
-  (* In current implementation, the variable names are given by the codomain. *)
-  (* TODO: add variable names *)
-  type t = {list : Tm.t list; src : Ctx.t; tar : Ctx.t}
+  (* Variable names are given by the codomain. *)
+  type t = {list : Tm.t list; src : Ctx.t; tgt : Ctx.t}
 
   (** Free context variables. *)
   let free_vars s =
     List.concat (List.map Tm.free_vars s.list)
 
   let src s = s.src
-  let tgt s = s.tar
+  let tgt s = s.tgt
 
   (** Check equality of substitutions. *)
   (* TODO : Check the sources too*)
   let check_equal (s1:t) (s2:t) =
-    Ctx.check_equal s1.tar s2.tar;
-    let ctx = s1.tar in
+    Ctx.check_equal s1.tgt s2.tgt;
+    let ctx = s1.tgt in
     let rec check_list s1 s2 =
       match s1,s2 with
       | [],[] -> ()
@@ -82,7 +78,7 @@ struct
           | (_, (_,false)) -> Printf.sprintf "%s" (print_list s (Ctx.tail c))
         end
       | _ -> assert false
-    in print_list s.list s.tar
+    in print_list s.list s.tgt
 
   let to_string_func s l =
     let rec print_list s c i =
@@ -97,7 +93,7 @@ struct
           | (_, (_,false)) -> Printf.sprintf "%s" (print_list s (Ctx.tail c) i)
         end
       | _ -> assert false
-    in print_list s.list s.tar (List.length (Ctx.explicit_domain s.tar))
+    in print_list s.list s.tgt (List.length (Ctx.explicit_domain s.tgt))
 
   (** Given a list of terms of maximal dimension, complete it into a
      full-fledged substitution. *)
@@ -144,24 +140,24 @@ struct
     with Completed res -> clear res
 
   (** Construct a substutition (which is already closed downward). *)
-  let mk_elaborated (l : Tm.t  list) src (tar : Ctx.t) =
-    let rec aux l (tar : Ctx.t) =
-      match l,Ctx.value tar with
+  let mk_elaborated (l : Tm.t  list) src (tgt : Ctx.t) =
+    let rec aux l (tgt : Ctx.t) =
+      match l,Ctx.value tgt with
       |[],[] -> []
       |(_::_,[] |[],_::_) -> raise NotValid
       |t::s,_ ->
-	let (x,(u,_)),tar = (Ctx.head tar,Ctx.tail tar) in
-	let s = aux s tar in
+	let (x,(u,_)),tgt = (Ctx.head tgt,Ctx.tail tgt) in
+	let s = aux s tgt in
         let su = List.map (fun (x,t) -> x,Tm._forget t) s in
 	let ty = Tm.infer src t in
 	let () = Ty.check_equal src ty (Ty._from_unchecked src (Unchecked.ty_apply_sub (Ty._forget u) su))
 	in (x,t)::s
-    in {list = List.map snd (aux (List.rev l) tar); src = src; tar = tar}
+    in {list = List.map snd (aux (List.rev l) tgt); src; tgt}
 
   (** Create a substitution described by maximal elements. *)
-  let mk (l:Tm.t list) src tar =
-    let list = elaborate (List.rev l) src tar in
-    mk_elaborated (List.rev list) src tar
+  let mk (l:Tm.t list) src tgt =
+    let list = elaborate (List.rev l) src tgt in
+    mk_elaborated (List.rev list) src tgt
 
   let rec _check (src : Ctx.t) s tgt =
     let expr (s : Unchecked.sub) tgt =
@@ -177,7 +173,7 @@ struct
 	 Ty.check_equal src ty (Ty._from_unchecked src (Unchecked.ty_apply_sub (Ty._forget a) s));
 	 t::sub.list
     in
-    {list = expr s tgt; src = src; tar = tgt}
+    {list = expr s tgt; src = src; tgt = tgt}
 
   let check_to_ps src s tgt =
     let tgt = PS.to_ctx tgt in
@@ -195,9 +191,9 @@ struct
           |(_,(_,false)) -> aux s (Ctx.tail c)
         end
       |_,_ -> assert false
-    in List.rev (aux s.list s.tar)
+    in List.rev (aux s.list s.tgt)
 
-  let _forget s = List.map2 (fun (v,_) t -> (var_of_cvar v, Tm._forget t)) s.tar s.list
+  let _forget s = List.map2 (fun (v,_) t -> (var_of_cvar v, Tm._forget t)) s.tgt s.list
   let _forget_to_ps s = List.map Tm._forget s.list
 
   (** Keep only the the maximal elements of a substitution ("unealborate"). *)
@@ -211,7 +207,7 @@ struct
           |(_,(_,false)) -> aux s (Ctx.tail c)
         end
       |_,_ -> assert false
-      in List.rev (aux s.list s.tar)
+      in List.rev (aux s.list s.tgt)
 
   (** List the explicit variables of a substitution. *)
   let list_expl_vars (s:t) =
@@ -224,7 +220,7 @@ struct
           |(_,(_,false)) -> aux s (Ctx.tail c)
         end
       |_,_ -> assert false
-    in (aux s.list s.tar)
+    in (aux s.list s.tgt)
 
   let unify s s' l =
     let rec unify_list s s' l =
@@ -1133,9 +1129,9 @@ struct
              |Var v -> let v = EVar.make v in v,Environment.val_var (EVar.to_var v)
              |(Sub (_,_,_) | Letin_tm(_,_,_)) -> assert false
            in let t = EnvVal.check t
-           in let tar,ty = EnvVal.ty t in
+           in let tgt,ty = EnvVal.ty t in
               (* debug "got the context %s" (Ctx.to_string tar); *)
-              let s = Sub.mk (List.map fst s) c tar in
+              let s = Sub.mk (List.map fst s) c tgt in
               let ty = Ty.apply ty s in
               ({c = c; ty = ty; e = Sub(v,t,s)}, ty)
         | Letin_tm _ -> assert false
