@@ -335,7 +335,7 @@ struct
       match ps with
       | PNil x -> (Unchecked.Br list, PNil x)
       | PCons (ps,_,_) -> (Unchecked.Br list, ps)
-      | PDrop ps ->
+      | PDrop _ as ps ->
          let p,ps = build_till_previous ps in
          Unchecked.Br p, ps
     and build_till_previous ps =
