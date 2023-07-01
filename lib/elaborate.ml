@@ -44,7 +44,6 @@ let ty c ty =
 
 let tm c tm =
   let tm = Syntax.remove_let_tm tm in
-  let c = ctx c in
   tm_red (Kernel.Ctx._check c) tm
 
 let ty_in_ps ps t =

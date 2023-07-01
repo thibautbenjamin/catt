@@ -28,6 +28,13 @@ let exec_coh v ps ty =
   let ps = Elaborate.ps ps in
   Environment.add_coh v ps ty
 
+let exec_decl v l e t =
+  let c = Elaborate.ctx l in
+  let e = Elaborate.tm c e in
+  match t with
+  | None -> Environment.add_let v c e
+  | Some _ -> assert false
+
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
@@ -46,16 +53,9 @@ let exec_cmd cmd =
      (*      let e,t = Kernel.mk_tm l e in *)
      (*      info "checked term %s type %s" e t *)
      (* end *)
-  | Decl (_v,_l,_e,_t) -> assert false
-     (* let t = match t with *)
-     (*   | Some t -> *)
-     (*      command "let %s = %s : %s" (string_of_var v) (string_of_tm e) (string_of_ty t); *)
-     (*      let t = Kernel.add_let_env_of_ty v l e t in t *)
-     (*   | None -> *)
-     (*      command "let %s = %s" (string_of_var v) (string_of_tm e); *)
-     (*      let t = Kernel.add_let_env v l e in t *)
-     (* in *)
-     (* info "defined term of type %s" t *)
+  | Decl (v,l,e,t) ->
+     exec_decl v l e t;
+     info "defined term"
 
 
 let exec prog =
