@@ -53,6 +53,10 @@ end
     in print_list s.list s.tgt
 
   let rec _check (src : Ctx.t) s tgt =
+    (* debug "check : source= %s; substitution= %s; target=%s" *)
+    (*   (Ctx.to_string src) *)
+    (*   (Unchecked.sub_to_string s) *)
+    (*   (Ctx.to_string tgt); *)
     let expr (s : Unchecked.sub) tgt =
       match s, Ctx.value tgt with
       | [], [] -> []
@@ -356,13 +360,9 @@ struct
   let _forget ps = ps.newrep.tree
 
   let check ps =
-    debug "checking ps %s" (Unchecked.ps_to_string ps);
-    debug "corresponding context: %s" (Unchecked.(ctx_to_string (ps_to_ctx ps)));
+    (* debug "checking ps %s" (Unchecked.ps_to_string ps); *)
     let res = PS.mk (Ctx._check (Unchecked.ps_to_ctx ps)) in
     (* sanity check: we have the tree we started from *)
-    debug "original tree: %s, new tree: %s"
-      (Unchecked.ps_to_string ps)
-      (Unchecked.ps_to_string res.newrep.tree);
     assert (res.newrep.tree = ps);
     res
 
@@ -473,8 +473,8 @@ struct
   and t = {c : Ctx.t; e : expr}
 
   let rec _from_unchecked c t =
-    debug "building kernel type %s in context %s"
-    (Unchecked.ty_to_string t) (Ctx.to_string c);
+    (* debug "building kernel type %s in context %s" *)
+    (* (Unchecked.ty_to_string t) (Ctx.to_string c); *)
     let e =
       match t with
       | Unchecked.Obj -> Obj
@@ -582,20 +582,16 @@ struct
        Unchecked.Coh (ps,t,s)
 
   let check c t =
-    debug "building kernel term %s in context %s" (Unchecked.tm_to_string t) (Ctx.to_string c);
+    (* debug "building kernel term %s in context %s" (Unchecked.tm_to_string t) (Ctx.to_string c); *)
     match t with
     | Unchecked.Var x ->
        let x = CVar.make x in
        let e, ty  = CVar x, Ctx.ty_var c x in
        ({c; ty; e})
     | Unchecked.Coh (ps,t,s) ->
-       debug "checking the coherence pasting scheme";
        let coh = Coh.check ps t [] in
-       debug "building the substitution to the pasting scheme";
        let sub = Sub.check_to_ps c s (Coh.ps coh) in
-       debug "creating the term";
        let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
-       debug "all done";
        {c; ty; e}
 end
 
@@ -639,6 +635,7 @@ struct
       else raise NotAlgebraic
 
   let check ps t names =
+    (* debug "checking coherence (%s,%s)" (Unchecked.ps_to_string ps) (Unchecked.ty_to_string t); *)
     let cps = Ctx._check (Unchecked.ps_to_ctx ps) in
     let ps = PS.mk cps in
     let t = Ty._from_unchecked cps t in
