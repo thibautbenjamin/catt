@@ -66,7 +66,7 @@ end
 	 Ty.check_equal src ty (Ty._from_unchecked src (Unchecked.ty_apply_sub (Ty._forget a) s));
 	 t::sub.list
     in
-    {list = expr s tgt; src = src; tgt = tgt}
+    {list = expr s tgt; src; tgt}
 
   let check_to_ps src s tgt =
     let tgt = PS.to_ctx tgt in
@@ -202,13 +202,6 @@ struct
   let _check c = List.fold_right (fun (x,t) c -> _extend c x t) c (Ctx.empty ())
 end
 
-
-   (* -- Pasting schemes are specific contexts
-    -- They are provided with
-	 - makers (normalization and well-definedness)
-	 - equality decision procedure
-	 - specific operations (height, dimension, source, target)
-    *)
 (** Operations on pasting schemes. *)
 and PS
     :
@@ -221,7 +214,6 @@ sig
   (* Syntactic properties *)
   val domain : t -> cvar list
   val to_ctx : t -> Ctx.t
-  (* val to_expr : t -> (var * Expr.ty) list *)
 
   (* Structural operations *)
   val dim : t -> int
