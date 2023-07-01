@@ -36,12 +36,15 @@ cmd:
     | LET IDENT args EQUAL tmexpr { Decl (make_var $2,$3,$5, None) }
 
 args:
-    | LPAR IDENT COL tyexpr RPAR args { (make_var $2, $4)::$6 }
+    | args LPAR IDENT COL tyexpr RPAR { (make_var $3, $5)::$1 }
     | { [] }
 
+nonempty_sub:
+    | sub simple_tmexpr { ($2,false)::$1 }
+    | sub functed_tmexpr { ($2,true)::$1 }
+
 sub:
-    | simple_tmexpr sub { ($1,false)::$2 }
-    | functed_tmexpr sub { ($1,true)::$2 }
+    | nonempty_sub { $1 }
     | { [] }
 
 simple_tmexpr:
@@ -57,10 +60,8 @@ simple_tyexpr:
 
 subst_tmexpr:
     | simple_tmexpr { $1 }
-    | simple_tmexpr simple_tmexpr sub { let sub,func = generate_functorialize (($2,false)::$3)
+    | simple_tmexpr nonempty_sub { let sub,func = generate_functorialize $2
       		    		      	in Sub ($1,sub,func) }
-    | simple_tmexpr functed_tmexpr sub { let sub,func = generate_functorialize (($2,true)::$3)
-      		    		      	 in Sub ($1,sub,func) }
 
 tmexpr:
     | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (make_var $2, $4, $6) }
