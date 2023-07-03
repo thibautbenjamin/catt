@@ -1,5 +1,3 @@
-open Variables
-
 module Ctx : sig
   type t
 
@@ -17,7 +15,7 @@ end
 module Tm : sig
   type t
 
-  val check : Ctx.t -> Unchecked.tm -> t
+  val check : Ctx.t -> ?ty : Unchecked.ty -> Unchecked.tm -> t
   val _forget : t -> Unchecked.tm
 
   val typ : t -> Ty.t
@@ -34,5 +32,5 @@ end
 module Coh : sig
   type t
 
-  val check : Unchecked.ps -> Unchecked.ty -> (var * int) list -> t
+  val check : Unchecked.ps -> Unchecked.ty -> (Variables.t * int) list -> t
 end

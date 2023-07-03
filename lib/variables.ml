@@ -1,9 +1,11 @@
-type var =
+open Common
+
+type t =
   | Name of string
   | New of int
   | Db of int (* storing de Bruijn levels for coherences *)
 
-let string_of_var v =
+let to_string v =
   match v with
   | Name s -> s
   | New i -> "_" ^ string_of_int i
@@ -11,52 +13,19 @@ let string_of_var v =
 
 let make_var s = Name s
 
-(** Environment variables (i.e. defined coherences or let definitions). *)
-module EVar
-: sig
-  type t
-  val to_string : t -> string
-  val make : var -> t
-  val to_var : t -> var
-  val new_fresh : unit -> t
-end
-=
-struct
-  type t = var
+let check_equal v1 v2 =
+  match v1, v2 with
+  | Name s1, Name s2 -> if not (String.equal s1 s2) then raise (NotEqual(s1,s2)) else ()
+  | New i, New j -> if  i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
+  | Db i, Db j -> if  i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
+  | Name _, New _ | Name _, Db _ | New _ , Name _ | New _, Db _| Db _, Name _| Db _, New _
+    -> raise (NotEqual(to_string v1, to_string v2))
 
-  let next_fresh = ref (New 0)
+let increase_lv v i m =
+  match v with
+  | Db j -> if  j == 0 then Db (i) else Db (j + m)
+  | Name _ | New _ -> assert false
 
-  let to_string v =
-    string_of_var v
-
-  let make v = v
-
-  let to_var v = v
-
-  let new_fresh () =
-    let res = !next_fresh in
-    let nxt = match res with
-           |New k -> New (k+1)
-           |Name _ | Db _  -> assert false
-    in next_fresh := nxt; res
-end
-
-(** Context variables (i.e. "arguments of functions"). *)
-module CVar
-: sig
-    type t = var
-    val to_string : t -> string
-    val make : var -> t
-    val to_var : t -> var
-end
-=
-struct
-  type t = var
-
-  let to_string v =
-    string_of_var v
-
-  let make v = v
-
-  let to_var v = v
-end
+let suspend = function
+  | Db i -> Db (i+2)
+  | Name _ | New _ as v -> v

@@ -1,27 +1,26 @@
 open Std
-open Variables
 
   (** A raw type. *)
   type ty =
-    | Letin_ty of var * tm * ty
+    | Letin_ty of Variables.t * tm * ty
     | Obj
     | Arr of tm * tm
   (** A raw term. *)
    and tm =
-    | Letin_tm of var * tm * tm
-    | Var of var
+    | Letin_tm of Variables.t * tm * tm
+    | Var of Variables.t
     | Sub of tm * (tm list) * (int list) (* list of variables that are functorialised *)
 
 let rec string_of_ty e =
     match e with
-    | Letin_ty (v,e,ty) -> Printf.sprintf "let %s = %s in %s" (string_of_var v) (string_of_tm e) (string_of_ty ty)
+    | Letin_ty (v,e,ty) -> Printf.sprintf "let %s = %s in %s" (Variables.to_string v) (string_of_tm e) (string_of_ty ty)
     | Obj -> "*"
     | Arr (u,v) -> Printf.sprintf "%s -> %s" (string_of_tm u) (string_of_tm v)
   (*TODO : print functorialization*)
   and string_of_tm e =
     match e with
-    | Letin_tm (v,e,tm) -> Printf.sprintf "let %s = %s in %s" (string_of_var v) (string_of_tm e) (string_of_tm tm)
-    | Var x -> string_of_var x
+    | Letin_tm (v,e,tm) -> Printf.sprintf "let %s = %s in %s" (Variables.to_string v) (string_of_tm e) (string_of_tm tm)
+    | Var x -> Variables.to_string x
     | Sub (t,s,l) -> Printf.sprintf "(%s %s)" (string_of_tm t) (string_of_sub s l 0)
   and string_of_sub s l i=
     match s,l with

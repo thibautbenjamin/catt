@@ -39,7 +39,6 @@ let rec ctx = function
 
 let ty c ty =
   let ty = Syntax.remove_let_ty ty in
-  let c = ctx c in
   ty_red (Kernel.Ctx._check c) ty
 
 let tm c tm =

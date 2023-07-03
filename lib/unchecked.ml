@@ -1,6 +1,5 @@
-open Variables
+open Common
 
-exception Not_Equal
 exception DoubleDef
 
 type ps = Br of ps list
@@ -9,13 +8,13 @@ type ty =
   | Obj
   | Arr of ty * tm * tm
 and tm =
-  | Var of var
+  | Var of Variables.t
   | Coh of ps * ty * sub_ps
 and sub_ps = tm list
 
-type ctx = (var * ty) list
+type ctx = (Variables.t * ty) list
 
-type sub = (var * tm) list
+type sub = (Variables.t * tm) list
 
 let rec ps_to_string = function
   | Br l -> Printf.sprintf "[%s]"
@@ -25,7 +24,7 @@ let rec ty_to_string = function
   | Obj -> "*"
   | Arr (a,u,v) -> Printf.sprintf "%s | %s -> %s" (ty_to_string a) (tm_to_string u) (tm_to_string v)
 and tm_to_string = function
-  | Var v -> string_of_var v
+  | Var v -> Variables.to_string v
   | Coh (ps,ty,s) -> Printf.sprintf "coh(%s,%s)[%s]" (ps_to_string ps) (ty_to_string ty) (sub_ps_to_string s)
 and sub_ps_to_string = function
   | [] -> ""
@@ -33,11 +32,11 @@ and sub_ps_to_string = function
 
 let rec ctx_to_string = function
   | [] -> ""
-  | (x,t)::c -> Printf.sprintf "%s (%s: %s)" (ctx_to_string c) (string_of_var x) (ty_to_string t)
+  | (x,t)::c -> Printf.sprintf "%s (%s: %s)" (ctx_to_string c) (Variables.to_string x) (ty_to_string t)
 
 let rec sub_to_string = function
   | [] -> ""
-  | (x,t)::s -> Printf.sprintf "%s (%s: %s)" (sub_to_string s) (string_of_var x) (tm_to_string t)
+  | (x,t)::s -> Printf.sprintf "%s (%s: %s)" (sub_to_string s) (Variables.to_string x) (tm_to_string t)
 
 let rec check_equal_ps ps1 ps2 =
   match ps1, ps2 with
@@ -45,7 +44,7 @@ let rec check_equal_ps ps1 ps2 =
   | Br (ps1::l1), Br(ps2::l2) ->
      check_equal_ps ps1 ps2;
      List.iter2 check_equal_ps l1 l2
-  | Br[], Br (_::_) | Br(_::_), Br[] -> raise Not_Equal
+  | Br[], Br (_::_) | Br(_::_), Br[] -> raise (NotEqual (ps_to_string ps1, ps_to_string ps2))
 
 let rec check_equal_ty ty1 ty2 =
   match ty1, ty2 with
@@ -54,17 +53,26 @@ let rec check_equal_ty ty1 ty2 =
      check_equal_ty ty1 ty2;
      check_equal_tm u1 u2;
      check_equal_tm v1 v2
-  | Obj, Arr _ | Arr _, Obj -> raise Not_Equal
+  | Obj, Arr _ | Arr _, Obj -> raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
 and check_equal_tm tm1 tm2 =
   match tm1, tm2 with
-  | Var v1, Var v2 -> if v1 != v2 then raise Not_Equal
+  | Var v1, Var v2 -> Variables.check_equal v1 v2
   | Coh(ps1, ty1, s1), Coh(ps2, ty2, s2) ->
      check_equal_ps ps1 ps2;
      check_equal_ty ty1 ty2;
      check_equal_sub_ps s1 s2
-  | Var _, Coh _ | Coh _, Var _ -> raise Not_Equal
+  | Var _, Coh _ | Coh _, Var _ -> raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
 and check_equal_sub_ps s1 s2 =
   List.iter2 check_equal_tm s1 s2
+
+let rec check_equal_ctx ctx1 ctx2 =
+  match ctx1, ctx2 with
+  | [], [] -> ()
+  | (v1,t1)::c1, (v2,t2)::c2 ->
+     Variables.check_equal v1 v2;
+     check_equal_ty t1 t2;
+     check_equal_ctx c1 c2
+  | _::_,[] | [],_::_ -> raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
 
 let rec tm_do_on_variables tm f =
   match tm with
@@ -97,32 +105,24 @@ let rec db_levels c =
          raise DoubleDef
        else
          let lvl = max + 1 in
-         (Db lvl, rename_ty t l) ::c, (x, lvl)::l, lvl
+         (Variables.Db lvl, rename_ty t l) ::c, (x, lvl)::l, lvl
 
-let increase_lv_var v i m =
-  match v with
-  | Db j -> if  j == 0 then Db (i) else Db (j + m)
-  | Name _ | New _ -> assert false
-let increase_lv_ty ty i m = ty_do_on_variables ty (fun v -> Var (increase_lv_var v i m))
-
-let suspend_var = function
-  | Db i -> Db (i+2)
-  | Name _ | New _ as v -> v
+let increase_lv_ty ty i m = ty_do_on_variables ty (fun v -> Var (Variables.increase_lv v i m))
 
 let rec suspend_ty = function
   | Obj -> Arr(Obj, Var (Db 0), Var (Db 1))
   | Arr(a,v,u) -> Arr(suspend_ty a, suspend_tm v, suspend_tm u)
 and suspend_tm = function
-  | Var v -> Var (suspend_var v)
+  | Var v -> Var (Variables.suspend v)
   | Coh _ -> assert false
 
 let rec suspend_ctx : ctx -> ctx = function
   | [] -> (Db 1, Obj) :: (Db 0, Obj) :: []
-  | (v,t)::c -> (suspend_var v, suspend_ty t) :: (suspend_ctx c)
+  | (v,t)::c -> (Variables.suspend v, suspend_ty t) :: (suspend_ctx c)
 
 let rec ps_to_ctx_aux ps =
   match ps with
-  | Br [] -> [(Db 0), Obj], 0, 0
+  | Br [] -> [(Variables.Db 0), Obj], 0, 0
   | Br l -> ps_concat (List.map
                          (fun ps -> let ps,_,m = ps_to_ctx_aux ps in (suspend_ctx ps, 1, m+2))
                          l)
@@ -137,7 +137,7 @@ and chop_and_increase ctx i m =
   | [] -> assert false
   | _ :: [] -> []
   | (v,t) :: ctx ->
-     let v = increase_lv_var v i m in
+     let v = Variables.increase_lv v i m in
      let t = increase_lv_ty t i m in
      let ctx = chop_and_increase ctx i m in
      (v,t)::ctx
