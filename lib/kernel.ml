@@ -5,32 +5,22 @@ open Common
 (** Operations on substitutions. *)
 module rec Sub : sig
   type t
-
-  (* Structural functions *)
   val check_to_ps : Ctx.t -> Unchecked.sub_ps -> PS.t -> t
   val forget : t -> Unchecked.sub
   val forget_to_ps : t -> Unchecked.sub_ps
-
-  (* Syntactic properties *)
   val free_vars : t -> Variables.t list
-
-  (* Printing *)
   val to_string : t ->  string
-
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
 end
   = struct
-  (** A substitution. *)
-  (* Variable names are given by the codomain. *)
   type t = {list : Tm.t list; src : Ctx.t; tgt : Ctx.t}
-
-  (** Free context variables. *)
-  let free_vars s =
-    List.concat (List.map Tm.free_vars s.list)
 
   let src s = s.src
   let tgt s = s.tgt
+
+  let free_vars s =
+    List.concat (List.map Tm.free_vars s.list)
 
   let rec check src s tgt =
     (* debug "check : source= %s; substitution= %s; target=%s" *)
@@ -77,31 +67,23 @@ and Ctx : sig
 end
   =
 struct
-  (** A context. Variables together with a type a a boolean indicating if the variable is explicit or implicit*)
   type t = (Variables.t * Ty.t) list
 
   let tail = function
     | [] -> assert false
     | _::c -> c
 
-  (** type of a variable in a context. *)
   let ty_var (ctx:t) x =
     try List.assoc x ctx
     with Not_found -> raise (UnknownId (Variables.to_string x))
 
-  (** Empty context. *)
   let empty () = []
 
-  (** Domain of definition of a context. *)
   let domain ctx = List.map fst ctx
-
   let value (ctx : t) = ctx
-
   let forget c = List.map (fun (x,a) -> (x, Ty.forget a)) c
-
   let _to_string ctx =
     Unchecked.ctx_to_string (forget ctx)
-
   let check_equal ctx1 ctx2 =
     Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
 
