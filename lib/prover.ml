@@ -1,6 +1,3 @@
-(** Interaction with user. *)
-open Common
-
 (** Parse a string. *)
 let parse s =
   let lexbuf = Lexing.from_string s in
@@ -9,7 +6,7 @@ let parse s =
   with
   | Failure s when s = "lexing: empty token" ->
      let pos = Lexing.lexeme_end_p lexbuf in
-     error "lexing error in file %s at line %d, character %d"
+     Io.error "lexing error in file %s at line %d, character %d"
      pos.Lexing.pos_fname
      pos.Lexing.pos_lnum
      (pos.Lexing.pos_cnum - pos.Lexing.pos_bol)

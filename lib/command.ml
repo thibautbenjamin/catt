@@ -1,5 +1,3 @@
-open Common
-
 (**toplevel commands. *)
 type cmd =
   | Coh of Var.t * (Var.t * Syntax.ty) list * Syntax.ty
@@ -36,14 +34,14 @@ let check l e t =
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
-     command "coh %s = %s" (Var.to_string x) (Syntax.string_of_ty e);
+     Io.command "coh %s = %s" (Var.to_string x) (Syntax.string_of_ty e);
      exec_coh x ps e
   | Check (l, e, t) ->
-    command "check %s" (Syntax.string_of_tm e);
+    Io.command "check %s" (Syntax.string_of_tm e);
     check l e t;
-    info "valid term %s" (Syntax.string_of_tm e);
+    Io.info "valid term %s" (Syntax.string_of_tm e);
   | Decl (v,l,e,t) ->
-    command "let %s = %s" (Var.to_string v) (Syntax.string_of_tm e);
+    Io.command "let %s = %s" (Var.to_string v) (Syntax.string_of_tm e);
     exec_decl v l e t
 
 let exec prog =

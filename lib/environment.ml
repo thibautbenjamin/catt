@@ -9,7 +9,7 @@ let env : t = Hashtbl.create 70
 let add_let v c t =
   let kc = Kernel.Ctx.check c in
   let tm = Kernel.Tm.check kc t in
-  Common.info "defined term %s of type %s"
+  Io.info "defined term %s of type %s"
     (Unchecked.tm_to_string t)
     (Unchecked.ty_to_string (Kernel.(Ty.forget (Tm.typ tm))));
   Hashtbl.add env v (Tm (c,t))
@@ -17,14 +17,14 @@ let add_let v c t =
 let add_let_check v c tm ty =
   let kc = Kernel.Ctx.check c in
   ignore(Kernel.Tm.check kc ~ty tm);
-  Common.info "defined term %s of type %s"
+  Io.info "defined term %s of type %s"
     (Unchecked.tm_to_string tm)
     (Unchecked.ty_to_string ty);
   Hashtbl.add env v (Tm (c,tm))
 
 let add_coh v ps ty =
   ignore(Kernel.Coh.check ps ty []);
-  Common.info "defined coherence %s"
+  Io.info "defined coherence %s"
     (Var.to_string v);
   Hashtbl.add env v (Coh (ps,ty))
 
