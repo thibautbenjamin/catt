@@ -21,10 +21,11 @@ end
     List.concat (List.map Tm.free_vars s.list)
 
   let rec check src s tgt =
-    (* debug "check : source= %s; substitution= %s; target=%s" *)
-    (*   (Ctx.to_string src) *)
-    (*   (Unchecked.sub_to_string s) *)
-    (*   (Ctx.to_string tgt); *)
+    Io.info ~v:3 "building kernel substitution \
+                  : source = %s; substitution = %s; target = %s"
+      (Ctx.to_string src)
+      (Unchecked.sub_to_string s)
+      (Ctx.to_string tgt);
     let expr (s : sub) tgt =
       match s, Ctx.value tgt with
       | [], [] -> []
@@ -53,6 +54,7 @@ and Ctx : sig
   type t
   val empty : unit -> t
   val tail : t -> t
+  val to_string : t -> string
   val ty_var : t -> Var.t -> Ty.t
   val domain : t -> Var.t list
   val value : t -> (Var.t * Ty.t) list
@@ -96,6 +98,12 @@ struct
 
   let check c =
     List.fold_right (fun (x,t) c -> Ctx.extend c x t) c (Ctx.empty ())
+
+  let forget c =
+    List.map (fun (x,t) -> (x, Ty.forget t)) c
+
+  let to_string c =
+    Unchecked.ctx_to_string (forget c)
 end
 
 (** Operations on pasting schemes. *)
@@ -317,8 +325,8 @@ struct
   let is_obj t = (t.e = Obj)
 
   let rec check c t =
-    (* debug "building kernel type %s in context %s" *)
-    (* (Unchecked.ty_to_string t) (Ctx.to_string c); *)
+    Io.info ~v:3 "building kernel type %s in context %s"
+    (Unchecked.ty_to_string t) (Ctx.to_string c);
     let e =
       match t with
       | Common.Obj -> Obj
@@ -390,9 +398,9 @@ struct
        Common.Coh (ps,t,s)
 
   let check c ?ty t =
-    (* debug "building kernel term %s in context %s"
-       (Unchecked.tm_to_string t)
-       (Ctx.to_string c); *)
+    Io.info ~v:3 "building kernel term %s in context %s"
+      (Unchecked.tm_to_string t)
+      (Ctx.to_string c);
     let tm =
       match t with
       | Common.Var x ->
@@ -444,9 +452,9 @@ struct
       else raise Error.NotAlgebraic
 
   let check ps t names =
-    (* debug "checking coherence (%s,%s)"
-       (Unchecked.ps_to_string ps)
-       (Unchecked.ty_to_string t); *)
+    Io.info ~v:3 "checking coherence (%s,%s)"
+      (Unchecked.ps_to_string ps)
+      (Unchecked.ty_to_string t);
     let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
     let ps = PS.mk cps in
     let t = Ty.check cps t in
