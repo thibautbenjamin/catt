@@ -2,6 +2,12 @@ open Common
 
 exception WrongNumberOfArguments
 
+let meta_namer = ref 0
+
+let new_meta () =
+  let meta = Meta !meta_namer in
+  meta_namer := !meta_namer + 1; meta
+
 (* inductive translation on terms and types without let_in *)
 let rec tm_red ctx tm =
   match tm with
@@ -9,17 +15,19 @@ let rec tm_red ctx tm =
   | Syntax.Sub(Var v, s, _) ->
      begin
        match Environment.val_var v with
-       | Coh(ps, ty) -> Coh(ps,ty,sub_ps_red ctx s)
+       | Coh(ps, ty) -> Coh(ps,ty,sub_ps_red ctx s ps)
        | Tm(c,t) ->
           let s = sub_red ctx s c in
           Unchecked.tm_apply_sub t s
      end;
   | Syntax.Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Letin_tm _ -> assert false
-and sub_ps_red ctx s = List.map (fun t -> tm_red ctx t) s
+and sub_ps_red ctx s ps =
+  List.map snd (sub_red ctx s (Unchecked.ps_to_ctx ps))
 and sub_red src s tgt =
   match s,tgt with
   | [],[] -> []
-  | t::s, (x,_)::tgt -> (x, tm_red src t)::(sub_red src s tgt)
+  | t::s, (x,(_, true))::tgt -> (x, tm_red src t)::(sub_red src s tgt)
+  | s, (x,(_, false))::tgt -> (x, new_meta())::(sub_red src s tgt)
   | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
 
 let ty_red ctx ty =
@@ -32,12 +40,13 @@ let ty_red ctx ty =
      Arr(a,tu,tv)
   | Syntax.Letin_ty _ -> assert false
 
+(* TODO: fix explicitness of arguments *)
 let rec ctx = function
   | [] -> []
   | (v,t) :: c ->
      let c = ctx c in
      let kc = Kernel.Ctx.check c in
-     (v, ty_red kc t) :: c
+     (v, (ty_red kc t, true)) :: c
 
 let ty c ty =
   let ty = Syntax.remove_let_ty ty in

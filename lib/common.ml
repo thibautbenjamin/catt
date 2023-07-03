@@ -46,6 +46,6 @@ and tm =
   | Coh of ps * ty * sub_ps
 and sub_ps = tm list
 
-type ctx = (Var.t * ty) list
+type ctx = (Var.t * (ty * bool)) list
 
 type sub = (Var.t * tm) list

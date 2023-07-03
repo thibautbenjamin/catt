@@ -79,8 +79,9 @@ struct
 
   let domain ctx = List.map fst ctx
   let value (ctx : t) = ctx
-  let forget c = List.map (fun (x,a) -> (x, Ty.forget a)) c
-  let _to_string ctx =
+  (* TODO: fix explicitness of variable here *)
+  let forget c = List.map (fun (x,a) -> (x, (Ty.forget a, true))) c
+  let to_string ctx =
     Unchecked.ctx_to_string (forget ctx)
   let check_equal ctx1 ctx2 =
     Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
@@ -97,13 +98,7 @@ struct
     (x,t)::(Ctx.value c)
 
   let check c =
-    List.fold_right (fun (x,t) c -> Ctx.extend c x t) c (Ctx.empty ())
-
-  let forget c =
-    List.map (fun (x,t) -> (x, Ty.forget t)) c
-
-  let to_string c =
-    Unchecked.ctx_to_string (forget c)
+    List.fold_right (fun (x,(t,_)) c -> Ctx.extend c x t) c (Ctx.empty ())
 end
 
 (** Operations on pasting schemes. *)
@@ -133,13 +128,14 @@ struct
   type t = {oldrep : oldrep; newrep : newt}
 
   (** Create a context from a pasting scheme. *)
+  (* TODO:fix level of explicitness here *)
   let old_rep_to_ctx ps =
     let rec list ps =
       match ps with
       |PDrop ps -> list ps
       |PCons (ps,(x1,t1),(x2,t2)) ->
-        (x2,Ty.forget t2)::(x1,Ty.forget t1)::(list ps)
-      |PNil (x,t) -> [(x,Ty.forget t)]
+        (x2,(Ty.forget t2, true))::(x1,(Ty.forget t1, true))::(list ps)
+      |PNil (x,t) -> [(x,(Ty.forget t, true))]
     in Ctx.check (list ps)
 
   (** Domain of definition. *)

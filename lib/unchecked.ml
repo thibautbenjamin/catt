@@ -30,7 +30,7 @@ and sub_ps_to_string = function
 
 let rec ctx_to_string = function
   | [] -> ""
-  | (x,t)::c ->
+  | (x,(t,_))::c ->
     Printf.sprintf "%s (%s: %s)"
       (ctx_to_string c)
       (Var.to_string x)
@@ -81,7 +81,7 @@ and check_equal_sub_ps s1 s2 =
 let rec check_equal_ctx ctx1 ctx2 =
   match ctx1, ctx2 with
   | [], [] -> ()
-  | (v1,t1)::c1, (v2,t2)::c2 ->
+  | (v1,(t1,_))::c1, (v2,(t2,_))::c2 ->
      Var.check_equal v1 v2;
      check_equal_ty t1 t2;
      check_equal_ctx c1 c2
@@ -114,13 +114,13 @@ let rename_ty ty l = ty_do_on_variables ty (fun v -> Var (Db (List.assoc v l)))
 let rec db_levels c =
     match c with
     | [] -> [], [], -1
-    | (x,t)::c ->
+    | (x,(t,expl))::c ->
        let c,l,max = db_levels c in
        if List.mem_assoc x l then
          raise DoubleDef
        else
          let lvl = max + 1 in
-         (Var.Db lvl, rename_ty t l) ::c, (x, lvl)::l, lvl
+         (Var.Db lvl, (rename_ty t l, expl)) ::c, (x, lvl)::l, lvl
 
 let increase_lv_ty ty i m =
   ty_do_on_variables ty (fun v -> Var (Var.increase_lv v i m))
@@ -133,13 +133,15 @@ and suspend_tm = function
   | Meta _ -> assert false
   | Coh _ -> assert false
 
-let rec suspend_ctx : ctx -> ctx = function
-  | [] -> (Db 1, Obj) :: (Db 0, Obj) :: []
-  | (v,t)::c -> (Var.suspend v, suspend_ty t) :: (suspend_ctx c)
+let rec suspend_ctx ctx =
+  let expl = !Settings.explicit_substitutions in
+  match ctx with
+  | [] -> (Var.Db 1, (Obj, expl)) :: (Var.Db 0, (Obj, expl)) :: []
+  | (v,(t,expl))::c -> (Var.suspend v, (suspend_ty t, expl)) :: (suspend_ctx c)
 
 let rec ps_to_ctx_aux ps =
   match ps with
-  | Br [] -> [(Var.Db 0), Obj], 0, 0
+  | Br [] -> [(Var.Db 0), (Obj, true)], 0, 0
   | Br l ->
     ps_concat (List.map
                  (fun ps ->
@@ -156,10 +158,11 @@ and chop_and_increase ctx i m =
   match ctx with
   | [] -> assert false
   | _ :: [] -> []
-  | (v,t) :: ctx ->
+  | (v,(t,_)) :: ctx ->
      let v = Var.increase_lv v i m in
      let t = increase_lv_ty t i m in
      let ctx = chop_and_increase ctx i m in
-     (v,t)::ctx
+     let expl = !Settings.explicit_substitutions in
+     (v,(t, expl))::ctx
 
 let ps_to_ctx ps = let c,_,_ = ps_to_ctx_aux ps in c
