@@ -15,10 +15,15 @@ let make_var s = Name s
 
 let check_equal v1 v2 =
   match v1, v2 with
-  | Name s1, Name s2 -> if not (String.equal s1 s2) then raise (NotEqual(s1,s2)) else ()
-  | New i, New j -> if  i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
-  | Db i, Db j -> if  i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
-  | Name _, New _ | Name _, Db _ | New _ , Name _ | New _, Db _| Db _, Name _| Db _, New _
+  | Name s1, Name s2 ->
+    if not (String.equal s1 s2) then raise (NotEqual(s1,s2)) else ()
+  | New i, New j ->
+    if  i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
+  | Db i, Db j -> if
+    i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
+  | Name _, New _ | Name _, Db _
+  | New _ , Name _ | New _, Db _
+  | Db _, Name _| Db _, New _
     -> raise (NotEqual(to_string v1, to_string v2))
 
 let increase_lv v i m =

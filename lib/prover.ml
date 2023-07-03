@@ -1,6 +1,5 @@
 (** Interaction with user. *)
 open Common
-       
 
 (** Parse a string. *)
 let parse s =
@@ -13,11 +12,12 @@ let parse s =
      error "lexing error in file %s at line %d, character %d"
      pos.Lexing.pos_fname
      pos.Lexing.pos_lnum
-     (pos.Lexing.pos_cnum - pos.Lexing.pos_bol) 
+     (pos.Lexing.pos_cnum - pos.Lexing.pos_bol)
   | Parsing.Parse_error ->
      let pos = (Lexing.lexeme_end_p lexbuf) in
-     failwith (Printf.sprintf "parsing error in file %s at word \"%s\", line %d, character %d"
-              (*error "parsing error in file %s at word \"%s\", line %d, character %d"*)
+     failwith
+       (Printf.sprintf
+          "parsing error in file %s at word \"%s\", line %d, character %d"
        pos.Lexing.pos_fname
        (Lexing.lexeme lexbuf)
        pos.Lexing.pos_lnum

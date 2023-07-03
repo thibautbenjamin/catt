@@ -1,24 +1,12 @@
 open Common
-open Syntax
 
 (**toplevel commands. *)
 type cmd =
-  | Coh of Var.t * (Var.t * ty) list * ty
-  | Check of ((Var.t * ty) list) * tm * ty option
-  | Decl of Var.t * (Var.t * ty) list * tm * ty option
+  | Coh of Var.t * (Var.t * Syntax.ty) list * Syntax.ty
+  | Check of ((Var.t * Syntax.ty) list) * Syntax.tm * Syntax.ty option
+  | Decl of Var.t * (Var.t * Syntax.ty) list * Syntax.tm * Syntax.ty option
 
 type prog = cmd list
-
-let rec print l =
-  match l with
-  | ((x,_),true)::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print l);
-  | ((x,_),false)::l -> Printf.sprintf "{%s} %s" (Var.to_string x) (print l);
-  | [] -> ""
-
-let rec print_vars l =
-  match l with
-  | x::l -> Printf.sprintf "(%s) %s" (Var.to_string x) (print_vars l);
-  | [] -> ""
 
 let exec_coh v ps ty =
   let ty = Elaborate.ty_in_ps ps ty in
@@ -48,14 +36,14 @@ let check l e t =
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
-     command "coh %s = %s" (Var.to_string x) (string_of_ty e);
+     command "coh %s = %s" (Var.to_string x) (Syntax.string_of_ty e);
      exec_coh x ps e
   | Check (l, e, t) ->
-    command "check %s" (string_of_tm e);
+    command "check %s" (Syntax.string_of_tm e);
     check l e t;
-    info "valid term %s" (string_of_tm e);
+    info "valid term %s" (Syntax.string_of_tm e);
   | Decl (v,l,e,t) ->
-    command "let %s = %s" (Var.to_string v) (string_of_tm e);
+    command "let %s = %s" (Var.to_string v) (Syntax.string_of_tm e);
     exec_decl v l e t
 
 let exec prog =
