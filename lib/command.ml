@@ -34,24 +34,24 @@ let exec_decl v l e t =
      let ty = Elaborate.ty c ty in
      Environment.add_let_check v c e ty
 
+let check l e t =
+  let c = Elaborate.ctx l in
+  let e = Elaborate.tm c e in
+  let ty =
+    match t with
+    | None -> None
+    | Some ty -> Some (Elaborate.ty c ty)
+  in
+  let c = Kernel.Ctx.check c in
+  ignore(Kernel.Tm.check c ?ty e)
+
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
      command "let %s = %s" (Var.to_string x) (string_of_ty e);
      exec_coh x ps e;
      info "defined";
-  | Check (_l, _e, _t) -> assert false
-     (* begin *)
-     (*   match t with *)
-     (*   | Some t -> *)
-     (*      command "check %s : %s" (string_of_tm e) (string_of_ty t); *)
-     (*      Kernel.mk_tm_of_ty l e t; *)
-     (*      info "checked" *)
-     (*   | None -> *)
-     (*      command "check %s " (string_of_tm e); *)
-     (*      let e,t = Kernel.mk_tm l e in *)
-     (*      info "checked term %s type %s" e t *)
-     (* end *)
+  | Check (l, e, t) -> check l e t
   | Decl (v,l,e,t) ->
      exec_decl v l e t;
      info "defined term"
