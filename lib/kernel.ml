@@ -1,5 +1,4 @@
 open Std
-open Settings
 open Common
 
 (** Operations on substitutions. *)
@@ -9,7 +8,6 @@ module rec Sub : sig
   val forget : t -> Unchecked.sub
   val forget_to_ps : t -> Unchecked.sub_ps
   val free_vars : t -> Var.t list
-  val to_string : t ->  string
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
 end
@@ -45,11 +43,9 @@ end
     let s = List.map2 (fun (x,_) t -> (x,t)) (Ctx.value tgt) s in
     check src s tgt
 
-  let forget s = List.map2 (fun (v,_) t -> (v, Tm.forget t)) (Ctx.value s.tgt) s.list
+  let forget s =
+    List.map2 (fun (v,_) t -> (v, Tm.forget t)) (Ctx.value s.tgt) s.list
   let forget_to_ps s = List.map Tm.forget s.list
-
-  let to_string s =
-    Unchecked.sub_to_string (forget s)
 end
 
 (** A context, associating a type to each context variable. *)
@@ -98,7 +94,8 @@ struct
     Ctx.check_notin c x;
     (x,t)::(Ctx.value c)
 
-  let check c = List.fold_right (fun (x,t) c -> Ctx.extend c x t) c (Ctx.empty ())
+  let check c =
+    List.fold_right (fun (x,t) c -> Ctx.extend c x t) c (Ctx.empty ())
 end
 
 (** Operations on pasting schemes. *)
@@ -195,8 +192,10 @@ struct
                 let x,_ = marker ps in
                 if x = fx then
                   let varps = Ctx.domain (old_rep_to_ctx ps) in
-                  if (List.mem f varps) then raise (DoubledVar (Var.to_string f));
-                  if (List.mem y varps) then raise (DoubledVar (Var.to_string y));
+                  if (List.mem f varps) then
+                    raise (DoubledVar (Var.to_string f));
+                  if (List.mem y varps) then
+                    raise (DoubledVar (Var.to_string y));
                   let ps = PCons (ps,(y,ty),(f,tf)) in
                   aux ps l
                   else
@@ -336,18 +335,13 @@ struct
     | Obj -> []
     | Arr (t,u,v) -> List.unions [free_vars t; Tm.free_vars u; Tm.free_vars v]
 
-  let rec to_string ty =
-    match ty.e with
-    | Obj -> "*"
-    | Arr (t,u,v) ->
-       if !abbrev then
-         Printf.sprintf "%s -> %s" (Tm.to_string u) (Tm.to_string v)
-       else Printf.sprintf "%s | %s -> %s" (to_string t) (Tm.to_string u) (Tm.to_string v)
-
   let rec forget t =
     match t.e with
     | Obj -> Unchecked.Obj
     | Arr (a,u,v) -> Unchecked.Arr (forget a, Tm.forget u, Tm.forget v)
+
+  let to_string ty =
+    Unchecked.ty_to_string (forget ty)
 
   (** Test for equality. *)
   let check_equal ty1 ty2 =
@@ -368,7 +362,6 @@ and Tm : sig
   type t
   val typ : t -> Ty.t
   val free_vars : t -> Var.t list
-  val to_string : t -> string
   val check : Ctx.t -> ?ty : Unchecked.ty -> Unchecked.tm -> t
   val forget : t -> Unchecked.tm
   val expr : t -> expr
@@ -388,11 +381,6 @@ struct
     | Var x -> [x]
     | Coh (_,sub) -> Sub.free_vars sub
 
-  let to_string tm =
-    match tm.e with
-    | Var x -> Var.to_string x
-    | Coh (c,s) -> Printf.sprintf "%s[%s]" (Coh._to_string c) (Sub.to_string s)
-
   let forget tm =
     match tm.e with
     | Var v -> Unchecked.Var v
@@ -402,7 +390,9 @@ struct
        Unchecked.Coh (ps,t,s)
 
   let check c ?ty t =
-    (* debug "building kernel term %s in context %s" (Unchecked.tm_to_string t) (Ctx.to_string c); *)
+    (* debug "building kernel term %s in context %s"
+       (Unchecked.tm_to_string t)
+       (Ctx.to_string c); *)
     let tm =
       match t with
       | Unchecked.Var x ->
@@ -454,7 +444,9 @@ struct
       else raise NotAlgebraic
 
   let check ps t names =
-    (* debug "checking coherence (%s,%s)" (Unchecked.ps_to_string ps) (Unchecked.ty_to_string t); *)
+    (* debug "checking coherence (%s,%s)"
+       (Unchecked.ps_to_string ps)
+       (Unchecked.ty_to_string t); *)
     let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
     let ps = PS.mk cps in
     let t = Ty.check cps t in

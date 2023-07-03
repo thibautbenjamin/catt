@@ -1,14 +1,12 @@
 open Common
 open Syntax
 
-
-(** A command. *)
+(**toplevel commands. *)
 type cmd =
-  | Coh of Var.t * (Var.t * ty) list * ty (** a coherence *)
-  | Check of ((Var.t * ty) list) * tm * ty option (** check that a term is well-typed in a context *)
-  | Decl of Var.t * (Var.t * ty) list * tm * ty option (** let declarations *)
+  | Coh of Var.t * (Var.t * ty) list * ty
+  | Check of ((Var.t * ty) list) * tm * ty option
+  | Decl of Var.t * (Var.t * ty) list * tm * ty option
 
-(** A program. *)
 type prog = cmd list
 
 let rec print l =
@@ -57,7 +55,6 @@ let exec_cmd cmd =
   | Decl (v,l,e,t) ->
      exec_decl v l e t;
      info "defined term"
-
 
 let exec prog =
   let rec aux = function

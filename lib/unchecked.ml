@@ -18,25 +18,44 @@ type sub = (Var.t * tm) list
 
 let rec ps_to_string = function
   | Br l -> Printf.sprintf "[%s]"
-              (List.fold_left (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s) "" l)
+              (List.fold_left
+                 (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s)
+                 ""
+                 l)
 
 let rec ty_to_string = function
   | Obj -> "*"
-  | Arr (a,u,v) -> Printf.sprintf "%s | %s -> %s" (ty_to_string a) (tm_to_string u) (tm_to_string v)
+  | Arr (a,u,v) ->
+    Printf.sprintf "%s | %s -> %s"
+      (ty_to_string a)
+      (tm_to_string u)
+      (tm_to_string v)
 and tm_to_string = function
   | Var v -> Var.to_string v
-  | Coh (ps,ty,s) -> Printf.sprintf "coh(%s,%s)[%s]" (ps_to_string ps) (ty_to_string ty) (sub_ps_to_string s)
+  | Coh (ps,ty,s) ->
+    Printf.sprintf "coh(%s,%s)[%s]"
+      (ps_to_string ps)
+      (ty_to_string ty)
+      (sub_ps_to_string s)
 and sub_ps_to_string = function
   | [] -> ""
   | t::s -> Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
 
 let rec ctx_to_string = function
   | [] -> ""
-  | (x,t)::c -> Printf.sprintf "%s (%s: %s)" (ctx_to_string c) (Var.to_string x) (ty_to_string t)
+  | (x,t)::c ->
+    Printf.sprintf "%s (%s: %s)"
+      (ctx_to_string c)
+      (Var.to_string x)
+      (ty_to_string t)
 
 let rec sub_to_string = function
   | [] -> ""
-  | (x,t)::s -> Printf.sprintf "%s (%s: %s)" (sub_to_string s) (Var.to_string x) (tm_to_string t)
+  | (x,t)::s ->
+    Printf.sprintf "%s (%s: %s)"
+      (sub_to_string s)
+      (Var.to_string x)
+      (tm_to_string t)
 
 let rec check_equal_ps ps1 ps2 =
   match ps1, ps2 with
@@ -44,7 +63,8 @@ let rec check_equal_ps ps1 ps2 =
   | Br (ps1::l1), Br(ps2::l2) ->
      check_equal_ps ps1 ps2;
      List.iter2 check_equal_ps l1 l2
-  | Br[], Br (_::_) | Br(_::_), Br[] -> raise (NotEqual (ps_to_string ps1, ps_to_string ps2))
+  | Br[], Br (_::_) | Br(_::_), Br[] ->
+    raise (NotEqual (ps_to_string ps1, ps_to_string ps2))
 
 let rec check_equal_ty ty1 ty2 =
   match ty1, ty2 with
@@ -53,7 +73,8 @@ let rec check_equal_ty ty1 ty2 =
      check_equal_ty ty1 ty2;
      check_equal_tm u1 u2;
      check_equal_tm v1 v2
-  | Obj, Arr _ | Arr _, Obj -> raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
+  | Obj, Arr _ | Arr _, Obj ->
+    raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
 and check_equal_tm tm1 tm2 =
   match tm1, tm2 with
   | Var v1, Var v2 -> Var.check_equal v1 v2
@@ -61,7 +82,8 @@ and check_equal_tm tm1 tm2 =
      check_equal_ps ps1 ps2;
      check_equal_ty ty1 ty2;
      check_equal_sub_ps s1 s2
-  | Var _, Coh _ | Coh _, Var _ -> raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
+  | Var _, Coh _ | Coh _, Var _ ->
+    raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
 and check_equal_sub_ps s1 s2 =
   List.iter2 check_equal_tm s1 s2
 
@@ -72,7 +94,8 @@ let rec check_equal_ctx ctx1 ctx2 =
      Var.check_equal v1 v2;
      check_equal_ty t1 t2;
      check_equal_ctx c1 c2
-  | _::_,[] | [],_::_ -> raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
+  | _::_,[] | [],_::_ ->
+    raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
 
 let rec tm_do_on_variables tm f =
   match tm with
@@ -80,11 +103,11 @@ let rec tm_do_on_variables tm f =
   | Coh(ps,ty,s) -> Coh (ps,ty, sub_ps_do_on_variables s f)
 and sub_ps_do_on_variables s f = List.map (fun t -> tm_do_on_variables t f) s
 
-
 let rec ty_do_on_variables ty f =
   match ty with
   | Obj -> Obj
-  | Arr(a,u,v) -> Arr(ty_do_on_variables a f, tm_do_on_variables u f, tm_do_on_variables v f)
+  | Arr(a,u,v) ->
+    Arr(ty_do_on_variables a f, tm_do_on_variables u f, tm_do_on_variables v f)
 
 let apply_sub_fn s = fun v -> List.assoc v s
 
@@ -107,7 +130,8 @@ let rec db_levels c =
          let lvl = max + 1 in
          (Var.Db lvl, rename_ty t l) ::c, (x, lvl)::l, lvl
 
-let increase_lv_ty ty i m = ty_do_on_variables ty (fun v -> Var (Var.increase_lv v i m))
+let increase_lv_ty ty i m =
+  ty_do_on_variables ty (fun v -> Var (Var.increase_lv v i m))
 
 let rec suspend_ty = function
   | Obj -> Arr(Obj, Var (Db 0), Var (Db 1))
@@ -123,9 +147,12 @@ let rec suspend_ctx : ctx -> ctx = function
 let rec ps_to_ctx_aux ps =
   match ps with
   | Br [] -> [(Var.Db 0), Obj], 0, 0
-  | Br l -> ps_concat (List.map
-                         (fun ps -> let ps,_,m = ps_to_ctx_aux ps in (suspend_ctx ps, 1, m+2))
-                         l)
+  | Br l ->
+    ps_concat (List.map
+                 (fun ps ->
+                    let ps,_,m = ps_to_ctx_aux ps in
+                    (suspend_ctx ps, 1, m+2))
+                 l)
 and ps_concat = function
   | [] -> assert false
   | ps :: [] -> ps
