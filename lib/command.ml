@@ -5,6 +5,7 @@ type cmd =
   | Coh of Var.t * (Var.t * Syntax.ty) list * Syntax.ty
   | Check of ((Var.t * Syntax.ty) list) * Syntax.tm * Syntax.ty option
   | Decl of Var.t * (Var.t * Syntax.ty) list * Syntax.tm * Syntax.ty option
+  | Set of string * string
 
 type prog = cmd list
 
@@ -33,6 +34,31 @@ let check l e t =
   let c = Kernel.Ctx.check c in
   ignore(Kernel.Tm.check c ?ty e)
 
+let exec_set o v =
+  let parse_bool v =
+    match v with
+    | _ when String.equal v "t" -> true
+    | _ when String.equal v "true" -> true
+    | _ when String.equal v "1" -> true
+    | _ when String.equal v "f" -> false
+    | _ when String.equal v "false" -> false
+    | _ when String.equal v "0" -> false
+    | _ -> raise (Error.NotABoolean v)
+  in
+  let parse_int v =
+    match int_of_string_opt v with
+    | Some s -> s
+    | None -> raise (Error.NotAnInt v)
+  in
+  match o with
+  | _ when String.equal o "explicit_substitutions" ->
+    let v = parse_bool v in
+    Settings.explicit_substitutions := v
+  | _ when String.equal o "verbosity" ->
+    let v = parse_int v in
+    Settings.verbosity := v
+  | _ -> raise (Error.UnknownOption o)
+
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
@@ -45,6 +71,7 @@ let exec_cmd cmd =
   | Decl (v,l,e,t) ->
     Io.command "let %s = %s" (Var.to_string v) (Syntax.string_of_tm e);
     exec_decl v l e t
+  | Set (o,v) -> exec_set o v
 
 let exec prog =
   let rec aux = function

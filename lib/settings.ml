@@ -1,2 +1,2 @@
-let partial_substitutions = ref true
+let explicit_substitutions = ref false
 let verbosity = ref 0

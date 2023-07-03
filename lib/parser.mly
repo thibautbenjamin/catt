@@ -16,7 +16,7 @@
 %token COH OBJ MOR
 %token LPAR RPAR LBRA RBRA COL
 %token <string> IDENT
-%token CHECK EQUAL LET IN
+%token CHECK EQUAL LET IN SET
 %token EOF
 
 %start prog
@@ -34,6 +34,7 @@ cmd:
     | CHECK args EQUAL tmexpr { Check ($2,$4,None) }
     | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (Var.make_var $2,$3,$7,Some $5) }
     | LET IDENT args EQUAL tmexpr { Decl (Var.make_var $2,$3,$5, None) }
+    | SET IDENT EQUAL IDENT { Set ($2,$4) }
 
 args:
     | args LPAR IDENT COL tyexpr RPAR { (Var.make_var $3, $5)::$1 }
