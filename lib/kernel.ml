@@ -33,20 +33,6 @@ end
   let src s = s.src
   let tgt s = s.tgt
 
-  (** String representation of a substitution. We print only maximal elements *)
-  let _to_string (s:t) =
-    let rec print_list s c =
-      match s,c with
-      | [], c when Ctx.is_empty c -> ""
-      | (u::s),c -> begin
-          match Ctx.head c with
-          | (_, (_,true)) ->
-             Printf.sprintf "%s %s" (print_list s (Ctx.tail c)) (Tm.to_string u)
-          | (_, (_,false)) -> Printf.sprintf "%s" (print_list s (Ctx.tail c))
-        end
-      | _ -> assert false
-    in print_list s.list s.tgt
-
   let rec _check (src : Ctx.t) s tgt =
     (* debug "check : source= %s; substitution= %s; target=%s" *)
     (*   (Ctx.to_string src) *)
@@ -56,8 +42,8 @@ end
       match s, Ctx.value tgt with
       | [], [] -> []
       | (_::_,[] |[],_::_) -> raise NotValid
-      | (x1,_)::_, (x2,(_,_))::_ when x1 != x2 -> raise NotValid
-      | (_,t)::s, (_,(a,_))::tgt ->
+      | (x1,_)::_, (x2,_)::_ when x1 != x2 -> raise NotValid
+      | (_,t)::s, (_,a)::tgt ->
 	 let sub = _check src s tgt in
          let t = Tm.check src t in
 	 Ty.check_equal t.ty (Ty.apply a sub);
@@ -72,25 +58,24 @@ end
 
   let _forget s = List.map2 (fun (v,_) t -> (v, Tm._forget t)) s.tgt s.list
   let _forget_to_ps s = List.map Tm._forget s.list
+
+  let _to_string s =
+    Unchecked.sub_to_string (_forget s)
 end
 
 (** A context, associating a type to each context variable. *)
 and Ctx
     :
 sig
-  type t = (Variables.t * (Ty.t * bool)) list
+  type t = (Variables.t * Ty.t) list
 
   (* Makers *)
   val empty : unit -> t
 
-  (* Structural operations *)
-  val head : t -> Variables.t * (Ty.t * bool)
-  val tail : t -> t
-
   (* Syntactic properties *)
   val ty_var : t -> Variables.t -> Ty.t
   val domain : t -> Variables.t list
-  val value : t -> (Variables.t * (Ty.t * bool)) list
+  val value : t -> (Variables.t * Ty.t) list
 
   val _forget : t -> Unchecked.ctx
   val _check : Unchecked.ctx -> t
@@ -98,7 +83,6 @@ sig
 
 
   (* Equality procedure *)
-  val is_empty : t -> bool
   val check_equal : t -> t -> unit
 
   (* Printing *)
@@ -107,68 +91,27 @@ end
   =
 struct
   (** A context. Variables together with a type a a boolean indicating if the variable is explicit or implicit*)
-  type t = (Variables.t * (Ty.t * bool)) list
+  type t = (Variables.t * Ty.t) list
 
   (** type of a variable in a context. *)
   let ty_var (ctx:t) x =
-    try
-      fst (List.assoc x ctx)
-    with
-    | Not_found -> raise (UnknownId (Variables.to_string x))
+    try List.assoc x ctx
+    with Not_found -> raise (UnknownId (Variables.to_string x))
 
-  (* ------ Makers ------ *)
   (** Empty context. *)
   let empty () = []
 
-  (* ---------------------
-      Structural operations
-      --------------------- *)
-
-  (** First element of a context. *)
-  let head ctx =
-    match ctx with
-    |[] -> assert false
-    |a::_ -> a
-
-  (** Tail of a context. *)
-  let tail ctx =
-    match ctx with
-    |[] -> assert false
-    |_::l -> l
-
-  (* --------------------
-     Syntactic properties
-     -------------------- *)
   (** Domain of definition of a context. *)
   let domain ctx = List.map fst ctx
 
   let value (ctx : t) = ctx
 
-  (* -------------------
-     Equality procedures
-     ------------------- *)
-  (** Is a context empty? *)
-  let is_empty (c:t) =
-    c = []
+  let _forget c = List.map (fun (x,a) -> (x, Ty._forget a)) c
 
-  (** String representation of a context. *)
-  let rec to_string ctx =
-    match ctx with
-    | [] -> ""
-    | (x,(t,false))::c ->
-       Printf.sprintf "%s {%s,%s}"
-         (to_string c)
-         (Variables.to_string x)
-         (Ty.to_string t)
-    | (x,(t,true))::c ->
-       Printf.sprintf "%s (%s,%s)"
-         (to_string c)
-	 (Variables.to_string x)
-         (Ty.to_string t)
+  let to_string ctx =
+    Unchecked.ctx_to_string (_forget ctx)
 
-  let _forget c = List.map (fun (x,(a,_)) -> (x, Ty._forget a)) c
-
-    let check_equal ctx1 ctx2 =
+  let check_equal ctx1 ctx2 =
     Unchecked.check_equal_ctx (_forget ctx1) (_forget ctx2)
 
   let check_notin c x =
@@ -180,7 +123,7 @@ struct
   let _extend c x t =
     let t = Ty._from_unchecked c t in
     check_notin c x;
-    (x,(t,true))::c
+    (x,t)::c
 
   let _check c = List.fold_right (fun (x,t) c -> _extend c x t) c (Ctx.empty ())
 end
@@ -229,16 +172,16 @@ struct
   (** Create a context from a pasting scheme. *)
   let old_rep_to_ctx ps =
     match ps with
-    |PNil (x,t) -> [(x,(t,true))]
+    |PNil (x,t) -> [(x,t)]
     |_ ->
       let rec aux ps =
         match ps with
         |PDrop (PCons (ps,(x1,t1),(x2,t2))) -> let c = aux ps in
-                                               (x2,(t2,true))::(x1,(t1, false))::c
+                                               (x2,t2)::(x1,t1)::c
         |PDrop ps -> aux ps
         |PCons (ps,(x1,t1),(x2,t2)) -> let c = aux ps in
-                                       (x2,(t2,false))::(x1,(t1,false))::c
-        |PNil (x,t) -> [(x,(t,false))]
+                                       (x2,t2)::(x1,t1)::c
+        |PNil (x,t) -> [(x,t)]
       in (aux ps)
 
   (** Domain of definition. *)
@@ -283,11 +226,11 @@ struct
     let build l =
       let x0,ty,l =
         match l with
-        | (x,(ty,_))::l when ty.e = Obj -> x,ty,l
+        | (x,ty)::l when ty.e = Obj -> x,ty,l
         | _ -> raise Invalid
       in
       let rec aux ps = function
-        | ((y,(ty,_))::(f,(tf,_))::l) as l1 ->
+        | ((y,ty)::(f,tf)::l) as l1 ->
            begin
              let open Tm in
              let open Ty in
