@@ -27,7 +27,10 @@ and sub_red src s tgt =
   match s,tgt with
   | [],[] -> []
   | t::s, (x,(_, true))::tgt -> (x, tm_red src t)::(sub_red src s tgt)
-  | s, (x,(_, false))::tgt -> (x, new_meta())::(sub_red src s tgt)
+  | (t::tail) as s, (x,(_, false))::tgt ->
+    if !Settings.explicit_substitutions then
+      (x, tm_red src t)::(sub_red src tail tgt)
+    else (x, new_meta())::(sub_red src s tgt)
   | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
 
 let ty_red ctx ty =

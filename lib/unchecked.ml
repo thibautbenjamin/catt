@@ -134,9 +134,8 @@ and suspend_tm = function
   | Coh _ -> assert false
 
 let rec suspend_ctx ctx =
-  let expl = !Settings.explicit_substitutions in
   match ctx with
-  | [] -> (Var.Db 1, (Obj, expl)) :: (Var.Db 0, (Obj, expl)) :: []
+  | [] -> (Var.Db 1, (Obj, false)) :: (Var.Db 0, (Obj, false)) :: []
   | (v,(t,expl))::c -> (Var.suspend v, (suspend_ty t, expl)) :: (suspend_ctx c)
 
 let rec ps_to_ctx_aux ps =
@@ -162,7 +161,6 @@ and chop_and_increase ctx i m =
      let v = Var.increase_lv v i m in
      let t = increase_lv_ty t i m in
      let ctx = chop_and_increase ctx i m in
-     let expl = !Settings.explicit_substitutions in
-     (v,(t, expl))::ctx
+     (v,(t, false))::ctx
 
 let ps_to_ctx ps = let c,_,_ = ps_to_ctx_aux ps in c
