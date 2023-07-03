@@ -1,6 +1,8 @@
+open Common
+
 type value =
-  | Coh of Unchecked.ps * Unchecked.ty
-  | Tm of Unchecked.ctx * Unchecked.tm
+  | Coh of ps * ty
+  | Tm of ctx * tm
 
 type t = (Var.t, value) Hashtbl.t
 

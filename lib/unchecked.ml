@@ -2,20 +2,6 @@ open Common
 
 exception DoubleDef
 
-type ps = Br of ps list
-
-type ty =
-  | Obj
-  | Arr of ty * tm * tm
-and tm =
-  | Var of Var.t
-  | Coh of ps * ty * sub_ps
-and sub_ps = tm list
-
-type ctx = (Var.t * ty) list
-
-type sub = (Var.t * tm) list
-
 let rec ps_to_string = function
   | Br l -> Printf.sprintf "[%s]"
               (List.fold_left
@@ -64,7 +50,7 @@ let rec check_equal_ps ps1 ps2 =
      check_equal_ps ps1 ps2;
      List.iter2 check_equal_ps l1 l2
   | Br[], Br (_::_) | Br(_::_), Br[] ->
-    raise (NotEqual (ps_to_string ps1, ps_to_string ps2))
+    raise (Error.NotEqual (ps_to_string ps1, ps_to_string ps2))
 
 let rec check_equal_ty ty1 ty2 =
   match ty1, ty2 with
@@ -74,7 +60,7 @@ let rec check_equal_ty ty1 ty2 =
      check_equal_tm u1 u2;
      check_equal_tm v1 v2
   | Obj, Arr _ | Arr _, Obj ->
-    raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
+    raise (Error.NotEqual (ty_to_string ty1, ty_to_string ty2))
 and check_equal_tm tm1 tm2 =
   match tm1, tm2 with
   | Var v1, Var v2 -> Var.check_equal v1 v2
@@ -83,7 +69,7 @@ and check_equal_tm tm1 tm2 =
      check_equal_ty ty1 ty2;
      check_equal_sub_ps s1 s2
   | Var _, Coh _ | Coh _, Var _ ->
-    raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
+    raise (Error.NotEqual (tm_to_string tm1, tm_to_string tm2))
 and check_equal_sub_ps s1 s2 =
   List.iter2 check_equal_tm s1 s2
 
@@ -95,7 +81,7 @@ let rec check_equal_ctx ctx1 ctx2 =
      check_equal_ty t1 t2;
      check_equal_ctx c1 c2
   | _::_,[] | [],_::_ ->
-    raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
+    raise (Error.NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
 
 let rec tm_do_on_variables tm f =
   match tm with

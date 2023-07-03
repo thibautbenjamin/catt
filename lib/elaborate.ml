@@ -1,13 +1,15 @@
+open Common
+
 exception WrongNumberOfArguments
 
 (* inductive translation on terms and types without let_in *)
 let rec tm_red ctx tm =
   match tm with
-  | Syntax.Var v -> Unchecked.Var v
+  | Syntax.Var v -> Var v
   | Syntax.Sub(Var v, s, _) ->
      begin
        match Environment.val_var v with
-       | Coh(ps, ty) -> Unchecked.Coh(ps,ty,sub_ps_red ctx s)
+       | Coh(ps, ty) -> Coh(ps,ty,sub_ps_red ctx s)
        | Tm(c,t) ->
           let s = sub_red ctx s c in
           Unchecked.tm_apply_sub t s
@@ -22,12 +24,12 @@ and sub_red src s tgt =
 
 let ty_red ctx ty =
   match ty with
-  | Syntax.Obj -> Unchecked.Obj
+  | Syntax.Obj -> Obj
   | Syntax.Arr(u,v) ->
      let tu, tv = tm_red ctx u, tm_red ctx v in
      let u = Kernel.Tm.check ctx tu in
      let a = Kernel.(Ty.forget (Tm.typ u)) in
-     Unchecked.Arr(a,tu,tv)
+     Arr(a,tu,tv)
   | Syntax.Letin_ty _ -> assert false
 
 let rec ctx = function

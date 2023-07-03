@@ -1,5 +1,3 @@
-open Common
-
 type t =
   | Name of string
   | New of int
@@ -16,15 +14,15 @@ let make_var s = Name s
 let check_equal v1 v2 =
   match v1, v2 with
   | Name s1, Name s2 ->
-    if not (String.equal s1 s2) then raise (NotEqual(s1,s2)) else ()
+    if not (String.equal s1 s2) then raise (Error.NotEqual(s1,s2)) else ()
   | New i, New j ->
-    if  i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
+    if  i != j then raise (Error.NotEqual(to_string v1, to_string v2)) else ()
   | Db i, Db j -> if
-    i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
+    i != j then raise (Error.NotEqual(to_string v1, to_string v2)) else ()
   | Name _, New _ | Name _, Db _
   | New _ , Name _ | New _, Db _
   | Db _, Name _| Db _, New _
-    -> raise (NotEqual(to_string v1, to_string v2))
+    -> raise (Error.NotEqual(to_string v1, to_string v2))
 
 let increase_lv v i m =
   match v with

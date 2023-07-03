@@ -4,9 +4,9 @@ open Common
 (** Operations on substitutions. *)
 module rec Sub : sig
   type t
-  val check_to_ps : Ctx.t -> Unchecked.sub_ps -> PS.t -> t
-  val forget : t -> Unchecked.sub
-  val forget_to_ps : t -> Unchecked.sub_ps
+  val check_to_ps : Ctx.t -> sub_ps -> PS.t -> t
+  val forget : t -> sub
+  val forget_to_ps : t -> sub_ps
   val free_vars : t -> Var.t list
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
@@ -25,11 +25,11 @@ end
     (*   (Ctx.to_string src) *)
     (*   (Unchecked.sub_to_string s) *)
     (*   (Ctx.to_string tgt); *)
-    let expr (s : Unchecked.sub) tgt =
+    let expr (s : sub) tgt =
       match s, Ctx.value tgt with
       | [], [] -> []
-      | (_::_,[] |[],_::_) -> raise NotValid
-      | (x1,_)::_, (x2,_)::_ when x1 <> x2 -> raise NotValid
+      | (_::_,[] |[],_::_) -> raise Error.NotValid
+      | (x1,_)::_, (x2,_)::_ when x1 <> x2 -> raise Error.NotValid
       | (_,t)::s, (_,a)::_ ->
 	 let sub = check src s (Ctx.tail tgt) in
          let t = Tm.check src t in
@@ -56,8 +56,8 @@ and Ctx : sig
   val ty_var : t -> Var.t -> Ty.t
   val domain : t -> Var.t list
   val value : t -> (Var.t * Ty.t) list
-  val extend : t -> Var.t -> Unchecked.ty -> t
-  val check : Unchecked.ctx -> t
+  val extend : t -> Var.t -> ty -> t
+  val check : ctx -> t
   val check_notin : t -> Var.t -> unit
   val check_equal : t -> t -> unit
 end
@@ -71,7 +71,7 @@ struct
 
   let ty_var (ctx:t) x =
     try List.assoc x ctx
-    with Not_found -> raise (UnknownId (Var.to_string x))
+    with Not_found -> raise (Error.UnknownId (Var.to_string x))
 
   let empty () = []
 
@@ -86,7 +86,7 @@ struct
   let check_notin c x =
     try
       ignore (List.assoc x c);
-      raise (DoubleDef (Var.to_string x))
+      raise (Error.DoubleDef (Var.to_string x))
     with Not_found -> ()
 
   let extend c x t =
@@ -107,7 +107,7 @@ and PS : sig
   val dim : t -> int
   val source : int -> t -> Var.t list
   val target : int -> t -> Var.t list
-  val forget : t -> Unchecked.ps
+  val forget : t -> ps
   val to_string : t -> string
 end
   =
@@ -120,7 +120,7 @@ struct
     | PCons of oldrep * (Var.t * Ty.t) * (Var.t * Ty.t)
     | PDrop of oldrep
 
-  type newt = { tree : Unchecked.ps; ctx : Ctx.t}
+  type newt = { tree : ps; ctx : Ctx.t}
 
   type t = {oldrep : oldrep; newrep : newt}
 
@@ -193,9 +193,9 @@ struct
                 if x = fx then
                   let varps = Ctx.domain (old_rep_to_ctx ps) in
                   if (List.mem f varps) then
-                    raise (DoubledVar (Var.to_string f));
+                    raise (Error.DoubledVar (Var.to_string f));
                   if (List.mem y varps) then
-                    raise (DoubledVar (Var.to_string y));
+                    raise (Error.DoubledVar (Var.to_string y));
                   let ps = PCons (ps,(y,ty),(f,tf)) in
                   aux ps l
                   else
@@ -213,11 +213,11 @@ struct
   let make_tree ps =
     let rec find_previous ps list =
       match ps with
-      | PNil x -> (Unchecked.Br list, PNil x)
-      | PCons (ps,_,_) -> (Unchecked.Br list, ps)
+      | PNil x -> (Br list, PNil x)
+      | PCons (ps,_,_) -> (Br list, ps)
       | PDrop _ as ps ->
          let p,ps = build_till_previous ps in
-         Unchecked.Br p, ps
+         Br p, ps
     and build_till_previous ps =
       match ps with
       | PNil x -> [], PNil x
@@ -227,7 +227,7 @@ struct
          let prev,ps = build_till_previous ps in
                  p::prev, ps
     in
-    Unchecked.Br (fst (build_till_previous ps))
+    Br (fst (build_till_previous ps))
 
   let mk (l : Ctx.t) =
     let oldrep = make_old l in
@@ -299,8 +299,8 @@ and Ty : sig
   val is_obj : t -> bool
   val to_string : t -> string
   val check_equal : t -> t -> unit
-  val forget : t -> Unchecked.ty
-  val check : Ctx.t -> Unchecked.ty -> t
+  val forget : t -> ty
+  val check : Ctx.t -> ty -> t
   val apply : t -> Sub.t -> t
   val expr : t -> expr
 end
@@ -321,8 +321,8 @@ struct
     (* (Unchecked.ty_to_string t) (Ctx.to_string c); *)
     let e =
       match t with
-      | Unchecked.Obj -> Obj
-      | Unchecked.Arr(a,u,v) ->
+      | Common.Obj -> Obj
+      | Common.Arr(a,u,v) ->
          let a = check c a in
          let u = Tm.check c u in
          let v = Tm.check c v in
@@ -337,8 +337,8 @@ struct
 
   let rec forget t =
     match t.e with
-    | Obj -> Unchecked.Obj
-    | Arr (a,u,v) -> Unchecked.Arr (forget a, Tm.forget u, Tm.forget v)
+    | Obj -> Common.Obj
+    | Arr (a,u,v) -> Common.Arr (forget a, Tm.forget u, Tm.forget v)
 
   let to_string ty =
     Unchecked.ty_to_string (forget ty)
@@ -362,8 +362,8 @@ and Tm : sig
   type t
   val typ : t -> Ty.t
   val free_vars : t -> Var.t list
-  val check : Ctx.t -> ?ty : Unchecked.ty -> Unchecked.tm -> t
-  val forget : t -> Unchecked.tm
+  val check : Ctx.t -> ?ty : ty -> tm -> t
+  val forget : t -> tm
   val expr : t -> expr
 end
   =
@@ -383,11 +383,11 @@ struct
 
   let forget tm =
     match tm.e with
-    | Var v -> Unchecked.Var v
+    | Var v -> Common.Var v
     | Coh(c,s) ->
        let ps,t = Coh.forget c in
        let s = Sub.forget_to_ps s in
-       Unchecked.Coh (ps,t,s)
+       Common.Coh (ps,t,s)
 
   let check c ?ty t =
     (* debug "building kernel term %s in context %s"
@@ -395,10 +395,10 @@ struct
        (Ctx.to_string c); *)
     let tm =
       match t with
-      | Unchecked.Var x ->
+      | Common.Var x ->
          let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
          ({ty; e})
-      | Unchecked.Coh (ps,t,s) ->
+      | Common.Coh (ps,t,s) ->
          let coh = Coh.check ps t [] in
          let sub = Sub.check_to_ps c s (Coh.ps coh) in
          let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
@@ -417,8 +417,8 @@ and Coh
   val ps : t -> PS.t
   val ty : t -> Ty.t
   val _to_string : t -> string
-  val forget : t -> Unchecked.ps * Unchecked.ty
-  val check : Unchecked.ps -> Unchecked.ty -> (Var.t * int) list -> t
+  val forget : t -> ps * ty
+  val check : ps -> ty -> (Var.t * int) list -> t
 end
 =
 struct
@@ -433,7 +433,7 @@ struct
     else
       let a,f,g = match Ty.expr t with
         | Arr(a,f,g) -> (a,f,g)
-        | _ -> raise NotAlgebraic
+        | _ -> raise Error.NotAlgebraic
       in
       let i = PS.dim ps in
       let pss, pst = PS.source (i-1) ps, PS.target (i-1) ps in
@@ -441,7 +441,7 @@ struct
       let fvg = List.union (Tm.free_vars g) (Ty.free_vars a) in
       if (List.set_equal pss fvf && List.set_equal pst fvg)
       then (ps,t,l)
-      else raise NotAlgebraic
+      else raise Error.NotAlgebraic
 
   let check ps t names =
     (* debug "checking coherence (%s,%s)"
