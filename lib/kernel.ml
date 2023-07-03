@@ -32,7 +32,7 @@ end
   let src s = s.src
   let tgt s = s.tgt
 
-  let rec check (src : Ctx.t) s tgt =
+  let rec check src s tgt =
     (* debug "check : source= %s; substitution= %s; target=%s" *)
     (*   (Ctx.to_string src) *)
     (*   (Unchecked.sub_to_string s) *)
@@ -41,21 +41,21 @@ end
       match s, Ctx.value tgt with
       | [], [] -> []
       | (_::_,[] |[],_::_) -> raise NotValid
-      | (x1,_)::_, (x2,_)::_ when x1 != x2 -> raise NotValid
-      | (_,t)::s, (_,a)::tgt ->
-	 let sub = check src s tgt in
+      | (x1,_)::_, (x2,_)::_ when x1 <> x2 -> raise NotValid
+      | (_,t)::s, (_,a)::_ ->
+	 let sub = check src s (Ctx.tail tgt) in
          let t = Tm.check src t in
-	 Ty.check_equal t.ty (Ty.apply a sub);
+	 Ty.check_equal (Tm.typ t) (Ty.apply a sub);
 	 t::sub.list
     in
     {list = expr s tgt; src; tgt}
 
   let check_to_ps src s tgt =
     let tgt = PS.to_ctx tgt in
-    let s = List.map2 (fun (x,_) t -> (x,t)) tgt s in
+    let s = List.map2 (fun (x,_) t -> (x,t)) (Ctx.value tgt) s in
     check src s tgt
 
-  let forget s = List.map2 (fun (v,_) t -> (v, Tm.forget t)) s.tgt s.list
+  let forget s = List.map2 (fun (v,_) t -> (v, Tm.forget t)) (Ctx.value s.tgt) s.list
   let forget_to_ps s = List.map Tm.forget s.list
 
   let to_string s =
@@ -64,25 +64,25 @@ end
 
 (** A context, associating a type to each context variable. *)
 and Ctx : sig
-  type t = (Variables.t * Ty.t) list
-
-  (* Makers *)
+  type t
   val empty : unit -> t
-
-  (* Syntactic properties *)
+  val tail : t -> t
   val ty_var : t -> Variables.t -> Ty.t
   val domain : t -> Variables.t list
   val value : t -> (Variables.t * Ty.t) list
-
+  val extend : t -> Variables.t -> Unchecked.ty -> t
   val check : Unchecked.ctx -> t
-
-  (* Equality procedure *)
+  val check_notin : t -> Variables.t -> unit
   val check_equal : t -> t -> unit
 end
   =
 struct
   (** A context. Variables together with a type a a boolean indicating if the variable is explicit or implicit*)
   type t = (Variables.t * Ty.t) list
+
+  let tail = function
+    | [] -> assert false
+    | _::c -> c
 
   (** type of a variable in a context. *)
   let ty_var (ctx:t) x =
@@ -113,33 +113,22 @@ struct
 
   let extend c x t =
     let t = Ty.check c t in
-    check_notin c x;
-    (x,t)::c
+    Ctx.check_notin c x;
+    (x,t)::(Ctx.value c)
 
-  let check c = List.fold_right (fun (x,t) c -> extend c x t) c (Ctx.empty ())
+  let check c = List.fold_right (fun (x,t) c -> Ctx.extend c x t) c (Ctx.empty ())
 end
 
 (** Operations on pasting schemes. *)
-and PS
-    :
-sig
+and PS : sig
   type t
-
-  (* Maker *)
   val mk : Ctx.t -> t
-
-  (* Syntactic properties *)
   val domain : t -> Variables.t list
   val to_ctx : t -> Ctx.t
-
-  (* Structural operations *)
   val dim : t -> int
   val source : int -> t -> Variables.t list
   val target : int -> t -> Variables.t list
-
   val forget : t -> Unchecked.ps
-
-  (* Printing *)
   val to_string : t -> string
 end
   =
@@ -158,18 +147,13 @@ struct
 
   (** Create a context from a pasting scheme. *)
   let old_rep_to_ctx ps =
-    match ps with
-    |PNil (x,t) -> [(x,t)]
-    |_ ->
-      let rec aux ps =
-        match ps with
-        |PDrop (PCons (ps,(x1,t1),(x2,t2))) -> let c = aux ps in
-                                               (x2,t2)::(x1,t1)::c
-        |PDrop ps -> aux ps
-        |PCons (ps,(x1,t1),(x2,t2)) -> let c = aux ps in
-                                       (x2,t2)::(x1,t1)::c
-        |PNil (x,t) -> [(x,t)]
-      in (aux ps)
+    let rec list ps =
+      match ps with
+      |PDrop ps -> list ps
+      |PCons (ps,(x1,t1),(x2,t2)) ->
+        (x2,Ty.forget t2)::(x1,Ty.forget t1)::(list ps)
+      |PNil (x,t) -> [(x,Ty.forget t)]
+    in Ctx.check (list ps)
 
   (** Domain of definition. *)
   let domain ps = Ctx.domain ps.newrep.ctx
@@ -181,10 +165,13 @@ struct
     | PCons (_,_,f) -> f
     | PDrop ps ->
        let _,tf = marker ps in
-       let open Ty in
-       let open Tm in
-       match tf.e with
-       | Ty.Arr (_,_,{e = Tm.Var y; _}) ->
+       match (Ty.expr tf) with
+       | Ty.Arr (_,_,v) ->
+          let y =
+            match Tm.expr v with
+            | Tm.Var y -> y
+            | Tm.Coh _ -> raise Invalid
+          in
           let t =
             let rec aux = function
               | PNil (x,t) -> assert (x = y); t
@@ -201,25 +188,27 @@ struct
 
   (** Create a pasting scheme from a context. *)
   let make_old (l : Ctx.t)  =
-    let open Ty in
     let rec close ps tx =
-      match tx.e with
+      match Ty.expr tx with
       | Obj -> ps
       | Arr (tx,_,_) -> close (PDrop ps) tx
     in
     let build l =
       let x0,ty,l =
         match l with
-        | (x,ty)::l when ty.e = Obj -> x,ty,l
+        | (x,ty)::l when Ty.is_obj ty -> x,ty,l
         | _ -> raise Invalid
       in
       let rec aux ps = function
         | ((y,ty)::(f,tf)::l) as l1 ->
            begin
-             let open Tm in
-             let open Ty in
-             match tf.e with
-             | Arr (_, {e = Var fx; _}, {e = Var fy; _}) ->
+             match Ty.expr tf with
+             | Arr (_,u,v) ->
+                let fx,fy =
+                  match Tm.expr u,Tm.expr v with
+                  | Var fx, Var fy -> fx, fy
+                  | Var _, Coh _ | Coh _, Var _ | Coh _, Coh _ -> raise Invalid
+                in
                 if (y <> fy) then raise Invalid;
                 let x,_ = marker ps in
                 if x = fx then
@@ -321,18 +310,18 @@ struct
 end
 and Ty : sig
   type expr =
+    private
     | Obj
     | Arr of t * Tm.t * Tm.t
-  and t = {c : Ctx.t; e : expr}
-
+  and t
   val free_vars : t -> Variables.t list
+  val is_obj : t -> bool
   val to_string : t -> string
-
   val check_equal : t -> t -> unit
-
   val forget : t -> Unchecked.ty
   val check : Ctx.t -> Unchecked.ty -> t
   val apply : t -> Sub.t -> t
+  val expr : t -> expr
 end
   =
 struct
@@ -341,6 +330,10 @@ struct
     | Obj
     | Arr of t * Tm.t * Tm.t
   and t = {c : Ctx.t; e : expr}
+
+  let expr t = t.e
+
+  let is_obj t = (t.e = Obj)
 
   let rec check c t =
     (* debug "building kernel type %s in context %s" *)
@@ -387,30 +380,26 @@ end
 (** Operations on terms. *)
 and Tm : sig
   type expr =
-    | Var of Variables.t
+    private
+    | Var of Variables.t (** a context variable *)
     | Coh of Coh.t * Sub.t
-  and t = {c : Ctx.t; ty : Ty.t; e : expr}
-
+  type t
   val typ : t -> Ty.t
-
   val free_vars : t -> Variables.t list
   val to_string : t -> string
-
   val check : Ctx.t -> ?ty : Unchecked.ty -> Unchecked.tm -> t
-
   val forget : t -> Unchecked.tm
+  val expr : t -> expr
 end
   =
 struct
-  (** An expression. *)
   type expr =
     | Var of Variables.t (** a context variable *)
     | Coh of Coh.t * Sub.t
-
-  (** A term, i.e. an expression with given type in given context. *)
-  and t = {c : Ctx.t; ty : Ty.t; e : expr}
+  and t = {ty : Ty.t; e : expr}
 
   let typ t = t.ty
+  let expr t = t.e
 
   let free_vars tm =
     match tm.e with
@@ -436,12 +425,12 @@ struct
       match t with
       | Unchecked.Var x ->
          let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
-         ({c; ty; e})
+         ({ty; e})
       | Unchecked.Coh (ps,t,s) ->
          let coh = Coh.check ps t [] in
          let sub = Sub.check_to_ps c s (Coh.ps coh) in
          let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
-         {c; ty; e}
+         {ty; e}
     in match ty with
        | None -> tm
        | Some ty ->
@@ -452,13 +441,10 @@ end
 (** A coherence. *)
 and Coh
     : sig
-  type t = PS.t * Ty.t * (Variables.t * int) list
-
+  type t
   val ps : t -> PS.t
   val ty : t -> Ty.t
-
   val _to_string : t -> string
-
   val forget : t -> Unchecked.ps * Unchecked.ty
   val check : Unchecked.ps -> Unchecked.ty -> (Variables.t * int) list -> t
 end
@@ -473,8 +459,7 @@ struct
     if List.included (PS.domain ps) (Ty.free_vars t)
     then (ps,t,l)
     else
-      let open Ty in
-      let a,f,g = match t.e with
+      let a,f,g = match Ty.expr t with
         | Arr(a,f,g) -> (a,f,g)
         | _ -> raise NotAlgebraic
       in
