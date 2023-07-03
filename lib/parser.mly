@@ -1,6 +1,6 @@
 %{
     open Command
-    open Var
+    open Common
     open Syntax
 
     let generate_functorialize l =
@@ -29,14 +29,14 @@ prog:
     | EOF { [] }
 
 cmd:
-    | COH IDENT args COL tyexpr { Coh (make_var $2,$3,$5) }
+    | COH IDENT args COL tyexpr { Coh (Var.make_var $2,$3,$5) }
     | CHECK args COL tyexpr EQUAL tmexpr { Check ($2,$6, Some $4) }
     | CHECK args EQUAL tmexpr { Check ($2,$4,None) }
-    | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (make_var $2,$3,$7,Some $5) }
-    | LET IDENT args EQUAL tmexpr { Decl (make_var $2,$3,$5, None) }
+    | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (Var.make_var $2,$3,$7,Some $5) }
+    | LET IDENT args EQUAL tmexpr { Decl (Var.make_var $2,$3,$5, None) }
 
 args:
-    | args LPAR IDENT COL tyexpr RPAR { (make_var $3, $5)::$1 }
+    | args LPAR IDENT COL tyexpr RPAR { (Var.make_var $3, $5)::$1 }
     | { [] }
 
 nonempty_sub:
@@ -49,7 +49,7 @@ sub:
 
 simple_tmexpr:
     | LPAR tmexpr RPAR { $2 }
-    | IDENT { Var (make_var $1) }
+    | IDENT { Var (Var.make_var $1) }
 
 functed_tmexpr:
     | LBRA tmexpr RBRA { $2 }
@@ -64,10 +64,10 @@ subst_tmexpr:
       		    		      	in Sub ($1,sub,func) }
 
 tmexpr:
-    | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (make_var $2, $4, $6) }
+    | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (Var.make_var $2, $4, $6) }
     | subst_tmexpr { $1 }
 
 tyexpr:
-    | LET IDENT EQUAL tmexpr IN tyexpr { Letin_ty (make_var $2, $4, $6) }
+    | LET IDENT EQUAL tmexpr IN tyexpr { Letin_ty (Var.make_var $2, $4, $6) }
     | simple_tyexpr { $1 }
     | subst_tmexpr MOR subst_tmexpr { Arr ($1,$3) }

@@ -1,3 +1,5 @@
+open Common
+
 type ty =
   | Letin_ty of Var.t * tm * ty
   | Obj

@@ -1,3 +1,5 @@
+open Common
+
 (**toplevel commands. *)
 type cmd =
   | Coh of Var.t * (Var.t * Syntax.ty) list * Syntax.ty
