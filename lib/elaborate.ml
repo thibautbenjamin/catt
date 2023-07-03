@@ -26,7 +26,7 @@ let ty_red ctx ty =
   | Syntax.Arr(u,v) ->
      let tu, tv = tm_red ctx u, tm_red ctx v in
      let u = Kernel.Tm.check ctx tu in
-     let a = Kernel.(Ty._forget (Tm.typ u)) in
+     let a = Kernel.(Ty.forget (Tm.typ u)) in
      Unchecked.Arr(a,tu,tv)
   | Syntax.Letin_ty _ -> assert false
 
@@ -34,25 +34,25 @@ let rec ctx = function
   | [] -> []
   | (v,t) :: c ->
      let c = ctx c in
-     let kc = Kernel.Ctx._check c in
+     let kc = Kernel.Ctx.check c in
      (v, ty_red kc t) :: c
 
 let ty c ty =
   let ty = Syntax.remove_let_ty ty in
-  ty_red (Kernel.Ctx._check c) ty
+  ty_red (Kernel.Ctx.check c) ty
 
 let tm c tm =
   let tm = Syntax.remove_let_tm tm in
-  tm_red (Kernel.Ctx._check c) tm
+  tm_red (Kernel.Ctx.check c) tm
 
 let ty_in_ps ps t =
   let t = Syntax.remove_let_ty t in
   let ps = ctx ps in
-  let t = ty_red (Kernel .Ctx._check ps) t in
+  let t = ty_red (Kernel .Ctx.check ps) t in
   let _, names,_ = Unchecked.db_levels ps in
   let t = Unchecked.rename_ty t names in
   t
 
 let ps p =
   let p = ctx p in
-  Kernel.PS.(_forget (mk (Kernel.Ctx._check p)))
+  Kernel.PS.(forget (mk (Kernel.Ctx.check p)))

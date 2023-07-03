@@ -7,12 +7,12 @@ type t = (Variables.t, value) Hashtbl.t
 let env : t = Hashtbl.create 70
 
 let add_let v c t =
-  let kc = Kernel.Ctx._check c in
+  let kc = Kernel.Ctx.check c in
   ignore(Kernel.Tm.check kc t);
   Hashtbl.add env v (Tm (c,t))
 
 let add_let_check v c tm ty =
-  let kc = Kernel.Ctx._check c in
+  let kc = Kernel.Ctx.check c in
   ignore(Kernel.Tm.check kc ~ty tm);
   Hashtbl.add env v (Tm (c,tm))
 

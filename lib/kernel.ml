@@ -7,16 +7,15 @@ module rec Sub : sig
   type t
 
   (* Structural functions *)
-  val _check : Ctx.t -> Unchecked.sub -> Ctx.t -> t
   val check_to_ps : Ctx.t -> Unchecked.sub_ps -> PS.t -> t
-  val _forget : t -> Unchecked.sub
-  val _forget_to_ps : t -> Unchecked.sub_ps
+  val forget : t -> Unchecked.sub
+  val forget_to_ps : t -> Unchecked.sub_ps
 
   (* Syntactic properties *)
   val free_vars : t -> Variables.t list
 
   (* Printing *)
-  val _to_string : t ->  string
+  val to_string : t ->  string
 
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
@@ -33,7 +32,7 @@ end
   let src s = s.src
   let tgt s = s.tgt
 
-  let rec _check (src : Ctx.t) s tgt =
+  let rec check (src : Ctx.t) s tgt =
     (* debug "check : source= %s; substitution= %s; target=%s" *)
     (*   (Ctx.to_string src) *)
     (*   (Unchecked.sub_to_string s) *)
@@ -44,7 +43,7 @@ end
       | (_::_,[] |[],_::_) -> raise NotValid
       | (x1,_)::_, (x2,_)::_ when x1 != x2 -> raise NotValid
       | (_,t)::s, (_,a)::tgt ->
-	 let sub = _check src s tgt in
+	 let sub = check src s tgt in
          let t = Tm.check src t in
 	 Ty.check_equal t.ty (Ty.apply a sub);
 	 t::sub.list
@@ -54,19 +53,17 @@ end
   let check_to_ps src s tgt =
     let tgt = PS.to_ctx tgt in
     let s = List.map2 (fun (x,_) t -> (x,t)) tgt s in
-    _check src s tgt
+    check src s tgt
 
-  let _forget s = List.map2 (fun (v,_) t -> (v, Tm._forget t)) s.tgt s.list
-  let _forget_to_ps s = List.map Tm._forget s.list
+  let forget s = List.map2 (fun (v,_) t -> (v, Tm.forget t)) s.tgt s.list
+  let forget_to_ps s = List.map Tm.forget s.list
 
-  let _to_string s =
-    Unchecked.sub_to_string (_forget s)
+  let to_string s =
+    Unchecked.sub_to_string (forget s)
 end
 
 (** A context, associating a type to each context variable. *)
-and Ctx
-    :
-sig
+and Ctx : sig
   type t = (Variables.t * Ty.t) list
 
   (* Makers *)
@@ -77,16 +74,10 @@ sig
   val domain : t -> Variables.t list
   val value : t -> (Variables.t * Ty.t) list
 
-  val _forget : t -> Unchecked.ctx
-  val _check : Unchecked.ctx -> t
-  val _extend : t -> Variables.t -> Unchecked.ty -> t
-
+  val check : Unchecked.ctx -> t
 
   (* Equality procedure *)
   val check_equal : t -> t -> unit
-
-  (* Printing *)
-  val to_string : t -> string
 end
   =
 struct
@@ -106,13 +97,13 @@ struct
 
   let value (ctx : t) = ctx
 
-  let _forget c = List.map (fun (x,a) -> (x, Ty._forget a)) c
+  let forget c = List.map (fun (x,a) -> (x, Ty.forget a)) c
 
-  let to_string ctx =
-    Unchecked.ctx_to_string (_forget ctx)
+  let _to_string ctx =
+    Unchecked.ctx_to_string (forget ctx)
 
   let check_equal ctx1 ctx2 =
-    Unchecked.check_equal_ctx (_forget ctx1) (_forget ctx2)
+    Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
 
   let check_notin c x =
     try
@@ -120,12 +111,12 @@ struct
       raise (DoubleDef (Variables.to_string x))
     with Not_found -> ()
 
-  let _extend c x t =
-    let t = Ty._from_unchecked c t in
+  let extend c x t =
+    let t = Ty.check c t in
     check_notin c x;
     (x,t)::c
 
-  let _check c = List.fold_right (fun (x,t) c -> _extend c x t) c (Ctx.empty ())
+  let check c = List.fold_right (fun (x,t) c -> extend c x t) c (Ctx.empty ())
 end
 
 (** Operations on pasting schemes. *)
@@ -146,8 +137,7 @@ sig
   val source : int -> t -> Variables.t list
   val target : int -> t -> Variables.t list
 
-  val _forget : t -> Unchecked.ps
-  val check : Unchecked.ps -> t
+  val forget : t -> Unchecked.ps
 
   (* Printing *)
   val to_string : t -> string
@@ -166,9 +156,6 @@ struct
 
   type t = {oldrep : oldrep; newrep : newt}
 
-     (* --------------------
-      Syntactic properties
-      -------------------- *)
   (** Create a context from a pasting scheme. *)
   let old_rep_to_ctx ps =
     match ps with
@@ -187,9 +174,6 @@ struct
   (** Domain of definition. *)
   let domain ps = Ctx.domain ps.newrep.ctx
 
-  (* -----
-    Maker
-    ----- *)
   (** Dangling variable. *)
   let rec marker (ps : oldrep) =
     match ps with
@@ -279,22 +263,12 @@ struct
     let oldrep = make_old l in
     {oldrep; newrep = {tree = make_tree oldrep; ctx = l}}
 
-  let _forget ps = ps.newrep.tree
-
-  let check ps =
-    (* debug "checking ps %s" (Unchecked.ps_to_string ps); *)
-    let res = PS.mk (Ctx._check (Unchecked.ps_to_ctx ps)) in
-    (* sanity check: we have the tree we started from *)
-    assert (res.newrep.tree = ps);
-    res
+  let forget ps = ps.newrep.tree
 
   (** Create a context from a pasting scheme. *)
   let to_ctx ps =
     ps.newrep.ctx
 
-     (* ---------------------
-      Structural operations
-      --------------------- *)
   (** Height of a pasting scheme. *)
   let rec height_old = function
     | PNil _ -> 0
@@ -343,32 +317,6 @@ struct
 
   let target i ps = target_old i ps.oldrep
 
-  (* --------
-     Printing
-     -------- *)
-  (** String representation of a pasting scheme. *)
-  let _to_string_old ps =
-    if !abbrev then
-      Ctx.to_string (old_rep_to_ctx ps)
-    else
-      let rec print ps =
-	match ps with
-	| PNil (x,t) ->
-	  Printf.sprintf "[(%s,%s)]"
-	    (Variables.to_string x)
-	    (Ty.to_string t)
-	| PCons (ps,(x1,t1),(x2,t2)) ->
-	  Printf.sprintf "%s [(%s,%s) (%s,%s)]"
-	    (print ps)
-	    (Variables.to_string x1)
-	    (Ty.to_string t1)
-	    (Variables.to_string x2)
-	    (Ty.to_string t2)
-	| PDrop ps ->
-	  Printf.sprintf " %s ! "
-	    (print ps)
-      in print ps
-
   let to_string ps = Unchecked.ps_to_string ps.newrep.tree
 end
 and Ty : sig
@@ -382,8 +330,8 @@ and Ty : sig
 
   val check_equal : t -> t -> unit
 
-  val _forget : t -> Unchecked.ty
-  val _from_unchecked : Ctx.t -> Unchecked.ty -> t
+  val forget : t -> Unchecked.ty
+  val check : Ctx.t -> Unchecked.ty -> t
   val apply : t -> Sub.t -> t
 end
   =
@@ -394,14 +342,14 @@ struct
     | Arr of t * Tm.t * Tm.t
   and t = {c : Ctx.t; e : expr}
 
-  let rec _from_unchecked c t =
+  let rec check c t =
     (* debug "building kernel type %s in context %s" *)
     (* (Unchecked.ty_to_string t) (Ctx.to_string c); *)
     let e =
       match t with
       | Unchecked.Obj -> Obj
       | Unchecked.Arr(a,u,v) ->
-         let a = _from_unchecked c a in
+         let a = check c a in
          let u = Tm.check c u in
          let v = Tm.check c v in
          Arr(a,u,v)
@@ -421,25 +369,23 @@ struct
          Printf.sprintf "%s -> %s" (Tm.to_string u) (Tm.to_string v)
        else Printf.sprintf "%s | %s -> %s" (to_string t) (Tm.to_string u) (Tm.to_string v)
 
-  let rec _forget t =
+  let rec forget t =
     match t.e with
     | Obj -> Unchecked.Obj
-    | Arr (a,u,v) -> Unchecked.Arr (_forget a, Tm._forget u, Tm._forget v)
+    | Arr (a,u,v) -> Unchecked.Arr (forget a, Tm.forget u, Tm.forget v)
 
   (** Test for equality. *)
   let check_equal ty1 ty2 =
     Ctx.check_equal ty1.c ty2.c;
-    Unchecked.check_equal_ty (_forget ty1) (_forget ty2)
+    Unchecked.check_equal_ty (forget ty1) (forget ty2)
 
   let apply t s =
     Ctx.check_equal t.c (Sub.tgt s);
-    _from_unchecked (Sub.src s) (Unchecked.ty_apply_sub (_forget t) (Sub._forget s))
+    check (Sub.src s) (Unchecked.ty_apply_sub (forget t) (Sub.forget s))
 end
 
 (** Operations on terms. *)
-and Tm
-    :
-sig
+and Tm : sig
   type expr =
     | Var of Variables.t
     | Coh of Coh.t * Sub.t
@@ -452,7 +398,7 @@ sig
 
   val check : Ctx.t -> ?ty : Unchecked.ty -> Unchecked.tm -> t
 
-  val _forget : t -> Unchecked.tm
+  val forget : t -> Unchecked.tm
 end
   =
 struct
@@ -474,14 +420,14 @@ struct
   let to_string tm =
     match tm.e with
     | Var x -> Variables.to_string x
-    | Coh (c,s) -> Printf.sprintf "%s[%s]" (Coh._to_string c) (Sub._to_string s)
+    | Coh (c,s) -> Printf.sprintf "%s[%s]" (Coh._to_string c) (Sub.to_string s)
 
-  let _forget tm =
+  let forget tm =
     match tm.e with
     | Var v -> Unchecked.Var v
     | Coh(c,s) ->
-       let ps,t = Coh._forget c in
-       let s = Sub._forget_to_ps s in
+       let ps,t = Coh.forget c in
+       let s = Sub.forget_to_ps s in
        Unchecked.Coh (ps,t,s)
 
   let check c ?ty t =
@@ -489,7 +435,7 @@ struct
     let tm =
       match t with
       | Unchecked.Var x ->
-         let e, ty  = Var x, Ty._from_unchecked c (Ty._forget (Ctx.ty_var c x)) in
+         let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
          ({c; ty; e})
       | Unchecked.Coh (ps,t,s) ->
          let coh = Coh.check ps t [] in
@@ -499,7 +445,7 @@ struct
     in match ty with
        | None -> tm
        | Some ty ->
-          let ty = Ty._from_unchecked c ty in
+          let ty = Ty.check c ty in
           Ty.check_equal ty tm.ty; tm
 end
 
@@ -513,7 +459,7 @@ and Coh
 
   val _to_string : t -> string
 
-  val _forget : t -> Unchecked.ps * Unchecked.ty
+  val forget : t -> Unchecked.ps * Unchecked.ty
   val check : Unchecked.ps -> Unchecked.ty -> (Variables.t * int) list -> t
 end
 =
@@ -542,9 +488,9 @@ struct
 
   let check ps t names =
     (* debug "checking coherence (%s,%s)" (Unchecked.ps_to_string ps) (Unchecked.ty_to_string t); *)
-    let cps = Ctx._check (Unchecked.ps_to_ctx ps) in
+    let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
     let ps = PS.mk cps in
-    let t = Ty._from_unchecked cps t in
+    let t = Ty.check cps t in
     algebraic ps t names
 
   let _to_string (ps,t,_) =
@@ -552,5 +498,5 @@ struct
       (PS.to_string ps)
       (Ty.to_string t)
 
-  let _forget (ps,t,_) = (PS._forget ps, Ty._forget t)
+  let forget (ps,t,_) = (PS.forget ps, Ty.forget t)
 end
