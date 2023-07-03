@@ -48,13 +48,15 @@ let check l e t =
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
-     command "let %s = %s" (Var.to_string x) (string_of_ty e);
-     exec_coh x ps e;
-     info "defined";
-  | Check (l, e, t) -> check l e t
+     command "coh %s = %s" (Var.to_string x) (string_of_ty e);
+     exec_coh x ps e
+  | Check (l, e, t) ->
+    command "check %s" (string_of_tm e);
+    check l e t;
+    info "valid term %s" (string_of_tm e);
   | Decl (v,l,e,t) ->
-     exec_decl v l e t;
-     info "defined term"
+    command "let %s = %s" (Var.to_string v) (string_of_tm e);
+    exec_decl v l e t
 
 let exec prog =
   let rec aux = function
