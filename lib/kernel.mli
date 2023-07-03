@@ -27,5 +27,5 @@ end
 module Coh : sig
   type t
 
-  val check : Unchecked.ps -> Unchecked.ty -> (Variables.t * int) list -> t
+  val check : Unchecked.ps -> Unchecked.ty -> (Var.t * int) list -> t
 end

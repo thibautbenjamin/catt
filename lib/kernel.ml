@@ -8,7 +8,7 @@ module rec Sub : sig
   val check_to_ps : Ctx.t -> Unchecked.sub_ps -> PS.t -> t
   val forget : t -> Unchecked.sub
   val forget_to_ps : t -> Unchecked.sub_ps
-  val free_vars : t -> Variables.t list
+  val free_vars : t -> Var.t list
   val to_string : t ->  string
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
@@ -57,17 +57,17 @@ and Ctx : sig
   type t
   val empty : unit -> t
   val tail : t -> t
-  val ty_var : t -> Variables.t -> Ty.t
-  val domain : t -> Variables.t list
-  val value : t -> (Variables.t * Ty.t) list
-  val extend : t -> Variables.t -> Unchecked.ty -> t
+  val ty_var : t -> Var.t -> Ty.t
+  val domain : t -> Var.t list
+  val value : t -> (Var.t * Ty.t) list
+  val extend : t -> Var.t -> Unchecked.ty -> t
   val check : Unchecked.ctx -> t
-  val check_notin : t -> Variables.t -> unit
+  val check_notin : t -> Var.t -> unit
   val check_equal : t -> t -> unit
 end
   =
 struct
-  type t = (Variables.t * Ty.t) list
+  type t = (Var.t * Ty.t) list
 
   let tail = function
     | [] -> assert false
@@ -75,7 +75,7 @@ struct
 
   let ty_var (ctx:t) x =
     try List.assoc x ctx
-    with Not_found -> raise (UnknownId (Variables.to_string x))
+    with Not_found -> raise (UnknownId (Var.to_string x))
 
   let empty () = []
 
@@ -90,7 +90,7 @@ struct
   let check_notin c x =
     try
       ignore (List.assoc x c);
-      raise (DoubleDef (Variables.to_string x))
+      raise (DoubleDef (Var.to_string x))
     with Not_found -> ()
 
   let extend c x t =
@@ -105,11 +105,11 @@ end
 and PS : sig
   type t
   val mk : Ctx.t -> t
-  val domain : t -> Variables.t list
+  val domain : t -> Var.t list
   val to_ctx : t -> Ctx.t
   val dim : t -> int
-  val source : int -> t -> Variables.t list
-  val target : int -> t -> Variables.t list
+  val source : int -> t -> Var.t list
+  val target : int -> t -> Var.t list
   val forget : t -> Unchecked.ps
   val to_string : t -> string
 end
@@ -119,8 +119,8 @@ struct
 
   (** A pasting scheme. *)
   type oldrep =
-    | PNil of (Variables.t * Ty.t)
-    | PCons of oldrep * (Variables.t * Ty.t) * (Variables.t * Ty.t)
+    | PNil of (Var.t * Ty.t)
+    | PCons of oldrep * (Var.t * Ty.t) * (Var.t * Ty.t)
     | PDrop of oldrep
 
   type newt = { tree : Unchecked.ps; ctx : Ctx.t}
@@ -195,8 +195,8 @@ struct
                 let x,_ = marker ps in
                 if x = fx then
                   let varps = Ctx.domain (old_rep_to_ctx ps) in
-                  if (List.mem f varps) then raise (DoubledVar (Variables.to_string f));
-                  if (List.mem y varps) then raise (DoubledVar (Variables.to_string y));
+                  if (List.mem f varps) then raise (DoubledVar (Var.to_string f));
+                  if (List.mem y varps) then raise (DoubledVar (Var.to_string y));
                   let ps = PCons (ps,(y,ty),(f,tf)) in
                   aux ps l
                   else
@@ -296,7 +296,7 @@ and Ty : sig
     | Obj
     | Arr of t * Tm.t * Tm.t
   and t
-  val free_vars : t -> Variables.t list
+  val free_vars : t -> Var.t list
   val is_obj : t -> bool
   val to_string : t -> string
   val check_equal : t -> t -> unit
@@ -363,11 +363,11 @@ end
 and Tm : sig
   type expr =
     private
-    | Var of Variables.t (** a context variable *)
+    | Var of Var.t (** a context variable *)
     | Coh of Coh.t * Sub.t
   type t
   val typ : t -> Ty.t
-  val free_vars : t -> Variables.t list
+  val free_vars : t -> Var.t list
   val to_string : t -> string
   val check : Ctx.t -> ?ty : Unchecked.ty -> Unchecked.tm -> t
   val forget : t -> Unchecked.tm
@@ -376,7 +376,7 @@ end
   =
 struct
   type expr =
-    | Var of Variables.t (** a context variable *)
+    | Var of Var.t (** a context variable *)
     | Coh of Coh.t * Sub.t
   and t = {ty : Ty.t; e : expr}
 
@@ -390,7 +390,7 @@ struct
 
   let to_string tm =
     match tm.e with
-    | Var x -> Variables.to_string x
+    | Var x -> Var.to_string x
     | Coh (c,s) -> Printf.sprintf "%s[%s]" (Coh._to_string c) (Sub.to_string s)
 
   let forget tm =
@@ -428,11 +428,11 @@ and Coh
   val ty : t -> Ty.t
   val _to_string : t -> string
   val forget : t -> Unchecked.ps * Unchecked.ty
-  val check : Unchecked.ps -> Unchecked.ty -> (Variables.t * int) list -> t
+  val check : Unchecked.ps -> Unchecked.ty -> (Var.t * int) list -> t
 end
 =
 struct
-  type t = PS.t * Ty.t * (Variables.t * int) list
+  type t = PS.t * Ty.t * (Var.t * int) list
 
   let ps (ps,_,_) = ps
   let ty (_,t,_) = t

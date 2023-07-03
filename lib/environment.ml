@@ -2,7 +2,7 @@ type value =
   | Coh of Unchecked.ps * Unchecked.ty
   | Tm of Unchecked.ctx * Unchecked.tm
 
-type t = (Variables.t, value) Hashtbl.t
+type t = (Var.t, value) Hashtbl.t
 
 let env : t = Hashtbl.create 70
 
