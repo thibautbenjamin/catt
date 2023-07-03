@@ -42,6 +42,7 @@ type ty =
   | Arr of ty * tm * tm
 and tm =
   | Var of Var.t
+  | Meta of int
   | Coh of ps * ty * sub_ps
 and sub_ps = tm list
 

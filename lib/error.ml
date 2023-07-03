@@ -7,3 +7,4 @@ exception DoubleDef of string
 exception UnknownOption of string
 exception NotABoolean of string
 exception NotAnInt of string
+exception MetaVariable

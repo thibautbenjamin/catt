@@ -406,6 +406,7 @@ struct
       | Common.Var x ->
          let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
          ({ty; e})
+      | Meta _ -> raise Error.MetaVariable
       | Common.Coh (ps,t,s) ->
          let coh = Coh.check ps t [] in
          let sub = Sub.check_to_ps c s (Coh.ps coh) in

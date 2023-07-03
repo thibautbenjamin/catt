@@ -18,6 +18,7 @@ let rec ty_to_string = function
       (tm_to_string v)
 and tm_to_string = function
   | Var v -> Var.to_string v
+  | Meta i -> Printf.sprintf "_%i" i
   | Coh (ps,ty,s) ->
     Printf.sprintf "coh(%s,%s)[%s]"
       (ps_to_string ps)
@@ -64,11 +65,15 @@ let rec check_equal_ty ty1 ty2 =
 and check_equal_tm tm1 tm2 =
   match tm1, tm2 with
   | Var v1, Var v2 -> Var.check_equal v1 v2
+  | Meta i, Meta j ->
+    if i <> j then raise (Error.NotEqual(string_of_int i, string_of_int j))
   | Coh(ps1, ty1, s1), Coh(ps2, ty2, s2) ->
      check_equal_ps ps1 ps2;
      check_equal_ty ty1 ty2;
      check_equal_sub_ps s1 s2
-  | Var _, Coh _ | Coh _, Var _ ->
+  | Var _, Coh _ | Coh _, Var _
+  | Meta _, Var _| Meta _, Coh _
+  | Var _, Meta _ | Coh _, Meta _ ->
     raise (Error.NotEqual (tm_to_string tm1, tm_to_string tm2))
 and check_equal_sub_ps s1 s2 =
   List.iter2 check_equal_tm s1 s2
@@ -86,6 +91,7 @@ let rec check_equal_ctx ctx1 ctx2 =
 let rec tm_do_on_variables tm f =
   match tm with
   | Var v -> (f v)
+  | Meta i -> Meta i
   | Coh(ps,ty,s) -> Coh (ps,ty, sub_ps_do_on_variables s f)
 and sub_ps_do_on_variables s f = List.map (fun t -> tm_do_on_variables t f) s
 
@@ -124,6 +130,7 @@ let rec suspend_ty = function
   | Arr(a,v,u) -> Arr(suspend_ty a, suspend_tm v, suspend_tm u)
 and suspend_tm = function
   | Var v -> Var (Var.suspend v)
+  | Meta _ -> assert false
   | Coh _ -> assert false
 
 let rec suspend_ctx : ctx -> ctx = function
