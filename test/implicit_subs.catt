@@ -1,0 +1,19 @@
+set explicit_substitutions = f
+
+coh id (x : *) : x -> x
+coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
+coh whiskr (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                   (z : *) (g : y -> z) : comp f g -> comp f' g
+coh whiskl (x : *) (y : *) (f : x -> y)
+                   (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') :  comp f g -> comp f g'
+coh horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                  (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') :
+		  comp f g -> comp f' g'
+
+let sq (x : *) (f : x -> x) = comp f f
+
+let cbd (x : *) (f : x -> x) : x -> x = comp f (comp f f)
+
+coh simpl (x : *) : sq (id x) -> id x
+
+check (x : *) (f : x -> x) = comp (sq f) (cbd f)

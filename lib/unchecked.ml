@@ -50,6 +50,14 @@ let rec sub_to_string = function
       (Var.to_string x)
       (tm_to_string t)
 
+let rec meta_ctx_to_string = function
+  | [] -> ""
+  | (i,t)::c ->
+    Printf.sprintf "%s (_tm%i: %s)"
+      (meta_ctx_to_string c)
+      i
+      (ty_to_string t)
+
 let rec check_equal_ps ps1 ps2 =
   match ps1, ps2 with
   | Br [], Br[] -> ()
@@ -175,3 +183,7 @@ let ps_to_ctx ps =
       (v,(t,expl))::ctx
   in
   let c,_,_ = ps_to_ctx_aux ps in c
+
+let sub_ps_to_sub s ps =
+  let ps = ps_to_ctx ps in
+  List.map2 (fun t (x,_) -> (x,t)) s ps, ps

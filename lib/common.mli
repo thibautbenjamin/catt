@@ -26,3 +26,5 @@ and sub_ps = tm list
 type ctx = (Var.t * (ty * bool)) list
 
 type sub = (Var.t * tm) list
+
+type meta_ctx = ((int * ty) list)

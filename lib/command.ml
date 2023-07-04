@@ -10,13 +10,14 @@ type cmd =
 type prog = cmd list
 
 let exec_coh v ps ty =
+  let ps = Elaborate.ctx ps in
   let ty = Elaborate.ty_in_ps ps ty in
   let ps = Elaborate.ps ps in
   Environment.add_coh v ps ty
 
 let exec_decl v l e t =
   let c = Elaborate.ctx l in
-  let e = Elaborate.tm e in
+  let e = Elaborate.tm c e in
   match t with
   | None -> Environment.add_let v c e
   | Some ty ->
@@ -25,7 +26,7 @@ let exec_decl v l e t =
 
 let check l e t =
   let c = Elaborate.ctx l in
-  let e = Elaborate.tm e in
+  let e = Elaborate.tm c e in
   let ty =
     match t with
     | None -> None
