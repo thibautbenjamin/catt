@@ -11,6 +11,7 @@ val check_equal_ty : ty -> ty -> unit
 val check_equal_tm : tm -> tm -> unit
 val check_equal_sub_ps : sub_ps -> sub_ps -> unit
 val check_equal_ctx : ctx -> ctx -> unit
+val var_apply_sub : Var.t -> sub -> tm
 val tm_apply_sub : tm -> sub -> tm
 val ty_apply_sub : ty -> sub -> ty
 val sub_apply_sub : sub -> sub -> sub

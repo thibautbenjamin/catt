@@ -30,8 +30,13 @@ and sub_ps_to_string = function
 
 let rec ctx_to_string = function
   | [] -> ""
-  | (x,(t,_))::c ->
+  | (x,(t,true))::c ->
     Printf.sprintf "%s (%s: %s)"
+      (ctx_to_string c)
+      (Var.to_string x)
+      (ty_to_string t)
+  | (x,(t,false))::c ->
+    Printf.sprintf "%s {%s: %s}"
       (ctx_to_string c)
       (Var.to_string x)
       (ty_to_string t)
@@ -101,11 +106,9 @@ let rec ty_do_on_variables ty f =
   | Arr(a,u,v) ->
     Arr(ty_do_on_variables a f, tm_do_on_variables u f, tm_do_on_variables v f)
 
-let apply_sub_fn s = fun v -> List.assoc v s
-
-let tm_apply_sub tm s = tm_do_on_variables tm (apply_sub_fn s)
-let ty_apply_sub ty s = ty_do_on_variables ty (apply_sub_fn s)
-
+let var_apply_sub v s = List.assoc v s
+let tm_apply_sub tm s = tm_do_on_variables tm (fun v -> var_apply_sub v s)
+let ty_apply_sub ty s = ty_do_on_variables ty (fun v -> var_apply_sub v s)
 let sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
 
 (* rename is applying a variable to de Bruijn levels substitutions *)
@@ -138,29 +141,30 @@ let rec suspend_ctx ctx =
   | [] -> (Var.Db 1, (Obj, false)) :: (Var.Db 0, (Obj, false)) :: []
   | (v,(t,expl))::c -> (Var.suspend v, (suspend_ty t, expl)) :: (suspend_ctx c)
 
-let rec ps_to_ctx_aux ps =
-  match ps with
-  | Br [] -> [(Var.Db 0), (Obj, true)], 0, 0
-  | Br l ->
-    ps_concat (List.map
-                 (fun ps ->
-                    let ps,_,m = ps_to_ctx_aux ps in
-                    (suspend_ctx ps, 1, m+2))
-                 l)
-and ps_concat = function
-  | [] -> assert false
-  | ps :: [] -> ps
-  | ps :: l -> ps_glue (ps_concat l) ps
-and ps_glue (p1,t1,m1) (p2,t2,m2) =
-  List.append (chop_and_increase p2 t1 m1) p1, t2+m1, m1+m2
-and chop_and_increase ctx i m =
-  match ctx with
-  | [] -> assert false
-  | _ :: [] -> []
-  | (v,(t,_)) :: ctx ->
-     let v = Var.increase_lv v i m in
-     let t = increase_lv_ty t i m in
-     let ctx = chop_and_increase ctx i m in
-     (v,(t, false))::ctx
-
-let ps_to_ctx ps = let c,_,_ = ps_to_ctx_aux ps in c
+let ps_to_ctx ps =
+  let rec ps_to_ctx_aux ps =
+    match ps with
+    | Br [] -> [(Var.Db 0), (Obj, true)], 0, 0
+    | Br l ->
+      ps_concat (List.map
+                   (fun ps ->
+                      let ps,_,m = ps_to_ctx_aux ps in
+                      (suspend_ctx ps, 1, m+2))
+                   l)
+  and ps_concat = function
+    | [] -> assert false
+    | ps :: [] -> ps
+    | ps :: l -> ps_glue (ps_concat l) ps
+  and ps_glue (p1,t1,m1) (p2,t2,m2) =
+    List.append (chop_and_increase p2 t1 m1) p1, t2+m1, m1+m2
+  and chop_and_increase ctx i m =
+    match ctx with
+    | [] -> assert false
+    | _ :: [] -> []
+    | (v,(t,expl)) :: ctx ->
+      let v = Var.increase_lv v i m in
+      let t = increase_lv_ty t i m in
+      let ctx = chop_and_increase ctx i m in
+      (v,(t,expl))::ctx
+  in
+  let c,_,_ = ps_to_ctx_aux ps in c
