@@ -5,11 +5,22 @@ module Constraints = struct
 
   let empty = {ty = []; tm = []}
 
-  let combine c1 c2 =
-    {ty = List.append c1.ty c2.ty;
-     tm = List.append c1.tm c2.tm}
+  let rec combine c1 c2 =
+    let add_ty (i,ty) c =
+      match List.assoc_opt i c.ty with
+      | None -> {ty = (i,ty)::c.ty; tm = c.tm}
+      | Some t -> combine (unify_ty ty t) c
+    in
+    let add_tm (i,tm) c =
+      match List.assoc_opt i c.tm with
+      | None -> {ty = c.ty; tm = (i,tm) :: c.tm}
+      | Some t -> combine (unify_tm tm t) c
+    in
+    let c1 =
+      List.fold_left (fun c (i,ty) -> add_ty (i,ty) c) c2 c1.ty
+    in List.fold_left (fun c (i,tm) -> add_tm (i,tm) c) c2 c1.tm
 
-let rec unify_ty ty1 ty2 =
+and unify_ty ty1 ty2 =
   match ty1, ty2 with
   | Obj, Obj -> empty
   | Arr(a1,u1,v1), Arr(a2,u2,v2) ->
