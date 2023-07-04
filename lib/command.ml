@@ -20,7 +20,7 @@ let exec_decl v l e t =
   match t with
   | None -> Environment.add_let v c e
   | Some ty ->
-     let ty = Elaborate.ty ty in
+     let ty = Elaborate.ty c ty in
      Environment.add_let_check v c e ty
 
 let check l e t =
@@ -29,7 +29,7 @@ let check l e t =
   let ty =
     match t with
     | None -> None
-    | Some ty -> Some (Elaborate.ty ty)
+    | Some ty -> Some (Elaborate.ty c ty)
   in
   let c = Kernel.Ctx.check c in
   ignore(Kernel.Tm.check c ?ty e)
