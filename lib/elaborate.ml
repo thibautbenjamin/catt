@@ -51,21 +51,22 @@ and unify_sub s1 s2 =
     raise (Error.NotUnifiable
              (Unchecked.sub_ps_to_string s1, Unchecked.sub_ps_to_string s2))
 
-  (* constraint solving algorithm*)
-  let resolve c = c
-end
-
-let rec replace_meta_ty (l : Constraints.t) ty =
+let rec substitute_ty l ty =
   match ty with
   | Meta_ty i -> List.assoc i l.ty
   | Obj -> Obj
   | Arr(a,u,v) ->
-    Arr (replace_meta_ty l a, replace_meta_tm l u, replace_meta_tm l v)
-and replace_meta_tm l tm =
+    Arr (substitute_ty l a, substitute_tm l u, substitute_tm l v)
+and substitute_tm l tm =
   match tm with
   | Meta_tm i -> List.assoc i l.tm
   | Var v -> Var v
-  | Coh(ps,t,s) -> Coh(ps,t, List.map (replace_meta_tm l) s)
+  | Coh(ps,t,s) -> Coh(ps,t, List.map (substitute_tm l) s)
+
+let resolve c =
+  {ty = List.map (fun (i,ty) -> i, substitute_ty c ty) c.ty;
+   tm = List.map (fun (i,ty) -> i, substitute_tm c ty) c.tm}
+end
 
 let meta_ty ctx ty =
   let ctx = Kernel.Ctx.check ctx in
@@ -79,7 +80,7 @@ let meta_ty ctx ty =
         (Constraints.unify_ty a tu)
         (Constraints.unify_ty a tv)
     in
-    let a = replace_meta_ty (Constraints.resolve cst) a in
+    let a = Constraints.substitute_ty (Constraints.resolve cst) a in
     Arr(a,u,v)
   | Meta_ty _ -> assert false
 
