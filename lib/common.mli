@@ -14,11 +14,12 @@ end
 type ps = Br of ps list
 
 type ty =
+  | Meta_ty of int
   | Obj
   | Arr of ty * tm * tm
 and tm =
   | Var of Var.t
-  | Meta of int
+  | Meta_tm of int
   | Coh of ps * ty * sub_ps
 and sub_ps = tm list
 

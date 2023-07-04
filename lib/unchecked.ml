@@ -10,6 +10,7 @@ let rec ps_to_string = function
                  l)
 
 let rec ty_to_string = function
+  | Meta_ty i -> Printf.sprintf "_ty%i" i
   | Obj -> "*"
   | Arr (a,u,v) ->
     Printf.sprintf "%s | %s -> %s"
@@ -18,7 +19,7 @@ let rec ty_to_string = function
       (tm_to_string v)
 and tm_to_string = function
   | Var v -> Var.to_string v
-  | Meta i -> Printf.sprintf "_%i" i
+  | Meta_tm i -> Printf.sprintf "_tm%i" i
   | Coh (ps,ty,s) ->
     Printf.sprintf "coh(%s,%s)[%s]"
       (ps_to_string ps)
@@ -60,25 +61,29 @@ let rec check_equal_ps ps1 ps2 =
 
 let rec check_equal_ty ty1 ty2 =
   match ty1, ty2 with
+  | Meta_ty i, Meta_ty j ->
+    if i <> j then raise (Error.NotEqual(string_of_int i, string_of_int j))
   | Obj, Obj -> ()
   | Arr(ty1, u1, v1), Arr(ty2, u2, v2) ->
      check_equal_ty ty1 ty2;
      check_equal_tm u1 u2;
      check_equal_tm v1 v2
-  | Obj, Arr _ | Arr _, Obj ->
+  | Obj, Arr _ | Arr _, Obj
+  | Meta_ty _, Obj | Meta_ty _, Arr _
+  | Obj, Meta_ty _ | Arr _, Meta_ty _ ->
     raise (Error.NotEqual (ty_to_string ty1, ty_to_string ty2))
 and check_equal_tm tm1 tm2 =
   match tm1, tm2 with
   | Var v1, Var v2 -> Var.check_equal v1 v2
-  | Meta i, Meta j ->
+  | Meta_tm i, Meta_tm j ->
     if i <> j then raise (Error.NotEqual(string_of_int i, string_of_int j))
   | Coh(ps1, ty1, s1), Coh(ps2, ty2, s2) ->
      check_equal_ps ps1 ps2;
      check_equal_ty ty1 ty2;
      check_equal_sub_ps s1 s2
   | Var _, Coh _ | Coh _, Var _
-  | Meta _, Var _| Meta _, Coh _
-  | Var _, Meta _ | Coh _, Meta _ ->
+  | Meta_tm _, Var _| Meta_tm _, Coh _
+  | Var _, Meta_tm _ | Coh _, Meta_tm _ ->
     raise (Error.NotEqual (tm_to_string tm1, tm_to_string tm2))
 and check_equal_sub_ps s1 s2 =
   List.iter2 check_equal_tm s1 s2
@@ -96,12 +101,13 @@ let rec check_equal_ctx ctx1 ctx2 =
 let rec tm_do_on_variables tm f =
   match tm with
   | Var v -> (f v)
-  | Meta i -> Meta i
+  | Meta_tm i -> Meta_tm i
   | Coh(ps,ty,s) -> Coh (ps,ty, sub_ps_do_on_variables s f)
 and sub_ps_do_on_variables s f = List.map (fun t -> tm_do_on_variables t f) s
 
 let rec ty_do_on_variables ty f =
   match ty with
+  | Meta_ty i -> Meta_ty i
   | Obj -> Obj
   | Arr(a,u,v) ->
     Arr(ty_do_on_variables a f, tm_do_on_variables u f, tm_do_on_variables v f)
@@ -131,9 +137,10 @@ let increase_lv_ty ty i m =
 let rec suspend_ty = function
   | Obj -> Arr(Obj, Var (Db 0), Var (Db 1))
   | Arr(a,v,u) -> Arr(suspend_ty a, suspend_tm v, suspend_tm u)
+  | Meta_ty _ -> assert false
 and suspend_tm = function
   | Var v -> Var (Var.suspend v)
-  | Meta _ -> assert false
+  | Meta_tm _ -> assert false
   | Coh _ -> assert false
 
 let rec suspend_ctx ctx =

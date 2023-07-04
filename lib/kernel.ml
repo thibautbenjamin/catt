@@ -323,12 +323,13 @@ struct
     (Unchecked.ty_to_string t) (Ctx.to_string c);
     let e =
       match t with
-      | Common.Obj -> Obj
-      | Common.Arr(a,u,v) ->
+      | Obj -> Obj
+      | Arr(a,u,v) ->
          let a = check c a in
          let u = Tm.check c u in
          let v = Tm.check c v in
          Arr(a,u,v)
+      | Meta_ty _ -> raise Error.MetaVariable
   in {c; e; unchecked = t}
 
   (** Free variables of a type. *)
@@ -391,7 +392,7 @@ struct
       | Common.Var x ->
          let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
          ({ty; e; unchecked = t})
-      | Meta _ -> raise Error.MetaVariable
+      | Meta_tm _ -> raise Error.MetaVariable
       | Common.Coh (ps,ty,s) ->
          let coh = Coh.check ps ty [] in
          let sub = Sub.check_to_ps c s (Coh.ps coh) in
