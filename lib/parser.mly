@@ -62,7 +62,7 @@ simple_tyexpr:
 subst_tmexpr:
     | simple_tmexpr { $1 }
     | simple_tmexpr nonempty_sub { let sub,func = generate_functorialize $2
-      		    		      	in Sub ($1,sub,func) }
+      		    		      	in Sub ($1,sub,None,func) }
 
 tmexpr:
     | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (Var.make_var $2, $4, $6) }

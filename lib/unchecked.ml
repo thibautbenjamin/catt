@@ -142,20 +142,6 @@ let rec db_levels c =
 let increase_lv_ty ty i m =
   ty_do_on_variables ty (fun v -> Var (Var.increase_lv v i m))
 
-let rec suspend_ty = function
-  | Obj -> Arr(Obj, Var (Db 0), Var (Db 1))
-  | Arr(a,v,u) -> Arr(suspend_ty a, suspend_tm v, suspend_tm u)
-  | Meta_ty _ -> assert false
-and suspend_tm = function
-  | Var v -> Var (Var.suspend v)
-  | Meta_tm _ -> assert false
-  | Coh _ -> assert false
-
-let rec suspend_ctx ctx =
-  match ctx with
-  | [] -> (Var.Db 1, (Obj, false)) :: (Var.Db 0, (Obj, false)) :: []
-  | (v,(t,expl))::c -> (Var.suspend v, (suspend_ty t, expl)) :: (suspend_ctx c)
-
 let ps_to_ctx ps =
   let rec ps_to_ctx_aux ps =
     match ps with
@@ -164,7 +150,7 @@ let ps_to_ctx ps =
       ps_concat (List.map
                    (fun ps ->
                       let ps,_,m = ps_to_ctx_aux ps in
-                      (suspend_ctx ps, 1, m+2))
+                      (Suspension.ctx (Some 1) ps, 1, m+2))
                    l)
   and ps_concat = function
     | [] -> assert false

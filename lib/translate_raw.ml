@@ -18,17 +18,21 @@ let new_meta_tm () =
 let rec tm tm =
   match tm with
   | Syntax.Var v -> Var v, []
-  | Syntax.Sub(Var v, s, _) ->
+  | Syntax.Sub(Var v, s, susp ,_) ->
      begin
        match Environment.val_var v with
        | Coh(ps, ty) ->
+         let ps = Suspension.ps susp ps in
+         let ty = Suspension.ty susp ty in
          let s, meta_types = sub_ps s ps in
          Coh(ps,ty,s), meta_types
        | Tm(c,t) ->
-          let s, meta_types = sub s c in
-          Unchecked.tm_apply_sub t s, meta_types
+         let c = Suspension.ctx susp c in
+         let t = Suspension.tm susp t in
+         let s, meta_types = sub s c in
+         Unchecked.tm_apply_sub t s, meta_types
      end;
-  | Syntax.Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Letin_tm _ -> assert false
+  | Syntax.Sub (Letin_tm _,_,_,_) | Sub(Sub _,_,_,_) | Letin_tm _ -> assert false
 and sub_ps s ps =
   let sub,meta_types = sub s (Unchecked.ps_to_ctx ps) in
   List.map snd sub, meta_types

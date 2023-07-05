@@ -10,7 +10,7 @@ type ty =
 and tm =
   | Letin_tm of Var.t * tm * tm
   | Var of Var.t
-  | Sub of tm * (tm list) * (int list)
+  | Sub of tm * (tm list) * int option * (int list)
 
 let rec string_of_ty e =
   match e with
@@ -29,10 +29,15 @@ and string_of_tm e =
       (string_of_tm e)
       (string_of_tm tm)
   | Var x -> Var.to_string x
-  | Sub (t,s,l) ->
+  | Sub (t,s,None,l) ->
     Printf.sprintf "(%s %s)"
       (string_of_tm t)
-        (string_of_sub s l 0)
+      (string_of_sub s l 0)
+  | Sub (t,s,Some susp,l) ->
+    Printf.sprintf "(S%i %s %s)"
+      susp
+      (string_of_tm t)
+      (string_of_sub s l 0)
 and string_of_sub s l i=
   match s,l with
   | [],_ -> ""
@@ -54,7 +59,8 @@ let rec replace_tm l e =
       with
         Not_found -> Var a
     end
-  | Sub (e,s,func) -> Sub(replace_tm l e, List.map (replace_tm l) s,func)
+  | Sub (e,s,susp,func) ->
+    Sub(replace_tm l e, List.map (replace_tm l) s,susp,func)
   | Letin_tm (v,t,tm) -> replace_tm ((v,t)::l) tm
 and replace_ty l t =
   match t with
@@ -77,5 +83,5 @@ let rec var_in_ty x ty =
 and var_in_tm x tm =
   match tm with
   | Var v -> x = v
-  | Sub(_,s,_) -> List.exists (fun t -> var_in_tm x t) s
+  | Sub(_,s,_,_) -> List.exists (fun t -> var_in_tm x t) s
   | Letin_tm _ -> assert false

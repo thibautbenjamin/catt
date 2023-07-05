@@ -5,7 +5,7 @@ type ty =
 and tm =
   | Letin_tm of Common.Var.t * tm * tm
   | Var of Common.Var.t
-  | Sub of tm * (tm list) * (int list)
+  | Sub of tm * (tm list) * int option * (int list)
 
 val string_of_ty : ty -> string
 val string_of_tm : tm -> string
