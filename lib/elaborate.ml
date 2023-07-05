@@ -55,7 +55,9 @@ module Constraints = struct
            (unify_tm v1 v2))
     | Meta_ty i, ty2 -> {ty = [(i, ty2)]; tm = []}
     | ty1, Meta_ty i -> {ty = [(i, ty1)]; tm = []}
-    | Arr(_,_,_), Obj | Obj, Arr(_,_,_) ->
+    | Arr(_,_,_), Obj ->
+      raise Error.NeedSuspension
+    | Obj, Arr(_,_,_) ->
       raise (Error.NotUnifiable
                (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
   and unify_tm tm1 tm2 =
@@ -82,19 +84,72 @@ module Constraints = struct
 
   let rec substitute_ty l ty =
     match ty with
-    | Meta_ty i -> List.assoc i l.ty
+    | Meta_ty i ->
+      begin
+        match List.assoc_opt i l.ty with
+        | Some a -> a
+        | None -> Meta_ty i
+      end
     | Obj -> Obj
     | Arr(a,u,v) ->
       Arr (substitute_ty l a, substitute_tm l u, substitute_tm l v)
   and substitute_tm l tm =
     match tm with
-    | Meta_tm i -> List.assoc i l.tm
+    | Meta_tm i ->
+      begin
+        match List.assoc_opt i l.tm with
+        | Some u -> u
+        | None -> Meta_tm i
+      end
     | Var v -> Var v
     | Coh(ps,t,s) -> Coh(ps,t, List.map (substitute_tm l) s)
 
-  let resolve c =
-    {ty = List.map (fun (i,ty) -> i, substitute_ty c ty) c.ty;
-     tm = List.map (fun (i,ty) -> i, substitute_tm c ty) c.tm}
+  let rec has_no_meta_tm = function
+    | Var _ -> true
+    | Coh(_,_,s) -> List.for_all (fun tm -> has_no_meta_tm tm) s
+    | Meta_tm _ -> false
+
+  let rec has_no_meta_ty = function
+    | Obj -> true
+    | Arr (a,u,v) -> has_no_meta_ty a && has_no_meta_tm u && has_no_meta_tm v
+    | Meta_ty _ -> false
+
+  let resolve c : t =
+    let rec select_next p = function
+      | [] -> raise Error.CouldNotSolve
+      | (i,a) :: l when p a -> (i,a), l
+      | x::l -> let (pair,rest) = select_next p l in pair, x::rest
+    in
+    let resolve_next_ty c =
+      let (i,ty), csty = select_next has_no_meta_ty c.ty in
+      let tmp_cst = {ty = [(i,ty)]; tm = []} in
+      {ty = List.map (fun (i,ty) -> i, substitute_ty tmp_cst ty) csty;
+       tm = List.map (fun (i,ty) -> i, substitute_tm tmp_cst ty) c.tm},
+      (i,ty)
+    in
+    let resolve_next_tm c =
+      let (i,tm), cstm = select_next has_no_meta_tm c.tm in
+      let tmp_cst = {ty = []; tm = [(i,tm)]} in
+      {ty = List.map (fun (i,tm) -> i, substitute_ty tmp_cst tm) c.ty;
+       tm = List.map (fun (i,tm) -> i, substitute_tm tmp_cst tm) cstm},
+      (i,tm)
+    in
+    let rec exhaust_constraints_tm c res =
+      match c.tm with
+      | _::_ ->
+        let c,assoc = resolve_next_tm c in
+        exhaust_constraints_tm c ({ty = res.ty; tm = assoc::res.tm})
+      | [] -> res,c
+    in
+    let rec exhaust_constraints_ty c res =
+      match c.ty with
+      | _::_ ->
+        let c,assoc = resolve_next_ty c in
+        exhaust_constraints_ty c ({ty = assoc::res.ty; tm = res.tm})
+      | [] -> res,c
+    in
+    let tm_solve,c = (exhaust_constraints_tm c empty) in
+    fst (exhaust_constraints_ty c tm_solve)
 end
 
 module Constraints_typing = struct
@@ -105,72 +160,88 @@ module Constraints_typing = struct
       (Unchecked.ctx_to_string ctx)
       (Unchecked.meta_ctx_to_string meta_ctx);
       match t with
-    | Var v -> fst (List.assoc v ctx), Constraints.empty
-    | Meta_tm i -> List.assoc i meta_ctx, Constraints.empty
-    | Coh(ps,t,s) ->
-      let s, ps = Unchecked.sub_ps_to_sub s ps in
-      let cst = sub ctx meta_ctx s ps in
-      Unchecked.ty_apply_sub t s, cst
+    | Var v -> t, fst (List.assoc v ctx), Constraints.empty
+    | Meta_tm i -> t, List.assoc i meta_ctx, Constraints.empty
+    | Coh(ps,t,s) as tm0 ->
+      try
+        let s, ps = Unchecked.sub_ps_to_sub s ps in
+        let s,cst = sub ctx meta_ctx s ps in
+        tm0, Unchecked.ty_apply_sub t s, cst
+      with
+        Error.NeedSuspension ->
+        if !Settings.implicit_suspension then
+          let ps = Suspension.ps (Some 1) ps in
+          let t = Suspension.ty (Some 1) t in
+          let s,meta = Translate_raw.sub_to_suspended s in
+          tm ctx (List.append meta meta_ctx) (Coh(ps,t,s))
+        else
+          raise Error.NotValid
   and sub src meta_ctx s tgt =
     match s,tgt with
-    | [],[] -> Constraints.empty
-    | (_,u)::s, (_,(t,_))::c ->
-      let cstt = ty tgt meta_ctx t in
-      let ty,cstu = tm src meta_ctx u in
+    | [],[] -> [], Constraints.empty
+    | (x,u)::s, (_,(t,_))::c ->
+      let _,cstt = ty tgt meta_ctx t in
+      let u,ty,cstu = tm src meta_ctx u in
+      let s,csts = sub src meta_ctx s c in
+      (x,u)::s,
       Constraints.combine_all
         [cstt;
           cstu;
          Constraints.unify_ty ty (Unchecked.ty_apply_sub t s);
-         sub src meta_ctx s c]
+         csts]
     |[],_::_ | _::_, [] -> assert false
-  and ty ctx meta_ctx ty =
+  and ty ctx meta_ctx t =
     Io.info ~v:4 "constraint typing type %s in ctx %s, meta_ctx %s"
-      (Unchecked.ty_to_string ty)
+      (Unchecked.ty_to_string t)
       (Unchecked.ctx_to_string ctx)
       (Unchecked.meta_ctx_to_string meta_ctx);
-    match ty with
-    | Obj -> Constraints.empty
+    match t with
+    | Obj -> Obj, Constraints.empty
     | Arr(a,u,v) ->
-      let tu, cstu = tm ctx meta_ctx u in
-      let tv, cstv = tm ctx meta_ctx v in
+      let u, tu, cstu = tm ctx meta_ctx u in
+      let v, tv, cstv = tm ctx meta_ctx v in
+      let a,csta = ty ctx meta_ctx a in
+      Arr (a,u,v),
         Constraints.combine_all
           [cstu;
            cstv;
+           csta;
            Constraints.unify_ty a tu;
            Constraints.unify_ty a tv]
-    | Meta_ty _ -> Constraints.empty
+    | Meta_ty _ -> t, Constraints.empty
 
   let rec ctx c meta_ctx =
     match c with
-    | [] -> Constraints.empty
-    | (_,(t,_))::c ->
-      Constraints.combine
-        (ty c meta_ctx t)
-        (ctx c meta_ctx)
+    | [] -> [], Constraints.empty
+    | (x,(t,expl))::c ->
+      let t,cstt = ty c meta_ctx t in
+      let c,cstc = ctx c meta_ctx in
+      (x,(t,expl))::c,
+      Constraints.combine cstc cstt
 end
 
 let ctx c =
   let c,meta_ctx = Translate_raw.ctx c in
-  let cst = Constraints_typing.ctx c meta_ctx in
+  let c,cst = Constraints_typing.ctx c meta_ctx in
   let cst = Constraints.resolve cst in
   List.map (fun (x,(t,expl)) -> (x,(Constraints.substitute_ty cst t, expl))) c
 
 let ty c ty =
   let ty = Syntax.remove_let_ty ty in
   let ty, meta_ctx = Translate_raw.ty ty in
-  let cst = Constraints_typing.ty c meta_ctx ty in
+  let ty,cst = Constraints_typing.ty c meta_ctx ty in
   Constraints.substitute_ty (Constraints.resolve cst) ty
 
 let tm c tm =
   let tm = Syntax.remove_let_tm tm in
   let tm, meta_ctx = Translate_raw.tm tm in
-  let _,cst = Constraints_typing.tm c meta_ctx tm in
+  let tm,_,cst = Constraints_typing.tm c meta_ctx tm in
   Constraints.substitute_tm (Constraints.resolve cst) tm
 
 let ty_in_ps ps t =
   let t = Syntax.remove_let_ty t in
   let t, meta_ctx = Translate_raw.ty t in
-  let cst = Constraints_typing.ty ps meta_ctx t in
+  let t,cst = Constraints_typing.ty ps meta_ctx t in
   let t = Constraints.substitute_ty (Constraints.resolve cst) t in
   let _, names,_ = Unchecked.db_levels ps in
   Unchecked.rename_ty t names

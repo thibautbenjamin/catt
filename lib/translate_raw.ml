@@ -79,3 +79,9 @@ let ctx c =
       let t, meta_ty = ty t in
       (v, (t,expl)) :: c, List.append meta_ty meta_c
   in list (mark_explicit c [])
+
+let rec sub_to_suspended = function
+  | [] ->
+    let (m1,mc1),(m0,mc0) = new_meta_tm(), new_meta_tm() in
+    [ m1; m0], [mc1; mc0]
+  | t::s -> let s,m = sub_to_suspended s in t::s, m
