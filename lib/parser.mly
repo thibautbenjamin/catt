@@ -11,10 +11,15 @@
 	|(x,false)::l -> let (res,func) = aux l (i+1)
 		      	 in x::res,func
 	in aux l 0
+
+    let add_suspension = function
+      | Sub (x,s,None,f) -> Sub (x,s,Some 1,f)
+      | Sub (x,s,Some n,f) -> Sub (x,s,Some (n+1),f)
+      | _ -> assert false
 %}
 
 %token COH OBJ MOR
-%token LPAR RPAR LBRA RBRA COL
+%token LPAR RPAR LBRA RBRA COL BANG
 %token <string> IDENT
 %token CHECK EQUAL LET IN SET
 %token EOF
@@ -62,7 +67,8 @@ simple_tyexpr:
 subst_tmexpr:
     | simple_tmexpr { $1 }
     | simple_tmexpr nonempty_sub { let sub,func = generate_functorialize $2
-      		    		      	in Sub ($1,sub,None,func) }
+      		    		   in Sub ($1,sub,None,func) }
+    | BANG subst_tmexpr { add_suspension $2 }
 
 tmexpr:
     | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (Var.make_var $2, $4, $6) }

@@ -1,0 +1,6 @@
+set explicit_substitutions = f
+
+coh id (x : *) : x -> x
+coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
+let comp2 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h) = !comp a b
+let id3 (x : *) = !!id (!id (id x))

@@ -34,7 +34,7 @@ and string_of_tm e =
       (string_of_tm t)
       (string_of_sub s l 0)
   | Sub (t,s,Some susp,l) ->
-    Printf.sprintf "(S%i %s %s)"
+    Printf.sprintf "(!%i %s %s)"
       susp
       (string_of_tm t)
       (string_of_sub s l 0)
