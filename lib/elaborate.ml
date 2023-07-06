@@ -179,11 +179,11 @@ module Constraints_typing = struct
       match t with
     | Var v -> t, fst (List.assoc v ctx), Constraints.empty
     | Meta_tm i -> t, List.assoc i meta_ctx, Constraints.empty
-    | Coh(ps,t,s) as tm0 ->
+    | Coh(ps,t,s)->
       try
-        let s, ps = Unchecked.sub_ps_to_sub s ps in
-        let s,cst = sub ctx meta_ctx s ps in
-        tm0, Unchecked.ty_apply_sub t s, cst
+        let s,tgt = Unchecked.sub_ps_to_sub s ps in
+        let s,cst = sub ctx meta_ctx s tgt in
+        Coh(ps,t,(List.map snd s)), Unchecked.ty_apply_sub t s, cst
       with
         Error.NeedSuspension ->
         if !Settings.implicit_suspension then
