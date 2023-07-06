@@ -20,3 +20,6 @@ val rename_ty : ty -> (Var.t * int) list -> ty
 val db_levels : ctx -> ctx * (Var.t * int) list * int
 val ps_to_ctx : ps -> ctx
 val sub_ps_to_sub : sub_ps -> ps -> sub * ctx
+val two_fresh_vars : ctx -> Var.t * Var.t
+val identity : ctx -> sub
+val identity_ps : ctx -> sub_ps

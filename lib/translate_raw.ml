@@ -14,35 +14,67 @@ let new_meta_tm () =
   meta_namer_tm := !meta_namer_tm + 1;
   meta, (i, new_meta_ty())
 
+let list_functorialised s c =
+  if not !Settings.explicit_substitutions then
+    let rec list s c =
+      match s,c with
+      | [],[] -> [],[]
+      | (t,true)::s, (x,(_, true))::tgt ->
+        let s,func = list s tgt in
+        t::s, x::func
+      | (t,false)::s, (_,(_, true))::tgt ->
+        let s,func = list s tgt in
+        t::s, func
+      | s , (_,(_, false))::tgt ->
+        list s tgt
+      | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
+    in list s c
+  else
+    let rec ensure_no_func = function
+      | [] -> []
+      | (_,true)::_ -> raise Error.FunctorialiseWithExplicit
+      | (t,false)::s -> t::(ensure_no_func s)
+    in ensure_no_func s,[]
+
 (* inductive translation on terms and types without let_in *)
 let rec tm tm =
   match tm with
   | Syntax.Var v -> Var v, []
-  | Syntax.Sub(Var v, s, susp ,_) ->
+  | Syntax.Sub(Var v, s, susp) ->
      begin
        match Environment.val_var v with
        | Coh(ps, ty) ->
          let ps = Suspension.ps susp ps in
          let ty = Suspension.ty susp ty in
+         let ctx = Unchecked.ps_to_ctx ps in
+         let s,l = list_functorialised s ctx in
+         let
+           ps,ty =
+           if l <> [] then Functorialisation.coh ps ty l else ps,ty
+         in
          let s, meta_types = sub_ps s ps in
          Coh(ps,ty,s), meta_types
        | Tm(c,t) ->
          let c = Suspension.ctx susp c in
          let t = Suspension.tm susp t in
+         let s,l = list_functorialised s c in
+         let c,t =
+           if l <> [] then Functorialisation.tm c t l else c,t
+         in
          let s, meta_types = sub s c in
          Unchecked.tm_apply_sub t s, meta_types
      end;
-  | Syntax.Sub (Letin_tm _,_,_,_) | Sub(Sub _,_,_,_) | Letin_tm _ -> assert false
+  | Syntax.Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Letin_tm _ -> assert false
 and sub_ps s ps =
   let sub,meta_types = sub s (Unchecked.ps_to_ctx ps) in
   List.map snd sub, meta_types
-and sub s tgt =
+and sub s  tgt  =
   match s,tgt with
-  | [],[] -> [], []
+  | [],[] -> [],[]
   | t::s, (x,(_, true))::tgt ->
     let t, meta_types_t = tm t in
     let s,meta_types_s = sub s tgt in
-    (x, t)::s, List.append meta_types_t meta_types_s
+    (x,t)::s,  List.append meta_types_t meta_types_s
   | t::s, (x,(_, false))::tgt when !Settings.explicit_substitutions ->
     let t, meta_types_t = tm t in
     let s,meta_types_s = sub s tgt in

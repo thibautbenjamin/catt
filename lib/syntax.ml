@@ -10,7 +10,7 @@ type ty =
 and tm =
   | Letin_tm of Var.t * tm * tm
   | Var of Var.t
-  | Sub of tm * (tm list) * int option * (int list)
+  | Sub of tm * (tm  * bool) list * int option
 
 let rec string_of_ty e =
   match e with
@@ -29,26 +29,20 @@ and string_of_tm e =
       (string_of_tm e)
       (string_of_tm tm)
   | Var x -> Var.to_string x
-  | Sub (t,s,None,l) ->
+  | Sub (t,s,None) ->
     Printf.sprintf "(%s %s)"
       (string_of_tm t)
-      (string_of_sub s l 0)
-  | Sub (t,s,Some susp,l) ->
+      (string_of_sub s)
+  | Sub (t,s,Some susp) ->
     Printf.sprintf "(!%i %s %s)"
       susp
       (string_of_tm t)
-      (string_of_sub s l 0)
-and string_of_sub s l i=
-  match s,l with
-  | [],_ -> ""
-  | t::[], k::_ when k = i ->
-    Printf.sprintf "[%s]" (string_of_tm t)
-  | t::[], _ ->
-    Printf.sprintf "%s" (string_of_tm t)
-  | t::s, k::l when k = i ->
-    Printf.sprintf "%s [%s]" (string_of_sub s l (i+1))(string_of_tm t)
-  | t::s,l ->
-    Printf.sprintf "%s %s" (string_of_sub s l (i+1)) (string_of_tm t)
+      (string_of_sub s)
+and string_of_sub s=
+  match s with
+  | []-> ""
+  | (t, true)::s -> Printf.sprintf "%s [%s]" (string_of_sub s)(string_of_tm t)
+  | (t, false)::s -> Printf.sprintf "%s %s" (string_of_sub s) (string_of_tm t)
 
 (** remove the let in in a term *)
 let rec replace_tm l e =
@@ -59,9 +53,13 @@ let rec replace_tm l e =
       with
         Not_found -> Var a
     end
-  | Sub (e,s,susp,func) ->
-    Sub(replace_tm l e, List.map (replace_tm l) s,susp,func)
+  | Sub (e,s,susp) ->
+    Sub(replace_tm l e, replace_sub l s,susp)
   | Letin_tm (v,t,tm) -> replace_tm ((v,t)::l) tm
+and replace_sub l s =
+  match s with
+  | [] -> []
+  | (t,f)::s -> (replace_tm l t, f)::(replace_sub l s)
 and replace_ty l t =
   match t with
   | Obj -> t
@@ -83,5 +81,5 @@ let rec var_in_ty x ty =
 and var_in_tm x tm =
   match tm with
   | Var v -> x = v
-  | Sub(_,s,_,_) -> List.exists (fun t -> var_in_tm x t) s
+  | Sub(_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
   | Letin_tm _ -> assert false

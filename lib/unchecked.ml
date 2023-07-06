@@ -120,7 +120,10 @@ let rec ty_do_on_variables ty f =
   | Arr(a,u,v) ->
     Arr(ty_do_on_variables a f, tm_do_on_variables u f, tm_do_on_variables v f)
 
-let var_apply_sub v s = List.assoc v s
+let var_apply_sub v s =
+  match List.assoc_opt v s with
+  | Some t -> t
+  | None -> Var v
 let tm_apply_sub tm s = tm_do_on_variables tm (fun v -> var_apply_sub v s)
 let ty_apply_sub ty s = ty_do_on_variables ty (fun v -> var_apply_sub v s)
 let sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
@@ -173,3 +176,24 @@ let ps_to_ctx ps =
 let sub_ps_to_sub s ps =
   let ps = ps_to_ctx ps in
   List.map2 (fun t (x,_) -> (x,t)) s ps, ps
+
+let max_fresh_var c =
+  let rec find_max c i =
+    match c with
+    | [] -> i
+    | (Var.New j, _) :: c when j >= i -> find_max c j
+    | ((Var.Name _ | Var.Db _ | Var.New _ ), _) :: c  -> find_max c i
+  in
+  find_max c 0
+
+let two_fresh_vars c =
+  let i = max_fresh_var c in
+  Var.New (i+1), Var.New (i+2)
+
+let rec identity = function
+  | [] -> []
+  | (x,_)::c -> (x,Var x) :: (identity c)
+
+let rec identity_ps = function
+  | [] -> []
+  | (x,_)::c -> Var x :: (identity_ps c)

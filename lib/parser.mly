@@ -3,18 +3,9 @@
     open Common
     open Syntax
 
-    let generate_functorialize l =
-    	let rec aux l i = match l with
-	|[] -> [],[]
-	|(x,true)::l -> let (res,func) = aux l (i+1)
-		        in x::res,i::func
-	|(x,false)::l -> let (res,func) = aux l (i+1)
-		      	 in x::res,func
-	in aux l 0
-
     let add_suspension = function
-      | Sub (x,s,None,f) -> Sub (x,s,Some 1,f)
-      | Sub (x,s,Some n,f) -> Sub (x,s,Some (n+1),f)
+      | Sub (x,s,None) -> Sub (x,s,Some 1)
+      | Sub (x,s,Some n) -> Sub (x,s,Some (n+1))
       | _ -> assert false
 %}
 
@@ -66,8 +57,7 @@ simple_tyexpr:
 
 subst_tmexpr:
     | simple_tmexpr { $1 }
-    | simple_tmexpr nonempty_sub { let sub,func = generate_functorialize $2
-      		    		   in Sub ($1,sub,None,func) }
+    | simple_tmexpr nonempty_sub {  Sub ($1,$2,None) }
     | BANG subst_tmexpr { add_suspension $2 }
 
 tmexpr:

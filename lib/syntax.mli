@@ -5,11 +5,11 @@ type ty =
 and tm =
   | Letin_tm of Common.Var.t * tm * tm
   | Var of Common.Var.t
-  | Sub of tm * (tm list) * int option * (int list)
+  | Sub of tm * (tm * bool) list * int option
 
 val string_of_ty : ty -> string
 val string_of_tm : tm -> string
-val string_of_sub : tm list -> int list -> int -> string
+val string_of_sub : (tm * bool) list -> string
 val remove_let_tm : tm -> tm
 val remove_let_ty : ty -> ty
 val var_in_ty : Common.Var.t -> ty  -> bool
