@@ -26,26 +26,11 @@ module Constraints = struct
 
   let empty = {ty = []; tm = []}
 
-  let rec combine c1 c2 =
-    let add_ty (i,ty) c =
-      match List.assoc_opt i c.ty with
-      | None -> {ty = (i,ty)::c.ty; tm = c.tm}
-      | Some t when t = Meta_ty i -> c
-      | Some t -> combine (unify_ty ty t) c
-    in
-    let add_tm (i,tm) c =
-      match List.assoc_opt i c.tm with
-      | None -> {ty = c.ty; tm = (i,tm) :: c.tm}
-      | Some t when t = Meta_tm i -> c
-      | Some t -> combine (unify_tm tm t) c
-    in
-    let rec combine_list c1 c2 =
-      match c1.ty, c1.tm with
-      | [], [] -> c2
-      | (i,ty)::cty, tm -> combine_list {ty = cty; tm} (add_ty (i,ty) c2)
-      | [], (i,tm)::ctm -> combine_list {ty = []; tm = ctm} (add_tm (i,tm) c2)
-    in combine_list c1 c2
-  and unify_ty ty1 ty2 =
+  let  combine c1 c2 =
+    {ty = List.append c1.ty c2.ty;
+     tm = List.append c1.tm c2.tm}
+
+  let rec  unify_ty ty1 ty2 =
     match ty1, ty2 with
     | Obj, Obj -> empty
     | Arr(a1,u1,v1), Arr(a2,u2,v2) ->
@@ -115,37 +100,69 @@ module Constraints = struct
     | Meta_ty _ -> false
 
   let resolve c : t =
-    let rec select_next p = function
+    let rec select_next_known l knowns =
+      match l with
       | [] -> raise Error.CouldNotSolve
+      | (i,a) :: l ->
+        match List.assoc_opt i knowns with
+        | Some b -> a,l,b
+        | None -> select_next_known l knowns
+    in
+    let rec select_next p = function
+      | [] -> raise Not_found
       | (i,a) :: l when p a -> (i,a), l
       | x::l -> let (pair,rest) = select_next p l in pair, x::rest
     in
-    let resolve_next_ty c =
-      let (i,ty), csty = select_next has_no_meta_ty c.ty in
-      let tmp_cst = {ty = [(i,ty)]; tm = []} in
-      {ty = List.map (fun (i,ty) -> i, substitute_ty tmp_cst ty) csty;
-       tm = List.map (fun (i,ty) -> i, substitute_tm tmp_cst ty) c.tm},
-      (i,ty)
+    let resolve_next_ty c knowns =
+      try
+        let (i,ty), csty = select_next has_no_meta_ty c.ty in
+        let tmp_cst = {ty = [(i,ty)]; tm = []} in
+        let new_cst =
+          {ty = List.map (fun (i,ty) -> i, substitute_ty tmp_cst ty) csty;
+           tm = List.map (fun (i,ty) -> i, substitute_tm tmp_cst ty) c.tm}
+        in
+        let known_ty_cst =
+          match List.assoc_opt i knowns.ty with
+          | Some t -> Unchecked.check_equal_ty t ty; knowns.ty
+          | None -> (i,ty)::knowns.ty
+        in
+        new_cst,{ty=known_ty_cst; tm=knowns.tm}
+      with Not_found ->
+        let ty, csty, known_ty = select_next_known c.ty knowns.ty in
+        let derived_cst = unify_ty ty known_ty in
+        combine derived_cst {ty = csty; tm=c.tm}, knowns
     in
-    let resolve_next_tm c =
-      let (i,tm), cstm = select_next has_no_meta_tm c.tm in
-      let tmp_cst = {ty = []; tm = [(i,tm)]} in
-      {ty = List.map (fun (i,tm) -> i, substitute_ty tmp_cst tm) c.ty;
-       tm = List.map (fun (i,tm) -> i, substitute_tm tmp_cst tm) cstm},
-      (i,tm)
+    let resolve_next_tm c knowns =
+      try
+        let (i,tm), cstm = select_next has_no_meta_tm c.tm in
+        let tmp_cst = {tm = [(i,tm)]; ty = []} in
+        let new_cst =
+          {ty = List.map (fun (i,ty) -> i, substitute_ty tmp_cst ty) c.ty;
+           tm = List.map (fun (i,ty) -> i, substitute_tm tmp_cst ty) cstm}
+        in
+        let known_tm_cst =
+          match List.assoc_opt i knowns.tm with
+          | Some t -> Unchecked.check_equal_tm t tm; knowns.tm
+          | None -> (i,tm)::knowns.tm
+        in
+        new_cst,{tm=known_tm_cst; ty=knowns.ty}
+      with Not_found ->
+        let tm, cstm, known_tm = select_next_known c.tm knowns.tm in
+        let derived_cst = unify_tm tm known_tm in
+        combine derived_cst {tm = cstm; ty=c.ty}, knowns
     in
     let rec exhaust_constraints_tm c res =
       match c.tm with
       | _::_ ->
-        let c,assoc = resolve_next_tm c in
-        exhaust_constraints_tm c ({ty = res.ty; tm = assoc::res.tm})
+        let c,res = resolve_next_tm c res in
+        exhaust_constraints_tm c res
       | [] -> res,c
     in
     let rec exhaust_constraints_ty c res =
       match c.ty with
       | _::_ ->
-        let c,assoc = resolve_next_ty c in
-        exhaust_constraints_ty c ({ty = assoc::res.ty; tm = res.tm})
+        let c,res = resolve_next_ty c res in
+        exhaust_constraints_ty c res
       | [] -> res,c
     in
     let tm_solve,c = (exhaust_constraints_tm c empty) in
