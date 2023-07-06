@@ -197,3 +197,12 @@ let rec identity = function
 let rec identity_ps = function
   | [] -> []
   | (x,_)::c -> Var x :: (identity_ps c)
+
+let rec tm_contains_var t x =
+  match t with
+  | Var v -> v = x
+  | Coh(_,_,s) -> List.exists (fun t -> tm_contains_var t x) s
+  | Meta_tm _ -> assert false
+
+let tm_contains_vars t l =
+  List.exists (tm_contains_var t) l

@@ -23,3 +23,4 @@ val sub_ps_to_sub : sub_ps -> ps -> sub * ctx
 val two_fresh_vars : ctx -> Var.t * Var.t
 val identity : ctx -> sub
 val identity_ps : ctx -> sub_ps
+val tm_contains_vars : tm -> Var.t list -> bool
