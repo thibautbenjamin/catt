@@ -240,6 +240,7 @@ end
 let ctx c =
   let c,meta_ctx = Translate_raw.ctx c in
   let c,cst = Constraints_typing.ctx c meta_ctx in
+  Io.info ~v:4 "inferred constraints:%s" (Constraints._to_string cst);
   let cst = Constraints.resolve cst in
   List.map (fun (x,(t,expl)) -> (x,(Constraints.substitute_ty cst t, expl))) c
 
@@ -259,6 +260,7 @@ let ty_in_ps ps t =
   let t = Syntax.remove_let_ty t in
   let t, meta_ctx = Translate_raw.ty t in
   let t,cst = Constraints_typing.ty ps meta_ctx t in
+  Io.info ~v:4 "inferred constraints:%s" (Constraints._to_string cst);
   let t = Constraints.substitute_ty (Constraints.resolve cst) t in
   let _, names,_ = Unchecked.db_levels ps in
   Unchecked.rename_ty t names
