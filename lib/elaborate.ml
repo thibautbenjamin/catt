@@ -70,6 +70,10 @@ module Constraints = struct
 
 type mgu = { uty : (int * ty) list; utm : (int * tm) list }
 
+let  combine_mgu m1 m2 =
+  {uty = List.append m1.uty m2.uty;
+   utm = List.append m1.utm m2.utm}
+
 let rec ty_replace_meta_ty (i,ty') ty =
   match ty with
   | Meta_ty j when i = j -> ty'
@@ -173,31 +177,35 @@ module Constraints_typing = struct
       match t with
     | Var v -> t, fst (List.assoc v ctx), Constraints.empty
     | Meta_tm i -> t, List.assoc i meta_ctx, Constraints.empty
-    | Coh(ps,t,s)->
+    | Coh(ps,ty,s)->
       try
         let s,tgt = Unchecked.sub_ps_to_sub s ps in
         let s,cst = sub ctx meta_ctx s tgt in
-        Coh(ps,t,(List.map snd s)), Unchecked.ty_apply_sub t s, cst
+        Coh(ps,ty,(List.map snd s)), Unchecked.ty_apply_sub ty s, cst
       with
         Error.NeedSuspension ->
         if !Settings.implicit_suspension then
           let ps = Suspension.ps (Some 1) ps in
-          let t = Suspension.ty (Some 1) t in
+          let ty = Suspension.ty (Some 1) ty in
           let s,meta = Translate_raw.sub_to_suspended s in
-          tm ctx (List.append meta meta_ctx) (Coh(ps,t,s))
+          tm ctx (List.append meta meta_ctx) (Coh(ps,ty,s))
         else
           raise Error.NotValid
   and sub src meta_ctx s tgt =
+    Io.info ~v:4 "constraint typing substitution %s in ctx %s, \
+                  target %s, meta_ctx %s"
+      (Unchecked.sub_to_string s)
+      (Unchecked.ctx_to_string src)
+      (Unchecked.ctx_to_string tgt)
+      (Unchecked.meta_ctx_to_string meta_ctx);
     match s,tgt with
     | [],[] -> [], Constraints.empty
     | (x,u)::s, (_,(t,_))::c ->
-      let _,cstt = ty tgt meta_ctx t in
       let u,ty,cstu = tm src meta_ctx u in
       let s,csts = sub src meta_ctx s c in
       (x,u)::s,
       Constraints.combine_all
-        [cstt;
-          cstu;
+        [cstu;
          Constraints.unify_ty ty (Unchecked.ty_apply_sub t s);
          csts]
     |[],_::_ | _::_, [] -> assert false
@@ -223,20 +231,22 @@ module Constraints_typing = struct
 
   let rec ctx c meta_ctx =
     match c with
-    | [] -> [], Constraints.empty
+    | [] -> [], {Constraints.uty=[]; utm=[]}
     | (x,(t,expl))::c ->
+      let c,known_mgu = ctx c meta_ctx in
+      let t = Constraints.substitute_ty known_mgu t in
       let t,cstt = ty c meta_ctx t in
-      let c,cstc = ctx c meta_ctx in
+      let new_mgu = Constraints.resolve cstt in
+      let t = Constraints.substitute_ty new_mgu t in
       (x,(t,expl))::c,
-      Constraints.combine cstc cstt
+      Constraints.combine_mgu known_mgu new_mgu
 end
 
 let ctx c =
   let c,meta_ctx = Translate_raw.ctx c in
-  let c,cst = Constraints_typing.ctx c meta_ctx in
-  Io.info ~v:4 "inferred constraints:%s" (Constraints._to_string cst);
-  let cst = Constraints.resolve cst in
-  List.map (fun (x,(t,expl)) -> (x,(Constraints.substitute_ty cst t, expl))) c
+  let c,_ = Constraints_typing.ctx c meta_ctx in
+  Io.info ~v:4 "elaborated context:%s" (Unchecked.ctx_to_string c);
+  c
 
 let ty c ty =
   let ty = Syntax.remove_let_ty ty in
