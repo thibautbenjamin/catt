@@ -1,25 +1,26 @@
 open Common
+open Std
 
 module Constraints = struct
-  type t = {ty : (int * ty) list; tm : (int * tm) list}
+  type t = {ty : (ty * ty) list; tm : (tm * tm) list}
 
   let _to_string c =
     let rec print_ty =
       function
       | [] -> ""
       | (i,t)::c ->
-        Printf.sprintf "%s (_ty%i = %s)"
+        Printf.sprintf "%s (%s = %s)"
           (print_ty c)
-          i
+          (Unchecked.ty_to_string i)
           (Unchecked.ty_to_string t)
     in
     let rec print_tm =
       function
       | [] -> ""
       | (i,t)::c ->
-        Printf.sprintf "%s (_tm%i = %s)"
+        Printf.sprintf "%s (%s = %s)"
           (print_tm c)
-          i
+          (Unchecked.tm_to_string i)
           (Unchecked.tm_to_string t)
     in
     Printf.sprintf "[%s] [%s]" (print_ty c.ty) (print_tm c.tm)
@@ -38,8 +39,8 @@ module Constraints = struct
         (combine
            (unify_tm u1 u2)
            (unify_tm v1 v2))
-    | Meta_ty i, ty2 -> {ty = [(i, ty2)]; tm = []}
-    | ty1, Meta_ty i -> {ty = [(i, ty1)]; tm = []}
+    | Meta_ty _, _
+    | _, Meta_ty _ -> {ty = [(ty1, ty2)]; tm = []}
     | Arr(_,_,_), Obj ->
       raise Error.NeedSuspension
     | Obj, Arr(_,_,_) ->
@@ -50,8 +51,8 @@ module Constraints = struct
     | Var v1, Var v2 when v1 = v2 -> empty
     | Coh(ps1,t1,s1), Coh(ps2,t2,s2) when ps1 = ps2 && t1 = t2 ->
       unify_sub s1 s2
-    | Meta_tm i, tm2 -> {ty = []; tm = [(i, tm2)]}
-    | tm1, Meta_tm i -> {ty = []; tm = [(i, tm1)]}
+    | Meta_tm _, _
+    | _, Meta_tm _ -> {ty = []; tm = [(tm1, tm2)]}
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ | Coh _ , Coh _ ->
       raise (Error.NotUnifiable
                (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
@@ -67,106 +68,99 @@ module Constraints = struct
     | [] -> empty
     | h::csts -> combine h (combine_all csts)
 
-  let rec substitute_ty l ty =
-    match ty with
-    | Meta_ty i ->
+type mgu = { uty : (int * ty) list; utm : (int * tm) list }
+
+let rec ty_replace_meta_ty (i,ty') ty =
+  match ty with
+  | Meta_ty j when i = j -> ty'
+  | Meta_ty _ -> ty
+  | Obj -> Obj
+  | Arr(a,u,v) ->
+    Arr (ty_replace_meta_ty (i,ty') a, u, v)
+
+let rec tm_replace_meta_tm (i,tm') tm =
+  match tm with
+  | Meta_tm j when i = j -> tm'
+  | Meta_tm _ -> tm
+  | Var v -> Var v
+  | Coh(ps,t,s) -> Coh(ps,t, List.map (tm_replace_meta_tm (i,tm')) s)
+
+let rec ty_replace_meta_tm (i,tm') ty =
+  match ty with
+  | Meta_ty _ -> ty
+  | Obj -> Obj
+  | Arr(a,u,v) ->
+    Arr (ty_replace_meta_tm (i,tm') a,
+         tm_replace_meta_tm (i,tm') u,
+         tm_replace_meta_tm (i,tm') v)
+
+let cst_replace_ty (i,ty) c =
+  {ty = List.map_both (ty_replace_meta_ty (i,ty)) c.ty; tm = c.tm}
+
+let cst_replace_tm (i,tm) c =
+  let ty_replace = ty_replace_meta_tm (i,tm) in
+  let tm_replace = tm_replace_meta_tm (i,tm) in
+  {ty = List.map_both ty_replace c.ty;
+   tm = List.map_both tm_replace c.tm}
+
+let mgu_replace_ty (i,ty) l =
+  {uty = List.map_right (ty_replace_meta_ty (i,ty)) l.uty; utm = l.utm}
+
+let mgu_replace_tm (i,tm) l =
+  let ty_replace = ty_replace_meta_tm (i,tm) in
+  let tm_replace = tm_replace_meta_tm (i,tm) in
+  {uty = List.map_right ty_replace l.uty;
+   utm = List.map_right tm_replace l.utm}
+
+let substitute_ty l ty =
+  let ty =
+    List.fold_left (fun ty (i,tm) -> ty_replace_meta_tm (i,tm) ty) ty l.utm
+  in
+  List.fold_left (fun ty (i,ty') -> ty_replace_meta_ty (i,ty') ty) ty l.uty
+
+let substitute_tm l tm =
+  List.fold_left (fun tm (i,tm') -> tm_replace_meta_tm (i,tm') tm) tm l.utm
+
+  (* Martelli-Montanari algorithm *)
+  let resolve_one_step c knowns =
+    match c.ty with
+    | (ty1,ty2) :: l ->
+      let c = {ty = l; tm = c.tm} in
       begin
-        match List.assoc_opt i l.ty with
-        | Some a -> a
-        | None -> Meta_ty i
+        match ty1,ty2 with
+        | Meta_ty i, Meta_ty j when i = j -> c, knowns
+        | Meta_ty i, ty | ty, Meta_ty i ->
+          let c = cst_replace_ty (i,ty) c in
+          let knowns = mgu_replace_ty (i,ty) knowns in
+          c,{uty = (i,ty)::knowns.uty; utm = knowns.utm}
+        | ty1, ty2 ->
+          let derived_constraints = unify_ty ty1 ty2 in
+          combine c derived_constraints, knowns
       end
-    | Obj -> Obj
-    | Arr(a,u,v) ->
-      Arr (substitute_ty l a, substitute_tm l u, substitute_tm l v)
-  and substitute_tm l tm =
-    match tm with
-    | Meta_tm i ->
-      begin
-        match List.assoc_opt i l.tm with
-        | Some u -> u
-        | None -> Meta_tm i
-      end
-    | Var v -> Var v
-    | Coh(ps,t,s) -> Coh(ps,t, List.map (substitute_tm l) s)
-
-  let rec has_no_meta_tm = function
-    | Var _ -> true
-    | Coh(_,_,s) -> List.for_all (fun tm -> has_no_meta_tm tm) s
-    | Meta_tm _ -> false
-
-  let rec has_no_meta_ty = function
-    | Obj -> true
-    | Arr (a,u,v) -> has_no_meta_ty a && has_no_meta_tm u && has_no_meta_tm v
-    | Meta_ty _ -> false
-
-  let resolve c : t =
-    let rec select_next_known l knowns =
-      match l with
-      | [] -> raise Error.CouldNotSolve
-      | (i,a) :: l ->
-        match List.assoc_opt i knowns with
-        | Some b -> a,l,b
-        | None -> select_next_known l knowns
-    in
-    let rec select_next p = function
-      | [] -> raise Not_found
-      | (i,a) :: l when p a -> (i,a), l
-      | x::l -> let (pair,rest) = select_next p l in pair, x::rest
-    in
-    let resolve_next_ty c knowns =
-      try
-        let (i,ty), csty = select_next has_no_meta_ty c.ty in
-        let tmp_cst = {ty = [(i,ty)]; tm = []} in
-        let new_cst =
-          {ty = List.map (fun (i,ty) -> i, substitute_ty tmp_cst ty) csty;
-           tm = List.map (fun (i,ty) -> i, substitute_tm tmp_cst ty) c.tm}
-        in
-        let known_ty_cst =
-          match List.assoc_opt i knowns.ty with
-          | Some t -> Unchecked.check_equal_ty t ty; knowns.ty
-          | None -> (i,ty)::knowns.ty
-        in
-        new_cst,{ty=known_ty_cst; tm=knowns.tm}
-      with Not_found ->
-        let ty, csty, known_ty = select_next_known c.ty knowns.ty in
-        let derived_cst = unify_ty ty known_ty in
-        combine derived_cst {ty = csty; tm=c.tm}, knowns
-    in
-    let resolve_next_tm c knowns =
-      try
-        let (i,tm), cstm = select_next has_no_meta_tm c.tm in
-        let tmp_cst = {tm = [(i,tm)]; ty = []} in
-        let new_cst =
-          {ty = List.map (fun (i,ty) -> i, substitute_ty tmp_cst ty) c.ty;
-           tm = List.map (fun (i,ty) -> i, substitute_tm tmp_cst ty) cstm}
-        in
-        let known_tm_cst =
-          match List.assoc_opt i knowns.tm with
-          | Some t -> Unchecked.check_equal_tm t tm; knowns.tm
-          | None -> (i,tm)::knowns.tm
-        in
-        new_cst,{tm=known_tm_cst; ty=knowns.ty}
-      with Not_found ->
-        let tm, cstm, known_tm = select_next_known c.tm knowns.tm in
-        let derived_cst = unify_tm tm known_tm in
-        combine derived_cst {tm = cstm; ty=c.ty}, knowns
-    in
-    let rec exhaust_constraints_tm c res =
+    | [] ->
       match c.tm with
-      | _::_ ->
-        let c,res = resolve_next_tm c res in
-        exhaust_constraints_tm c res
-      | [] -> res,c
-    in
-    let rec exhaust_constraints_ty c res =
-      match c.ty with
-      | _::_ ->
-        let c,res = resolve_next_ty c res in
-        exhaust_constraints_ty c res
-      | [] -> res,c
-    in
-    let tm_solve,c = (exhaust_constraints_tm c empty) in
-    fst (exhaust_constraints_ty c tm_solve)
+      | (tm1,tm2) :: l ->
+        let c = {ty = c.ty; tm = l} in
+        begin
+          match tm1,tm2 with
+          | Meta_tm i, Meta_tm j when i = j -> c, knowns
+          | Meta_tm i, tm | tm, Meta_tm i ->
+            let c = cst_replace_tm (i,tm) c in
+            let knowns = mgu_replace_tm (i,tm) knowns in
+            c,{uty = knowns.uty; utm = (i,tm)::knowns.utm}
+          | tm1, tm2 ->
+            let derived_constraints = unify_tm tm1 tm2 in
+            combine c derived_constraints, knowns
+        end
+      | [] -> assert false
+
+  let resolve c =
+    let rec aux c knowns =
+      if c.tm = [] && c.ty = [] then knowns
+      else
+        let c,knowns = resolve_one_step c knowns in
+        aux c knowns
+    in aux c {uty = []; utm = []}
 end
 
 module Constraints_typing = struct
@@ -254,6 +248,7 @@ let tm c tm =
   let tm = Syntax.remove_let_tm tm in
   let tm, meta_ctx = Translate_raw.tm tm in
   let tm,_,cst = Constraints_typing.tm c meta_ctx tm in
+  Io.info ~v:4 "inferred constraints:%s" (Constraints._to_string cst);
   Constraints.substitute_tm (Constraints.resolve cst) tm
 
 let ty_in_ps ps t =

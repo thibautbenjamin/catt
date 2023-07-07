@@ -1,15 +1,4 @@
-module List : sig
-  include module type of List
-
-  val remove : 'a -> ('a list) -> 'a list
-  val union : ('a list) -> ('a list) -> 'a list
-  val unions : ('a list) list -> 'a list
-  val included : ('a list) -> ('a list) -> bool
-  val set_equal : ('a list) -> ('a list) -> bool
-  val diff : ('a list) -> ('a list) -> 'a list
-  val get : int -> ('a list) -> 'a
-end
-= struct
+module List = struct
   include List
 
   let remove x l =
@@ -36,4 +25,9 @@ end
     |t::_,0 -> t
     |_::l,i -> get (i-1) l
 
+  let map_both fn =
+    List.map (fun (a,b) -> (fn a, fn b))
+
+  let map_right fn =
+    List.map (fun (a,b) -> (a, fn b))
 end
