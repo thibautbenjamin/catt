@@ -41,19 +41,25 @@ module Constraints = struct
            (unify_tm v1 v2))
     | Meta_ty _, _
     | _, Meta_ty _ -> {ty = [(ty1, ty2)]; tm = []}
-    | Arr(_,_,_), Obj ->
-      raise Error.NeedSuspension
+    | Arr(_,_,_), Obj
     | Obj, Arr(_,_,_) ->
-      raise (Error.NotUnifiable
-               (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
+      raise Error.NeedSuspension
   and unify_tm tm1 tm2 =
     match tm1, tm2 with
     | Var v1, Var v2 when v1 = v2 -> empty
     | Coh(ps1,t1,s1), Coh(ps2,t2,s2) when ps1 = ps2 && t1 = t2 ->
       unify_sub s1 s2
+    | Coh(ps1,t1,_), Coh(ps2,t2,_) ->
+      begin
+        match Suspension.is_reachable (ps1,t1) (ps2,t2) with
+        | Some _ -> raise Error.NeedSuspension
+        | None -> raise (Error.NotUnifiable
+                           (Unchecked.tm_to_string tm1,
+                            Unchecked.tm_to_string tm2))
+      end
     | Meta_tm _, _
     | _, Meta_tm _ -> {ty = []; tm = [(tm1, tm2)]}
-    | Var _, Coh _ | Coh _, Var _ | Var _, Var _ | Coh _ , Coh _ ->
+    | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
       raise (Error.NotUnifiable
                (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
   and unify_sub s1 s2 =
