@@ -71,7 +71,7 @@ let exec_cmd cmd =
   | Check (l, e, t) ->
     Io.command "check %s" (Syntax.string_of_tm e);
     check l e t;
-    Io.info "valid term %s" (Syntax.string_of_tm e);
+    Io.info (lazy (Printf.sprintf "valid term %s" (Syntax.string_of_tm e)));
   | Decl (v,l,e,t) ->
     Io.command "let %s = %s" (Var.to_string v) (Syntax.string_of_tm e);
     exec_decl v l e t

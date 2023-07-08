@@ -169,10 +169,13 @@ end
 module Constraints_typing = struct
 
   let rec tm ctx meta_ctx t =
-    Io.info ~v:4 "constraint typing term %s in ctx %s, meta_ctx %s"
-      (Unchecked.tm_to_string t)
-      (Unchecked.ctx_to_string ctx)
-      (Unchecked.meta_ctx_to_string meta_ctx);
+    Io.info ~v:4
+      (lazy
+        (Printf.sprintf
+           "constraint typing term %s in ctx %s, meta_ctx %s"
+           (Unchecked.tm_to_string t)
+           (Unchecked.ctx_to_string ctx)
+           (Unchecked.meta_ctx_to_string meta_ctx)));
       match t with
     | Var v -> t, fst (List.assoc v ctx), Constraints.empty
     | Meta_tm i -> t, List.assoc i meta_ctx, Constraints.empty
@@ -191,12 +194,15 @@ module Constraints_typing = struct
         else
           raise Error.NotValid
   and sub src meta_ctx s tgt =
-    Io.info ~v:4 "constraint typing substitution %s in ctx %s, \
-                  target %s, meta_ctx %s"
-      (Unchecked.sub_to_string s)
-      (Unchecked.ctx_to_string src)
-      (Unchecked.ctx_to_string tgt)
-      (Unchecked.meta_ctx_to_string meta_ctx);
+    Io.info ~v:4
+      (lazy
+        (Printf.sprintf
+           "constraint typing substitution %s in ctx %s, \
+            target %s, meta_ctx %s"
+           (Unchecked.sub_to_string s)
+           (Unchecked.ctx_to_string src)
+           (Unchecked.ctx_to_string tgt)
+           (Unchecked.meta_ctx_to_string meta_ctx)));
     match s,tgt with
     | [],[] -> [], Constraints.empty
     | (x,u)::s, (_,(t,_))::c ->
@@ -209,10 +215,13 @@ module Constraints_typing = struct
          csts]
     |[],_::_ | _::_, [] -> assert false
   and ty ctx meta_ctx t =
-    Io.info ~v:4 "constraint typing type %s in ctx %s, meta_ctx %s"
-      (Unchecked.ty_to_string t)
-      (Unchecked.ctx_to_string ctx)
-      (Unchecked.meta_ctx_to_string meta_ctx);
+    Io.info ~v:4
+      (lazy
+        (Printf.sprintf
+           "constraint typing type %s in ctx %s, meta_ctx %s"
+           (Unchecked.ty_to_string t)
+           (Unchecked.ctx_to_string ctx)
+           (Unchecked.meta_ctx_to_string meta_ctx)));
     match t with
     | Obj -> Obj, Constraints.empty
     | Arr(a,u,v) ->
@@ -244,7 +253,10 @@ end
 let ctx c =
   let c,meta_ctx = Translate_raw.ctx c in
   let c,_ = Constraints_typing.ctx c meta_ctx in
-  Io.info ~v:4 "elaborated context:%s" (Unchecked.ctx_to_string c);
+  Io.info ~v:4
+    (lazy
+      (Printf.sprintf
+         "elaborated context:%s" (Unchecked.ctx_to_string c)));
   c
 
 let ty c ty =
@@ -257,14 +269,20 @@ let tm c tm =
   let tm = Syntax.remove_let_tm tm in
   let tm, meta_ctx = Translate_raw.tm tm in
   let tm,_,cst = Constraints_typing.tm c meta_ctx tm in
-  Io.info ~v:4 "inferred constraints:%s" (Constraints._to_string cst);
+  Io.info ~v:4
+    (lazy
+      (Printf.sprintf
+         "inferred constraints:%s" (Constraints._to_string cst)));
   Constraints.substitute_tm (Constraints.resolve cst) tm
 
 let ty_in_ps ps t =
   let t = Syntax.remove_let_ty t in
   let t, meta_ctx = Translate_raw.ty t in
   let t,cst = Constraints_typing.ty ps meta_ctx t in
-  Io.info ~v:4 "inferred constraints:%s" (Constraints._to_string cst);
+  Io.info ~v:4
+    (lazy
+      (Printf.sprintf
+         "inferred constraints:%s" (Constraints._to_string cst)));
   let t = Constraints.substitute_ty (Constraints.resolve cst) t in
   let _, names,_ = Unchecked.db_levels ps in
   Unchecked.rename_ty t names

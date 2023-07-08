@@ -20,11 +20,14 @@ end
     List.concat (List.map Tm.free_vars s.list)
 
   let rec check src s tgt =
-    Io.info ~v:3 "building kernel substitution \
-                  : source = %s; substitution = %s; target = %s"
-      (Ctx.to_string src)
-      (Unchecked.sub_to_string s)
-      (Ctx.to_string tgt);
+    Io.info ~v:3
+      (lazy
+        (Printf.sprintf
+           "building kernel substitution \
+            : source = %s; substitution = %s; target = %s"
+           (Ctx._to_string src)
+           (Unchecked.sub_to_string s)
+           (Ctx._to_string tgt)));
     let expr (s : sub) tgt =
       match s, Ctx.value tgt with
       | [], [] -> []
@@ -51,7 +54,7 @@ and Ctx : sig
   type t
   val empty : unit -> t
   val tail : t -> t
-  val to_string : t -> string
+  val _to_string : t -> string
   val ty_var : t -> Var.t -> Ty.t
   val domain : t -> Var.t list
   val value : t -> (Var.t * Ty.t) list
@@ -80,7 +83,7 @@ struct
   let domain ctx = List.map fst ctx.c
   let value ctx = ctx.c
   let forget c = c.unchecked
-  let to_string ctx =
+  let _to_string ctx =
     Unchecked.ctx_to_string (forget ctx)
   let check_equal ctx1 ctx2 =
     Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
@@ -319,8 +322,12 @@ struct
   let is_obj t = (t.e = Obj)
 
   let rec check c t =
-    Io.info ~v:3 "building kernel type %s in context %s"
-    (Unchecked.ty_to_string t) (Ctx.to_string c);
+    Io.info ~v:3
+      (lazy
+        (Printf.sprintf
+           "building kernel type %s in context %s"
+           (Unchecked.ty_to_string t)
+           (Ctx._to_string c)));
     let e =
       match t with
       | Obj -> Obj
@@ -384,9 +391,12 @@ struct
   let _to_string tm = Unchecked.tm_to_string (forget tm)
 
   let check c ?ty t =
-    Io.info ~v:3 "building kernel term %s in context %s"
-      (Unchecked.tm_to_string t)
-      (Ctx.to_string c);
+    Io.info ~v:3
+      (lazy
+        (Printf.sprintf
+           "building kernel term %s in context %s"
+           (Unchecked.tm_to_string t)
+           (Ctx._to_string c)));
     let tm =
       match t with
       | Common.Var x ->
@@ -436,9 +446,11 @@ struct
       else raise Error.NotAlgebraic
 
   let check ps t names =
-    Io.info ~v:3 "checking coherence (%s,%s)"
-      (Unchecked.ps_to_string ps)
-      (Unchecked.ty_to_string t);
+    Io.info ~v:3
+      (lazy
+        (Printf.sprintf "checking coherence (%s,%s)"
+           (Unchecked.ps_to_string ps)
+           (Unchecked.ty_to_string t)));
     let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
     let ps = PS.mk cps in
     let t = Ty.check cps t in
