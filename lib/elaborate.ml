@@ -65,6 +65,7 @@ module Constraints = struct
 
   let rec combine_all = function
     | [] -> empty
+    | [h] -> h
     | h::csts -> combine h (combine_all csts)
 
 type mgu = { uty : (int * ty) list; utm : (int * tm) list }
@@ -138,7 +139,7 @@ let substitute_tm l tm =
           c,{uty = (i,ty)::knowns.uty; utm = knowns.utm}
         | ty1, ty2 ->
           let derived_constraints = unify_ty ty1 ty2 in
-          combine c derived_constraints, knowns
+          combine derived_constraints c, knowns
       end
     | [] ->
       match c.tm with
@@ -153,7 +154,7 @@ let substitute_tm l tm =
             c,{uty = knowns.uty; utm = (i,tm)::knowns.utm}
           | tm1, tm2 ->
             let derived_constraints = unify_tm tm1 tm2 in
-            combine c derived_constraints, knowns
+            combine derived_constraints c, knowns
         end
       | [] -> assert false
 
@@ -210,9 +211,9 @@ module Constraints_typing = struct
       let s,csts = sub src meta_ctx s c in
       (x,u)::s,
       Constraints.combine_all
-        [cstu;
-         Constraints.unify_ty ty (Unchecked.ty_apply_sub t s);
-         csts]
+        [csts;
+         cstu;
+         Constraints.unify_ty ty (Unchecked.ty_apply_sub t s)]
     |[],_::_ | _::_, [] -> assert false
   and ty ctx meta_ctx t =
     Io.info ~v:4
@@ -230,9 +231,9 @@ module Constraints_typing = struct
       let a,csta = ty ctx meta_ctx a in
       Arr (a,u,v),
         Constraints.combine_all
-          [cstu;
+          [csta;
+           cstu;
            cstv;
-           csta;
            Constraints.unify_ty a tu;
            Constraints.unify_ty a tv]
     | Meta_ty _ -> t, Constraints.empty
