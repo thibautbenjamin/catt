@@ -9,7 +9,7 @@
       | _ -> assert false
 %}
 
-%token COH OBJ MOR
+%token COH OBJ MOR WILD
 %token LPAR RPAR LBRA RBRA COL BANG
 %token <string> IDENT
 %token CHECK EQUAL LET IN SET
@@ -46,6 +46,7 @@ sub:
 
 simple_tmexpr:
     | LPAR tmexpr RPAR { $2 }
+    | WILD { Meta }
     | IDENT { Var (Var.make_var $1) }
 
 functed_tmexpr:

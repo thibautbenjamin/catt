@@ -6,6 +6,7 @@ and tm =
   | Letin_tm of Common.Var.t * tm * tm
   | Var of Common.Var.t
   | Sub of tm * (tm * bool) list * int option
+  | Meta
 
 val string_of_ty : ty -> string
 val string_of_tm : tm -> string

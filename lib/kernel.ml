@@ -63,9 +63,7 @@ and Ctx : sig
   val check : ctx -> t
   val check_notin : t -> Var.t -> unit
   val check_equal : t -> t -> unit
-end
-=
-struct
+end = struct
   type t = {c : (Var.t * Ty.t) list; unchecked : ctx}
 
   let tail ctx =

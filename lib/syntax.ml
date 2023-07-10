@@ -11,6 +11,7 @@ and tm =
   | Letin_tm of Var.t * tm * tm
   | Var of Var.t
   | Sub of tm * (tm  * bool) list * int option
+  | Meta
 
 let rec string_of_ty e =
   match e with
@@ -38,6 +39,7 @@ and string_of_tm e =
       susp
       (string_of_tm t)
       (string_of_sub s)
+  | Meta -> "_"
 and string_of_sub s=
   match s with
   | []-> ""
@@ -56,6 +58,7 @@ let rec replace_tm l e =
   | Sub (e,s,susp) ->
     Sub(replace_tm l e, replace_sub l s,susp)
   | Letin_tm (v,t,tm) -> replace_tm ((v,t)::l) tm
+  | Meta -> Meta
 and replace_sub l s =
   match s with
   | [] -> []
@@ -82,6 +85,7 @@ and var_in_tm x tm =
   match tm with
   | Var v -> x = v
   | Sub(_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
+  | Meta -> false
   | Letin_tm _ -> assert false
 
 let rec dim_ty ctx = function
@@ -99,6 +103,7 @@ and dim_tm ctx = function
       | Some i -> i
     in
     d+func+susp
+  | Meta -> 0
   | Letin_tm _ | Sub _ -> assert false
 
 let rec dim_sub ctx = function
@@ -122,6 +127,7 @@ let rec infer_susp_tm ctx = function
         Sub(Var v,s,newsusp)
       | Some i -> Sub(Var v,s,Some i)
     end
+  | Meta -> Meta
   | Letin_tm _ | Sub _ -> assert false
 and infer_susp_sub ctx = function
   | [] -> []
