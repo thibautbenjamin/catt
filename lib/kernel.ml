@@ -1,8 +1,22 @@
 open Std
 open Common
 
+module rec Memo : sig
+  val find : (ps * ty) -> Coh.t option
+  val add : (ps * ty) -> Coh.t -> Coh.t
+end = struct
+  let tbl : (ps*ty, Coh.t) Hashtbl.t = Hashtbl.create 97
+
+  let find (ps,t) =
+    try Some (Hashtbl.find tbl (ps,t))
+    with Not_found -> None
+
+  let add (ps,t) coh =
+    Hashtbl.add tbl (ps,t) coh; coh
+end
+
 (** Operations on substitutions. *)
-module rec Sub : sig
+and Sub : sig
   type t
   val check_to_ps : Ctx.t -> sub_ps -> PS.t -> t
   val forget : t -> sub
@@ -116,6 +130,7 @@ and PS : sig
   val source : int -> t -> Var.t list
   val target : int -> t -> Var.t list
   val forget : t -> ps
+  val _to_string : t -> string
 end
 =
 struct
@@ -130,6 +145,8 @@ struct
   type newt = { tree : ps; ctx : Ctx.t}
 
   type t = {oldrep : oldrep; newrep : newt}
+
+  let _to_string t = Unchecked.ps_to_string t.newrep.tree
 
   (** Create a context from a pasting scheme. *)
   (* TODO:fix level of explicitness here *)
@@ -308,6 +325,7 @@ and Ty : sig
   val check : Ctx.t -> ty -> t
   val apply : t -> Sub.t -> t
   val expr : t -> expr
+  val _to_string : t -> string
 end
 =
 struct
@@ -420,6 +438,7 @@ and Coh : sig
   type t
   val ps : t -> PS.t
   val ty : t -> Ty.t
+  val algebraic : PS.t -> Ty.t -> (Var.t * int) list -> t
   val check : ps -> ty -> (Var.t * int) list -> t
 end
 =
@@ -451,8 +470,12 @@ struct
         (Printf.sprintf "checking coherence (%s,%s)"
            (Unchecked.ps_to_string ps)
            (Unchecked.ty_to_string t)));
-    let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
-    let ps = PS.mk cps in
-    let t = Ty.check cps t in
-    algebraic ps t names
+    match Memo.find (ps,t) with
+    | Some coh -> coh
+    | None ->
+      let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
+      let pps = PS.mk cps in
+      let tt = Ty.check cps t in
+      let coh = Coh.algebraic pps tt names in
+      Memo.add (ps,t) coh
 end
