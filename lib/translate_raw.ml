@@ -64,7 +64,9 @@ let rec tm tm =
          let s, meta_types = sub s c in
          Unchecked.tm_apply_sub t s, meta_types
      end;
-  | Syntax.Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Letin_tm _ -> assert false
+  | Meta -> let m,meta_type = new_meta_tm() in (m,[meta_type])
+  | Syntax.Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
+  | Letin_tm _ -> assert false
 and sub_ps s ps =
   let sub,meta_types = sub s (Unchecked.ps_to_ctx ps) in
   List.map snd sub, meta_types
