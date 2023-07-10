@@ -37,3 +37,9 @@ let add_coh v ps ty =
 
 let val_var v =
   (Hashtbl.find env v).value
+
+let dim_output v =
+  (Hashtbl.find env v).dim_output
+
+let dim_input v =
+    (Hashtbl.find env v).dim_input

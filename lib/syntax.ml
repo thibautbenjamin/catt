@@ -83,3 +83,51 @@ and var_in_tm x tm =
   | Var v -> x = v
   | Sub(_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
   | Letin_tm _ -> assert false
+
+let rec dim_ty ctx = function
+  | Obj -> 0
+  | Arr(u,_) -> 1 + dim_tm ctx u
+  | Letin_ty _ -> assert false
+and dim_tm ctx = function
+  | Var v -> dim_ty ctx (List.assoc v ctx)
+  | Sub(Var v,s,i) ->
+    let func = if List.exists (fun (_,bool) -> bool) s then 1 else 0 in
+    let d = Environment.dim_output v in
+    let
+      susp = match i with
+      | None -> 0
+      | Some i -> i
+    in
+    d+func+susp
+  | Letin_tm _ | Sub _ -> assert false
+
+let rec dim_sub ctx = function
+  | [] -> 0, false
+  | (t,f)::s ->
+    let (d1,f1) = dim_sub ctx s in
+    let d2 = dim_tm ctx t in
+    (max d1 d2, f||f1)
+
+let rec infer_susp_tm ctx = function
+  | Var v -> Var v
+  | Sub(Var v,s,i) ->
+    let s = infer_susp_sub ctx s in
+    begin
+      match i with
+      | None ->
+        let inp = Environment.dim_input v in
+        let d,f = dim_sub ctx s in
+        let func = if f then 1 else 0 in
+        let newsusp = Some (d - inp - func) in
+        Sub(Var v,s,newsusp)
+      | Some i -> Sub(Var v,s,Some i)
+    end
+  | Letin_tm _ | Sub _ -> assert false
+and infer_susp_sub ctx = function
+  | [] -> []
+  | (tm,b)::s -> (infer_susp_tm ctx tm, b)::(infer_susp_sub ctx s)
+
+let infer_susp_ty ctx = function
+  | Obj -> Obj
+  | Arr(u,v) -> Arr(infer_susp_tm ctx u, infer_susp_tm ctx v)
+  | Letin_ty _ -> assert false

@@ -218,7 +218,7 @@ let rec dim_ctx = function
 
 let rec dim_ps = function
   | Br [] -> 0
-  | Br l -> max_list_ps l
+  | Br l -> 1 + max_list_ps l
 and max_list_ps = function
   | [] -> 0
   | p::l -> max (dim_ps p) (max_list_ps l)

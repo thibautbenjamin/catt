@@ -13,3 +13,5 @@ val string_of_sub : (tm * bool) list -> string
 val remove_let_tm : tm -> tm
 val remove_let_ty : ty -> ty
 val var_in_ty : Common.Var.t -> ty  -> bool
+val infer_susp_tm : (Common.Var.t * ty) list ->  tm -> tm
+val infer_susp_ty : (Common.Var.t * ty) list -> ty -> ty

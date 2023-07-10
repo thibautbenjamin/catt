@@ -260,24 +260,48 @@ let ctx c =
          "elaborated context:%s" (Unchecked.ctx_to_string c)));
   c
 
-let ty c ty =
+let preprocess_ty ctx ty =
   let ty = Syntax.remove_let_ty ty in
+  if !Settings.implicit_suspension then
+    Syntax.infer_susp_ty ctx ty
+  else ty
+
+let preprocess_tm ctx tm =
+  let tm = Syntax.remove_let_tm tm in
+  if !Settings.implicit_suspension then
+    Syntax.infer_susp_tm ctx tm
+  else tm
+
+let rec preprocess_ctx = function
+  | [] -> []
+  | (v,t)::c ->
+    let c = preprocess_ctx c in
+    (v, preprocess_ty c t)::c
+
+let ty c ty =
+  let c = preprocess_ctx c in
+  let ty = preprocess_ty c ty in
+  let c = ctx c in
   let ty, meta_ctx = Translate_raw.ty ty in
   let ty,cst = Constraints_typing.ty c meta_ctx ty in
-  Constraints.substitute_ty (Constraints.resolve cst) ty
+  c,Constraints.substitute_ty (Constraints.resolve cst) ty
 
 let tm c tm =
-  let tm = Syntax.remove_let_tm tm in
+  let c = preprocess_ctx c in
+  let tm = preprocess_tm c tm in
+  let c = ctx c in
   let tm, meta_ctx = Translate_raw.tm tm in
   let tm,_,cst = Constraints_typing.tm c meta_ctx tm in
   Io.info ~v:4
     (lazy
       (Printf.sprintf
          "inferred constraints:%s" (Constraints._to_string cst)));
-  Constraints.substitute_tm (Constraints.resolve cst) tm
+  c,Constraints.substitute_tm (Constraints.resolve cst) tm
 
 let ty_in_ps ps t =
-  let t = Syntax.remove_let_ty t in
+  let ps = preprocess_ctx ps in
+  let t = preprocess_ty ps t in
+  let ps = ctx ps in
   let t, meta_ctx = Translate_raw.ty t in
   let t,cst = Constraints_typing.ty ps meta_ctx t in
   Io.info ~v:4
@@ -286,7 +310,5 @@ let ty_in_ps ps t =
          "inferred constraints:%s" (Constraints._to_string cst)));
   let t = Constraints.substitute_ty (Constraints.resolve cst) t in
   let _, names,_ = Unchecked.db_levels ps in
+  Kernel.PS.(forget (mk (Kernel.Ctx.check ps))),
   Unchecked.rename_ty t names
-
-let ps p =
-  Kernel.PS.(forget (mk (Kernel.Ctx.check p)))

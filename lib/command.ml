@@ -10,27 +10,23 @@ type cmd =
 type prog = cmd list
 
 let exec_coh v ps ty =
-  let ps = Elaborate.ctx ps in
-  let ty = Elaborate.ty_in_ps ps ty in
-  let ps = Elaborate.ps ps in
+  let ps,ty = Elaborate.ty_in_ps ps ty in
   Environment.add_coh v ps ty
 
 let exec_decl v l e t =
-  let c = Elaborate.ctx l in
-  let e = Elaborate.tm c e in
+  let c,e = Elaborate.tm l e in
   match t with
   | None -> Environment.add_let v c e
   | Some ty ->
-     let ty = Elaborate.ty c ty in
+     let _,ty = Elaborate.ty l ty in
      Environment.add_let v c ~ty e
 
 let check l e t =
-  let c = Elaborate.ctx l in
-  let e = Elaborate.tm c e in
+  let c,e = Elaborate.tm l e in
   let ty =
     match t with
     | None -> None
-    | Some ty -> Some (Elaborate.ty c ty)
+    | Some ty -> let _,ty = Elaborate.ty l ty in Some ty
   in
   let c = Kernel.Ctx.check c in
   ignore(Kernel.Tm.check c ?ty e)
