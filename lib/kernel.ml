@@ -10,7 +10,7 @@ module rec Sub : sig
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
 end
-  = struct
+= struct
   type t = {list : Tm.t list; src : Ctx.t; tgt : Ctx.t; unchecked : sub}
 
   let src s = s.src
@@ -34,10 +34,10 @@ end
       | (_::_,[] |[],_::_) -> raise Error.NotValid
       | (x1,_)::_, (x2,_)::_ when x1 <> x2 -> raise Error.NotValid
       | (_,t)::s, (_,a)::_ ->
-	 let sub = check src s (Ctx.tail tgt) in
-         let t = Tm.check src t in
-	 Ty.check_equal (Tm.typ t) (Ty.apply a sub);
-	 t::sub.list
+	let sub = check src s (Ctx.tail tgt) in
+        let t = Tm.check src t in
+	Ty.check_equal (Tm.typ t) (Ty.apply a sub);
+	t::sub.list
     in
     {list = expr s tgt; src; tgt; unchecked = s}
 
@@ -64,7 +64,7 @@ and Ctx : sig
   val check_notin : t -> Var.t -> unit
   val check_equal : t -> t -> unit
 end
-  =
+=
 struct
   type t = {c : (Var.t * Ty.t) list; unchecked : ctx}
 
@@ -117,7 +117,7 @@ and PS : sig
   val target : int -> t -> Var.t list
   val forget : t -> ps
 end
-  =
+=
 struct
   exception Invalid
 
@@ -151,27 +151,27 @@ struct
     | PNil (x,t) -> x,t
     | PCons (_,_,f) -> f
     | PDrop ps ->
-       let _,tf = marker ps in
-       match (Ty.expr tf) with
-       | Ty.Arr (_,_,v) ->
-          let y =
-            match Tm.expr v with
-            | Tm.Var y -> y
-            | Tm.Coh _ -> raise Invalid
+      let _,tf = marker ps in
+      match (Ty.expr tf) with
+      | Ty.Arr (_,_,v) ->
+        let y =
+          match Tm.expr v with
+          | Tm.Var y -> y
+          | Tm.Coh _ -> raise Invalid
+        in
+        let t =
+          let rec aux = function
+            | PNil (x,t) -> assert (x = y); t
+            | PCons (ps,(y',ty),(f,tf)) ->
+              if y' = y then ty
+              else if f = y then tf
+              else aux ps
+            | PDrop ps -> aux ps
           in
-          let t =
-            let rec aux = function
-              | PNil (x,t) -> assert (x = y); t
-              | PCons (ps,(y',ty),(f,tf)) ->
-                 if y' = y then ty
-                 else if f = y then tf
-                 else aux ps
-              | PDrop ps -> aux ps
-            in
-            aux ps
-          in
-          y,t
-       | _ -> raise Invalid
+          aux ps
+        in
+        y,t
+      | _ -> raise Invalid
 
   (** Create a pasting scheme from a context. *)
   let make_old (l : Ctx.t)  =
@@ -188,31 +188,31 @@ struct
       in
       let rec aux ps = function
         | ((y,ty)::(f,tf)::l) as l1 ->
-           begin
-             match Ty.expr tf with
-             | Arr (_,u,v) ->
-                let fx,fy =
-                  match Tm.expr u,Tm.expr v with
-                  | Var fx, Var fy -> fx, fy
-                  | Var _, Coh _ | Coh _, Var _ | Coh _, Coh _ -> raise Invalid
-                in
-                if (y <> fy) then raise Invalid;
-                let x,_ = marker ps in
-                if x = fx then
-                  let varps = Ctx.domain (old_rep_to_ctx ps) in
-                  if (List.mem f varps) then
-                    raise (Error.DoubledVar (Var.to_string f));
-                  if (List.mem y varps) then
-                    raise (Error.DoubledVar (Var.to_string y));
-                  let ps = PCons (ps,(y,ty),(f,tf)) in
-                  aux ps l
-                  else
-                  aux (PDrop ps) l1
-             | _ -> raise Invalid
-           end
+          begin
+            match Ty.expr tf with
+            | Arr (_,u,v) ->
+              let fx,fy =
+                match Tm.expr u,Tm.expr v with
+                | Var fx, Var fy -> fx, fy
+                | Var _, Coh _ | Coh _, Var _ | Coh _, Coh _ -> raise Invalid
+              in
+              if (y <> fy) then raise Invalid;
+              let x,_ = marker ps in
+              if x = fx then
+                let varps = Ctx.domain (old_rep_to_ctx ps) in
+                if (List.mem f varps) then
+                  raise (Error.DoubledVar (Var.to_string f));
+                if (List.mem y varps) then
+                  raise (Error.DoubledVar (Var.to_string y));
+                let ps = PCons (ps,(y,ty),(f,tf)) in
+                aux ps l
+              else
+                aux (PDrop ps) l1
+            | _ -> raise Invalid
+          end
         | [_,_] -> raise Invalid
         | [] ->
-	   let _,tx = marker ps in close ps tx
+	  let _,tx = marker ps in close ps tx
       in
       aux (PNil (x0,ty)) l
     in build (List.rev (Ctx.value l))
@@ -224,16 +224,16 @@ struct
       | PNil x -> (Br list, PNil x)
       | PCons (ps,_,_) -> (Br list, ps)
       | PDrop _ as ps ->
-         let p,ps = build_till_previous ps in
-         Br p, ps
+        let p,ps = build_till_previous ps in
+        Br p, ps
     and build_till_previous ps =
       match ps with
       | PNil x -> [], PNil x
       | PCons (ps,_,_) -> [], ps
       | PDrop ps ->
-         let p,ps = find_previous ps [] in
-         let prev,ps = build_till_previous ps in
-                 p::prev, ps
+        let p,ps = find_previous ps [] in
+        let prev,ps = build_till_previous ps in
+        p::prev, ps
     in
     Br (fst (build_till_previous ps))
 
@@ -309,7 +309,7 @@ and Ty : sig
   val apply : t -> Sub.t -> t
   val expr : t -> expr
 end
-  =
+=
 struct
   (** A type exepression. *)
   type expr =
@@ -332,12 +332,12 @@ struct
       match t with
       | Obj -> Obj
       | Arr(a,u,v) ->
-         let a = check c a in
-         let u = Tm.check c u in
-         let v = Tm.check c v in
-         Arr(a,u,v)
+        let a = check c a in
+        let u = Tm.check c u in
+        let v = Tm.check c v in
+        Arr(a,u,v)
       | Meta_ty _ -> raise Error.MetaVariable
-  in {c; e; unchecked = t}
+    in {c; e; unchecked = t}
 
   (** Free variables of a type. *)
   let rec free_vars ty =
@@ -372,7 +372,7 @@ and Tm : sig
   val check : Ctx.t -> ?ty : ty -> tm -> t
   val expr : t -> expr
 end
-  =
+=
 struct
   type expr =
     | Var of Var.t (** a context variable *)
@@ -400,19 +400,19 @@ struct
     let tm =
       match t with
       | Common.Var x ->
-         let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
-         ({ty; e; unchecked = t})
+        let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
+        ({ty; e; unchecked = t})
       | Meta_tm _ -> raise Error.MetaVariable
       | Common.Coh (ps,ty,s) ->
-         let coh = Coh.check ps ty [] in
-         let sub = Sub.check_to_ps c s (Coh.ps coh) in
-         let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
-         {ty; e; unchecked = t}
+        let coh = Coh.check ps ty [] in
+        let sub = Sub.check_to_ps c s (Coh.ps coh) in
+        let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
+        {ty; e; unchecked = t}
     in match ty with
-       | None -> tm
-       | Some ty ->
-          let ty = Ty.check c ty in
-          Ty.check_equal ty tm.ty; tm
+    | None -> tm
+    | Some ty ->
+      let ty = Ty.check c ty in
+      Ty.check_equal ty tm.ty; tm
 end
 
 (** A coherence. *)

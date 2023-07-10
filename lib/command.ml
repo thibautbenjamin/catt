@@ -22,7 +22,7 @@ let exec_decl v l e t =
   | None -> Environment.add_let v c e
   | Some ty ->
      let ty = Elaborate.ty c ty in
-     Environment.add_let_check v c e ty
+     Environment.add_let v c ~ty e
 
 let check l e t =
   let c = Elaborate.ctx l in
