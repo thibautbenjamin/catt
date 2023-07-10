@@ -24,3 +24,6 @@ val two_fresh_vars : ctx -> Var.t * Var.t
 val identity : ctx -> sub
 val identity_ps : ctx -> sub_ps
 val tm_contains_vars : tm -> Var.t list -> bool
+val dim_ty : ty -> int
+val dim_ctx : ctx -> int
+val dim_ps : ps -> int

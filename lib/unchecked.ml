@@ -206,3 +206,19 @@ let rec tm_contains_var t x =
 
 let tm_contains_vars t l =
   List.exists (tm_contains_var t) l
+
+let rec dim_ty = function
+  | Obj -> 0
+  | Arr(a,_,_) -> 1 + dim_ty a
+  | Meta_ty _ -> assert false
+
+let rec dim_ctx = function
+  | [] -> 0
+  | (_,(t,_))::c -> max (dim_ctx c) (dim_ty t)
+
+let rec dim_ps = function
+  | Br [] -> 0
+  | Br l -> max_list_ps l
+and max_list_ps = function
+  | [] -> 0
+  | p::l -> max (dim_ps p) (max_list_ps l)
