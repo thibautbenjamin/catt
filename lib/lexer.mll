@@ -17,6 +17,8 @@ rule token = parse
   | "[" { LBRA }
   | "]" { RBRA }
   | "=" { EQUAL }
+  | "set" { SET }
+  | "!" { BANG }
   | (['a'-'z''A'-'Z''0'-'9']['-''+''a'-'z''A'-'Z''0'-'9''_''@''{''}''/'',''\'']* as str) { IDENT str }
   | space+ { token lexbuf }
   | "#"[^'\n']* { token lexbuf }

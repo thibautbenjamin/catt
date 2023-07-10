@@ -1,29 +1,54 @@
-exception NotValid
-exception EmptySub
-exception BadUnderSub
-exception NotAlgebraic
-exception UnknownId of string
-exception UnknownCoh of string
-exception IsNotType of string
-exception HasNoType of string
-exception NotEqual of string*string
-exception DoubledVar of string
-exception DoubleDef of string
-exception UnableUnify
+module Var = struct
+  type t =
+    | Name of string
+    | New of int
+    | Db of int (* storing de Bruijn levels for coherences *)
 
-let print_string_fun = ref print_string
-let print_string s = !print_string_fun s
-let print_newline () = print_string "\n"
-let print_endline s = print_string s; print_newline ()
-let read_line_fun = ref read_line
-let read_lin () = !read_line_fun ()
+  let to_string v =
+    match v with
+    | Name s -> s
+    | New i -> "_" ^ string_of_int i
+    | Db i -> "." ^ string_of_int i
 
-let printf e = Printf.ksprintf print_string e
-let debug e = Printf.ksprintf (fun s -> printf "=D.D= %s.\n\n%!" s) e
-let info e = Printf.ksprintf (fun s -> printf "=I.I= %s.\n\n%!" s) e
-let command e = Printf.ksprintf (fun s -> printf "=^.^= %s\n%!" s) e
+  let make_var s = Name s
 
-exception Error of string
+  let check_equal v1 v2 =
+    match v1, v2 with
+    | Name s1, Name s2 ->
+      if not (String.equal s1 s2) then raise (Error.NotEqual(s1,s2)) else ()
+    | New i, New j ->
+      if  i != j then raise (Error.NotEqual(to_string v1, to_string v2)) else ()
+    | Db i, Db j -> if
+      i != j then raise (Error.NotEqual(to_string v1, to_string v2)) else ()
+    | Name _, New _ | Name _, Db _
+    | New _ , Name _ | New _, Db _
+    | Db _, Name _| Db _, New _
+      -> raise (Error.NotEqual(to_string v1, to_string v2))
 
-let error e = Printf.ksprintf (fun s -> raise (Error (s))) e
+  let increase_lv v i m =
+    match v with
+    | Db j -> if  j == 0 then Db (i) else Db (j + m)
+    | Name _ | New _ -> assert false
 
+  let suspend = function
+    | Db i -> Db (i+2)
+    | Name _ | New _ as v -> v
+end
+
+type ps = Br of ps list
+
+type ty =
+  | Meta_ty of int
+  | Obj
+  | Arr of ty * tm * tm
+and tm =
+  | Var of Var.t
+  | Meta_tm of int
+  | Coh of ps * ty * sub_ps
+and sub_ps = tm list
+
+type ctx = (Var.t * (ty * bool)) list
+
+type sub = (Var.t * tm) list
+
+type meta_ctx = ((int * ty) list)

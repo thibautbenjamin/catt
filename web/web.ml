@@ -61,7 +61,7 @@ let run _ =
     cmd
   in
 
-  Catt.Common.print_string_fun := print;
+  Catt.Io.print_string_fun := print;
   Catt.Prover.init ();
 
   let b =

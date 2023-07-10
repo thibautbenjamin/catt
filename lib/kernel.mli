@@ -1,17 +1,33 @@
-open Syntax
-       
-type kTy
-type kTm
-(* type env *)
+open Common
 
-val init_env : unit -> unit
-val add_coh_env : var -> (var * ty) list -> ty -> unit
-val add_let_env : var -> (var * ty) list -> tm -> string
-val add_let_env_of_ty : var -> (var * ty) list -> tm -> ty -> string
+module Ctx : sig
+  type t
 
-val mk_tm : (var * ty) list -> tm -> string * string
-val mk_tm_of_ty : (var * ty) list -> tm -> ty -> unit
+  val check : ctx -> t
+end
 
+module Ty : sig
+  type t
 
+  val forget : t -> ty
+end
 
+module Tm : sig
+  type t
 
+  val check : Ctx.t -> ?ty : ty -> tm -> t
+  val typ : t -> Ty.t
+end
+
+module PS : sig
+  type t
+
+  val mk : Ctx.t -> t
+  val forget : t -> ps
+end
+
+module Coh : sig
+  type t
+
+  val check : ps -> ty -> (Var.t * int) list -> t
+end

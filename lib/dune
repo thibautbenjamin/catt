@@ -1,7 +1,9 @@
 (menhir (modules parser))
-
 (ocamllex lexer)
 
 (library
  (name catt)
- (public_name catt))
+ (public_name catt)
+ ;(libraries landmarks)
+ ;(preprocess (pps landmarks-ppx --auto))
+)

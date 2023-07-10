@@ -1,6 +1,6 @@
-coh id (x : *) : x -> x.
+coh id (x : *) : x -> x
 
-let id2 (x : *) = id (id x).
+let id2 (x : *) = id (id x)
 
 let a (x : *) =
-    let i = id2 x in i.
+    let i = id2 x in i

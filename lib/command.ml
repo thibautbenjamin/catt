@@ -1,69 +1,77 @@
-open Settings
 open Common
-open Syntax
 
-
-(** A command. *)
+(**toplevel commands. *)
 type cmd =
-  | Coh of var * (var * ty) list * ty (** a coherence *)
-  | Check of ((var * ty) list) * tm * ty option (** check that a term is well-typed in a context *)
-  | Decl of var * (var * ty) list * tm * ty option (** let declarations *)
+  | Coh of Var.t * (Var.t * Syntax.ty) list * Syntax.ty
+  | Check of ((Var.t * Syntax.ty) list) * Syntax.tm * Syntax.ty option
+  | Decl of Var.t * (Var.t * Syntax.ty) list * Syntax.tm * Syntax.ty option
+  | Set of string * string
 
-(** A program. *)
 type prog = cmd list
 
-let rec print l =
-  match l with
-  | ((x,_),true)::l -> Printf.sprintf "(%s) %s" (string_of_var x) (print l);
-  | ((x,_),false)::l -> Printf.sprintf "{%s} %s" (string_of_var x) (print l);
-  | [] -> ""
+let exec_coh v ps ty =
+  let ps,ty = Elaborate.ty_in_ps ps ty in
+  Environment.add_coh v ps ty
 
-let rec print_vars l =
-  match l with
-  | x::l -> Printf.sprintf "(%s) %s" (string_of_var x) (print_vars l);
-  | [] -> ""
+let exec_decl v l e t =
+  let c,e = Elaborate.tm l e in
+  match t with
+  | None -> Environment.add_let v c e
+  | Some ty ->
+     let _,ty = Elaborate.ty l ty in
+     Environment.add_let v c ~ty e
+
+let check l e t =
+  let c,e = Elaborate.tm l e in
+  let ty =
+    match t with
+    | None -> None
+    | Some ty -> let _,ty = Elaborate.ty l ty in Some ty
+  in
+  let c = Kernel.Ctx.check c in
+  ignore(Kernel.Tm.check c ?ty e)
+
+let exec_set o v =
+  let parse_bool v =
+    match v with
+    | _ when String.equal v "t" -> true
+    | _ when String.equal v "true" -> true
+    | _ when String.equal v "1" -> true
+    | _ when String.equal v "f" -> false
+    | _ when String.equal v "false" -> false
+    | _ when String.equal v "0" -> false
+    | _ -> raise (Error.NotABoolean v)
+  in
+  let parse_int v =
+    match int_of_string_opt v with
+    | Some s -> s
+    | None -> raise (Error.NotAnInt v)
+  in
+  match o with
+  | _ when String.equal o "explicit_substitutions" ->
+    let v = parse_bool v in
+    Settings.explicit_substitutions := v
+  | _ when String.equal o "implicit_suspension" ->
+    let v = parse_bool v in
+    Settings.implicit_suspension := v
+  | _ when String.equal o "verbosity" ->
+    let v = parse_int v in
+    Settings.verbosity := v
+  | _ -> raise (Error.UnknownOption o)
 
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
-     command "let %s = %s" (string_of_var x) (string_of_ty e);
-     let env =
-       if !debug_mode then
-	 Kernel.add_coh_env x ps e
-       else
-	 try Kernel.add_coh_env x ps e
-	 with
-	 | UnknownId s  -> error "unknown identifier %s" s
-	 | UnknownCoh s  -> error "unknown coherence name %s" s
-	 | IsNotType s -> error "got %s, but a type was expected" s
-	 | HasNoType s -> error "the term %s has no type" s
-	 | NotEqual (s1,s2) -> error "got %s, but %s was expected" s1 s2
-     in
-     info "defined";
-     env
+     Io.command "coh %s = %s" (Var.to_string x) (Syntax.string_of_ty e);
+     exec_coh x ps e
   | Check (l, e, t) ->
-     begin
-       match t with
-       | Some t ->
-          command "check %s : %s" (string_of_tm e) (string_of_ty t);
-          Kernel.mk_tm_of_ty l e t;
-          info "checked"
-       | None ->
-          command "check %s " (string_of_tm e);
-          let e,t = Kernel.mk_tm l e in
-          info "checked term %s type %s" e t
-     end
+    Io.command "check %s" (Syntax.string_of_tm e);
+    check l e t;
+    Io.info (lazy (Printf.sprintf "valid term %s" (Syntax.string_of_tm e)));
   | Decl (v,l,e,t) ->
-     let t = match t with
-       | Some t ->
-          command "let %s = %s : %s" (string_of_var v) (string_of_tm e) (string_of_ty t);
-          let t = Kernel.add_let_env_of_ty v l e t in t
-       | None ->
-          command "let %s = %s" (string_of_var v) (string_of_tm e);
-          let t = Kernel.add_let_env v l e in t
-     in
-     info "defined term of type %s" t
-
+    Io.command "let %s = %s" (Var.to_string v) (Syntax.string_of_tm e);
+    exec_decl v l e t
+  | Set (o,v) -> exec_set o v
 
 let exec prog =
   let rec aux = function
