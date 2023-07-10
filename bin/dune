@@ -1,4 +1,8 @@
 (executable
  (public_name catt)
  (name catt)
- (libraries catt))
+ (libraries
+        ; landmarks
+        catt)
+ ; (preprocess (pps landmarks-ppx --auto))
+)
