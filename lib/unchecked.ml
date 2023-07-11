@@ -130,6 +130,7 @@ let sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
 
 (* rename is applying a variable to de Bruijn levels substitutions *)
 let rename_ty ty l = ty_do_on_variables ty (fun v -> Var (Db (List.assoc v l)))
+let rename_tm tm l = tm_do_on_variables tm (fun v -> Var (Db (List.assoc v l)))
 
 let rec db_levels c =
     match c with

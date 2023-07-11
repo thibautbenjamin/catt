@@ -17,6 +17,7 @@ val tm_apply_sub : tm -> sub -> tm
 val ty_apply_sub : ty -> sub -> ty
 val sub_apply_sub : sub -> sub -> sub
 val rename_ty : ty -> (Var.t * int) list -> ty
+val rename_tm : tm -> (Var.t * int) list -> tm
 val db_levels : ctx -> ctx * (Var.t * int) list * int
 val ps_to_ctx : ps -> ctx
 val sub_ps_to_sub : sub_ps -> ps -> sub * ctx

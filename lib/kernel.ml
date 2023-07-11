@@ -110,9 +110,8 @@ and PS : sig
   val mk : Ctx.t -> t
   val domain : t -> Var.t list
   val to_ctx : t -> Ctx.t
-  val dim : t -> int
-  val source : int -> t -> Var.t list
-  val target : int -> t -> Var.t list
+  val source : t -> Var.t list
+  val target : t -> Var.t list
   val forget : t -> ps
 end
 =
@@ -125,7 +124,7 @@ struct
     | PCons of oldrep * (Var.t * Ty.t) * (Var.t * Ty.t)
     | PDrop of oldrep
 
-  type newt = { tree : ps; ctx : Ctx.t}
+  type newt = { tree : ps; ctx : Ctx.t }
 
   type t = {oldrep : oldrep; newrep : newt}
 
@@ -272,7 +271,7 @@ struct
     in
     aux ps
 
-  let source i ps = source_old i ps.oldrep
+  let source ps = let i = dim ps in source_old (i - 1) ps.oldrep
 
   (** Target of a pasting scheme. *)
   let target_old i ps =
@@ -291,7 +290,7 @@ struct
     in
     aux ps
 
-  let target i ps = target_old i ps.oldrep
+  let target ps = let i = dim ps in target_old (i - 1) ps.oldrep
 end
 and Ty : sig
   type expr =
@@ -435,8 +434,7 @@ struct
         | Arr(a,f,g) -> (a,f,g)
         | _ -> raise Error.NotAlgebraic
       in
-      let i = PS.dim ps in
-      let pss, pst = PS.source (i-1) ps, PS.target (i-1) ps in
+      let pss, pst = PS.source ps, PS.target ps in
       let fvf = List.union (Tm.free_vars f) (Ty.free_vars a) in
       let fvg = List.union (Tm.free_vars g) (Ty.free_vars a) in
       if (List.set_equal pss fvf && List.set_equal pst fvg)

@@ -41,7 +41,11 @@ and string_of_tm e =
       (string_of_tm t)
       (string_of_sub s)
   | Meta -> "_"
-  | Nat _ -> assert false (*TODO*)
+  | Nat (x,u,v) ->
+    Printf.sprintf "Nat(%s;%s;%s)"
+      (Var.to_string x)
+      (string_of_tm u)
+      (string_of_tm v)
 and string_of_sub s=
   match s with
   | []-> ""
@@ -90,7 +94,7 @@ and var_in_tm x tm =
   | Sub(_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
   | Meta -> false
   | Letin_tm _ -> assert false
-  | Nat _ -> assert false (* TODO *)
+  | Nat (_,u,v) -> var_in_tm x u || var_in_tm x v
 
 let rec dim_ty ctx = function
   | Obj -> 0
@@ -108,7 +112,7 @@ and dim_tm ctx = function
     in
     d+func+susp
   | Meta -> 0
-  | Nat _ -> assert false (* TODO *)
+  | Nat (_,u,_) -> dim_tm ctx u
   | Letin_tm _ | Sub _ -> assert false
 
 let rec dim_sub ctx = function
@@ -133,7 +137,8 @@ let rec infer_susp_tm ctx = function
       | Some i -> Sub(Var v,s,Some i)
     end
   | Meta -> Meta
-  | Nat _ -> assert false (* TODO *)
+  | Nat (x,u,v) ->
+    Nat (x, infer_susp_tm ctx u, infer_susp_tm ctx v)
   | Letin_tm _ | Sub _ -> assert false
 and infer_susp_sub ctx = function
   | [] -> []

@@ -52,3 +52,15 @@ type ctx = (Var.t * (ty * bool)) list
 type sub = (Var.t * tm) list
 
 type meta_ctx = ((int * ty) list)
+
+let meta_namer_ty = ref 0
+let meta_namer_tm = ref 0
+
+let new_meta_ty () =
+  let meta = Meta_ty !meta_namer_ty in
+  meta_namer_ty := !meta_namer_ty + 1; meta
+let new_meta_tm () =
+  let i = !meta_namer_tm in
+  let meta = Meta_tm i in
+  meta_namer_tm := !meta_namer_tm + 1;
+  meta, (i, new_meta_ty())

@@ -28,3 +28,6 @@ type ctx = (Var.t * (ty * bool)) list
 type sub = (Var.t * tm) list
 
 type meta_ctx = ((int * ty) list)
+
+val new_meta_ty : unit -> ty
+val new_meta_tm : unit -> tm * (int * ty)

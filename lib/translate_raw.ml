@@ -2,22 +2,6 @@ open Common
 
 exception WrongNumberOfArguments
 
-let elaborate : ((Var.t * Syntax.ty) list -> Syntax.ty ->
-                 ps * ty * (Var.t * int) list) ref
-    = ref (fun _ _ -> failwith "uninitialised forward reference")
-
-let meta_namer_ty = ref 0
-let meta_namer_tm = ref 0
-
-let new_meta_ty () =
-  let meta = Meta_ty !meta_namer_ty in
-  meta_namer_ty := !meta_namer_ty + 1; meta
-let new_meta_tm () =
-  let i = !meta_namer_tm in
-  let meta = Meta_tm i in
-  meta_namer_tm := !meta_namer_tm + 1;
-  meta, (i, new_meta_ty())
-
 let list_functorialised s c =
   if not !Settings.explicit_substitutions then
     let rec list s c =
@@ -72,15 +56,8 @@ let rec tm c t =
   | Nat(x,t,t') ->
     begin
       match Environment.val_var x with
-      | Coh(ps, _) ->
-        let src,tgt = Naturality.identify_boundary c ps in
-        let nat_ty =
-          Syntax.Arr
-            (Naturality.composition (Syntax.Sub(Var x,src,None)) t',
-             Naturality.composition t (Syntax.Sub(Var x,tgt,None))) in
-        let p,t,names = !elaborate c nat_ty in
-        let names = Naturality.build_substitution names in
-        Coh (p, t, names),[]
+      | Coh(ps, ty) ->
+        Naturality.build c ps ty t t', []
       | Tm(_,_) -> raise Error.NaturalityOnTerm
     end
   | Syntax.Sub (Letin_tm _,_,_)

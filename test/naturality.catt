@@ -1,0 +1,11 @@
+coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
+coh c2@1 (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (z : *) (g : y -> z): comp f g -> comp f' g
+coh c2@2 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') : comp f g -> comp f g'
+coh assoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) :
+comp (comp f g) h -> comp f (comp g h)
+
+let naturality (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') (w : *) (h : z -> w) =
+    nat(assoc; c2@1 (c2@2 f a) h; c2@2 f (c2@1 a h))
+
+let natbis (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') (w : *) (h : z -> w) =
+    nat(assoc; comp [comp f [a]] h; comp f [comp [a] h])

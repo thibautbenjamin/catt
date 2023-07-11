@@ -314,4 +314,11 @@ let ty_in_ps ps t =
   Unchecked.rename_ty t names,
   names
 
-let () = Translate_raw.elaborate := ty_in_ps
+let resolve_ty c meta_ctx ty =
+  let ty,cst = Constraints_typing.ty c meta_ctx ty in
+  Constraints.substitute_ty (Constraints.resolve cst) ty
+
+let () =
+  Naturality.elaborate_ctx := ctx;
+  Naturality.elaborate_tm := (fun c t -> snd (tm c t));
+  Naturality.resolve_constraints_ty := resolve_ty

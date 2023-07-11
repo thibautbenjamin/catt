@@ -20,7 +20,8 @@ rule token = parse
   | "_" { WILD }
   | "set" { SET }
   | "!" { BANG }
-  | "," { COMA }
+  | ";" { SEMICOL }
+  | "nat" { NAT }
   | (['a'-'z''A'-'Z''0'-'9']['-''+''a'-'z''A'-'Z''0'-'9''_''@''{''}''/'',''\'']* as str) { IDENT str }
   | space+ { token lexbuf }
   | "#"[^'\n']* { token lexbuf }

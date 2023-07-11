@@ -24,6 +24,8 @@ module PS : sig
 
   val mk : Ctx.t -> t
   val forget : t -> ps
+  val source : t -> Var.t list
+  val target : t -> Var.t list
 end
 
 module Coh : sig
