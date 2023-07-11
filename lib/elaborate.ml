@@ -251,15 +251,6 @@ module Constraints_typing = struct
       Constraints.combine_mgu known_mgu new_mgu
 end
 
-let ctx c =
-  let c,meta_ctx = Translate_raw.ctx c in
-  let c,_ = Constraints_typing.ctx c meta_ctx in
-  Io.info ~v:4
-    (lazy
-      (Printf.sprintf
-         "elaborated context:%s" (Unchecked.ctx_to_string c)));
-  c
-
 let preprocess_ty ctx ty =
   let ty = Syntax.remove_let_ty ty in
   if !Settings.implicit_suspension then
@@ -278,19 +269,28 @@ let rec preprocess_ctx = function
     let c = preprocess_ctx c in
     (v, preprocess_ty c t)::c
 
+let ctx c =
+  let c,meta_ctx = Translate_raw.ctx c in
+  let c,_ = Constraints_typing.ctx c meta_ctx in
+  Io.info ~v:4
+    (lazy
+      (Printf.sprintf
+         "elaborated context:%s" (Unchecked.ctx_to_string c)));
+  c
+
 let ty c ty =
   let c = preprocess_ctx c in
   let ty = preprocess_ty c ty in
+  let ty, meta_ctx = Translate_raw.ty c ty in
   let c = ctx c in
-  let ty, meta_ctx = Translate_raw.ty ty in
   let ty,cst = Constraints_typing.ty c meta_ctx ty in
   c,Constraints.substitute_ty (Constraints.resolve cst) ty
 
 let tm c tm =
   let c = preprocess_ctx c in
   let tm = preprocess_tm c tm in
+  let tm, meta_ctx = Translate_raw.tm c tm in
   let c = ctx c in
-  let tm, meta_ctx = Translate_raw.tm tm in
   let tm,_,cst = Constraints_typing.tm c meta_ctx tm in
   Io.info ~v:4
     (lazy
@@ -301,8 +301,8 @@ let tm c tm =
 let ty_in_ps ps t =
   let ps = preprocess_ctx ps in
   let t = preprocess_ty ps t in
+  let t, meta_ctx = Translate_raw.ty ps t in
   let ps = ctx ps in
-  let t, meta_ctx = Translate_raw.ty t in
   let t,cst = Constraints_typing.ty ps meta_ctx t in
   Io.info ~v:4
     (lazy
@@ -311,4 +311,7 @@ let ty_in_ps ps t =
   let t = Constraints.substitute_ty (Constraints.resolve cst) t in
   let _, names,_ = Unchecked.db_levels ps in
   Kernel.PS.(forget (mk (Kernel.Ctx.check ps))),
-  Unchecked.rename_ty t names
+  Unchecked.rename_ty t names,
+  names
+
+let () = Translate_raw.elaborate := ty_in_ps

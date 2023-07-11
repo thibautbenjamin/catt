@@ -14,3 +14,4 @@ exception CouldNotSolve
 exception UnknownFunctorialisation of string
 exception NonMaximalFunctorialisation of string
 exception FunctorialiseWithExplicit
+exception NaturalityOnTerm

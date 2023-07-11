@@ -7,6 +7,7 @@ and tm =
   | Var of Common.Var.t
   | Sub of tm * (tm * bool) list * int option
   | Meta
+  | Nat of Common.Var.t * tm * tm
 
 val string_of_ty : ty -> string
 val string_of_tm : tm -> string

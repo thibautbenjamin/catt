@@ -10,7 +10,7 @@ type cmd =
 type prog = cmd list
 
 let exec_coh v ps ty =
-  let ps,ty = Elaborate.ty_in_ps ps ty in
+  let ps,ty,_ = Elaborate.ty_in_ps ps ty in
   Environment.add_coh v ps ty
 
 let exec_decl v l e t =

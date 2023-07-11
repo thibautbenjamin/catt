@@ -10,9 +10,9 @@
 %}
 
 %token COH OBJ MOR WILD
-%token LPAR RPAR LBRA RBRA COL BANG
+%token LPAR RPAR LBRA RBRA COL BANG COMA
 %token <string> IDENT
-%token CHECK EQUAL LET IN SET
+%token CHECK EQUAL LET IN SET NAT
 %token EOF
 
 %start prog
@@ -48,6 +48,8 @@ simple_tmexpr:
     | LPAR tmexpr RPAR { $2 }
     | WILD { Meta }
     | IDENT { Var (Var.make_var $1) }
+    | NAT LPAR IDENT COMA tmexpr COMA tmexpr RPAR
+	{ Nat(Var.make_var $3,$5,$7) }
 
 functed_tmexpr:
     | LBRA tmexpr RBRA { $2 }
