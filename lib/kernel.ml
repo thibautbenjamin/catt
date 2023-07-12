@@ -1,6 +1,9 @@
 open Std
 open Common
 
+exception IsObj
+exception IsCoh
+
 (** Operations on substitutions. *)
 module rec Sub : sig
   type t
@@ -150,12 +153,8 @@ struct
     | PCons (_,_,f) -> f
     | PDrop ps ->
       let _,tf = marker ps in
-      let v =  try Ty.target tf  with Ty.IsObj -> raise Invalid in
-      let y =
-        match Tm.expr v with
-        | Tm.Var y -> y
-        | Tm.Coh _ -> raise Invalid
-      in
+      let v =  try Ty.target tf  with IsObj -> raise Invalid in
+      let y = try Tm.to_var v with IsCoh -> raise Invalid in
       let t =
         let rec aux = function
           | PNil (x,t) -> assert (x = y); t
@@ -187,12 +186,10 @@ struct
         | ((y,ty)::(f,tf)::l) as l1 ->
           begin
             let _,u,v =
-              try Ty.retrieve_arrow tf with Ty.IsObj -> raise Invalid
+              try Ty.retrieve_arrow tf with IsObj -> raise Invalid
             in
             let fx,fy =
-              match Tm.expr u,Tm.expr v with
-              | Var fx, Var fy -> fx, fy
-              | Var _, Coh _ | Coh _, Var _ | Coh _, Coh _ -> raise Invalid
+              try Tm.to_var u, Tm.to_var v with IsCoh -> raise Invalid
             in
             if (y <> fy) then raise Invalid;
             let x,_ = marker ps in
@@ -295,8 +292,6 @@ end
 and Ty : sig
   type t
 
-  exception IsObj
-
   val free_vars : t -> Var.t list
   val is_obj : t -> bool
   val check_equal : t -> t -> unit
@@ -315,23 +310,21 @@ struct
     | Arr of t * Tm.t * Tm.t
   and t = {c : Ctx.t; e : expr; unchecked : ty}
 
-  exception IsObj
-
   let is_obj t = (t.e = Obj)
 
   let retrieve_arrow ty =
     match ty.e with
-    | Obj -> raise Error.NotAlgebraic
+    | Obj -> raise IsObj
     | Arr(a,u,v) -> a,u,v
 
   let under_type ty =
     match ty.e with
-    | Obj -> raise Error.NotAlgebraic
+    | Obj -> raise IsObj
     | Arr(a,_,_) -> a
 
   let target ty =
     match ty.e with
-    | Obj -> raise Error.NotAlgebraic
+    | Obj -> raise IsObj
     | Arr(_,_,v) -> v
 
   let rec check c t =
@@ -375,15 +368,11 @@ end
 
 (** Operations on terms. *)
 and Tm : sig
-  type expr =
-    private
-    | Var of Var.t (** a context variable *)
-    | Coh of Coh.t * Sub.t
   type t
+  val to_var : t -> Var.t
   val typ : t -> Ty.t
   val free_vars : t -> Var.t list
   val check : Ctx.t -> ?ty : ty -> tm -> t
-  val expr : t -> expr
 end
 =
 struct
@@ -393,7 +382,11 @@ struct
   and t = {ty : Ty.t; e : expr; unchecked : tm}
 
   let typ t = t.ty
-  let expr t = t.e
+
+  let to_var tm =
+    match tm.e with
+    | Var v -> v
+    | Coh _ -> raise IsCoh
 
   let free_vars tm =
     match tm.e with
@@ -447,7 +440,7 @@ struct
     then (ps,t,l)
     else
       let a,f,g =
-        try Ty.retrieve_arrow t with Ty.IsObj -> raise Error.NotAlgebraic
+        try Ty.retrieve_arrow t with IsObj -> raise Error.NotAlgebraic
       in
       let i = PS.dim ps in
       let pss, pst = PS.source (i-1) ps, PS.target (i-1) ps in
