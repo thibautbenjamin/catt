@@ -150,33 +150,32 @@ struct
     | PCons (_,_,f) -> f
     | PDrop ps ->
       let _,tf = marker ps in
-      match (Ty.expr tf) with
-      | Ty.Arr (_,_,v) ->
-        let y =
-          match Tm.expr v with
-          | Tm.Var y -> y
-          | Tm.Coh _ -> raise Invalid
+      let v =  try Ty.target tf  with Ty.IsObj -> raise Invalid in
+      let y =
+        match Tm.expr v with
+        | Tm.Var y -> y
+        | Tm.Coh _ -> raise Invalid
+      in
+      let t =
+        let rec aux = function
+          | PNil (x,t) -> assert (x = y); t
+          | PCons (ps,(y',ty),(f,tf)) ->
+            if y' = y then ty
+            else if f = y then tf
+            else aux ps
+          | PDrop ps -> aux ps
         in
-        let t =
-          let rec aux = function
-            | PNil (x,t) -> assert (x = y); t
-            | PCons (ps,(y',ty),(f,tf)) ->
-              if y' = y then ty
-              else if f = y then tf
-              else aux ps
-            | PDrop ps -> aux ps
-          in
-          aux ps
-        in
-        y,t
-      | _ -> raise Invalid
+        aux ps
+      in
+      y,t
 
   (** Create a pasting scheme from a context. *)
   let make_old (l : Ctx.t)  =
     let rec close ps tx =
-      match Ty.expr tx with
-      | Obj -> ps
-      | Arr (tx,_,_) -> close (PDrop ps) tx
+      if Ty.is_obj tx then ps
+      else
+        let tx = Ty.under_type tx in
+        close (PDrop ps) tx
     in
     let build l =
       let x0,ty,l =
@@ -187,26 +186,26 @@ struct
       let rec aux ps = function
         | ((y,ty)::(f,tf)::l) as l1 ->
           begin
-            match Ty.expr tf with
-            | Arr (_,u,v) ->
-              let fx,fy =
-                match Tm.expr u,Tm.expr v with
-                | Var fx, Var fy -> fx, fy
-                | Var _, Coh _ | Coh _, Var _ | Coh _, Coh _ -> raise Invalid
-              in
-              if (y <> fy) then raise Invalid;
-              let x,_ = marker ps in
-              if x = fx then
-                let varps = Ctx.domain (old_rep_to_ctx ps) in
-                if (List.mem f varps) then
-                  raise (Error.DoubledVar (Var.to_string f));
-                if (List.mem y varps) then
-                  raise (Error.DoubledVar (Var.to_string y));
+            let _,u,v =
+              try Ty.retrieve_arrow tf with Ty.IsObj -> raise Invalid
+            in
+            let fx,fy =
+              match Tm.expr u,Tm.expr v with
+              | Var fx, Var fy -> fx, fy
+              | Var _, Coh _ | Coh _, Var _ | Coh _, Coh _ -> raise Invalid
+            in
+            if (y <> fy) then raise Invalid;
+            let x,_ = marker ps in
+            if x = fx then
+              let varps = Ctx.domain (old_rep_to_ctx ps) in
+              if (List.mem f varps) then
+                raise (Error.DoubledVar (Var.to_string f));
+              if (List.mem y varps) then
+                raise (Error.DoubledVar (Var.to_string y));
                 let ps = PCons (ps,(y,ty),(f,tf)) in
                 aux ps l
-              else
-                aux (PDrop ps) l1
-            | _ -> raise Invalid
+            else
+              aux (PDrop ps) l1
           end
         | [_,_] -> raise Invalid
         | [] ->
@@ -294,18 +293,19 @@ struct
   let target i ps = target_old i ps.oldrep
 end
 and Ty : sig
-  type expr =
-    private
-    | Obj
-    | Arr of t * Tm.t * Tm.t
-  and t
+  type t
+
+  exception IsObj
+
   val free_vars : t -> Var.t list
   val is_obj : t -> bool
   val check_equal : t -> t -> unit
   val forget : t -> ty
   val check : Ctx.t -> ty -> t
   val apply : t -> Sub.t -> t
-  val expr : t -> expr
+  val retrieve_arrow : t -> (t * Tm.t * Tm.t)
+  val under_type : t -> t
+  val target : t -> Tm.t
 end
 =
 struct
@@ -315,9 +315,24 @@ struct
     | Arr of t * Tm.t * Tm.t
   and t = {c : Ctx.t; e : expr; unchecked : ty}
 
-  let expr t = t.e
+  exception IsObj
 
   let is_obj t = (t.e = Obj)
+
+  let retrieve_arrow ty =
+    match ty.e with
+    | Obj -> raise Error.NotAlgebraic
+    | Arr(a,u,v) -> a,u,v
+
+  let under_type ty =
+    match ty.e with
+    | Obj -> raise Error.NotAlgebraic
+    | Arr(a,_,_) -> a
+
+  let target ty =
+    match ty.e with
+    | Obj -> raise Error.NotAlgebraic
+    | Arr(_,_,v) -> v
 
   let rec check c t =
     Io.info ~v:3
@@ -431,9 +446,8 @@ struct
     if List.included (PS.domain ps) (Ty.free_vars t)
     then (ps,t,l)
     else
-      let a,f,g = match Ty.expr t with
-        | Arr(a,f,g) -> (a,f,g)
-        | _ -> raise Error.NotAlgebraic
+      let a,f,g =
+        try Ty.retrieve_arrow t with Ty.IsObj -> raise Error.NotAlgebraic
       in
       let i = PS.dim ps in
       let pss, pst = PS.source (i-1) ps, PS.target (i-1) ps in
