@@ -9,7 +9,6 @@ exception NotABoolean of string
 exception NotAnInt of string
 exception MetaVariable
 exception NotUnifiable of string * string
-exception NeedSuspension
 exception CouldNotSolve
 exception UnknownFunctorialisation of string
 exception NonMaximalFunctorialisation of string
