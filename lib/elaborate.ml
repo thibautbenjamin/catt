@@ -181,19 +181,9 @@ module Constraints_typing = struct
     | Var v -> t, fst (List.assoc v ctx), Constraints.empty
     | Meta_tm i -> t, List.assoc i meta_ctx, Constraints.empty
     | Coh(ps,ty,s)->
-      try
-        let s,tgt = Unchecked.sub_ps_to_sub s ps in
-        let s,cst = sub ctx meta_ctx s tgt in
-        Coh(ps,ty,(List.map snd s)), Unchecked.ty_apply_sub ty s, cst
-      with
-        Error.NeedSuspension ->
-        if !Settings.implicit_suspension then
-          let ps = Suspension.ps (Some 1) ps in
-          let ty = Suspension.ty (Some 1) ty in
-          let s,meta = Translate_raw.sub_to_suspended s in
-          tm ctx (List.append meta meta_ctx) (Coh(ps,ty,s))
-        else
-          raise Error.NotValid
+      let s,tgt = Unchecked.sub_ps_to_sub s ps in
+      let s,cst = sub ctx meta_ctx s tgt in
+      Coh(ps,ty,(List.map snd s)), Unchecked.ty_apply_sub ty s, cst
   and sub src meta_ctx s tgt =
     Io.info ~v:4
       (lazy
