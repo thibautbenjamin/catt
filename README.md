@@ -42,6 +42,13 @@ set explicit_substitutions = f
 coh unit_wild (x : *) (y : *) (f : x -> y) : comp f (id _) -> f
 ```
 
+### Reduced syntax for coherence
+This feature has been taken from [catt.io](https://github.com/ericfinster/catt.io). One can exploit the fact that pasting schemes are equivalent to well-parenthesised expressions to give a more concise syntax for them. For instance, one, can define the composition of two 1-cells as follows
+```
+coh comp (x(f)y(g)z) : x -> z
+```
+Internally, this reduces to contexts and are treated the same way
+
 ### Suspension
 Every definition can be automatically raised to a higher dimension by suspension. Formally this amounts to replacing the type of object `*` with an arrow type. For instance, the identity coherence on 1-cells can be defined as the suspension of the identity coherence on 0-cells. We provide a way to express this, by using the `!` in front of the name to indicate that it should be suspended. Thus, the identity on 1-cells can be defined as
 ```
