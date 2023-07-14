@@ -1,5 +1,5 @@
-open Common
 open Std
+open Kernel
 
 module Constraints = struct
   type t = {ty : (ty * ty) list; tm : (tm * tm) list}

@@ -1,4 +1,5 @@
 open Common
+open Kernel
 
 type value =
   | Coh of ps * ty

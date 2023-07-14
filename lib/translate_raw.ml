@@ -1,4 +1,4 @@
-open Common
+open Kernel
 
 exception WrongNumberOfArguments
 

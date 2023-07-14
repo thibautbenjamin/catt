@@ -1,4 +1,4 @@
-open Common
+open Kernel
 
 val ps : int option -> ps -> ps
 val ty : int option -> ty -> ty

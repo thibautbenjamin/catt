@@ -1,4 +1,5 @@
 open Common
+open Kernel
 
 val tm : Syntax.tm -> tm * meta_ctx
 val sub : Syntax.tm list -> ctx -> sub * meta_ctx

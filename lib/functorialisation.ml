@@ -1,4 +1,5 @@
 open Common
+open Kernel
 
 let ctx_one_var c x =
   let x',xf = Unchecked.two_fresh_vars c in

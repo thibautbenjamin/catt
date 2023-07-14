@@ -1,5 +1,19 @@
 open Common
 
+type ps = Br of ps list
+type ty =
+  | Meta_ty of int
+  | Obj
+  | Arr of ty * tm * tm
+and tm =
+  | Var of Var.t
+  | Meta_tm of int
+  | Coh of ps * ty * sub_ps
+and sub_ps = tm list
+type ctx = (Var.t * (ty * bool)) list
+type sub = (Var.t * tm) list
+type meta_ctx = ((int * ty) list)
+
 module Ctx : sig
   type t
 
@@ -30,4 +44,31 @@ module Coh : sig
   type t
 
   val check : ps -> ty -> (Var.t * int) list -> t
+end
+
+module Unchecked : sig
+  val ps_to_string : ps -> string
+  val ty_to_string : ty -> string
+  val tm_to_string : tm -> string
+  val sub_ps_to_string : sub_ps -> string
+  val ctx_to_string : ctx -> string
+  val sub_to_string : sub -> string
+  val meta_ctx_to_string : meta_ctx -> string
+  val two_fresh_vars : ctx -> Var.t * Var.t
+  val dim_ctx : ctx -> int
+  val dim_ty : ty -> int
+  val dim_ps : ps -> int
+  val ps_to_ctx : ps -> ctx
+  val identity_ps : ctx -> sub_ps
+  val tm_apply_sub : tm -> sub -> tm
+  val ty_apply_sub : ty -> sub -> ty
+  val db_levels : ctx -> ctx * (Var.t * int) list * int
+  val rename_ty : ty -> (Var.t * int) list -> ty
+  val tm_contains_vars : tm -> Var.t list -> bool
+  val sub_ps_to_sub : sub_ps -> ps -> sub * ctx
+  val suspend_ps : ps -> ps
+  val suspend_ty : ty -> ty
+  val suspend_tm : tm -> tm
+  val suspend_ctx : ctx -> ctx
+  val suspend_sub_ps : sub_ps -> sub_ps
 end

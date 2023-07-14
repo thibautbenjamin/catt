@@ -1,4 +1,5 @@
 open Common
+open Kernel
 
 val ctx : (Var.t * Syntax.ty) list -> ctx
 val ty : (Var.t * Syntax.ty) list -> Syntax.ty -> ctx * ty
