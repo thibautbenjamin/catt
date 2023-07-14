@@ -56,7 +56,8 @@ let id1 (x : *) (y : *) (f : x -> y) : f -> f = !id f
 ```
 By default, the suspensions can be left implicit and the system will automatically insert the suspension at the right places. For instance, one can define the vertical composition of 2-cells, which is the suspension of the composition of 0-cells as follows
 ```
-let vertical_comp (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h) : f -> h : comp a b 
+let vertical_comp (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h)
+                  : f -> h = comp a b 
 ```
 The implicit use of suspensions can be deactivated with
 ```
