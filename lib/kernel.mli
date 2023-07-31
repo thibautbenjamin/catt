@@ -11,19 +11,33 @@ module Var : sig
   val suspend : t -> t
 end
 
-type ps = Br of ps list
-type ty =
-  | Meta_ty of int
-  | Obj
-  | Arr of ty * tm * tm
-and tm =
-  | Var of Var.t
-  | Meta_tm of int
-  | Coh of ps * ty * sub_ps
-and sub_ps = tm list
-type ctx = (Var.t * (ty * bool)) list
-type sub = (Var.t * tm) list
-type meta_ctx = ((int * ty) list)
+module rec Unchecked_types : sig
+  type ps = Br of ps list
+
+  type ty =
+    | Meta_ty of int
+    | Obj
+    | Arr of ty * tm * tm
+  and tm =
+    | Var of Var.t
+    | Meta_tm of int
+    | Coh of coh * sub_ps
+  and coh =
+    | Cohdecl of ps * ty
+    | Cohchecked of Coh.t
+  and sub_ps = tm list
+  type ctx = (Var.t * (ty * bool)) list
+  type sub = (Var.t * tm) list
+  type meta_ctx = ((int * ty) list)
+end
+and Coh : sig
+  type t
+
+  val check : Unchecked_types.coh -> (Var.t * int) list -> t
+  val forget : t -> Unchecked_types.ps * Unchecked_types.ty
+end
+
+open Unchecked_types
 
 module Ctx : sig
   type t
@@ -51,11 +65,6 @@ module PS : sig
   val forget : t -> ps
 end
 
-module Coh : sig
-  type t
-
-  val check : ps -> ty -> (Var.t * int) list -> t
-end
 
 module Unchecked : sig
   val ps_to_string : ps -> string
@@ -82,4 +91,5 @@ module Unchecked : sig
   val suspend_tm : tm -> tm
   val suspend_ctx : ctx -> ctx
   val suspend_sub_ps : sub_ps -> sub_ps
+  val check_equal_coh : coh -> coh -> unit
 end

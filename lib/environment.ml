@@ -1,4 +1,5 @@
 open Kernel
+open Kernel.Unchecked_types
 
 type value =
   | Coh of ps * ty
@@ -25,7 +26,7 @@ let add_let v c ?ty t =
   Hashtbl.add env v ({value = Tm (c,t); dim_input; dim_output})
 
 let add_coh v ps ty =
-  ignore(Kernel.Coh.check ps ty []);
+  ignore(Kernel.Coh.check (Cohdecl(ps,ty)) []);
   let dim_input = Unchecked.dim_ps ps in
   let dim_output = Unchecked.dim_ty ty in
   Io.info ~v:2

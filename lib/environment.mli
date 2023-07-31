@@ -1,4 +1,5 @@
 open Kernel
+open Kernel.Unchecked_types
 
 type value =
   | Coh of ps * ty

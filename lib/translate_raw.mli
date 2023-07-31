@@ -1,4 +1,5 @@
 open Kernel
+open Kernel.Unchecked_types
 open Raw_types
 
 val tm : tmR -> tm * meta_ctx

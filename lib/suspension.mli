@@ -1,4 +1,4 @@
-open Kernel
+open Kernel.Unchecked_types
 
 val ps : int option -> ps -> ps
 val ty : int option -> ty -> ty

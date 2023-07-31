@@ -1,5 +1,6 @@
 open Std
 open Kernel
+open Kernel.Unchecked_types
 
 module Constraints = struct
   type t = {ty : (ty * ty) list; tm : (tm * tm) list}
@@ -48,11 +49,12 @@ module Constraints = struct
   and unify_tm tm1 tm2 =
     match tm1, tm2 with
     | Var v1, Var v2 when v1 = v2 -> empty
-    | Coh(ps1,t1,s1), Coh(ps2,t2,s2) when ps1 = ps2 && t1 = t2 ->
+    | Coh(coh1,s1), Coh(coh2,s2) ->
+      Unchecked.check_equal_coh coh1 coh2;
       unify_sub s1 s2
     | Meta_tm _, _
     | _, Meta_tm _ -> {ty = []; tm = [(tm1, tm2)]}
-    | Var _, Coh _ | Coh _, Var _ | Var _, Var _ | Coh _, Coh _->
+    | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
       raise (Error.NotUnifiable
                (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
   and unify_sub s1 s2 =
@@ -87,7 +89,7 @@ let rec tm_replace_meta_tm (i,tm') tm =
   | Meta_tm j when i = j -> tm'
   | Meta_tm _ -> tm
   | Var v -> Var v
-  | Coh(ps,t,s) -> Coh(ps,t, List.map (tm_replace_meta_tm (i,tm')) s)
+  | Coh(c,s) -> Coh(c, List.map (tm_replace_meta_tm (i,tm')) s)
 
 let rec ty_replace_meta_tm (i,tm') ty =
   match ty with
@@ -180,10 +182,15 @@ module Constraints_typing = struct
       match t with
     | Var v -> t, fst (List.assoc v ctx), Constraints.empty
     | Meta_tm i -> t, List.assoc i meta_ctx, Constraints.empty
-    | Coh(ps,ty,s)->
+    | Coh(c,s)->
+      let ps,ty =
+        match c with
+        | Cohdecl (ps,ty) -> ps,ty
+        | Cohchecked c -> Coh.forget c
+      in
       let s,tgt = Unchecked.sub_ps_to_sub s ps in
       let s,cst = sub ctx meta_ctx s tgt in
-      Coh(ps,ty,(List.map snd s)), Unchecked.ty_apply_sub ty s, cst
+      Coh(c,(List.map snd s)), Unchecked.ty_apply_sub ty s, cst
   and sub src meta_ctx s tgt =
     Io.info ~v:4
       (lazy

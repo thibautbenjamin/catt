@@ -1,4 +1,5 @@
 open Kernel
+open Kernel.Unchecked_types
 open Raw_types
 
 exception WrongNumberOfArguments
@@ -50,11 +51,11 @@ let rec tm tm =
          let ctx = Unchecked.ps_to_ctx ps in
          let s,l = list_functorialised s ctx in
          let
-           ps,ty =
-           if l <> [] then Functorialisation.coh ps ty l else ps,ty
+           coh =
+           if l <> [] then Functorialisation.coh ps ty l else Cohdecl(ps,ty)
          in
          let s, meta_types = sub_ps s ps in
-         Coh(ps,ty,s), meta_types
+         Coh(coh,s), meta_types
        | Tm(c,t) ->
          let c = Suspension.ctx susp c in
          let t = Suspension.tm susp t in
