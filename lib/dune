@@ -4,6 +4,7 @@
 (library
  (name catt)
  (public_name catt)
+ (modules_without_implementation raw_types)
  ;(libraries landmarks)
  ;(preprocess (pps landmarks-ppx --auto))
 )

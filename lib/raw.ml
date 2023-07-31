@@ -1,17 +1,6 @@
 open Std
-open Common
-
-(** A raw type. *)
-type ty =
-  | Letin_ty of Var.t * tm * ty
-  | Obj
-  | Arr of tm * tm
-  (** A raw term. *)
-and tm =
-  | Letin_tm of Var.t * tm * tm
-  | Var of Var.t
-  | Sub of tm * (tm  * bool) list * int option
-  | Meta
+open Kernel
+open Raw_types
 
 let rec string_of_ty e =
   match e with
@@ -20,8 +9,8 @@ let rec string_of_ty e =
       (Var.to_string v)
       (string_of_tm e)
       (string_of_ty ty)
-  | Obj -> "*"
-  | Arr (u,v) -> Printf.sprintf "%s -> %s" (string_of_tm u) (string_of_tm v)
+  | ObjR -> "*"
+  | ArrR (u,v) -> Printf.sprintf "%s -> %s" (string_of_tm u) (string_of_tm v)
 and string_of_tm e =
   match e with
   | Letin_tm (v,e,tm) ->
@@ -29,7 +18,7 @@ and string_of_tm e =
       (Var.to_string v)
       (string_of_tm e)
       (string_of_tm tm)
-  | Var x -> Var.to_string x
+  | VarR x -> Var.to_string x
   | Sub (t,s,None) ->
     Printf.sprintf "(%s %s)"
       (string_of_tm t)
@@ -49,11 +38,11 @@ and string_of_sub s=
 (** remove the let in in a term *)
 let rec replace_tm l e =
   match e with
-  | Var a ->
+  | VarR a ->
     begin
       try replace_tm l (List.assoc a l)
       with
-        Not_found -> Var a
+        Not_found -> VarR a
     end
   | Sub (e,s,susp) ->
     Sub(replace_tm l e, replace_sub l s,susp)
@@ -65,8 +54,8 @@ and replace_sub l s =
   | (t,f)::s -> (replace_tm l t, f)::(replace_sub l s)
 and replace_ty l t =
   match t with
-  | Obj -> t
-  | Arr(u,v) -> Arr (replace_tm l u, replace_tm l v)
+  | ObjR -> t
+  | ArrR(u,v) -> ArrR (replace_tm l u, replace_tm l v)
   | Letin_ty (v,t,ty) -> replace_ty ((v,t)::l) ty
 
 let remove_let_tm e =
@@ -77,24 +66,24 @@ let remove_let_ty e =
 
 let rec var_in_ty x ty =
   match ty with
-  | Obj -> false
-  | Arr (u,v) ->
+  | ObjR -> false
+  | ArrR (u,v) ->
     var_in_tm x u || var_in_tm x v
   | Letin_ty _ -> assert false
 and var_in_tm x tm =
   match tm with
-  | Var v -> x = v
+  | VarR v -> x = v
   | Sub(_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
   | Meta -> false
   | Letin_tm _ -> assert false
 
 let rec dim_ty ctx = function
-  | Obj -> 0
-  | Arr(u,_) -> 1 + dim_tm ctx u
+  | ObjR -> 0
+  | ArrR(u,_) -> 1 + dim_tm ctx u
   | Letin_ty _ -> assert false
 and dim_tm ctx = function
-  | Var v -> dim_ty ctx (List.assoc v ctx)
-  | Sub(Var v,s,i) ->
+  | VarR v -> dim_ty ctx (List.assoc v ctx)
+  | Sub(VarR v,s,i) ->
     let func = if List.exists (fun (_,bool) -> bool) s then 1 else 0 in
     let d = Environment.dim_output v in
     let
@@ -114,8 +103,8 @@ let rec dim_sub ctx = function
     (max d1 d2, f||f1)
 
 let rec infer_susp_tm ctx = function
-  | Var v -> Var v
-  | Sub(Var v,s,i) ->
+  | VarR v -> VarR v
+  | Sub(VarR v,s,i) ->
     let s = infer_susp_sub ctx s in
     begin
       match i with
@@ -124,8 +113,8 @@ let rec infer_susp_tm ctx = function
         let d,f = dim_sub ctx s in
         let func = if f then 1 else 0 in
         let newsusp = Some (d - inp - func) in
-        Sub(Var v,s,newsusp)
-      | Some i -> Sub(Var v,s,Some i)
+        Sub(VarR v,s,newsusp)
+      | Some i -> Sub(VarR v,s,Some i)
     end
   | Meta -> Meta
   | Letin_tm _ | Sub _ -> assert false
@@ -134,6 +123,6 @@ and infer_susp_sub ctx = function
   | (tm,b)::s -> (infer_susp_tm ctx tm, b)::(infer_susp_sub ctx s)
 
 let infer_susp_ty ctx = function
-  | Obj -> Obj
-  | Arr(u,v) -> Arr(infer_susp_tm ctx u, infer_susp_tm ctx v)
+  | ObjR -> ObjR
+  | ArrR(u,v) -> ArrR(infer_susp_tm ctx u, infer_susp_tm ctx v)
   | Letin_ty _ -> assert false

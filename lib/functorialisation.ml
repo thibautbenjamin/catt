@@ -1,4 +1,5 @@
-open Common
+open Kernel
+open Kernel.Unchecked_types
 
 let ctx_one_var c x =
   let x',xf = Unchecked.two_fresh_vars c in
@@ -26,13 +27,13 @@ let target_subst l =
 let coh ps ty l =
   let ctx_base = Unchecked.ps_to_ctx ps in
   let ctx,assocs = ctx ctx_base l in
-  let tm = Coh (ps,ty,(Unchecked.identity_ps ctx_base)) in
+  let tm = Coh (Cohdecl(ps,ty),(Unchecked.identity_ps ctx_base)) in
   let tm_f = Unchecked.tm_apply_sub tm (target_subst assocs) in
   let ty = Arr (ty, tm, tm_f) in
   let ps = Kernel.PS.(forget (mk (Kernel.Ctx.check ctx))) in
   let _, names,_ = Unchecked.db_levels ctx in
   let ty = Unchecked.rename_ty ty names in
-  ps, ty
+  Cohdecl(ps, ty)
 
 let rec find_places ctx s l =
   match ctx,s with
@@ -49,17 +50,25 @@ let rec tm t l =
       | Some (v',vf) -> [vf; v'; Var v]
       | None -> [Var v]
     end
-  | Coh(ps,ty,s) ->
-    let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
+  | Coh(c,s) ->
     begin
-      match places with
+      match l with
       | _::_ ->
-        let psf,tyf = coh ps ty places in
+        let cohf =
+          match c with
+          | Cohdecl (ps,ty) ->
+            let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
+            coh ps ty places
+          | Cohchecked c ->
+            let ps,ty = Coh.forget c in
+            let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
+            coh ps ty places
+        in
         let sf = sub s l in
         let l' = target_subst l in
         let s' = List.map (fun t -> Unchecked.tm_apply_sub t l') s in
-        [Coh(psf,tyf,sf);Coh(ps,ty,s');Coh(ps,ty,s)]
-      | [] -> [Coh(ps,ty,s)]
+        [Coh(cohf,sf);Coh(c,s');Coh(c,s)]
+      | [] -> [Coh(c,s)]
     end
   | Meta_tm _ -> assert false
 and sub s l =

@@ -1,7 +1,8 @@
-open Common
+open Kernel
+open Kernel.Unchecked_types
 
 type value =
-  | Coh of ps * ty
+  | Coh of Coh.t
   | Tm of ctx * tm
 
 type v = {value : value; dim_input : int; dim_output : int}
@@ -25,7 +26,7 @@ let add_let v c ?ty t =
   Hashtbl.add env v ({value = Tm (c,t); dim_input; dim_output})
 
 let add_coh v ps ty =
-  ignore(Kernel.Coh.check ps ty []);
+  let coh = Kernel.Coh.check (Cohdecl(ps,ty)) [] in
   let dim_input = Unchecked.dim_ps ps in
   let dim_output = Unchecked.dim_ty ty in
   Io.info ~v:2
@@ -33,7 +34,7 @@ let add_coh v ps ty =
       (Printf.sprintf
          "defined coherence %s"
          (Var.to_string v)));
-  Hashtbl.add env v ({value = Coh (ps,ty); dim_input; dim_output})
+  Hashtbl.add env v ({value = Coh coh; dim_input; dim_output})
 
 let val_var v =
   (Hashtbl.find env v).value

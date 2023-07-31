@@ -1,6 +1,8 @@
-open Common
+open Kernel
+open Kernel.Unchecked_types
+open Raw_types
 
-val ctx : (Var.t * Syntax.ty) list -> ctx
-val ty : (Var.t * Syntax.ty) list -> Syntax.ty -> ctx * ty
-val tm : (Var.t * Syntax.ty) list -> Syntax.tm -> ctx * tm
-val ty_in_ps : (Var.t * Syntax.ty) list -> Syntax.ty -> ps * ty
+val ctx : (Var.t * tyR) list -> ctx
+val ty : (Var.t * tyR) list -> tyR -> ctx * ty
+val tm : (Var.t * tyR) list -> tmR -> ctx * tm
+val ty_in_ps : (Var.t * tyR) list -> tyR -> ps * ty

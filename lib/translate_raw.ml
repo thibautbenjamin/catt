@@ -1,4 +1,6 @@
-open Common
+open Kernel
+open Kernel.Unchecked_types
+open Raw_types
 
 exception WrongNumberOfArguments
 
@@ -39,21 +41,25 @@ let list_functorialised s c =
 (* inductive translation on terms and types without let_in *)
 let rec tm tm =
   match tm with
-  | Syntax.Var v -> Var v, []
-  | Syntax.Sub(Var v, s, susp) ->
+  | VarR v -> Var v, []
+  | Sub(VarR v, s, susp) ->
      begin
        match Environment.val_var v with
-       | Coh(ps, ty) ->
-         let ps = Suspension.ps susp ps in
-         let ty = Suspension.ty susp ty in
+       | Coh coh ->
+         let coh = Suspension.coh susp coh in
+         let ps,ty =
+           match coh with
+           | Cohdecl (ps,ty) -> ps,ty
+           | Cohchecked coh -> Coh.forget coh
+         in
          let ctx = Unchecked.ps_to_ctx ps in
          let s,l = list_functorialised s ctx in
          let
-           ps,ty =
-           if l <> [] then Functorialisation.coh ps ty l else ps,ty
+           coh =
+           if l <> [] then Functorialisation.coh ps ty l else coh
          in
          let s, meta_types = sub_ps s ps in
-         Coh(ps,ty,s), meta_types
+         Coh(coh,s), meta_types
        | Tm(c,t) ->
          let c = Suspension.ctx susp c in
          let t = Suspension.tm susp t in
@@ -65,7 +71,7 @@ let rec tm tm =
          Unchecked.tm_apply_sub t s, meta_types
      end;
   | Meta -> let m,meta_type = new_meta_tm() in (m,[meta_type])
-  | Syntax.Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
+  | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
   | Letin_tm _ -> assert false
 and sub_ps s ps =
   let sub,meta_types = sub s (Unchecked.ps_to_ctx ps) in
@@ -89,11 +95,11 @@ and sub s  tgt  =
 
 let ty ty =
   match ty with
-  | Syntax.Obj -> Obj,[]
-  | Syntax.Arr(u,v) ->
+  | ObjR -> Obj,[]
+  | ArrR(u,v) ->
      let (tu, meta_types_tu), (tv, meta_types_tv) = tm u, tm v in
      Arr(new_meta_ty(),tu, tv), List.append meta_types_tu meta_types_tv
-  | Syntax.Letin_ty _ -> assert false
+  | Letin_ty _ -> assert false
 
 let ctx c =
   let rec mark_explicit c after =
@@ -101,7 +107,7 @@ let ctx c =
     | [] -> []
     | (v,t) :: c ->
       let
-        expl = not (List.exists (fun (_,ty) -> Syntax.var_in_ty v ty) after)
+        expl = not (List.exists (fun (_,ty) -> Raw.var_in_ty v ty) after)
       in
       (v,(t,expl)) :: mark_explicit c ((v,t)::after)
   in
