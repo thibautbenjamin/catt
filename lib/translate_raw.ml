@@ -45,14 +45,18 @@ let rec tm tm =
   | Sub(VarR v, s, susp) ->
      begin
        match Environment.val_var v with
-       | Coh(ps, ty) ->
-         let ps = Suspension.ps susp ps in
-         let ty = Suspension.ty susp ty in
+       | Coh coh ->
+         let coh = Suspension.coh susp coh in
+         let ps,ty =
+           match coh with
+           | Cohdecl (ps,ty) -> ps,ty
+           | Cohchecked coh -> Coh.forget coh
+         in
          let ctx = Unchecked.ps_to_ctx ps in
          let s,l = list_functorialised s ctx in
          let
            coh =
-           if l <> [] then Functorialisation.coh ps ty l else Cohdecl(ps,ty)
+           if l <> [] then Functorialisation.coh ps ty l else coh
          in
          let s, meta_types = sub_ps s ps in
          Coh(coh,s), meta_types

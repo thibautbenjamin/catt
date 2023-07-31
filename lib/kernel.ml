@@ -150,6 +150,7 @@ end
 (** Operations on pasting schemes. *)
 and PS : sig
   type t
+  val to_string : t -> string
   val mk : Ctx.t -> t
   val domain : t -> Var.t list
   val to_ctx : t -> Ctx.t
@@ -277,6 +278,8 @@ struct
 
   let forget ps = ps.newrep.tree
 
+  let to_string ps = Unchecked.ps_to_string (forget ps)
+
   (** Create a context from a pasting scheme. *)
   let to_ctx ps =
     ps.newrep.ctx
@@ -331,7 +334,7 @@ struct
 end
 and Ty : sig
   type t
-
+  val to_string : t -> string
   val free_vars : t -> Var.t list
   val is_obj : t -> bool
   val check_equal : t -> t -> unit
@@ -393,7 +396,7 @@ struct
 
   let forget t = t.unchecked
 
-  let _to_string ty =
+  let to_string ty =
     Unchecked.ty_to_string (forget ty)
 
   (** Test for equality. *)
@@ -507,9 +510,12 @@ struct
       Coh.algebraic ps t names
     | Unchecked_types.Cohchecked c -> c
 
-  let to_string _ = assert false
+  let forget (ps,ty,_) = PS.forget ps, Ty.forget ty
 
-  let forget _ = assert false
+  let to_string (ps,ty,_) =
+    Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
+
+
 end
 
 
