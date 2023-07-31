@@ -1,6 +1,6 @@
 %{
     open Command
-    open Common
+    open Kernel
     open Syntax
 
     type annotated_ps =

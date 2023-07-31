@@ -1,16 +1,16 @@
 open Std
-open Common
+open Kernel
 
 (** A raw type. *)
-type ty =
-  | Letin_ty of Var.t * tm * ty
+type tyR =
+  | Letin_ty of Var.t * tmR * tyR
   | Obj
-  | Arr of tm * tm
+  | Arr of tmR * tmR
   (** A raw term. *)
-and tm =
-  | Letin_tm of Var.t * tm * tm
+and tmR =
+  | Letin_tm of Var.t * tmR * tmR
   | Var of Var.t
-  | Sub of tm * (tm  * bool) list * int option
+  | Sub of tmR * (tmR  * bool) list * int option
   | Meta
 
 let rec string_of_ty e =

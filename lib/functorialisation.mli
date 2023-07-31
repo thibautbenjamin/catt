@@ -1,4 +1,3 @@
-open Common
 open Kernel
 
 val coh : ps -> ty -> Var.t list -> ps * ty

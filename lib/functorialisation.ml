@@ -1,4 +1,3 @@
-open Common
 open Kernel
 
 let ctx_one_var c x =

@@ -1,10 +1,11 @@
-open Common
+open Kernel
+open Syntax
 
 (**toplevel commands. *)
 type cmd =
-  | Coh of Var.t * (Var.t * Syntax.ty) list * Syntax.ty
-  | Check of ((Var.t * Syntax.ty) list) * Syntax.tm * Syntax.ty option
-  | Decl of Var.t * (Var.t * Syntax.ty) list * Syntax.tm * Syntax.ty option
+  | Coh of Var.t * (Var.t * tyR) list * tyR
+  | Check of ((Var.t * tyR) list) * tmR * tyR option
+  | Decl of Var.t * (Var.t * tyR) list * tmR * tyR option
   | Set of string * string
 
 type prog = cmd list
