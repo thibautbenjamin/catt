@@ -1,5 +1,5 @@
 open Kernel
-open Syntax
+open Raw_types
 
 val tm : tmR -> tm * meta_ctx
 val sub : tmR list -> ctx -> sub * meta_ctx

@@ -1,5 +1,5 @@
 open Kernel
-open Syntax
+open Raw_types
 
 (**toplevel commands. *)
 type cmd =
@@ -63,14 +63,14 @@ let exec_set o v =
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
-     Io.command "coh %s = %s" (Var.to_string x) (Syntax.string_of_ty e);
+     Io.command "coh %s = %s" (Var.to_string x) (Raw.string_of_ty e);
      exec_coh x ps e
   | Check (l, e, t) ->
-    Io.command "check %s" (Syntax.string_of_tm e);
+    Io.command "check %s" (Raw.string_of_tm e);
     check l e t;
-    Io.info (lazy (Printf.sprintf "valid term %s" (Syntax.string_of_tm e)));
+    Io.info (lazy (Printf.sprintf "valid term %s" (Raw.string_of_tm e)));
   | Decl (v,l,e,t) ->
-    Io.command "let %s = %s" (Var.to_string v) (Syntax.string_of_tm e);
+    Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_tm e);
     exec_decl v l e t
   | Set (o,v) -> exec_set o v
 

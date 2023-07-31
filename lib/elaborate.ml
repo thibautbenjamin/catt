@@ -251,15 +251,15 @@ let ctx c =
   c
 
 let preprocess_ty ctx ty =
-  let ty = Syntax.remove_let_ty ty in
+  let ty = Raw.remove_let_ty ty in
   if !Settings.implicit_suspension then
-    Syntax.infer_susp_ty ctx ty
+    Raw.infer_susp_ty ctx ty
   else ty
 
 let preprocess_tm ctx tm =
-  let tm = Syntax.remove_let_tm tm in
+  let tm = Raw.remove_let_tm tm in
   if !Settings.implicit_suspension then
-    Syntax.infer_susp_tm ctx tm
+    Raw.infer_susp_tm ctx tm
   else tm
 
 let rec preprocess_ctx = function

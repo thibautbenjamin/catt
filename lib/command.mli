@@ -1,5 +1,5 @@
 open Kernel
-open Syntax
+open Raw_types
 
 type cmd =
   | Coh of Var.t * (Var.t * tyR) list * tyR

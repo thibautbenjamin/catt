@@ -1,14 +1,5 @@
 open Kernel
-
-type tyR =
-  | Letin_ty of Var.t * tmR * tyR
-  | Obj
-  | Arr of tmR * tmR
-and tmR =
-  | Letin_tm of Var.t * tmR * tmR
-  | Var of Var.t
-  | Sub of tmR * (tmR * bool) list * int option
-  | Meta
+open Raw_types
 
 val string_of_ty : tyR -> string
 val string_of_tm : tmR -> string

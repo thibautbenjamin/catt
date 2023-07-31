@@ -1,5 +1,5 @@
 open Kernel
-open Syntax
+open Raw_types
 
 val ctx : (Var.t * tyR) list -> ctx
 val ty : (Var.t * tyR) list -> tyR -> ctx * ty

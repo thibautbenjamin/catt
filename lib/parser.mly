@@ -1,7 +1,7 @@
 %{
     open Command
     open Kernel
-    open Syntax
+    open Raw_types
 
     type annotated_ps =
       | Br of (Var.t * annotated_ps) list * Var.t
@@ -17,13 +17,13 @@
         | [] -> [(x, ty)]
         | (y,ps)::l ->
            List.append
-             (context_over (Arr (Var y, Var x)) ps)
+             (context_over (ArrR (VarR y, VarR x)) ps)
              ((x, ty)::(context_ending_to y ty l))
       and context_over ty p =
         match p with
         | Br(l,x) -> context_ending_to x ty l
       in
-      context_over Obj ps
+      context_over ObjR ps
 %}
 
 %token COH OBJ MOR WILD
@@ -66,14 +66,14 @@ sub:
 simple_tmexpr:
     | LPAR tmexpr RPAR { $2 }
     | WILD { Meta }
-    | IDENT { Var (Var.make_var $1) }
+    | IDENT { VarR (Var.make_var $1) }
 
 functed_tmexpr:
     | LBRA tmexpr RBRA { $2 }
 
 simple_tyexpr:
     | LPAR tyexpr RPAR { $2 }
-    | OBJ { Obj }
+    | OBJ { ObjR }
 
 subst_tmexpr:
     | simple_tmexpr { $1 }
@@ -87,7 +87,7 @@ tmexpr:
 tyexpr:
     | LET IDENT EQUAL tmexpr IN tyexpr { Letin_ty (Var.make_var $2, $4, $6) }
     | simple_tyexpr { $1 }
-    | subst_tmexpr MOR subst_tmexpr { Arr ($1,$3) }
+    | subst_tmexpr MOR subst_tmexpr { ArrR ($1,$3) }
 
 ps :
         | LPAR IDENT COL tyexpr RPAR args { List.append $6 [(Var.make_var $2, $4)] }
