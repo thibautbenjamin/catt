@@ -55,8 +55,8 @@ let rec tm tm =
          let ctx = Unchecked.ps_to_ctx ps in
          let s,l = list_functorialised s ctx in
          let
-           coh =
-           if l <> [] then Functorialisation.coh ps ty l else coh
+           coh,ps =
+           if l <> [] then Functorialisation.coh ps ty l else coh,ps
          in
          let s, meta_types = sub_ps s ps in
          Coh(coh,s), meta_types

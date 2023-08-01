@@ -20,8 +20,8 @@ x1 -> x10
 # Format = focus(n) (n = half the arity)
 # Ex : focus 3 == (f1 f2 f3) (f4 f5 f6) -> f1 f2 (f3 f4) f5 f6
 coh focus2 (x0 : *) (x1 : *) (f1 : x0 -> x1)
-                    (x2 : *) (f2 : x1 -> x2)	
-		    (x3 : *) (f3 : x2 -> x3) 
+                    (x2 : *) (f2 : x1 -> x2)
+		    (x3 : *) (f3 : x2 -> x3)
 		    (x4 : *) (f4 : x3 -> x4) :
 		    comp (comp f1 f2) (comp f3 f4) -> comp3 f1 (comp f2 f3) f4
 
@@ -34,12 +34,12 @@ coh focus3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
 		    comp (comp3 f1 f2 f3) (comp3 f4 f5 f6) -> comp5 f1 f2 (comp f3 f4) f5 f6
 
 coh focus5 (x0 : *) (x1 : *) (f1 : x0 -> x1)
-                    (x2 : *) (f2 : x1 -> x2)	
-		    (x3 : *) (f3 : x2 -> x3) 
+                    (x2 : *) (f2 : x1 -> x2)
+		    (x3 : *) (f3 : x2 -> x3)
 		    (x4 : *) (f4 : x3 -> x4)
 		    (x5 : *) (f5 : x4 -> x5)
-                    (x6 : *) (f6 : x5 -> x6)	
-		    (x7 : *) (f7 : x6 -> x7) 
+                    (x6 : *) (f6 : x5 -> x6)
+		    (x7 : *) (f7 : x6 -> x7)
 		    (x8 : *) (f8 : x7 -> x8)
 		    (x9 : *) (f9 : x8 -> x9)
                     (x10 : *) (f10 : x9 -> x10)	:
@@ -102,7 +102,7 @@ coh rew3compA (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1)
                        (x2 : *) (f2 : x1 -> x2) (g2 : x1 -> x2) (b1 : f2 -> g2)
 		      	       	     	        (h2 : x1 -> x2) (b2 : g2 -> h2)
 		       (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (c1 : f3 -> g3)
-		       	     	      	    	(h3 : x2 -> x3) (c2 : g3 -> h3) : 
+		       	     	      	    	(h3 : x2 -> x3) (c2 : g3 -> h3) :
      		       comp (comp3 [a1] [b1] [c1]) (comp3 [a2] [b2] [c2]) -> comp3 [comp a1 a2] [comp b1 b2] [comp c1 c2]
 
 coh rew5comp@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
@@ -122,7 +122,7 @@ coh rew2idA (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) :
 comp [id f] [id g] -> id (comp f g)
 
 coh rew3idA (x0 : *) (x1 : *) (f1 : x0 -> x1)
-    	       	     (x2 : *) (f2 : x1 -> x2) 
+    	       	     (x2 : *) (f2 : x1 -> x2)
 		     (x3 : *) (f3 : x2 -> x3) :
 		     comp3 [id f1] [id f2] [id f3] -> id (comp3 f1 f2 f3)
 
@@ -157,7 +157,7 @@ coh rrew5@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
 		     comp5 f1 f2 [a] f4 f5 -> comp5 f1 f2 [b] f4 f5
 
 
-### interchanging left and right unitors when possible 
+### interchanging left and right unitors when possible
 coh id2@/1-,2-/     (x : *) :  id2@1- (id x) -> id2@2- (id x)
 coh id2@/1-,2-/-    (x : *) :  id2@2- (id x) -> id2@1- (id x)
 
@@ -292,7 +292,7 @@ let red3- (x0 : *) (x1 : *) (x2 : *) (x2m : *) (x3 : *) (x4 : *)
     	  (f1 : x0 -> x1) (f2 : x1 -> x2)
 	  (f3 : x2 -> x2m) (f4 : x2m -> x2) (s : id x2 -> comp f3 f4)
 	  (f5 : x2 -> x3) (f6 : x3 -> x4) =
-	  comp (id5@3F- f1 f2 f5 f6)    
+	  comp (id5@3F- f1 f2 f5 f6)
      	       (comp5 f1 f2 [s] f5 f6)
 
 let red3F (x0 : *) (x1 : *) (x2 : *) (x2m : *) (x3 : *) (x4 : *)
@@ -350,7 +350,7 @@ simpl2F (red3CU f1 f2 sU f5 f6)
 ### Some operations on 2-cells
 # Format = rew(n)@(k)id@(l)R :substituting id in the place l in the coherence rew(n)@(k), and rewriting the source and target to match with the orginal two cell
 #                            (R = reduced)
-#          rew(n)@(k)id@(l)  :unitor for the substitution of id in the place l in the coherence rew(n)@(k)  
+#          rew(n)@(k)id@(l)  :unitor for the substitution of id in the place l in the coherence rew(n)@(k)
 let rew2@2id@1R (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) =
     comp3 (id2@1- f) (comp (id x) [a]) (id2@1 g)
 

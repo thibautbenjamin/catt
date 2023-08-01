@@ -33,7 +33,7 @@ let coh ps ty l =
   let ps = Kernel.PS.(forget (mk (Kernel.Ctx.check ctx))) in
   let _, names,_ = Unchecked.db_levels ctx in
   let ty = Unchecked.rename_ty ty names in
-  Cohdecl(ps, ty)
+  Cohdecl(ps, ty),ps
 
 let rec find_places ctx s l =
   match ctx,s with
@@ -54,7 +54,7 @@ let rec tm t l =
     begin
       match l with
       | _::_ ->
-        let cohf =
+        let cohf,_ =
           match c with
           | Cohdecl (ps,ty) ->
             let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
