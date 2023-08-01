@@ -9,7 +9,9 @@
     let add_suspension = function
       | Sub (x,s,None) -> Sub (x,s,Some 1)
       | Sub (x,s,Some n) -> Sub (x,s,Some (n+1))
-      | _ -> assert false
+      | Comp (s,None) -> Comp (s,Some 1)
+      | Comp (s,Some n) -> Comp (s,Some (n+1))
+      | Letin_tm _ | VarR _ | Meta -> assert false
 
     let context_of_annotated_ps ps =
       let rec context_ending_to x ty l =
@@ -26,7 +28,7 @@
       context_over ObjR ps
 %}
 
-%token COH OBJ MOR WILD
+%token COH OBJ MOR WILD COMP
 %token LPAR RPAR LBRA RBRA COL BANG
 %token <string> IDENT
 %token CHECK EQUAL LET IN SET
@@ -78,6 +80,7 @@ simple_tyexpr:
 subst_tmexpr:
     | simple_tmexpr { $1 }
     | simple_tmexpr nonempty_sub {  Sub ($1,$2,None) }
+    | COMP nonempty_sub { Comp ($2,None) }
     | BANG subst_tmexpr { add_suspension $2 }
 
 tmexpr:
