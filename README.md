@@ -7,13 +7,13 @@ This is my personnal implementation of this theory. For a more complete implemen
 There is an [online version](https://thibautbenjamin.github.io/catt/) of this implementation
 
 ## Syntax
-There are two keywords to define a new operation  
+There are two keywords to define a new operation
 ```
 coh name ps : ty
 ```
 to define a primitive coherence with arguments ps forming a pasting scheme and return type ty
 ```
-let name args : ty = tm  
+let name args : ty = tm
 let name args = tm
 ```
 to declare an operation with arguments args and whose definition is tm, the type ty can be specified to be checked or left implicit.
@@ -25,27 +25,27 @@ The arguments to be specified for each operation can be inferred, thus the syste
 ```
 set explicit_substitutions = t
 ```
-For instance, defining the identity, composition and unitor can be done as follows
+For instance, defining the identity, binary composition and unitor can be done as follows
 ```
 coh id (x : *) : x -> x
-coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
-coh unit (x : *) (y : *) (f : x -> y) : comp f (id y) -> f
+coh comp2 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
+coh unit (x : *) (y : *) (f : x -> y) : comp2 f (id y) -> f
 
 set explicit_substitutions = t
-coh unit_explicit (x : *) (y : *) (f : x -> y) : comp x y f y (id y) -> f
+coh unit_explicit (x : *) (y : *) (f : x -> y) : comp2 x y f y (id y) -> f
 ```
 ### Wildcards
 Implicit arguments that can be inferred my be replaced by wildcards. For instance, the unitor can also be defined as
 For instance, defining the identity, composition and unitor can be done as follows
 ```
 set explicit_substitutions = f
-coh unit_wild (x : *) (y : *) (f : x -> y) : comp f (id _) -> f
+coh unit_wild (x : *) (y : *) (f : x -> y) : comp2 f (id _) -> f
 ```
 
 ### Reduced syntax for coherence
 This feature has been taken from [catt.io](https://github.com/ericfinster/catt.io). One can exploit the fact that pasting schemes are equivalent to well-parenthesised expressions to give a more concise syntax for them. For instance, one, can define the composition of two 1-cells as follows
 ```
-coh comp (x(f)y(g)z) : x -> z
+coh comp2 (x(f)y(g)z) : x -> z
 ```
 Internally, this reduces to contexts and are treated the same way
 
@@ -56,8 +56,8 @@ let id1 (x : *) (y : *) (f : x -> y) : f -> f = !id f
 ```
 By default, the suspensions can be left implicit and the system will automatically insert the suspension at the right places. For instance, one can define the vertical composition of 2-cells, which is the suspension of the composition of 0-cells as follows
 ```
-let vertical_comp (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h)
-                  : f -> h = comp a b 
+let vertical_comp2 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h)
+                  : f -> h = comp2 a b
 ```
 The implicit use of suspensions can be deactivated with
 ```
@@ -65,15 +65,25 @@ set implicit_suspension = f
 ```
 
 ### Functoriality of operations
-All the operations that one could define are functorial, and this fact is also part of the implementation. The argument with respect to which the functoriality is applied is specified between square brackets. For instance the right whiskering can be seen as the functoriality of the composition with respect to its first argument. 
+All the operations that one could define are functorial, and this fact is also part of the implementation. The argument with respect to which the functoriality is applied is specified between square brackets. For instance the right whiskering can be seen as the functoriality of the composition with respect to its first argument.
 ```
-let rewrite-in-comp (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+let rewrite-in-comp2 (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                             (z : *) (g : y -> z)
-	            : comp f g -> comp f' g = comp [a] g
+	            : comp2 f g -> comp2 f' g = comp2 [a] g
 ```
 One can also use fuctoriality with respect to multiple variables at the same time. For instance, the horizontal composition of two 2-cells is the functoriality of the composition with respect to both its arguments.
 ```
-let rewrite-in-comp-both (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+let rewrite-in-comp2-both (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                                  (z : *) (g : y -> z) (g' : y -> z) (b : g -> g')
- 	            : comp f g -> comp f' g' = comp [a] [b]
+ 	            : comp2 f g -> comp2 f' g' = comp2 [a] [b]
 ```
+
+# Built-in coherences
+Some useful coherences are built-in. This allows for two things: first it is not necessary as a user to define those coherences that already exist, and secondly it allows to have an internal hardcoded mechanism to manage coherence schemes instead of single coherences. The use of built-in can be deactivated via the command-line as follows `catt --no-builtins [FILE]` or `dune exec -- catt --no-builtin [FILE]`. When the use of built-in is activated, the user is prevented from defining terms or operations that have the same name as a built-in.
+
+## Compositions
+The variadic compositions are defined as built-in, and named `comp`. In practice this means that one can write
+```
+coh unbias (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : comp (comp f g) h -> comp f g h
+```
+Notice how the same name `comp` is used for the binary composition and the ternary one.
