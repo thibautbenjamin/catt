@@ -40,26 +40,28 @@ let list_functorialised s c =
 
 (* inductive translation on terms and types without let_in *)
 let rec tm tm =
+  let make_coh coh s susp =
+    let coh = Suspension.coh susp coh in
+    let ps,ty =
+      match coh with
+      | Cohdecl (ps,ty) -> ps,ty
+      | Cohchecked coh -> Coh.forget coh
+    in
+    let ctx = Unchecked.ps_to_ctx ps in
+    let s,l = list_functorialised s ctx in
+    let
+      coh,ps =
+      if l <> [] then Functorialisation.coh ps ty l else coh,ps
+    in
+    let s, meta_types = sub_ps s ps in
+    Coh(coh,s), meta_types
+  in
   match tm with
   | VarR v -> Var v, []
   | Sub(VarR v, s, susp) ->
      begin
        match Environment.val_var v with
-       | Coh coh ->
-         let coh = Suspension.coh susp coh in
-         let ps,ty =
-           match coh with
-           | Cohdecl (ps,ty) -> ps,ty
-           | Cohchecked coh -> Coh.forget coh
-         in
-         let ctx = Unchecked.ps_to_ctx ps in
-         let s,l = list_functorialised s ctx in
-         let
-           coh,ps =
-           if l <> [] then Functorialisation.coh ps ty l else coh,ps
-         in
-         let s, meta_types = sub_ps s ps in
-         Coh(coh,s), meta_types
+       | Coh coh -> make_coh coh s susp
        | Tm(c,t) ->
          let c = Suspension.ctx susp c in
          let t = Suspension.tm susp t in
@@ -70,7 +72,9 @@ let rec tm tm =
          let s, meta_types = sub s c in
          Unchecked.tm_apply_sub t s, meta_types
      end;
-  | Comp(_,_) -> assert false (* TODO *)
+  | Comp(s,susp) ->
+    let coh = Builtin.comp s in
+    make_coh coh s susp
   | Meta -> let m,meta_type = new_meta_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
   | Sub(Comp _, _,_) | Letin_tm _ -> assert false
