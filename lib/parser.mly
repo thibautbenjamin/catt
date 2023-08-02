@@ -50,6 +50,12 @@ cmd:
     | CHECK args EQUAL tmexpr { Check ($2,$4,None) }
     | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (Var.make_var $2,$3,$7,Some $5) }
     | LET IDENT args EQUAL tmexpr { Decl (Var.make_var $2,$3,$5, None) }
+    | LET COMP args COL tyexpr EQUAL tmexpr {
+          if !Settings.use_builtins then raise (Error.ReservedName "comp")
+          else Decl (Var.make_var "comp", $3,$7,Some $5)
+        }
+    | LET COMP args EQUAL tmexpr { if !Settings.use_builtins then raise (Error.ReservedName "comp")
+                                   else Decl (Var.make_var "comp",$3,$5, None) }
     | SET IDENT EQUAL IDENT { Set ($2,$4) }
 
 nonempty_args :
