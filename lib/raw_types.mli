@@ -2,6 +2,7 @@ open Kernel
 
 type builtin =
   | Comp
+  | Id
 
 type tyR =
   | Letin_ty of Var.t * tmR * tyR

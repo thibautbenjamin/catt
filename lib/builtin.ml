@@ -10,6 +10,8 @@ module Memo = struct
       let res = f i in
       Hashtbl.add tbl i res;
       res
+
+  let id = Coh.check (Cohdecl (Br[], Arr(Obj,Var(Db 0),Var(Db 0)))) []
 end
 
 let comp_arity s =
@@ -37,3 +39,5 @@ let comp s =
     Coh.check (Cohdecl (ps,ty)) []
   in
   Memo.find arity build_comp
+
+let id = Memo.id

@@ -1,6 +1,3 @@
-### Definition of identity morphism
-coh id (x : *) : x -> x
-
 ### Definition of associators
 # Format = focus(n) (n = half the arity)
 # Ex : focus 3 == (f1 f2 f3) (f4 f5 f6) -> f1 f2 (f3 f4) f5 f6
@@ -405,5 +402,3 @@ simpl5F (simplrew2A (rew2@1id@2CU a) (rew2@2id@1CU b))
 	(simplrew3A (id2@/1-,2-/CU x) (exchU a b) (id2@/1,2/U x))
 	(red3FCU (id2@1- (id x)) (comp (id x) [b]) (id2@1@2UCU x) (comp [a] (id x)) (id2@2 (id x)))
 	(simplrew2A (rew2@2id@1U b) (rew2@1id@2U a))
-
-#76 definitions

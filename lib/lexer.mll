@@ -10,6 +10,7 @@ rule token = parse
   | "let" { LET }
   | "in" { IN }
   | "comp" as str { BUILTIN str }
+  | "id" as str { BUILTIN str }
   | "(" { LPAR }
   | ")" { RPAR }
   | ":" { COL }
