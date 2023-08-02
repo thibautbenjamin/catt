@@ -59,25 +59,28 @@ let rec tm tm =
   match tm with
   | VarR v -> Var v, []
   | Sub(VarR v, s, susp) ->
-     begin
-       match Environment.val_var v with
-       | Coh coh -> make_coh coh s susp
-       | Tm(c,t) ->
-         let c = Suspension.ctx susp c in
-         let t = Suspension.tm susp t in
-         let s,l = list_functorialised s c in
-         let c,t =
-           if l <> [] then Functorialisation.tm c t l else c,t
-         in
-         let s, meta_types = sub s c in
-         Unchecked.tm_apply_sub t s, meta_types
-     end;
-  | Comp(s,susp) ->
-    let coh = Builtin.comp s in
-    make_coh coh s susp
+    begin
+      match Environment.val_var v with
+      | Coh coh -> make_coh coh s susp
+      | Tm(c,t) ->
+        let c = Suspension.ctx susp c in
+        let t = Suspension.tm susp t in
+        let s,l = list_functorialised s c in
+        let c,t =
+          if l <> [] then Functorialisation.tm c t l else c,t
+        in
+        let s, meta_types = sub s c in
+        Unchecked.tm_apply_sub t s, meta_types
+    end;
+  | Builtin(name,s,susp) ->
+    let builtin_coh =
+      match name with
+      | Comp -> Builtin.comp s
+      | Id -> Builtin.id
+    in make_coh builtin_coh s susp
   | Meta -> let m,meta_type = new_meta_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
-  | Sub(Comp _, _,_) | Letin_tm _ -> assert false
+  | Sub(Builtin _, _,_) | Letin_tm _ -> assert false
 and sub_ps s ps =
   let sub,meta_types = sub s (Unchecked.ps_to_ctx ps) in
   List.map snd sub, meta_types

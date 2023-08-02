@@ -9,8 +9,8 @@
     let add_suspension = function
       | Sub (x,s,None) -> Sub (x,s,Some 1)
       | Sub (x,s,Some n) -> Sub (x,s,Some (n+1))
-      | Comp (s,None) -> Comp (s,Some 1)
-      | Comp (s,Some n) -> Comp (s,Some (n+1))
+      | Builtin (name,s,None) -> Builtin (name,s,Some 1)
+      | Builtin (name,s,Some n) -> Builtin (name,s,Some (n+1))
       | Letin_tm _ | VarR _ | Meta -> assert false
 
     let context_of_annotated_ps ps =
@@ -93,9 +93,10 @@ subst_tmexpr:
           if !Settings.use_builtins
           then
             match $1 with
-            | s when String.equal s "comp" ->  Comp ($2,None)
+            | s when String.equal s "comp" ->  Builtin (Comp,$2,None)
+            | s when String.equal s "id" ->  Builtin (Id,$2,None)
             | _ -> assert false
-          else Sub (VarR (Var.make_var "comp"), $2, None) }
+          else Sub (VarR (Var.make_var $1), $2, None) }
     | BANG subst_tmexpr { add_suspension $2 }
 
 tmexpr:
