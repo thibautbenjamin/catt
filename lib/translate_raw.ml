@@ -72,12 +72,16 @@ let rec tm tm =
          let s, meta_types = sub s c in
          Unchecked.tm_apply_sub t s, meta_types
      end;
-  | Comp(s,susp) ->
-    let coh = Builtin.comp s in
-    make_coh coh s susp
+  | Builtin(name,s,susp) ->
+    begin
+      match name with
+      | Comp ->
+        let coh = Builtin.comp s in
+        make_coh coh s susp
+    end
   | Meta -> let m,meta_type = new_meta_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
-  | Sub(Comp _, _,_) | Letin_tm _ -> assert false
+  | Sub(Builtin _, _,_) | Letin_tm _ -> assert false
 and sub_ps s ps =
   let sub,meta_types = sub s (Unchecked.ps_to_ctx ps) in
   List.map snd sub, meta_types

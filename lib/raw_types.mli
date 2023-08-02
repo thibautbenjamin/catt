@@ -1,5 +1,8 @@
 open Kernel
 
+type builtin =
+  | Comp
+
 type tyR =
   | Letin_ty of Var.t * tmR * tyR
   | ObjR
@@ -7,7 +10,7 @@ type tyR =
 and tmR =
   | Letin_tm of Var.t * tmR * tmR
   | VarR of Var.t
-  | Comp of subR * int option
+  | Builtin of builtin * subR * int option
   | Sub of tmR * subR * int option
   | Meta
 and subR = (tmR * bool) list

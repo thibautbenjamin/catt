@@ -2,6 +2,9 @@ open Std
 open Kernel
 open Raw_types
 
+let string_of_builtin = function
+  | Comp -> "comp"
+
 let rec string_of_ty e =
   match e with
   | Letin_ty (v,e,ty) ->
@@ -28,14 +31,15 @@ and string_of_tm e =
       susp
       (string_of_tm t)
       (string_of_sub s)
-  | Comp (s,None) ->
-    Printf.sprintf "(_builtin_comp %s)"
+  | Builtin (name,s,None) ->
+    Printf.sprintf "(_builtin_%s %s)"
+      (string_of_builtin name)
       (string_of_sub s)
-  | Comp (s,Some susp) ->
-    Printf.sprintf "(!%i _builtin_comp %s)"
+  | Builtin (name,s,Some susp) ->
+    Printf.sprintf "(!%i _builtin_%s %s)"
       susp
+      (string_of_builtin name)
       (string_of_sub s)
-
   | Meta -> "_"
 and string_of_sub s=
   match s with
@@ -54,8 +58,8 @@ let rec replace_tm l e =
     end
   | Sub (e,s,susp) ->
     Sub(replace_tm l e, replace_sub l s,susp)
-  | Comp (s,susp) ->
-    Comp(replace_sub l s,susp)
+  | Builtin (name,s,susp) ->
+    Builtin(name,replace_sub l s,susp)
   | Letin_tm (v,t,tm) -> replace_tm ((v,t)::l) tm
   | Meta -> Meta
 and replace_sub l s =
@@ -83,7 +87,7 @@ let rec var_in_ty x ty =
 and var_in_tm x tm =
   match tm with
   | VarR v -> x = v
-  | Sub(_,s,_) | Comp (s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
+  | Sub(_,s,_) | Builtin (_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
   | Meta -> false
   | Letin_tm _ -> assert false
 
@@ -93,11 +97,15 @@ let rec dim_ty ctx = function
   | Letin_ty _ -> assert false
 and dim_tm ctx = function
   | VarR v -> dim_ty ctx (List.assoc v ctx)
-  | (Sub(VarR _,s,i) | Comp(s,i)) as t ->
+  | (Sub(VarR _,s,i) | Builtin(_,s,i)) as t ->
     let func = if List.exists (fun (_,bool) -> bool) s then 1 else 0 in
     let d = match t with
       | Sub (VarR v, _,_) -> Environment.dim_output v
-      | Comp(_,_) -> 1
+      | Builtin(name, _,_) ->
+        begin
+          match name with
+          | Comp -> 1
+        end
       | _ -> assert false
     in
     let
@@ -118,14 +126,18 @@ let rec dim_sub ctx = function
 
 let rec infer_susp_tm ctx = function
   | VarR v -> VarR v
-  | Sub(VarR _,s,i) | Comp (s,i) as t ->
+  | Sub(VarR _,s,i) | Builtin (_,s,i) as t ->
     let s = infer_susp_sub ctx s in
     begin
       match i with
       | None ->
         let inp = match t with
           | Sub (VarR v,_,_) -> Environment.dim_input v
-          | Comp _ -> 1
+          | Builtin(name,_,_) ->
+            begin
+              match name with
+              | Comp -> 1
+            end
           | _ -> assert false
         in
         let d,f = dim_sub ctx s in
@@ -134,7 +146,7 @@ let rec infer_susp_tm ctx = function
         begin
           match t with
           | Sub (VarR v, _,_) -> Sub(VarR v,s,newsusp)
-          | Comp _ -> Comp(s,newsusp)
+          | Builtin(name,_,_) -> Builtin(name,s,newsusp)
           | _ -> assert false
         end
       | Some _ -> t
