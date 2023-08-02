@@ -1,7 +1,7 @@
 coh id (x) : x -> x
-coh unit (x(f)y) : COMP f (id _) -> f
-coh unbiase (x(f)y(g)z(h)w) : COMP (COMP f g) h -> COMP f g h
+coh unit (x(f)y) : comp f (id _) -> f
+coh unbiase (x(f)y(g)z(h)w) : comp (comp f g) h -> comp f g h
 
 set explicit_substitutions = t
-coh unit_bis (x(f)y) : COMP x y f y (id y) -> f
-coh unbiase (x(f)y(g)z(h)w) : COMP _ _ (COMP _ _ f _ g) _ h -> COMP _ _ f _ g _ h
+coh unit_bis (x(f)y) : comp x y f y (id y) -> f
+coh unbiase (x(f)y(g)z(h)w) : comp _ _ (comp _ _ f _ g) _ h -> comp _ _ f _ g _ h

@@ -44,6 +44,8 @@ prog:
 
 cmd:
     | COH IDENT ps COL tyexpr { Coh (Var.make_var $2,$3,$5) }
+    | COH COMP ps COL tyexpr { if !Settings.use_builtins then raise (Error.ReservedName "comp")
+                               else Coh (Var.make_var "comp",$3,$5) }
     | CHECK args COL tyexpr EQUAL tmexpr { Check ($2,$6, Some $4) }
     | CHECK args EQUAL tmexpr { Check ($2,$4,None) }
     | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (Var.make_var $2,$3,$7,Some $5) }
@@ -80,7 +82,10 @@ simple_tyexpr:
 subst_tmexpr:
     | simple_tmexpr { $1 }
     | simple_tmexpr nonempty_sub {  Sub ($1,$2,None) }
-    | COMP nonempty_sub { Comp ($2,None) }
+    | COMP nonempty_sub {
+          if !Settings.use_builtins
+          then Comp ($2,None)
+          else Sub (VarR (Var.make_var "comp"), $2, None) }
     | BANG subst_tmexpr { add_suspension $2 }
 
 tmexpr:
