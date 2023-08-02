@@ -9,6 +9,7 @@ rule token = parse
   | "check" { CHECK }
   | "let" { LET }
   | "in" { IN }
+  | "comp" as str { BUILTIN str }
   | "(" { LPAR }
   | ")" { RPAR }
   | ":" { COL }

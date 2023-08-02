@@ -28,6 +28,14 @@ and string_of_tm e =
       susp
       (string_of_tm t)
       (string_of_sub s)
+  | Comp (s,None) ->
+    Printf.sprintf "(_builtin_comp %s)"
+      (string_of_sub s)
+  | Comp (s,Some susp) ->
+    Printf.sprintf "(!%i _builtin_comp %s)"
+      susp
+      (string_of_sub s)
+
   | Meta -> "_"
 and string_of_sub s=
   match s with
@@ -46,6 +54,8 @@ let rec replace_tm l e =
     end
   | Sub (e,s,susp) ->
     Sub(replace_tm l e, replace_sub l s,susp)
+  | Comp (s,susp) ->
+    Comp(replace_sub l s,susp)
   | Letin_tm (v,t,tm) -> replace_tm ((v,t)::l) tm
   | Meta -> Meta
 and replace_sub l s =
@@ -73,7 +83,7 @@ let rec var_in_ty x ty =
 and var_in_tm x tm =
   match tm with
   | VarR v -> x = v
-  | Sub(_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
+  | Sub(_,s,_) | Comp (s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
   | Meta -> false
   | Letin_tm _ -> assert false
 
@@ -83,9 +93,13 @@ let rec dim_ty ctx = function
   | Letin_ty _ -> assert false
 and dim_tm ctx = function
   | VarR v -> dim_ty ctx (List.assoc v ctx)
-  | Sub(VarR v,s,i) ->
+  | (Sub(VarR _,s,i) | Comp(s,i)) as t ->
     let func = if List.exists (fun (_,bool) -> bool) s then 1 else 0 in
-    let d = Environment.dim_output v in
+    let d = match t with
+      | Sub (VarR v, _,_) -> Environment.dim_output v
+      | Comp(_,_) -> 1
+      | _ -> assert false
+    in
     let
       susp = match i with
       | None -> 0
@@ -104,17 +118,26 @@ let rec dim_sub ctx = function
 
 let rec infer_susp_tm ctx = function
   | VarR v -> VarR v
-  | Sub(VarR v,s,i) ->
+  | Sub(VarR _,s,i) | Comp (s,i) as t ->
     let s = infer_susp_sub ctx s in
     begin
       match i with
       | None ->
-        let inp = Environment.dim_input v in
+        let inp = match t with
+          | Sub (VarR v,_,_) -> Environment.dim_input v
+          | Comp _ -> 1
+          | _ -> assert false
+        in
         let d,f = dim_sub ctx s in
         let func = if f then 1 else 0 in
         let newsusp = Some (d - inp - func) in
-        Sub(VarR v,s,newsusp)
-      | Some i -> Sub(VarR v,s,Some i)
+        begin
+          match t with
+          | Sub (VarR v, _,_) -> Sub(VarR v,s,newsusp)
+          | Comp _ -> Comp(s,newsusp)
+          | _ -> assert false
+        end
+      | Some _ -> t
     end
   | Meta -> Meta
   | Letin_tm _ | Sub _ -> assert false

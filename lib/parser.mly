@@ -9,7 +9,9 @@
     let add_suspension = function
       | Sub (x,s,None) -> Sub (x,s,Some 1)
       | Sub (x,s,Some n) -> Sub (x,s,Some (n+1))
-      | _ -> assert false
+      | Comp (s,None) -> Comp (s,Some 1)
+      | Comp (s,Some n) -> Comp (s,Some (n+1))
+      | Letin_tm _ | VarR _ | Meta -> assert false
 
     let context_of_annotated_ps ps =
       let rec context_ending_to x ty l =
@@ -28,6 +30,7 @@
 
 %token COH OBJ MOR WILD
 %token LPAR RPAR LBRA RBRA COL BANG
+%token <string> BUILTIN
 %token <string> IDENT
 %token CHECK EQUAL LET IN SET
 %token EOF
@@ -42,10 +45,18 @@ prog:
 
 cmd:
     | COH IDENT ps COL tyexpr { Coh (Var.make_var $2,$3,$5) }
+    | COH BUILTIN ps COL tyexpr { if !Settings.use_builtins then raise (Error.ReservedName $2)
+                               else Coh (Var.make_var $2,$3,$5) }
     | CHECK args COL tyexpr EQUAL tmexpr { Check ($2,$6, Some $4) }
     | CHECK args EQUAL tmexpr { Check ($2,$4,None) }
     | LET IDENT args COL tyexpr EQUAL tmexpr { Decl (Var.make_var $2,$3,$7,Some $5) }
     | LET IDENT args EQUAL tmexpr { Decl (Var.make_var $2,$3,$5, None) }
+    | LET BUILTIN args COL tyexpr EQUAL tmexpr {
+          if !Settings.use_builtins then raise (Error.ReservedName $2)
+          else Decl (Var.make_var $2,$3,$7,Some $5)
+        }
+    | LET BUILTIN args EQUAL tmexpr { if !Settings.use_builtins then raise (Error.ReservedName $2)
+                                      else Decl (Var.make_var $2,$3,$5, None) }
     | SET IDENT EQUAL IDENT { Set ($2,$4) }
 
 nonempty_args :
@@ -78,6 +89,13 @@ simple_tyexpr:
 subst_tmexpr:
     | simple_tmexpr { $1 }
     | simple_tmexpr nonempty_sub {  Sub ($1,$2,None) }
+    | BUILTIN nonempty_sub {
+          if !Settings.use_builtins
+          then
+            match $1 with
+            | s when String.equal s "comp" ->  Comp ($2,None)
+            | _ -> assert false
+          else Sub (VarR (Var.make_var "comp"), $2, None) }
     | BANG subst_tmexpr { add_suspension $2 }
 
 tmexpr:

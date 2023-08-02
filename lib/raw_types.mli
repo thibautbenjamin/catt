@@ -7,5 +7,7 @@ type tyR =
 and tmR =
   | Letin_tm of Var.t * tmR * tmR
   | VarR of Var.t
-  | Sub of tmR * (tmR * bool) list * int option
+  | Comp of subR * int option
+  | Sub of tmR * subR * int option
   | Meta
+and subR = (tmR * bool) list
