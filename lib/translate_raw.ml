@@ -33,9 +33,13 @@ let rec tm t =
       | Id -> Builtin.id
     in make_coh builtin_coh s susp
   | Op(l,t) -> let t,meta = tm t in Opposite.tm t l, meta
+  | Inverse t ->
+    let t,meta_ctx = tm t in
+    Inverse.compute_inverse t,meta_ctx
   | Meta -> let m,meta_type = Meta.new_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
-  | Sub(Builtin _, _,_) |Sub(Op _,_,_)| Letin_tm _ -> Error.fatal("ill-formed term")
+  | Sub(Builtin _, _,_) |Sub(Op _,_,_)| Sub (Inverse _,_,_) | Letin_tm _
+    -> Error.fatal("ill-formed term")
 and sub_ps s ps =
   let tgt = Unchecked.ps_to_ctx ps in
   let rec aux s tgt =

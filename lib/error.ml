@@ -45,6 +45,11 @@ let functorialisation t s =
     "Could not compute the functorialisation of %s for the following reason:\n%s%!" t s;
   raise InvalidEntry
 
+let inversion t s =
+  Io.error
+    "Could not compute the inverse of %s for the following reason:\n%s%!" t s;
+  raise InvalidEntry
+
 let parsing_error t s =
   Io.error "Could not parse %s for the following reason:\n%s%!" t s;
   raise InvalidEntry
