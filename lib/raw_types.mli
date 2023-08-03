@@ -13,4 +13,5 @@ and tmR =
   | Sub of tmR * subR * int option
   | Meta
   | Op of int list * tmR
+  | Inverse of tmR
 and subR = (tmR * int) list
