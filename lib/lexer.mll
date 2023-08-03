@@ -11,6 +11,7 @@ rule token = parse
   | "in" { IN }
   | "comp" as str { BUILTIN str }
   | "id" as str { BUILTIN str }
+  | "I" { INV }
   | "(" { LPAR }
   | ")" { RPAR }
   | ":" { COL }

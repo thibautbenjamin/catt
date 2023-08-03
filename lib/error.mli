@@ -13,4 +13,5 @@ val incompatible_options : string -> string -> 'a
 val unknown_option : string -> 'a
 val unknown_id : string -> 'a
 val functorialisation : string -> string -> 'a
+val inversion : string -> string -> 'a
 val parsing_error : string -> string -> 'a
