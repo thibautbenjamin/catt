@@ -268,7 +268,7 @@ struct
       | PDrop ps ->
         let p,ps = find_previous ps [] in
         let prev,ps = build_till_previous ps in
-        p::prev, ps
+        List.append prev [p], ps
     in
     Unchecked_types.Br (fst (build_till_previous ps))
 
@@ -592,7 +592,7 @@ end = struct
   let rec ps_to_string = function
     | Unchecked_types.Br l -> Printf.sprintf "[%s]"
                 (List.fold_left
-                   (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s)
+                   (fun s ps -> Printf.sprintf "%s%s" s (ps_to_string ps))
                    ""
                    l)
 
@@ -793,7 +793,7 @@ end = struct
       | ps :: [] -> ps
       | ps :: l -> ps_glue (ps_concat l) ps
     and ps_glue (p1,t1,m1) (p2,t2,m2) =
-      List.append (chop_and_increase p2 t1 m1) p1, t2+m1, m1+m2
+      List.append (chop_and_increase p1 t2 m2) p2, t1+m2, m1+m2
     and chop_and_increase ctx i m =
       match ctx with
       | [] -> assert false
