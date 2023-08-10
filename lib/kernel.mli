@@ -19,19 +19,19 @@ module rec Unchecked_types : sig
   type ps = Br of ps list
 
   type ty =
-    | Meta_ty of int
+    | Meta_ty of int * sub option
     | Obj
     | Arr of ty * tm * tm
   and tm =
     | Var of Var.t
-    | Meta_tm of int
+    | Meta_tm of int * sub option
     | Coh of coh * sub_ps
   and coh =
     | Cohdecl of ps * ty * coh_pp_data
     | Cohchecked of Coh.t
   and sub_ps = (tm * bool) list
+  and sub = (Var.t * tm) list
   type ctx = (Var.t * (ty * bool)) list
-  type sub = (Var.t * tm) list
   type meta_ctx = ((int * ty) list)
 
 end

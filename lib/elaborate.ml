@@ -34,15 +34,35 @@ module Constraints = struct
     in
     Printf.sprintf "[%s] [%s]" print_ty print_tm
 
-  let rec  unify_ty cst ty1 ty2 =
+  let new_meta_ty = Translate_raw.new_meta_ty
+  let new_meta_tm = Translate_raw.new_meta_tm
+
+  let rec unify_ty cst ty1 ty2 =
     match ty1, ty2 with
     | Obj, Obj -> ()
     | Arr(a1,u1,v1), Arr(a2,u2,v2) ->
-      unify_ty cst a1 a2;
+      let meta_ctx = unify_ty cst a1 a2 in
       unify_tm cst u1 u2;
-      unify_tm cst v1 v2
-    | Meta_ty _, _
-    | _, Meta_ty _ -> Queue.enqueue  cst.ty (ty1, ty2)
+      unify_tm cst v1 v2;
+      meta_ctx
+    | Meta_ty (_, None), _
+    | _, Meta_ty (_,None)
+    | Meta_ty (_, Some _), Meta_ty (_, Some _) ->
+      Queue.enqueue cst.ty (ty1, ty2)
+    | Meta_ty (i, Some s), ty
+    | ty, Meta_ty (i, Some s) ->
+      let rec unfold_ty = function
+        | Obj -> Obj
+        | Arr (a,_,_) ->
+          let m1,_ = new_meta_tm () in
+          let m2,_ = new_meta_tm () in
+          let ua = unfold_ty a in
+          Arr (ua, m1, m2)
+        | Meta_ty _ -> new_meta_ty()
+      in
+      let unfolded_ty = unfold_ty ty in
+      Queue.enqueue cst.ty (Meta_ty (i, None), unfolded_ty);
+      Queue.enqueue cst.ty (Unchecked.ty_apply_sub unfolded_ty s, ty)
     | Arr(_,_,_), Obj
     | Obj, Arr(_,_,_) ->
       raise (NotUnifiable (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
@@ -57,8 +77,14 @@ module Constraints = struct
         with Invalid_argument _ ->
           raise (NotUnifiable (Unchecked.coh_to_string coh1, Unchecked.coh_to_string coh2))
       end
-    | Meta_tm _, _
-    | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
+    | Meta_tm (_, None), _
+    | _, Meta_tm (_, None)
+    | Meta_tm (_, Some _), Meta_tm (_, Some _)
+      -> Queue.enqueue cst.tm (tm1, tm2)
+    | Meta_tm (_, Some _), _
+    | _, Meta_tm (_, Some _) ->
+      raise (NotUnifiable
+             (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
       raise (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
   and unify_sub cst s1 s2 =
@@ -76,7 +102,8 @@ let  combine_mgu m1 m2 =
 
 let rec ty_replace_meta_ty (i,ty') ty =
   match ty with
-  | Meta_ty j when i = j -> ty'
+  | Meta_ty (j,None) when i = j -> ty'
+  | Meta_ty (j,Some s) when i = j -> Unchecked.ty_apply_sub ty' s
   | Meta_ty _ -> ty
   | Obj -> Obj
   | Arr(a,u,v) ->
@@ -84,7 +111,8 @@ let rec ty_replace_meta_ty (i,ty') ty =
 
 let rec tm_replace_meta_tm (i,tm') tm =
   match tm with
-  | Meta_tm j when i = j -> tm'
+  | Meta_tm (j, None) when i = j -> tm'
+  | Meta_tm (j, Some s) when i = j -> Unchecked.tm_apply_sub tm' s
   | Meta_tm _ -> tm
   | Var v -> Var v
   | Coh(c,s) -> Coh(c, List.map (fun (t,expl) -> tm_replace_meta_tm (i,tm') t, expl) s)
@@ -134,8 +162,8 @@ let substitute_tm l tm =
     | Some (ty1,ty2) ->
       begin
         match ty1,ty2 with
-        | Meta_ty i, Meta_ty j when i = j -> c, knowns
-        | Meta_ty i, ty | ty, Meta_ty i ->
+        | Meta_ty (i,None), Meta_ty (j,None) when i = j -> c, knowns
+        | Meta_ty (i,None), ty | ty, Meta_ty (i,None) ->
           let c = cst_replace_ty (i,ty) c in
           let knowns = mgu_replace_ty (i,ty) knowns in
           c,{uty = (i,ty)::knowns.uty; utm = knowns.utm}
@@ -148,8 +176,8 @@ let substitute_tm l tm =
       | Some (tm1,tm2) ->
         begin
           match tm1,tm2 with
-          | Meta_tm i, Meta_tm j when i = j -> c, knowns
-          | Meta_tm i, tm | tm, Meta_tm i ->
+          | Meta_tm (i,None), Meta_tm (j,None) when i = j -> c, knowns
+          | Meta_tm (i,None), tm | tm, Meta_tm (i,None) ->
             let c = cst_replace_tm (i,tm) c in
             let knowns = mgu_replace_tm (i,tm) knowns in
             c,{uty = knowns.uty; utm = (i,tm)::knowns.utm}
@@ -180,7 +208,8 @@ module Constraints_typing = struct
            (Unchecked.meta_ctx_to_string meta_ctx)));
       match t with
     | Var v -> t, fst (List.assoc v ctx)
-    | Meta_tm i -> t, List.assoc i meta_ctx
+    | Meta_tm (i, None) -> t, List.assoc i meta_ctx
+    | Meta_tm (i,Some s) -> t, Unchecked.ty_apply_sub (List.assoc i meta_ctx) s
     | Coh(c,s)-> let ps,ty,_ = Unchecked.coh_data c in
       let s1,tgt = Unchecked.sub_ps_to_sub s ps in
       let s1 = sub ctx meta_ctx s1 tgt cst in

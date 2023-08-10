@@ -8,11 +8,11 @@ let meta_namer_ty = ref 0
 let meta_namer_tm = ref 0
 
 let new_meta_ty () =
-  let meta = Meta_ty !meta_namer_ty in
+  let meta = Meta_ty (!meta_namer_ty, None) in
   meta_namer_ty := !meta_namer_ty + 1; meta
 let new_meta_tm () =
   let i = !meta_namer_tm in
-  let meta = Meta_tm i in
+  let meta = Meta_tm (i, None) in
   meta_namer_tm := !meta_namer_tm + 1;
   meta, (i, new_meta_ty())
 

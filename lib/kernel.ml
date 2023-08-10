@@ -544,25 +544,24 @@ struct
     Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 end
 
-
 and Unchecked_types : sig
   type coh_pp_data = string * int * functorialisation_data option
   type ps = Br of ps list
 
   type ty =
-    | Meta_ty of int
+    | Meta_ty of int * sub option
     | Obj
     | Arr of ty * tm * tm
   and tm =
     | Var of Var.t
-    | Meta_tm of int
+    | Meta_tm of int * sub option
     | Coh of coh * sub_ps
   and coh =
     | Cohdecl of ps * ty * coh_pp_data
     | Cohchecked of Coh.t
   and sub_ps = (tm * bool) list
+  and sub = (Var.t * tm) list
   type ctx = (Var.t * (ty * bool)) list
-  type sub = (Var.t * tm) list
   type meta_ctx = ((int * ty) list)
 end = struct
   type coh_pp_data = string * int * functorialisation_data option
@@ -570,21 +569,20 @@ end = struct
   type ps = Br of ps list
 
   type ty =
-    | Meta_ty of int
+    | Meta_ty of int * sub option
     | Obj
     | Arr of ty * tm * tm
   and tm =
     | Var of Var.t
-    | Meta_tm of int
+    | Meta_tm of int * sub option
     | Coh of coh * sub_ps
   and coh =
     | Cohdecl of ps * ty * coh_pp_data
     | Cohchecked of Coh.t
   and sub_ps = (tm * bool) list
+  and sub = (Var.t * tm) list
 
   type ctx = (Var.t * (ty * bool)) list
-
-  type sub = (Var.t * tm) list
 
   type meta_ctx = ((int * ty) list)
 end
@@ -621,6 +619,8 @@ and Unchecked : sig
   val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
 end = struct
 
+  let rec bracket i s = if i <= 0 then s else Printf.sprintf "[%s]" (bracket (i-1) s)
+
   let rec func_to_string = function
     | [] -> ""
     | i::func -> Printf.sprintf "%s%d" (func_to_string func) i
@@ -638,7 +638,7 @@ end = struct
                    l)
 
   let rec ty_to_string = function
-    | Unchecked_types.Meta_ty i -> Printf.sprintf "_ty%i" i
+    | Unchecked_types.Meta_ty (i,s) ->  Printf.sprintf "_ty%i%s" i (sub_option_to_string s)
     | Unchecked_types.Obj -> "*"
     | Unchecked_types.Arr (a,u,v) ->
       if !Settings.verbosity >= 3 then
@@ -652,7 +652,7 @@ end = struct
           (tm_to_string v)
   and tm_to_string = function
     | Unchecked_types.Var v -> Var.to_string v
-    | Unchecked_types.Meta_tm i -> Printf.sprintf "_tm%i" i
+    | Unchecked_types.Meta_tm (i,s) -> Printf.sprintf "_tm%i%s" i (sub_option_to_string s)
     | Unchecked_types.Coh (c,s) ->
       if not (!Settings.unroll_coherences) then
         let (_,_,(_,_,func)) = coh_data c in
@@ -705,7 +705,16 @@ end = struct
            (ty_to_string ty))
     | Unchecked_types.Cohchecked c ->
       Coh.to_string c
-  and bracket i s = if i <= 0 then s else Printf.sprintf "[%s]" (bracket (i-1) s)
+  and sub_to_string = function
+    | [] -> ""
+    | (x,t)::s ->
+      Printf.sprintf "%s (%s: %s)"
+        (sub_to_string s)
+        (Var.to_string x)
+        (tm_to_string t)
+  and sub_option_to_string = function
+    | None -> ""
+    | Some s -> Printf.sprintf "[%s]" (sub_to_string s)
 
   let coh_to_string c = coh_to_string ~print_func:true c
 
@@ -721,13 +730,6 @@ end = struct
         (ctx_to_string c)
         (Var.to_string x)
         (ty_to_string t)
-  let rec sub_to_string = function
-    | [] -> ""
-    | (x,t)::s ->
-      Printf.sprintf "%s (%s: %s)"
-        (sub_to_string s)
-        (Var.to_string x)
-        (tm_to_string t)
 
   let rec meta_ctx_to_string = function
     | [] -> ""
@@ -748,8 +750,9 @@ end = struct
 
   let rec check_equal_ty ty1 ty2 =
     match ty1, ty2 with
-    | Unchecked_types.Meta_ty i, Unchecked_types.Meta_ty j ->
-      if i <> j then raise (NotEqual(string_of_int i, string_of_int j))
+    | Unchecked_types.Meta_ty (i,s), Unchecked_types.Meta_ty (j,s') ->
+      if i <> j then raise (NotEqual(string_of_int i, string_of_int j));
+      check_equal_sub_option s s'
     | Unchecked_types.Obj, Unchecked_types.Obj -> ()
     | Unchecked_types.Arr(ty1, u1, v1), Unchecked_types.Arr(ty2, u2, v2) ->
       check_equal_ty ty1 ty2;
@@ -762,8 +765,9 @@ end = struct
   and check_equal_tm tm1 tm2 =
     match tm1, tm2 with
     | Var v1, Var v2 -> Var.check_equal v1 v2
-    | Meta_tm i, Meta_tm j ->
-      if i <> j then raise (NotEqual(string_of_int i, string_of_int j))
+    | Meta_tm (i,s), Meta_tm (j,s') ->
+      if i <> j then raise (NotEqual(string_of_int i, string_of_int j));
+      check_equal_sub_option s s'
     | Coh(coh1, s1), Coh(coh2, s2) ->
       check_equal_coh coh1 coh2;
       check_equal_sub_ps s1 s2
@@ -791,6 +795,13 @@ end = struct
       check_equal_ty ty1 ty2
   and check_equal_sub_ps s1 s2 =
     List.iter2 (fun (t1,_) (t2,_) -> check_equal_tm t1 t2) s1 s2
+  and check_equal_sub s1 s2 =
+    List.iter2 (fun (v1,t1) (v2,t2) -> Var.check_equal v1 v2; check_equal_tm t1 t2) s1 s2
+  and check_equal_sub_option s1 s2 =
+    match s1,s2 with
+    | Some s1, Some s2 -> check_equal_sub s1 s2
+    | None, None -> ()
+    | Some s, None | None, Some s -> raise (NotEqual (sub_to_string s, "None"))
 
   let rec check_equal_ctx ctx1 ctx2 =
     match ctx1, ctx2 with
@@ -802,27 +813,45 @@ end = struct
     | _::_,[] | [],_::_ ->
       raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
 
-  let rec tm_do_on_variables tm f =
+  let rec tm_do_on_variables tm ?meta f =
     match tm with
     | Unchecked_types.Var v -> (f v)
-    | Meta_tm i -> Unchecked_types.Meta_tm i
-    | Coh(c,s) -> Coh (c, sub_ps_do_on_variables s f)
-  and sub_ps_do_on_variables s f = List.map (fun (t,expl) -> tm_do_on_variables t f, expl) s
+    | Meta_tm (i,s) ->
+      begin
+        match meta with
+        | None -> Unchecked_types.Meta_tm (i,s)
+        | Some m -> Unchecked_types.Meta_tm (i,m s)
+      end
+    | Coh(c,s) -> Coh (c, sub_ps_do_on_variables s ?meta f)
+  and sub_ps_do_on_variables s ?meta f = List.map (fun (t,expl) -> tm_do_on_variables t ?meta f, expl) s
 
-  let rec ty_do_on_variables ty f =
+  let rec ty_do_on_variables ty ?meta f =
     match ty with
-    | Unchecked_types.Meta_ty i -> Unchecked_types.Meta_ty i
+    | Unchecked_types.Meta_ty (i,s) ->
+      begin
+        match meta with
+        | None -> Unchecked_types.Meta_ty (i,s)
+        | Some m ->
+          Unchecked_types.Meta_ty (i,m s)
+      end
     | Obj -> Obj
     | Arr(a,u,v) ->
-      Arr(ty_do_on_variables a f, tm_do_on_variables u f, tm_do_on_variables v f)
+      Arr(ty_do_on_variables a ?meta f,
+          tm_do_on_variables u ?meta f,
+          tm_do_on_variables v ?meta f)
 
   let var_apply_sub v s =
     match List.assoc_opt v s with
     | Some t -> t
     | None -> Unchecked_types.Var v
-  let tm_apply_sub tm s = tm_do_on_variables tm (fun v -> var_apply_sub v s)
-  let ty_apply_sub ty s = ty_do_on_variables ty (fun v -> var_apply_sub v s)
-  let _sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
+  let rec do_on_meta s = function
+    | None -> Some s
+    | Some s' -> Some (sub_apply_sub s' s)
+  and tm_apply_sub tm s =
+    tm_do_on_variables tm ~meta:(do_on_meta s) (fun v -> var_apply_sub v s)
+  and ty_apply_sub ty s =
+    ty_do_on_variables ty ~meta:(do_on_meta s) (fun v -> var_apply_sub v s)
+  and sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
 
   (* rename is applying a variable to de Bruijn levels substitutions *)
   let rename_ty ty l = ty_do_on_variables ty (fun v -> Unchecked_types.Var (Db (List.assoc v l)))

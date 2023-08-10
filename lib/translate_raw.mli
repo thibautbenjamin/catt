@@ -6,3 +6,6 @@ val tm : tmR -> tm * meta_ctx
 val ty : tyR -> ty * meta_ctx
 val ctx : (Var.t * tyR) list -> ctx * meta_ctx
 val sub_to_suspended : sub_ps -> sub_ps * meta_ctx
+
+val new_meta_ty : unit -> ty
+val new_meta_tm : unit -> tm * (int * ty)
