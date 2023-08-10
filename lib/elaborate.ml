@@ -2,73 +2,67 @@ open Std
 open Kernel
 open Kernel.Unchecked_types
 
+module Queue = Base.Queue
+
 module Constraints = struct
-  type t = {ty : (ty * ty) list; tm : (tm * tm) list}
+  type t = {ty : (ty * ty) Queue.t; tm : (tm * tm) Queue.t}
+
+  let create () = {ty = Queue.create(); tm = Queue.create()}
 
   let _to_string c =
-    let rec print_ty =
-      function
-      | [] -> ""
-      | (i,t)::c ->
-        Printf.sprintf "%s (%s = %s)"
-          (print_ty c)
-          (Unchecked.ty_to_string i)
-          (Unchecked.ty_to_string t)
+    let print_ty =
+      Queue.fold
+        c.ty
+        ~init:""
+        ~f:(fun s (ty1,ty2) ->
+            Printf.sprintf "%s (%s = %s)"
+              s
+              (Unchecked.ty_to_string ty1)
+              (Unchecked.ty_to_string ty2))
     in
-    let rec print_tm =
-      function
-      | [] -> ""
-      | (i,t)::c ->
-        Printf.sprintf "%s (%s = %s)"
-          (print_tm c)
-          (Unchecked.tm_to_string i)
-          (Unchecked.tm_to_string t)
+    let print_tm =
+      Queue.fold
+        c.tm
+        ~init:""
+        ~f:(fun s (tm1, tm2) ->
+            Printf.sprintf "%s (%s = %s)"
+              s
+              (Unchecked.tm_to_string tm1)
+              (Unchecked.tm_to_string tm2))
     in
-    Printf.sprintf "[%s] [%s]" (print_ty c.ty) (print_tm c.tm)
+    Printf.sprintf "[%s] [%s]" print_ty print_tm
 
-  let empty = {ty = []; tm = []}
-
-  let  combine c1 c2 =
-    {ty = List.append c1.ty c2.ty;
-     tm = List.append c1.tm c2.tm}
-
-  let rec  unify_ty ty1 ty2 =
+  let rec  unify_ty cst ty1 ty2 =
     match ty1, ty2 with
-    | Obj, Obj -> empty
+    | Obj, Obj -> ()
     | Arr(a1,u1,v1), Arr(a2,u2,v2) ->
-      combine (unify_ty a1 a2)
-        (combine
-           (unify_tm u1 u2)
-           (unify_tm v1 v2))
+      unify_ty cst a1 a2;
+      unify_tm cst u1 u2;
+      unify_tm cst v1 v2
     | Meta_ty _, _
-    | _, Meta_ty _ -> {ty = [(ty1, ty2)]; tm = []}
+    | _, Meta_ty _ -> Queue.enqueue  cst.ty (ty1, ty2)
     | Arr(_,_,_), Obj
     | Obj, Arr(_,_,_) ->
       raise (Error.NotUnifiable
                (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
-  and unify_tm tm1 tm2 =
+  and unify_tm cst tm1 tm2 =
     match tm1, tm2 with
-    | Var v1, Var v2 when v1 = v2 -> empty
+    | Var v1, Var v2 when v1 = v2 -> ()
     | Coh(coh1,s1), Coh(coh2,s2) ->
       Unchecked.check_equal_coh coh1 coh2;
-      unify_sub s1 s2
+      unify_sub cst s1 s2
     | Meta_tm _, _
-    | _, Meta_tm _ -> {ty = []; tm = [(tm1, tm2)]}
+    | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
       raise (Error.NotUnifiable
                (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
-  and unify_sub s1 s2 =
+  and unify_sub cst s1 s2 =
     match s1, s2 with
-    | [],[] -> empty
-    | t1::s1, t2::s2 -> combine (unify_tm t1 t2) (unify_sub s1 s2)
+    | [],[] -> ()
+    | t1::s1, t2::s2 -> unify_tm cst t1 t2; unify_sub cst s1 s2
     | [], _::_ | _::_,[] ->
       raise (Error.NotUnifiable
                (Unchecked.sub_ps_to_string s1, Unchecked.sub_ps_to_string s2))
-
-  let rec combine_all = function
-    | [] -> empty
-    | [h] -> h
-    | h::csts -> combine h (combine_all csts)
 
 type mgu = { uty : (int * ty) list; utm : (int * tm) list }
 
@@ -100,14 +94,17 @@ let rec ty_replace_meta_tm (i,tm') ty =
          tm_replace_meta_tm (i,tm') u,
          tm_replace_meta_tm (i,tm') v)
 
+let queue_map_both f =
+  Queue.map ~f:(fun (x,y) -> (f x, f y))
+
 let cst_replace_ty (i,ty) c =
-  {ty = List.map_both (ty_replace_meta_ty (i,ty)) c.ty; tm = c.tm}
+  {ty = queue_map_both (ty_replace_meta_ty (i,ty)) c.ty; tm = c.tm}
 
 let cst_replace_tm (i,tm) c =
   let ty_replace = ty_replace_meta_tm (i,tm) in
   let tm_replace = tm_replace_meta_tm (i,tm) in
-  {ty = List.map_both ty_replace c.ty;
-   tm = List.map_both tm_replace c.tm}
+  {ty = queue_map_both ty_replace c.ty;
+   tm = queue_map_both tm_replace c.tm}
 
 let mgu_replace_ty (i,ty) l =
   {uty = List.map_right (ty_replace_meta_ty (i,ty)) l.uty; utm = l.utm}
@@ -129,9 +126,8 @@ let substitute_tm l tm =
 
   (* Martelli-Montanari algorithm *)
   let resolve_one_step c knowns =
-    match c.ty with
-    | (ty1,ty2) :: l ->
-      let c = {ty = l; tm = c.tm} in
+    match Queue.dequeue c.ty with
+    | Some (ty1,ty2) ->
       begin
         match ty1,ty2 with
         | Meta_ty i, Meta_ty j when i = j -> c, knowns
@@ -140,13 +136,12 @@ let substitute_tm l tm =
           let knowns = mgu_replace_ty (i,ty) knowns in
           c,{uty = (i,ty)::knowns.uty; utm = knowns.utm}
         | ty1, ty2 ->
-          let derived_constraints = unify_ty ty1 ty2 in
-          combine derived_constraints c, knowns
+          unify_ty c ty1 ty2;
+          c, knowns
       end
-    | [] ->
-      match c.tm with
-      | (tm1,tm2) :: l ->
-        let c = {ty = c.ty; tm = l} in
+    | None ->
+      match Queue.dequeue c.tm with
+      | Some (tm1,tm2) ->
         begin
           match tm1,tm2 with
           | Meta_tm i, Meta_tm j when i = j -> c, knowns
@@ -155,14 +150,14 @@ let substitute_tm l tm =
             let knowns = mgu_replace_tm (i,tm) knowns in
             c,{uty = knowns.uty; utm = (i,tm)::knowns.utm}
           | tm1, tm2 ->
-            let derived_constraints = unify_tm tm1 tm2 in
-            combine derived_constraints c, knowns
+            unify_tm c tm1 tm2;
+            c, knowns
         end
-      | [] -> assert false
+      | None -> assert false
 
   let resolve c =
     let rec aux c knowns =
-      if c.tm = [] && c.ty = [] then knowns
+      if Queue.is_empty c.tm && Queue.is_empty c.ty then knowns
       else
         let c,knowns = resolve_one_step c knowns in
         aux c knowns
@@ -171,7 +166,7 @@ end
 
 module Constraints_typing = struct
 
-  let rec tm ctx meta_ctx t =
+  let rec tm ctx meta_ctx t cst =
     Io.info ~v:4
       (lazy
         (Printf.sprintf
@@ -180,8 +175,8 @@ module Constraints_typing = struct
            (Unchecked.ctx_to_string ctx)
            (Unchecked.meta_ctx_to_string meta_ctx)));
       match t with
-    | Var v -> t, fst (List.assoc v ctx), Constraints.empty
-    | Meta_tm i -> t, List.assoc i meta_ctx, Constraints.empty
+    | Var v -> t, fst (List.assoc v ctx)
+    | Meta_tm i -> t, List.assoc i meta_ctx
     | Coh(c,s)->
       let ps,ty =
         match c with
@@ -189,9 +184,9 @@ module Constraints_typing = struct
         | Cohchecked c -> Coh.forget c
       in
       let s,tgt = Unchecked.sub_ps_to_sub s ps in
-      let s,cst = sub ctx meta_ctx s tgt in
-      Coh(c,(List.map snd s)), Unchecked.ty_apply_sub ty s, cst
-  and sub src meta_ctx s tgt =
+      let s = sub ctx meta_ctx s tgt cst in
+      Coh(c,(List.map snd s)), Unchecked.ty_apply_sub ty s
+  and sub src meta_ctx s tgt cst =
     Io.info ~v:4
       (lazy
         (Printf.sprintf
@@ -202,17 +197,14 @@ module Constraints_typing = struct
            (Unchecked.ctx_to_string tgt)
            (Unchecked.meta_ctx_to_string meta_ctx)));
     match s,tgt with
-    | [],[] -> [], Constraints.empty
+    | [],[] -> []
     | (x,u)::s, (_,(t,_))::c ->
-      let u,ty,cstu = tm src meta_ctx u in
-      let s,csts = sub src meta_ctx s c in
-      (x,u)::s,
-      Constraints.combine_all
-        [csts;
-         cstu;
-         Constraints.unify_ty ty (Unchecked.ty_apply_sub t s)]
+      let u,ty= tm src meta_ctx u cst in
+      let s = sub src meta_ctx s c cst in
+      Constraints.unify_ty cst ty (Unchecked.ty_apply_sub t s);
+      (x,u)::s
     |[],_::_ | _::_, [] -> assert false
-  and ty ctx meta_ctx t =
+  and ty ctx meta_ctx t cst =
     Io.info ~v:4
       (lazy
         (Printf.sprintf
@@ -221,19 +213,15 @@ module Constraints_typing = struct
            (Unchecked.ctx_to_string ctx)
            (Unchecked.meta_ctx_to_string meta_ctx)));
     match t with
-    | Obj -> Obj, Constraints.empty
+    | Obj -> Obj
     | Arr(a,u,v) ->
-      let u, tu, cstu = tm ctx meta_ctx u in
-      let v, tv, cstv = tm ctx meta_ctx v in
-      let a,csta = ty ctx meta_ctx a in
-      Arr (a,u,v),
-        Constraints.combine_all
-          [csta;
-           cstu;
-           cstv;
-           Constraints.unify_ty a tu;
-           Constraints.unify_ty a tv]
-    | Meta_ty _ -> t, Constraints.empty
+      let u, tu = tm ctx meta_ctx u cst in
+      let v, tv = tm ctx meta_ctx v cst in
+      let a = ty ctx meta_ctx a cst in
+      Constraints.unify_ty cst a tu;
+      Constraints.unify_ty cst a tv;
+      Arr (a,u,v)
+    | Meta_ty _ -> t
 
   let rec ctx c meta_ctx =
     match c with
@@ -241,7 +229,8 @@ module Constraints_typing = struct
     | (x,(t,expl))::c ->
       let c,known_mgu = ctx c meta_ctx in
       let t = Constraints.substitute_ty known_mgu t in
-      let t,cstt = ty c meta_ctx t in
+      let cstt = Constraints.create () in
+      let t = ty c meta_ctx t cstt in
       let new_mgu = Constraints.resolve cstt in
       let t = Constraints.substitute_ty new_mgu t in
       (x,(t,expl))::c,
@@ -280,7 +269,8 @@ let ty c ty =
   let ty = preprocess_ty c ty in
   let c = ctx c in
   let ty, meta_ctx = Translate_raw.ty ty in
-  let ty,cst = Constraints_typing.ty c meta_ctx ty in
+  let cst = Constraints.create () in
+  let ty = Constraints_typing.ty c meta_ctx ty cst in
   c,Constraints.substitute_ty (Constraints.resolve cst) ty
 
 let tm c tm =
@@ -288,7 +278,8 @@ let tm c tm =
   let tm = preprocess_tm c tm in
   let c = ctx c in
   let tm, meta_ctx = Translate_raw.tm tm in
-  let tm,_,cst = Constraints_typing.tm c meta_ctx tm in
+  let cst = Constraints.create () in
+  let tm,_ = Constraints_typing.tm c meta_ctx tm cst in
   Io.info ~v:4
     (lazy
       (Printf.sprintf
@@ -300,7 +291,8 @@ let ty_in_ps ps t =
   let t = preprocess_ty ps t in
   let ps = ctx ps in
   let t, meta_ctx = Translate_raw.ty t in
-  let t,cst = Constraints_typing.ty ps meta_ctx t in
+  let cst = Constraints.create () in
+  let t = Constraints_typing.ty ps meta_ctx t cst in
   Io.info ~v:4
     (lazy
       (Printf.sprintf
