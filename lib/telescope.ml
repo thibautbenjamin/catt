@@ -54,3 +54,11 @@ let middle_unitor k =
     Coh(Builtin.comp_n (2*k+1), sub_id_middle) in
   let tgt = Coh(Builtin.comp_n (2*k), Unchecked.(identity_ps ps)) in
   Coh.check_inv ps src tgt ("unit", 0, None)
+
+(** returns the whiskering rewriting the middle term of a composite of (2*k+1)
+    1-cells. The argument is the integer k *)
+let middle_rewrite k =
+  let comp = Builtin.comp_n (2*k+1) in
+  let func_data =
+    List.concat [(List.init k (fun _ -> 0)); [1]; (List.init k (fun _ -> 0))] in
+  Functorialisation.coh comp func_data
