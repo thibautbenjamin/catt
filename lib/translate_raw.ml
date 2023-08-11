@@ -4,18 +4,6 @@ open Raw_types
 
 exception WrongNumberOfArguments
 
-let meta_namer_ty = ref 0
-let meta_namer_tm = ref 0
-
-let new_meta_ty () =
-  let meta = Meta_ty !meta_namer_ty in
-  meta_namer_ty := !meta_namer_ty + 1; meta
-let new_meta_tm () =
-  let i = !meta_namer_tm in
-  let meta = Meta_tm i in
-  meta_namer_tm := !meta_namer_tm + 1;
-  meta, (i, new_meta_ty())
-
 (* inductive translation on terms and types without let_in *)
 let rec tm t =
   let make_coh coh s susp =
@@ -45,7 +33,7 @@ let rec tm t =
       | Id -> Builtin.id
     in make_coh builtin_coh s susp
   | Op(l,t) -> let t,meta = tm t in Opposite.tm t l, meta
-  | Meta -> let m,meta_type = new_meta_tm() in (m,[meta_type])
+  | Meta -> let m,meta_type = Meta.new_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
   | Sub(Builtin _, _,_) |Sub(Op _,_,_)| Letin_tm _ -> Error.fatal("ill-formed term")
 and sub_ps s ps =
@@ -62,7 +50,7 @@ and sub_ps s ps =
       let s,meta_types_s = aux s tgt in
       (t, false)::s,  List.append meta_types_t meta_types_s
     | s, (_,(_,false))::tgt ->
-      let t,meta_type = new_meta_tm() in
+      let t,meta_type = Meta.new_tm() in
       let s,meta_types_s = aux s tgt in
       (t, false)::s, meta_type::meta_types_s
     | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
@@ -75,11 +63,11 @@ and sub s  tgt  =
     let s,meta_types_s = sub s tgt in
     (x,t)::s,  List.append meta_types_t meta_types_s
   | (_::_) as s , (x,(_,_))::tgt ->
-    let t, meta_type = new_meta_tm() in
+    let t, meta_type = Meta.new_tm() in
     let s,meta_types_s = sub s tgt in
     (x, t)::s, meta_type::meta_types_s
   | [], (x,(_,false))::tgt ->
-    let t, meta_type = new_meta_tm() in
+    let t, meta_type = Meta.new_tm() in
     let s,meta_types_s = sub [] tgt in
     (x, t)::s, meta_type::meta_types_s
   | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
@@ -96,7 +84,7 @@ let ty ty =
   | ObjR -> Obj,[]
   | ArrR(u,v) ->
      let (tu, meta_types_tu), (tv, meta_types_tv) = tm u, tm v in
-     Arr(new_meta_ty(),tu, tv), List.append meta_types_tu meta_types_tv
+     Arr(Meta.new_ty(),tu, tv), List.append meta_types_tu meta_types_tv
   | Letin_ty _ -> Error.fatal ("letin_ty constructor cannot appear here")
 
 let ty t =
@@ -128,6 +116,6 @@ let ctx c =
 
 let rec sub_to_suspended = function
   | [] ->
-    let (m1,mc1),(m0,mc0) = new_meta_tm(), new_meta_tm() in
+    let (m1,mc1),(m0,mc0) = Meta.new_tm(), Meta.new_tm() in
     [ m1, false; m0, false], [mc1; mc0]
   | t::s -> let s,m = sub_to_suspended s in t::s, m
