@@ -34,7 +34,7 @@ module Constraints = struct
     in
     Printf.sprintf "[%s] [%s]" print_ty print_tm
 
-  let rec  unify_ty cst ty1 ty2 =
+  let rec unify_ty cst ty1 ty2 =
     match ty1, ty2 with
     | Obj, Obj -> ()
     | Arr(a1,u1,v1), Arr(a2,u2,v2) ->
