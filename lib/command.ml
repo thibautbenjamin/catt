@@ -91,7 +91,7 @@ let show_menu () =
        decision ())
   in decision ()
 
-let exec prog =
+let exec ~loop_fn prog =
   let rec aux = function
     | [] -> ()
     | (t::l)  ->
@@ -101,7 +101,7 @@ let exec prog =
       in
       match next with
       | KeepGoing -> aux l
-      | Abort -> ()
-      | Interactive -> assert false
+      | Abort -> exit 1
+      | Interactive -> loop_fn()
   in
   aux prog

@@ -27,6 +27,6 @@ let () =
   let _ = match !file_in with
     | [f] ->
       if !no_builtins then Catt.Settings.use_builtins := false;
-      Catt.Command.exec (parse_file f)
+      Catt.Command.exec ~loop_fn:Catt.Prover.loop (parse_file f)
     | _ -> ()
   in if !interactive then Catt.Prover.loop ()

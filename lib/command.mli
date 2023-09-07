@@ -9,4 +9,4 @@ type cmd =
 
 type prog = cmd list
 
-val exec : prog -> unit
+val exec : loop_fn:(unit -> unit) -> prog -> unit

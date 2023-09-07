@@ -26,14 +26,14 @@ let init () =
   print_string "=^.^= "
 
 (** Execute a command. *)
-let exec s =
+let rec exec s =
   if s = "exit" then
     exit 0
   else
-Command.exec (parse s)
+    Command.exec ~loop_fn:loop (parse s)
 
 (** Interactive loop. *)
-let loop () =
+and loop () =
   while true do
     init ();
     let s = read_line () in
