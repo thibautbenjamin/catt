@@ -74,9 +74,34 @@ let exec_cmd cmd =
     exec_decl v l e t
   | Set (o,v) -> exec_set o v
 
+type next =
+  | Abort
+  | KeepGoing
+  | Interactive
+
+let show_menu () =
+  Io.printf "Chose an option: \n\t [x/SPC]: ignore and keep going; \n\t [i]: drop in interactive mode; \n\t [q/RET]: quit\n";
+  let rec decision () =
+    let c = read_line() in
+    if c = "x" || c = " " then KeepGoing
+    else if c = "q" || c = "" then Abort
+    else if c = "i" then Interactive
+    else
+      (Io.printf "Please chose a valid option";
+       decision ())
+  in decision ()
+
 let exec prog =
   let rec aux = function
     | [] -> ()
-    | (t::l)  -> exec_cmd t; aux l
+    | (t::l)  ->
+      let next = try exec_cmd t; KeepGoing
+        with
+        | Error.WrongEntry -> show_menu ()
+      in
+      match next with
+      | KeepGoing -> aux l
+      | Abort -> ()
+      | Interactive -> assert false
   in
   aux prog

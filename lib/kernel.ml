@@ -477,6 +477,7 @@ end
 =
 struct
   type t = PS.t * Ty.t * (Var.t * int) list
+  exception NotAlgebraic
 
   let ps (ps,_,_) = ps
   let ty (_,t,_) = t
@@ -486,7 +487,7 @@ struct
     then (ps,t,l)
     else
       let a,f,g =
-        try Ty.retrieve_arrow t with IsObj -> raise Error.NotAlgebraic
+        try Ty.retrieve_arrow t with IsObj -> raise NotAlgebraic
       in
       let i = PS.dim ps in
       let pss, pst = PS.source (i-1) ps, PS.target (i-1) ps in
@@ -494,28 +495,30 @@ struct
       let fvg = List.union (Tm.free_vars g) (Ty.free_vars a) in
       if (List.set_equal pss fvf && List.set_equal pst fvg)
       then (ps,t,l)
-      else raise Error.NotAlgebraic
+      else raise NotAlgebraic
 
   let check coh names =
-    match coh with
-    | Unchecked_types.Cohdecl (ps,t) ->
-      Io.info ~v:3
-        (lazy
-          (Printf.sprintf "checking coherence (%s,%s)"
-             (Unchecked.ps_to_string ps)
-             (Unchecked.ty_to_string t)));
-      let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
-      let ps = PS.mk cps in
+    try
+      match coh with
+      | Unchecked_types.Cohdecl (ps,t) ->
+        Io.info ~v:3
+          (lazy
+            (Printf.sprintf "checking coherence (%s,%s)"
+               (Unchecked.ps_to_string ps)
+               (Unchecked.ty_to_string t)));
+        let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
+        let ps = PS.mk cps in
       let t = Ty.check cps t in
-      Coh.algebraic ps t names
-    | Unchecked_types.Cohchecked c -> c
+        Coh.algebraic ps t names
+      | Unchecked_types.Cohchecked c -> c
+    with
+    | NotAlgebraic -> Error.not_valid_coherence (Unchecked.coh_to_string coh) "type not algebraic in pasting scheme"
+
 
   let forget (ps,ty,_) = PS.forget ps, Ty.forget ty
 
   let to_string (ps,ty,_) =
     Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
-
-
 end
 
 
@@ -567,6 +570,7 @@ and Unchecked : sig
   val sub_ps_to_string : Unchecked_types.sub_ps -> string
   val ctx_to_string : Unchecked_types.ctx -> string
   val sub_to_string : Unchecked_types.sub -> string
+  val coh_to_string : Unchecked_types.coh -> string
   val meta_ctx_to_string : Unchecked_types.meta_ctx -> string
   val check_equal_ty : Unchecked_types.ty -> Unchecked_types.ty -> unit
   val check_equal_coh : Unchecked_types.coh -> Unchecked_types.coh -> unit
@@ -607,18 +611,20 @@ end = struct
   and tm_to_string = function
     | Unchecked_types.Var v -> Var.to_string v
     | Unchecked_types.Meta_tm i -> Printf.sprintf "_tm%i" i
-    | Unchecked_types.Coh (Cohdecl(ps,ty),s) ->
-      Printf.sprintf "coh(%s,%s)[%s]"
-        (ps_to_string ps)
-        (ty_to_string ty)
-        (sub_ps_to_string s)
-    | Unchecked_types.Coh (Cohchecked c,s) ->
+    | Unchecked_types.Coh (c,s) ->
       Printf.sprintf "%s[%s]"
-        (Coh.to_string c)
+        (coh_to_string c)
         (sub_ps_to_string s)
   and sub_ps_to_string = function
     | [] -> ""
     | t::s -> Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
+  and coh_to_string = function
+    | Unchecked_types.Cohdecl(ps,ty) ->
+      Printf.sprintf "coh(%s,%s)"
+        (ps_to_string ps)
+        (ty_to_string ty)
+    | Unchecked_types.Cohchecked c ->
+      Coh.to_string c
 
   let rec ctx_to_string = function
     | [] -> ""
