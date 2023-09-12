@@ -2,6 +2,7 @@ open Std
 
 exception IsObj
 exception IsCoh
+exception NotValidSub
 
 module Var = struct
   type t =
@@ -73,8 +74,8 @@ end
     let expr s tgt =
       match s, Ctx.value tgt with
       | [], [] -> []
-      | (_::_,[] |[],_::_) -> raise Error.NotValid
-      | (x1,_)::_, (x2,_)::_ when x1 <> x2 -> raise Error.NotValid
+      | (_::_,[] |[],_::_) -> raise NotValidSub
+      | (x1,_)::_, (x2,_)::_ when x1 <> x2 -> raise NotValidSub
       | (_,t)::s, (_,a)::_ ->
 	let sub = check src s (Ctx.tail tgt) in
         let t = Tm.check src t in
@@ -454,11 +455,25 @@ struct
       | Meta_tm _ -> raise Error.MetaVariable
       | Coh (coh,s) ->
         let coh = Coh.check coh [] in
-        let sub = Sub.check_to_ps c s (Coh.ps coh) in
-        let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
-        {ty; e; unchecked = t}
+        try
+          let sub = Sub.check_to_ps c s (Coh.ps coh) in
+          let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
+          {ty; e; unchecked = t}
+        with
+        | NotValidSub ->
+          assert false
+          (* Error.untypable *)
+          (*   (Unchecked.tm_to_string t) *)
+          (*   "substitution %s does not apply to coherence %s" *)
+          (*   (Unchecked.sub_ps_to_string s) *)
+          (*   (Coh.to_string coh) *)
     in match ty with
-    | None -> tm
+    | None ->
+      (* Error.untypable *)
+      (*   (Unchecked.tm_to_string t) *)
+      (*   "hello" *)
+      (*  ; *)
+      tm
     | Some ty ->
       let ty = Ty.check c ty in
       Ty.check_equal ty tm.ty; tm
@@ -512,7 +527,13 @@ struct
         Coh.algebraic ps t names
       | Unchecked_types.Cohchecked c -> c
     with
-    | NotAlgebraic -> Error.not_valid_coherence (Unchecked.coh_to_string coh) "type not algebraic in pasting scheme"
+    | NotAlgebraic ->
+      let ty = match coh with
+        | Unchecked_types.Cohdecl (_, t) -> Unchecked.ty_to_string t
+        | Unchecked_types.Cohchecked c -> Ty.to_string (Coh.ty c)
+      in
+      Error.not_valid_coherence (Unchecked.coh_to_string coh)
+        (Printf.sprintf "type %s not algebraic in pasting scheme" ty)
 
 
   let forget (ps,ty,_) = PS.forget ps, Ty.forget ty

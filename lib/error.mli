@@ -1,4 +1,3 @@
-exception NotValid
 exception UnknownId of string
 exception NotEqual of string * string
 exception DoubledVar of string
@@ -16,6 +15,10 @@ exception ReservedName of string
 
 exception WrongEntry
 
-val fatal : (unit, unit, string, unit) format4 -> 'a
-val untypable : string -> (unit, unit, string, unit) format4 -> 'a
-val not_valid_coherence : string -> (unit, unit, string, unit) format4 -> 'a
+val fatal : string -> 'a
+val untypable : string -> string -> 'a
+val not_valid_coherence : string -> string -> 'a
+val unsatisfiable_constraints : string -> string -> 'a
+val wrong_option_argument : expected:string -> string -> string -> 'a
+val incompatible_options : string -> string -> 'a
+val unknown_option : string -> 'a

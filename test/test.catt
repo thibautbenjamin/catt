@@ -20,4 +20,7 @@ check (x : *) (f : x -> x) = comp x x (sq x f) x (cbd x f)
 
 coh failure (x(f)y(g)z) : x -> y
 
+set explicit_substitutions = f
+let failure2 (x : *) (y : *) (f : x -> y) = comp f f
+
 coh test (x(f)y(g)z(h)w) : x -> w
