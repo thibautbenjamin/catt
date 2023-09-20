@@ -1,0 +1,184 @@
+coh assoc (x(f)y(g)z(h)w) : comp (comp f g) h -> comp f (comp g h)
+coh assoc- (x(f)y(g)z(h)w) : comp f (comp g h) -> comp (comp f g) h
+coh c301 (x(f(a(m)b)g)y(k)z) : comp [a] k -> comp [b] k
+coh int202 (x(f(a)g(b)h)y(k(c)l)z) : comp (comp f [c]) (comp [comp a b] l) -> comp (comp [a] k) (comp [b] [c])
+coh nat202 (x(f)y(g(a)h)z(k(b)l)w) : comp (comp [comp f [a]] [b]) (assoc f h l) -> comp (assoc f g k) (comp f [comp [a] [b]])
+coh int212 (x(f)y(g(a)h(b)k)z) : comp (comp f [a]) (comp f [b]) -> comp f [comp a b]
+
+coh c2120212 (x(f(a)g(b)h)y(k(c)l(d)m)z) : comp f k -> comp h m
+coh nat2120212 (x(f)y(g(a)h(b)k)z(l(c)m(d)n)w) : comp (comp [comp f [comp a b]] [comp c d]) (assoc f k n) -> comp (assoc f g l) (comp f [c2120212 a b c d])
+
+let cone101 (x : *) (y : *) (z : *) (p : *)
+            (cx : p -> x) (cy : p -> y) (cz : p -> z)
+            (f : x -> y) (g : y -> z)
+            (cf : cy -> comp cx f) (cg : cz -> comp cy g) :
+  cz -> comp cx (comp f g) =
+  comp (comp cg (comp [cf] g)) (assoc cx f g)
+
+
+let cone212 (x : *) (y : *) (p : *)
+            (cx : p -> x) (cy : p -> y)
+            (f : x -> y) (g : x -> y) (h : x -> y)
+            (cf : cy -> comp cx f) (cg : cy -> comp cx g) (ch : cy -> comp cx h)
+            (a : f -> g) (b : g -> h)
+            (ca : cg -> comp cf (comp cx [a])) (cb : ch -> comp cg (comp cx [b]))
+            : ch -> comp cf (comp cx [comp a b]) =
+        comp
+          (comp cb (comp [ca] (comp cx [b])))
+          (assoc cf (comp cx [a]) (comp cx [b]))
+          (comp  cf [int212 cx a b])
+
+
+let phaseIb (x : *) (y : *) (z : *)
+            (f : x -> z) (g : x -> y) (h : x -> y) (k : x -> y) (l : y -> z) (m : y -> z)
+            (a : f -> comp g l) (b : g -> h) (c : h -> k) (d : l -> m)
+            =
+            comp (assoc a (comp g [d]) (comp [comp b c] m))
+                 (comp a [int202 b c d])
+                 (assoc- a (comp [b] l) (comp [c] [d]))
+
+let phaseII202 (x : *) (y : *) (z : *) (w : *)
+                (f : x -> w) (g : x -> y) (h : y -> z) (k : y -> z) (l : z -> w) (m : z -> w)
+                (a : f -> comp (comp g h) l) (b : h -> k) (c : l -> m)
+                =
+                comp (assoc a (comp [comp g [b]] [c]) (assoc g k m))
+                     (comp a [nat202 g b c])
+                     (assoc- a (assoc g h l) (comp g [comp [b] [c]]))
+
+let phaseII2120212 (x : *) (y : *) (z : *) (w : *)
+                (f : x -> w) (g : x -> y) (h : y -> z) (k : y -> z) (l : y -> z) (m : z -> w) (n : z -> w) (o : z -> w)
+                (a : f -> comp (comp g h) m) (b : h -> k) (c : k -> l) (d : m -> n) (e : n -> o)
+                =
+                comp (assoc a (comp [comp g [comp b c]] [comp d e]) (assoc g l o))
+                     (comp a [nat2120212 g b c d e])
+                     (assoc- a (assoc g h m) (comp g [c2120212 b c d e]))
+
+let cone202 (x : *) (y : *) (z : *) (p : *)
+            (cx : p -> x) (cy : p -> y) (cz : p -> z)
+            (f : x -> y) (g : x -> y) (a : f -> g)
+            (cf : cy -> comp cx f) (cg : cy -> comp cx g) (ca : cg -> comp cf (comp cx [a]))
+            (h : y -> z) (k : y -> z) (b : h -> k)
+            (ch : cz ->  comp cy h) (ck : cz ->  comp cy k) (cb : ck -> comp ch (comp cy [b]))
+  : cone101 cg ck -> comp (cone101 cf ch) (comp cx [comp [a] [b]])
+  =
+  comp
+    (comp
+      [comp
+        (comp [cb] [c301 ca k])
+        (phaseIb ch cf (comp cx [a]) b)]
+      (assoc cx g k))
+    (phaseII202 (comp ch (comp [cf] h)) a b)
+
+let cone2120212 (x : *) (y : *) (z : *) (p : *)
+                (cx : p -> x) (cy : p -> y) (cz : p -> z)
+                (f : x -> y) (g : x -> y) (h : x -> y)
+                (cf : cy -> comp cx f) (cg : cy -> comp cx g) (ch : cy -> comp cx h)
+                (a : f -> g) (b : g -> h)
+                (ca : cg -> comp cf (comp cx [a])) (cb : ch -> comp cg (comp cx [b]))
+                (k : y -> z) (l : y -> z) (m : y -> z)
+                (ck : cz ->  comp cy k) (cl : cz -> comp cy l) (cm : cz -> comp cy m)
+                (c : k -> l) (d : l -> m)
+                (cc : cl -> comp ck (comp cy [c])) (cd : cm -> comp cl (comp cy [d]))
+  : cone101 ch cm -> comp (cone101 cf ck) (comp cx [c2120212 a b c d])
+  =
+  comp
+    (comp
+      [comp
+        (comp [cone212 cc cd] [c301 (cone212 ca cb) m])
+        (phaseIb ck cf (comp cx [comp a b]) (comp c d))]
+      (assoc cx h m))
+    (phaseII2120212 (comp ck (comp [cf] k)) a b c d)
+
+# let cone202 (x : *) (y : *) (z : *) (p : *)
+#             (cx : p -> x) (cy : p -> y) (cz : p -> z)
+#             (f : x -> y) (g : x -> y) (a : f -> g)
+#             (cf : cy -> comp cx f) (cg : cy -> comp cx g) (ca : cg -> comp cf (comp cx [a]))
+#             (h : y -> z) (k : y -> z) (b : h -> k)
+#             (ch : cz ->  comp cy h) (ck : cz ->  comp cy k) (cb : ck -> comp ch (comp cy [b]))
+#   : cone101 cg ck -> comp (cone101 cf ch) (comp cx [comp [a] [b]])
+#   =
+#   comp
+#     (comp
+#       [comp
+#         (comp [cb] [c301 ca k])
+#         (assoc ch (comp cy [b]) (comp [comp cf (comp cx [a])] k))
+#         (comp ch [int202 cf (comp cx [a]) b])
+#         (assoc- ch (comp [cf] h) (comp [comp cx [a]] [b]))]
+#       (assoc cx g k))
+#     (assoc (comp ch (comp [cf] h)) (comp [comp cx [a]] [b]) (assoc cx g k))
+#     (comp (comp ch (comp [cf] h)) [nat202 cx a b])
+#     (assoc- (comp ch (comp [cf] h)) (assoc cx f h) (comp cx [comp [a] [b]]))
+
+# let cone2120212 (x : *) (y : *) (z : *) (p : *)
+#                 (cx : p -> x) (cy : p -> y) (cz : p -> z)
+#                 (f : x -> y) (g : x -> y) (h : x -> y)
+#                 (cf : cy -> comp cx f) (cg : cy -> comp cx g) (ch : cy -> comp cx h)
+#                 (a : f -> g) (b : g -> h)
+#                 (ca : cg -> comp cf (comp cx [a])) (cb : ch -> comp cg (comp cx [b]))
+#                 (k : y -> z) (l : y -> z) (m : y -> z)
+#                 (ck : cz ->  comp cy k) (cl : cz -> comp cy l) (cm : cz -> comp cy m)
+#                 (c : k -> l) (d : l -> m)
+#                 (cc : cl -> comp ck (comp cy [c])) (cd : cm -> comp cl (comp cy [d]))
+#   : cone101 ch cm -> comp (cone101 cf ck) (comp cx [c2120212 a b c d])
+#   =
+#   comp
+#     (comp
+#       [comp
+#         (comp [cone212 cc cd] [c301 (cone212 ca cb) m])
+#         (assoc ck (comp cy [comp c d]) (comp [comp cf (comp cx [comp a b])] m))
+#         (comp ck [int202 cf (comp cx [comp a b]) (comp c d)])
+#         (assoc- ck (comp [cf] k) (comp [comp cx [comp a b]] [comp c d]))]
+#       (assoc cx h m))
+#     (assoc (comp ck (comp [cf] k)) (comp [comp cx [comp a b]] [comp c d]) (assoc cx h m))
+#     (comp (comp ck (comp [cf] k)) [nat2120212 cx a b c d])
+#     (assoc- (comp ck (comp [cf] k)) (assoc cx f k) (comp cx [c2120212 a b c d]))
+
+
+coh c103 (x(f)y(g(a(X)b)h)z) : comp f [a] -> comp f [b]
+coh c303 (x(f(a(X)b)g)y(h(c(Y)d)k)z) : comp [a] [c] -> comp [b] [d]
+
+let cone303 (x : *) (y : *) (p : *)
+            (cx : p -> x) (cy : p -> y)
+            (f : x -> y) (g : x -> y)
+            (cf : cy -> comp cx f) (cg : cy -> comp cx g)
+            (a : f -> g) (b : f -> g)
+            (ca : cg -> comp cf (comp cx [a])) (cb : cg -> comp cf (comp cx [b]))
+            (X : a -> b)
+            (cX : cb -> comp ca (comp cf [c103 cx X]))
+            (z : *)
+            (cz : p -> z)
+            (h : y -> z) (k : y -> z)
+            (ch : cz -> comp cy h) (ck : cz -> comp cy k)
+            (c : h -> k) (d : h -> k)
+            (cc : ck -> comp ch (comp cy [c])) (cd : ck -> comp ch (comp cy [d]))
+            (Y : c -> d)
+            (cY : cd -> comp cc (comp ch [c103 cy Y]))
+  =
+  # c303 cY (c301 [cX] k)
+  comp
+  [c301
+    (comp
+      [comp
+        (c303 cY (c301 [cX] k))]
+      (phaseIb ch cf (comp cx [b]) d))
+    (assoc cx g k)]
+  (phaseII202 (comp ch (comp [cf] h)) b d)
+
+
+
+
+
+# structure :
+# comp
+#  (comp
+#    [comp
+#      (c301
+#        (comp
+#          [comp
+#            (c303 cY (c301 [cX] k))
+#            (phaseIb = associators and interchangers)]
+#          (phaseIb ch cf (comp cx [b]) d)))
+#        (phaseII = assoc and nat wrt phaseIb of cone202)
+#     (assoc cx g k)]
+#   (phaseII202 (comp ch (comp [cf] h)) b d))
+#  (phaseIII = assoc and nat wrt phaseII of cone202)
