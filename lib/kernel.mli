@@ -96,4 +96,4 @@ module Unchecked : sig
 end
 
 val check_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
-val check_coh : Unchecked_types.coh -> (Var.t * int) list -> Coh.t
+val check_coh : Unchecked_types.coh -> Coh.t

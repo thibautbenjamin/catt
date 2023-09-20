@@ -469,7 +469,7 @@ struct
         ({ty; e; unchecked = t})
       | Meta_tm _ -> raise MetaVariable
       | Coh (coh,s) ->
-        let coh = Coh.check coh [] in
+        let coh = Coh.check coh in
         let sub = Sub.check_to_ps c s (Coh.ps coh) in
         let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
         {ty; e; unchecked = t}
@@ -483,22 +483,22 @@ and Coh : sig
   type t
   val ps : t -> PS.t
   val ty : t -> Ty.t
-  val algebraic : PS.t -> Ty.t ->  (Var.t * int) list -> t
-  val check : Unchecked_types.coh -> (Var.t * int) list -> t
+  val algebraic : PS.t -> Ty.t  -> string -> t
+  val check : Unchecked_types.coh -> t
   val to_string : t -> string
   val forget : t -> Unchecked_types.ps * Unchecked_types.ty * string
 end
 =
 struct
-  type t = PS.t * Ty.t * (Var.t * int) list
+  type t = PS.t * Ty.t * string
   exception NotAlgebraic
 
   let ps (ps,_,_) = ps
   let ty (_,t,_) = t
 
-  let algebraic ps t l =
+  let algebraic ps t name =
     if List.included (PS.domain ps) (Ty.free_vars t)
-    then (ps,t,l)
+    then (ps,t, name)
     else
       let a,f,g =
         try Ty.retrieve_arrow t with IsObj -> raise NotAlgebraic
@@ -508,13 +508,13 @@ struct
       let fvf = List.union (Tm.free_vars f) (Ty.free_vars a) in
       let fvg = List.union (Tm.free_vars g) (Ty.free_vars a) in
       if (List.set_equal pss fvf && List.set_equal pst fvg)
-      then (ps,t,l)
+      then (ps,t,name)
       else raise NotAlgebraic
 
-  let check coh names =
+  let check coh =
     try
       match coh with
-      | Unchecked_types.Cohdecl (ps,t,_) ->
+      | Unchecked_types.Cohdecl (ps,t,name) ->
         Io.info ~v:3
           (lazy
             (Printf.sprintf "checking coherence (%s,%s)"
@@ -523,7 +523,7 @@ struct
         let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
         let ps = PS.mk cps in
         let t = Ty.check cps t in
-        Coh.algebraic ps t names
+        Coh.algebraic ps t name
       | Unchecked_types.Cohchecked c -> c
     with
     | NotAlgebraic ->
@@ -535,11 +535,10 @@ struct
     | DoubledVar(s) ->
       Error.not_valid_coherence (Unchecked.coh_to_string coh) (Printf.sprintf "variable %s appears twice in the context" s)
 
+  let forget (ps,ty,name) = PS.forget ps, Ty.forget ty, name
 
-
-  let forget (ps,ty,_) = PS.forget ps, Ty.forget ty, ""
-
-  let to_string (ps,ty,_) =
+  let to_string (ps,ty,name) =
+    if !Settings.verbosity <= 3 then name else
     Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 end
 
@@ -796,9 +795,8 @@ end = struct
   and suspend_coh = function
     | Cohdecl (p,t,name) -> Cohdecl(suspend_ps p, suspend_ty t, "!"^name)
     | Cohchecked c ->
-      let p,t = Coh.ps c, Coh.ty c in
-      let p,t = PS.forget p, Ty.forget t in
-      Cohdecl(suspend_ps p, suspend_ty t, "dummy") (*todo: manage name here*)
+      let p,t,name = Coh.forget c in
+      Cohdecl(suspend_ps p, suspend_ty t, "!"^name)
   and suspend_sub_ps = function
     | [] -> [Var (Var.Db 1); Var (Var.Db 0)]
     | t::s -> (suspend_tm t) :: (suspend_sub_ps s)
