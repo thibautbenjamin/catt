@@ -13,7 +13,7 @@ let env : t = Hashtbl.create 70
 
 let add_let v c ?ty t =
   let kc = Kernel.Ctx.check c in
-  let tm = Kernel.Tm.check kc ?ty t in
+  let tm = Kernel.check_term kc ?ty t in
   let ty = Kernel.(Ty.forget (Tm.typ tm)) in
   let dim_input = Unchecked.dim_ctx c in
   let dim_output = Unchecked.dim_ty ty in
@@ -36,11 +36,15 @@ let add_coh v ps ty =
          (Var.to_string v)));
   Hashtbl.add env v ({value = Coh coh; dim_input; dim_output})
 
+let find v =
+  try Hashtbl.find env v
+  with Not_found -> raise (Error.UnknownId (Var.to_string(v)))
+
 let val_var v =
-  (Hashtbl.find env v).value
+  (find v).value
 
 let dim_output v =
-  (Hashtbl.find env v).dim_output
+  (find v).dim_output
 
 let dim_input v =
-    (Hashtbl.find env v).dim_input
+  (find v).dim_input

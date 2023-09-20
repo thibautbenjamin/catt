@@ -54,7 +54,6 @@ end
 module Tm : sig
   type t
 
-  val check : Ctx.t -> ?ty : ty -> tm -> t
   val typ : t -> Ty.t
 end
 
@@ -93,3 +92,6 @@ module Unchecked : sig
   val suspend_sub_ps : sub_ps -> sub_ps
   val check_equal_coh : coh -> coh -> unit
 end
+
+val check_type : Ctx.t -> ty -> Ty.t
+val check_term : Ctx.t -> ?ty:ty -> tm -> Tm.t

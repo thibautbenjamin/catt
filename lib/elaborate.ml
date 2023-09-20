@@ -265,13 +265,16 @@ let rec preprocess_ctx = function
     (v, preprocess_ty c t)::c
 
 let ty c ty =
-  let c = preprocess_ctx c in
-  let ty = preprocess_ty c ty in
-  let c = ctx c in
-  let ty, meta_ctx = Translate_raw.ty ty in
-  let cst = Constraints.create () in
-  let ty = Constraints_typing.ty c meta_ctx ty cst in
-  c,Constraints.substitute_ty (Constraints.resolve cst) ty
+  try
+    let c = preprocess_ctx c in
+    let ty = preprocess_ty c ty in
+    let c = ctx c in
+    let ty, meta_ctx = Translate_raw.ty ty in
+    let cst = Constraints.create () in
+    let ty = Constraints_typing.ty c meta_ctx ty cst in
+    c,Constraints.substitute_ty (Constraints.resolve cst) ty
+  with
+  Error.UnknownId(s) -> raise (Error.unknown_id s)
 
 let tm c tm =
   let c = preprocess_ctx c in

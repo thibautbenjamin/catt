@@ -2,7 +2,10 @@ open Std
 
 exception IsObj
 exception IsCoh
-exception NotValidSub
+exception InvalidSubTarget of string * string
+exception NotEqual of string * string
+exception DoubledVar of string
+exception MetaVariable
 
 module Var = struct
   type t =
@@ -21,15 +24,15 @@ module Var = struct
   let check_equal v1 v2 =
     match v1, v2 with
     | Name s1, Name s2 ->
-      if not (String.equal s1 s2) then raise (Error.NotEqual(s1,s2)) else ()
+      if not (String.equal s1 s2) then raise (NotEqual(s1,s2)) else ()
     | New i, New j ->
-      if  i != j then raise (Error.NotEqual(to_string v1, to_string v2)) else ()
+      if  i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
     | Db i, Db j -> if
-      i != j then raise (Error.NotEqual(to_string v1, to_string v2)) else ()
+      i != j then raise (NotEqual(to_string v1, to_string v2)) else ()
     | Name _, New _ | Name _, Db _
     | New _ , Name _ | New _, Db _
     | Db _, Name _| Db _, New _
-      -> raise (Error.NotEqual(to_string v1, to_string v2))
+      -> raise (NotEqual(to_string v1, to_string v2))
 
   let increase_lv v i m =
     match v with
@@ -62,27 +65,31 @@ end
   let free_vars s =
     List.concat (List.map Tm.free_vars s.list)
 
-  let rec check src s tgt =
+  let check src s tgt =
     Io.info ~v:3
       (lazy
         (Printf.sprintf
            "building kernel substitution \
             : source = %s; substitution = %s; target = %s"
-           (Ctx._to_string src)
+           (Ctx.to_string src)
            (Unchecked.sub_to_string s)
-           (Ctx._to_string tgt)));
-    let expr s tgt =
-      match s, Ctx.value tgt with
-      | [], [] -> []
-      | (_::_,[] |[],_::_) -> raise NotValidSub
-      | (x1,_)::_, (x2,_)::_ when x1 <> x2 -> raise NotValidSub
-      | (_,t)::s, (_,a)::_ ->
-	let sub = check src s (Ctx.tail tgt) in
-        let t = Tm.check src t in
-	Ty.check_equal (Tm.typ t) (Ty.apply a sub);
-	t::sub.list
+           (Ctx.to_string tgt)));
+    let sub_exn = InvalidSubTarget(Unchecked.sub_to_string s, Ctx.to_string tgt) in
+    let rec aux src s tgt =
+      let expr s tgt =
+        match s, Ctx.value tgt with
+        | [], [] -> []
+        | (_::_,[] |[],_::_) -> raise sub_exn
+        | (x1,_)::_, (x2,_)::_ when x1 <> x2 -> raise sub_exn
+        | (_,t)::s, (_,a)::_ ->
+	  let sub = aux src s (Ctx.tail tgt) in
+          let t = Tm.check src t in
+          Ty.check_equal (Tm.typ t) (Ty.apply a sub);
+          t::sub.list
+      in
+      {list = expr s tgt; src; tgt; unchecked = s}
     in
-    {list = expr s tgt; src; tgt; unchecked = s}
+    aux src s tgt
 
   let check_to_ps src s tgt =
     let tgt = PS.to_ctx tgt in
@@ -97,7 +104,7 @@ and Ctx : sig
   type t
   val empty : unit -> t
   val tail : t -> t
-  val _to_string : t -> string
+  val to_string : t -> string
   val ty_var : t -> Var.t -> Ty.t
   val domain : t -> Var.t list
   val value : t -> (Var.t * Ty.t) list
@@ -125,7 +132,7 @@ end = struct
   let domain ctx = List.map fst ctx.c
   let value ctx = ctx.c
   let forget c = c.unchecked
-  let _to_string ctx =
+  let to_string ctx =
     Unchecked.ctx_to_string (forget ctx)
   let check_equal ctx1 ctx2 =
     Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
@@ -133,7 +140,7 @@ end = struct
   let check_notin ctx x =
     try
       ignore (List.assoc x ctx.c);
-      raise (Error.DoubleDef (Var.to_string x))
+      raise (DoubledVar (Var.to_string x))
     with Not_found -> ()
 
   let extend ctx ~expl x t =
@@ -238,9 +245,9 @@ struct
             if x = fx then
               let varps = Ctx.domain (old_rep_to_ctx ps) in
               if (List.mem f varps) then
-                raise (Error.DoubledVar (Var.to_string f));
+                raise (DoubledVar (Var.to_string f));
               if (List.mem y varps) then
-                raise (Error.DoubledVar (Var.to_string y));
+                raise (DoubledVar (Var.to_string y));
               let ps = PCons (ps,(y,ty),(f,tf)) in
               aux ps l
             else
@@ -377,7 +384,7 @@ struct
         (Printf.sprintf
            "building kernel type %s in context %s"
            (Unchecked.ty_to_string t)
-           (Ctx._to_string c)));
+           (Ctx.to_string c)));
     let e =
       match t with
       | Obj -> Obj
@@ -386,7 +393,7 @@ struct
         let u = Tm.check c u in
         let v = Tm.check c v in
         Arr(a,u,v)
-      | Meta_ty _ -> raise Error.MetaVariable
+      | Meta_ty _ -> raise MetaVariable
     in {c; e; unchecked = t}
 
   (** Free variables of a type. *)
@@ -416,7 +423,7 @@ and Tm : sig
   val to_var : t -> Var.t
   val typ : t -> Ty.t
   val free_vars : t -> Var.t list
-  val check : Ctx.t -> ?ty : Unchecked_types.ty -> Unchecked_types.tm -> t
+  val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types.tm -> t
 end
 =
 struct
@@ -446,37 +453,21 @@ struct
         (Printf.sprintf
            "building kernel term %s in context %s"
            (Unchecked.tm_to_string t)
-           (Ctx._to_string c)));
+           (Ctx.to_string c)));
     let tm =
       match t with
       | Var x ->
         let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
         ({ty; e; unchecked = t})
-      | Meta_tm _ -> raise Error.MetaVariable
+      | Meta_tm _ -> raise MetaVariable
       | Coh (coh,s) ->
         let coh = Coh.check coh [] in
-        try
-          let sub = Sub.check_to_ps c s (Coh.ps coh) in
-          let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
-          {ty; e; unchecked = t}
-        with
-        | NotValidSub ->
-          assert false
-          (* Error.untypable *)
-          (*   (Unchecked.tm_to_string t) *)
-          (*   "substitution %s does not apply to coherence %s" *)
-          (*   (Unchecked.sub_ps_to_string s) *)
-          (*   (Coh.to_string coh) *)
+        let sub = Sub.check_to_ps c s (Coh.ps coh) in
+        let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
+        {ty; e; unchecked = t}
     in match ty with
-    | None ->
-      (* Error.untypable *)
-      (*   (Unchecked.tm_to_string t) *)
-      (*   "hello" *)
-      (*  ; *)
-      tm
-    | Some ty ->
-      let ty = Ty.check c ty in
-      Ty.check_equal ty tm.ty; tm
+    | None -> tm
+    | Some ty -> Ty.check_equal ty tm.ty; tm
 end
 
 (** A coherence. *)
@@ -523,7 +514,7 @@ struct
                (Unchecked.ty_to_string t)));
         let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
         let ps = PS.mk cps in
-      let t = Ty.check cps t in
+        let t = Ty.check cps t in
         Coh.algebraic ps t names
       | Unchecked_types.Cohchecked c -> c
     with
@@ -531,9 +522,11 @@ struct
       let ty = match coh with
         | Unchecked_types.Cohdecl (_, t) -> Unchecked.ty_to_string t
         | Unchecked_types.Cohchecked c -> Ty.to_string (Coh.ty c)
-      in
-      Error.not_valid_coherence (Unchecked.coh_to_string coh)
+      in Error.not_valid_coherence (Unchecked.coh_to_string coh)
         (Printf.sprintf "type %s not algebraic in pasting scheme" ty)
+    | DoubledVar(s) ->
+      Error.not_valid_coherence (Unchecked.coh_to_string coh) (Printf.sprintf "variable %s appears twice in the context" s)
+
 
 
   let forget (ps,ty,_) = PS.forget ps, Ty.forget ty
@@ -675,8 +668,6 @@ end = struct
         i
         (ty_to_string t)
 
-  exception DoubleDef
-
   let rec check_equal_ps ps1 ps2 =
     match ps1, ps2 with
     | Unchecked_types.Br [], Unchecked_types.Br[] -> ()
@@ -684,12 +675,12 @@ end = struct
       check_equal_ps ps1 ps2;
       List.iter2 check_equal_ps l1 l2
     | Unchecked_types.Br[], Unchecked_types.Br (_::_) | Unchecked_types.Br(_::_), Unchecked_types.Br[] ->
-      raise (Error.NotEqual (ps_to_string ps1, ps_to_string ps2))
+      raise (NotEqual (ps_to_string ps1, ps_to_string ps2))
 
   let rec check_equal_ty ty1 ty2 =
     match ty1, ty2 with
     | Unchecked_types.Meta_ty i, Unchecked_types.Meta_ty j ->
-      if i <> j then raise (Error.NotEqual(string_of_int i, string_of_int j))
+      if i <> j then raise (NotEqual(string_of_int i, string_of_int j))
     | Unchecked_types.Obj, Unchecked_types.Obj -> ()
     | Unchecked_types.Arr(ty1, u1, v1), Unchecked_types.Arr(ty2, u2, v2) ->
       check_equal_ty ty1 ty2;
@@ -698,19 +689,19 @@ end = struct
     | Obj, Arr _ | Arr _, Obj
     | Meta_ty _, Obj | Meta_ty _, Arr _
     | Obj, Meta_ty _ | Arr _, Meta_ty _ ->
-      raise (Error.NotEqual (ty_to_string ty1, ty_to_string ty2))
+      raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
   and check_equal_tm tm1 tm2 =
     match tm1, tm2 with
     | Var v1, Var v2 -> Var.check_equal v1 v2
     | Meta_tm i, Meta_tm j ->
-      if i <> j then raise (Error.NotEqual(string_of_int i, string_of_int j))
+      if i <> j then raise (NotEqual(string_of_int i, string_of_int j))
     | Coh(coh1, s1), Coh(coh2, s2) ->
       check_equal_coh coh1 coh2;
       check_equal_sub_ps s1 s2
     | Var _, Coh _ | Coh _, Var _
     | Meta_tm _, Var _| Meta_tm _, Coh _
     | Var _, Meta_tm _ | Coh _, Meta_tm _ ->
-      raise (Error.NotEqual (tm_to_string tm1, tm_to_string tm2))
+      raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
   and check_equal_coh coh1 coh2 =
     match coh1, coh2 with
     | Cohdecl(ps1, ty1), Cohdecl(ps2, ty2) ->
@@ -740,7 +731,7 @@ end = struct
       check_equal_ty t1 t2;
       check_equal_ctx c1 c2
     | _::_,[] | [],_::_ ->
-      raise (Error.NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
+      raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
 
   let rec tm_do_on_variables tm f =
     match tm with
@@ -773,7 +764,7 @@ end = struct
     | (x,(t,expl))::c ->
       let c,l,max = db_levels c in
       if List.mem_assoc x l then
-        raise DoubleDef
+        raise (DoubledVar(Var.to_string x))
       else
         let lvl = max + 1 in
         (Var.Db lvl, (rename_ty t l, expl)) ::c, (x, lvl)::l, lvl
@@ -881,3 +872,21 @@ end = struct
 end
 
 include Unchecked_types
+
+let check_type ctx a =
+  try Ty.check ctx a with
+  | NotEqual(s1,s2) ->
+    Error.untypable ("type: " ^ Unchecked.ty_to_string a) (Printf.sprintf "%s and %s are not equal" s1 s2)
+
+let check_term ctx ?ty t =
+  let ty = Option.map (check_type ctx) ty in
+  let tm = "term: " ^ (Unchecked.tm_to_string t) in
+  try Tm.check ctx ?ty t with
+  | NotEqual(s1,s2) ->
+    Error.untypable tm (Printf.sprintf "expected %s but received %s" s1 s2)
+  | InvalidSubTarget (s,tgt) ->
+    Error.untypable tm (Printf.sprintf "substitution %s does not apply from context %s" s tgt)
+  | Error.UnknownId (s) ->
+    Error.untypable tm (Printf.sprintf "unknown identifier :%s" s)
+  | MetaVariable ->
+    Error.incomplete_constraints tm

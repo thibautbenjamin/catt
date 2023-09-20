@@ -30,7 +30,7 @@ let check l e t =
     | Some ty -> let _,ty = Elaborate.ty l ty in Some ty
   in
   let c = Kernel.Ctx.check c in
-  ignore(Kernel.Tm.check c ?ty e)
+  ignore(Kernel.check_term c ?ty e)
 
 let exec_set o v =
   let parse_bool v =
@@ -97,7 +97,7 @@ let exec ~loop_fn prog =
     | (t::l)  ->
       let next = try exec_cmd t; KeepGoing
         with
-        | Error.WrongEntry -> show_menu ()
+        | Error.InvalidEntry -> show_menu ()
       in
       match next with
       | KeepGoing -> aux l
