@@ -6,10 +6,12 @@ let parse s =
   with
   | Failure s when s = "lexing: empty token" ->
      let pos = Lexing.lexeme_end_p lexbuf in
-     Io.error "lexing error in file %s at line %d, character %d"
-     pos.Lexing.pos_fname
-     pos.Lexing.pos_lnum
-     (pos.Lexing.pos_cnum - pos.Lexing.pos_bol)
+     failwith
+       (Printf.sprintf
+          "lexing error in file %s at line %d, character %d"
+          pos.Lexing.pos_fname
+          pos.Lexing.pos_lnum
+          (pos.Lexing.pos_cnum - pos.Lexing.pos_bol))
   | Parsing.Parse_error ->
      let pos = (Lexing.lexeme_end_p lexbuf) in
      failwith
@@ -19,7 +21,12 @@ let parse s =
        (Lexing.lexeme lexbuf)
        pos.Lexing.pos_lnum
        (pos.Lexing.pos_cnum - pos.Lexing.pos_bol - 1))
-
+  | Error.ReservedName(x) ->
+    Io.printf
+      "Could not parse the input because the name %s is a built-in.\n\
+       You can change the name of the term or coherence, or add the \
+       option '--no-builtins' to deactivate the use of built-ins" x;
+    exit 1
 
 (** Initialize the prover. *)
 let init () =

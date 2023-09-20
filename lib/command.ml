@@ -1,6 +1,10 @@
 open Kernel
 open Raw_types
 
+exception UnknownOption of string
+exception NotAnInt of string
+exception NotABoolean of string
+
 (**toplevel commands. *)
 type cmd =
   | Coh of Var.t * (Var.t * tyR) list * tyR
@@ -41,12 +45,12 @@ let exec_set o v =
     | _ when String.equal v "f" -> false
     | _ when String.equal v "false" -> false
     | _ when String.equal v "0" -> false
-    | _ -> raise (Error.NotABoolean v)
+    | _ -> raise (NotABoolean v)
   in
   let parse_int v =
     match int_of_string_opt v with
     | Some s -> s
-    | None -> raise (Error.NotAnInt v)
+    | None -> raise (NotAnInt v)
   in
   match o with
   | _ when String.equal o "explicit_substitutions" ->
@@ -58,13 +62,13 @@ let exec_set o v =
   | _ when String.equal o "verbosity" ->
     let v = parse_int v in
     Settings.verbosity := v
-  | _ -> raise (Error.UnknownOption o)
+  | _ -> raise (UnknownOption o)
 
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
-     Io.command "coh %s = %s" (Var.to_string x) (Raw.string_of_ty e);
-     exec_coh x ps e
+    Io.command "coh %s = %s" (Var.to_string x) (Raw.string_of_ty e);
+    exec_coh x ps e
   | Check (l, e, t) ->
     Io.command "check %s" (Raw.string_of_tm e);
     check l e t;
@@ -72,7 +76,13 @@ let exec_cmd cmd =
   | Decl (v,l,e,t) ->
     Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_tm e);
     exec_decl v l e t
-  | Set (o,v) -> exec_set o v
+  | Set (o,v) ->
+    begin
+      try exec_set o v with
+      | UnknownOption o -> Error.unknown_option o
+      | NotAnInt v -> Error.wrong_option_argument ~expected:"int" o v
+      | NotABoolean v -> Error.wrong_option_argument ~expected:"boolean" o v
+    end
 
 type next =
   | Abort
@@ -98,6 +108,7 @@ let exec ~loop_fn prog =
       let next = try exec_cmd t; KeepGoing
         with
         | Error.InvalidEntry -> show_menu ()
+        | Error.OptionsError -> KeepGoing
       in
       match next with
       | KeepGoing -> aux l

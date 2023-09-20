@@ -72,6 +72,7 @@ module Unchecked : sig
   val sub_ps_to_string : sub_ps -> string
   val ctx_to_string : ctx -> string
   val sub_to_string : sub -> string
+  val coh_to_string : Unchecked_types.coh -> string
   val meta_ctx_to_string : meta_ctx -> string
   val two_fresh_vars : ctx -> Var.t * Var.t
   val dim_ctx : ctx -> int

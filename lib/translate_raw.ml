@@ -3,6 +3,7 @@ open Kernel.Unchecked_types
 open Raw_types
 
 exception WrongNumberOfArguments
+exception FunctorialiseWithExplicit
 
 let meta_namer_ty = ref 0
 let meta_namer_tm = ref 0
@@ -34,7 +35,7 @@ let list_functorialised s c =
   else
     let rec ensure_no_func = function
       | [] -> []
-      | (_,true)::_ -> raise Error.FunctorialiseWithExplicit
+      | (_,true)::_ -> raise FunctorialiseWithExplicit
       | (t,false)::s -> t::(ensure_no_func s)
     in ensure_no_func s,[]
 
@@ -101,6 +102,17 @@ and sub s  tgt  =
     (x, t)::s, meta_type::meta_types_s
   | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
 
+let tm t =
+  try tm t with
+  | FunctorialiseWithExplicit ->
+    Error.functorialisation
+      ("term: "^(Raw.string_of_tm t))
+      "cannot compute functorialisation with explicit arguments"
+  | WrongNumberOfArguments ->
+    Error.parsing_error
+      ("term: " ^ (Raw.string_of_tm t))
+      "wrong number of arguments provided"
+
 let ty ty =
   match ty with
   | ObjR -> Obj,[]
@@ -108,6 +120,14 @@ let ty ty =
      let (tu, meta_types_tu), (tv, meta_types_tv) = tm u, tm v in
      Arr(new_meta_ty(),tu, tv), List.append meta_types_tu meta_types_tv
   | Letin_ty _ -> assert false
+
+
+let ty t =
+  try ty t with
+  | FunctorialiseWithExplicit ->
+    Error.functorialisation
+      ("type: "^(Raw.string_of_ty t))
+      "cannot compute functorialisation with explicit arguments"
 
 let ctx c =
   let rec mark_explicit c after =
