@@ -32,8 +32,6 @@ module rec Unchecked_types : sig
 end
 and Coh : sig
   type t
-
-  val check : Unchecked_types.coh -> (Var.t * int) list -> t
   val forget : t -> Unchecked_types.ps * Unchecked_types.ty
 end
 
@@ -94,5 +92,5 @@ module Unchecked : sig
   val check_equal_coh : coh -> coh -> unit
 end
 
-val check_type : Ctx.t -> ty -> Ty.t
 val check_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
+val check_coh : Unchecked_types.coh -> (Var.t * int) list -> Coh.t

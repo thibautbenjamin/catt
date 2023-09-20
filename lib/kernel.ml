@@ -877,20 +877,26 @@ end
 
 include Unchecked_types
 
-let check_type ctx a =
-  try Ty.check ctx a with
+let check check_fn name =
+  try check_fn() with
   | NotEqual(s1,s2) ->
-    Error.untypable ("type: " ^ Unchecked.ty_to_string a) (Printf.sprintf "%s and %s are not equal" s1 s2)
+    Error.untypable name (Printf.sprintf "%s and %s are not equal" s1 s2)
+  | InvalidSubTarget (s,tgt) ->
+    Error.untypable name (Printf.sprintf "substitution %s does not apply from context %s" s tgt)
+  | Error.UnknownId (s) ->
+    Error.untypable name (Printf.sprintf "unknown identifier :%s" s)
+  | MetaVariable ->
+    Error.incomplete_constraints name
+
+let check_type ctx a =
+  let ty = "type: "^Unchecked.ty_to_string a in
+  check (fun () -> Ty.check ctx a) ty
 
 let check_term ctx ?ty t =
   let ty = Option.map (check_type ctx) ty in
   let tm = "term: " ^ (Unchecked.tm_to_string t) in
-  try Tm.check ctx ?ty t with
-  | NotEqual(s1,s2) ->
-    Error.untypable tm (Printf.sprintf "expected %s but received %s" s1 s2)
-  | InvalidSubTarget (s,tgt) ->
-    Error.untypable tm (Printf.sprintf "substitution %s does not apply from context %s" s tgt)
-  | Error.UnknownId (s) ->
-    Error.untypable tm (Printf.sprintf "unknown identifier :%s" s)
-  | MetaVariable ->
-    Error.incomplete_constraints tm
+  check (fun () -> Tm.check ctx ?ty t) tm
+
+let check_coh coh l =
+  let c = "coherence: "^(Unchecked.coh_to_string coh) in
+  check (fun () -> Coh.check coh l) c
