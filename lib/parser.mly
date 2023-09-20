@@ -11,7 +11,7 @@
       | Sub (x,s,Some n) -> Sub (x,s,Some (n+1))
       | Builtin (name,s,None) -> Builtin (name,s,Some 1)
       | Builtin (name,s,Some n) -> Builtin (name,s,Some (n+1))
-      | Letin_tm _ | VarR _ | Meta -> assert false
+      | Letin_tm _ | VarR _ | Meta -> Error.fatal "trying to generate an invalid suspension"
 
     let context_of_annotated_ps ps =
       let rec context_ending_to x ty l =

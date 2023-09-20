@@ -4,7 +4,6 @@ open Kernel.Unchecked_types
 
 exception NotUnifiable of string * string
 
-
 module Queue = Base.Queue
 
 module Constraints = struct
@@ -153,7 +152,7 @@ let substitute_tm l tm =
             unify_tm c tm1 tm2;
             c, knowns
         end
-      | None -> assert false
+      | None -> Error.fatal "resolving empty constraints"
 
   let resolve c =
     let rec aux c knowns =
@@ -203,7 +202,7 @@ module Constraints_typing = struct
       let s = sub src meta_ctx s c cst in
       Constraints.unify_ty cst ty (Unchecked.ty_apply_sub t s);
       (x,u)::s
-    |[],_::_ | _::_, [] -> assert false
+    |[],_::_ | _::_, [] -> Error.fatal "wrong number of arguments"
   and ty ctx meta_ctx t cst =
     Io.info ~v:4
       (lazy

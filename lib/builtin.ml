@@ -22,7 +22,7 @@ let comp_arity s =
 
 let rec comp_ps i =
   match i with
-  | i when i <= 0 -> assert false
+  | i when i <= 0 -> Error.fatal "builtin composition with less than 0 argument"
   | i when i = 1 -> Br [Br[]]
   | i ->
     match comp_ps (i-1) with

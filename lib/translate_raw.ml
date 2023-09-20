@@ -81,7 +81,7 @@ let rec tm tm =
     in make_coh builtin_coh s susp
   | Meta -> let m,meta_type = new_meta_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
-  | Sub(Builtin _, _,_) | Letin_tm _ -> assert false
+  | Sub(Builtin _, _,_) | Letin_tm _ -> Error.fatal("ill-formed term")
 and sub_ps s ps =
   let sub,meta_types = sub s (Unchecked.ps_to_ctx ps) in
   List.map snd sub, meta_types
@@ -119,8 +119,7 @@ let ty ty =
   | ArrR(u,v) ->
      let (tu, meta_types_tu), (tv, meta_types_tv) = tm u, tm v in
      Arr(new_meta_ty(),tu, tv), List.append meta_types_tu meta_types_tv
-  | Letin_ty _ -> assert false
-
+  | Letin_ty _ -> Error.fatal ("letin_ty constructor cannot appear here")
 
 let ty t =
   try ty t with

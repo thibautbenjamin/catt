@@ -37,7 +37,7 @@ module Var = struct
   let increase_lv v i m =
     match v with
     | Db j -> if  j == 0 then Db (i) else Db (j + m)
-    | Name _ | New _ -> assert false
+    | Name _ | New _ -> Error.fatal "expecting a de-bruijn level"
 
   let suspend = function
     | Db i -> Db (i+2)
@@ -119,8 +119,8 @@ end = struct
 
   let tail ctx =
     match ctx.c, ctx.unchecked with
-    | [],(_::_|[]) -> assert false
-    | _::_,[] -> assert false
+    | [],(_::_|[]) -> Error.fatal "computing tail of an empty context"
+    | _::_,[] -> Error.fatal "safe and unchecked context out of sync"
     | _::c,_::unchecked -> {c;unchecked}
 
   let ty_var ctx x =
@@ -325,7 +325,7 @@ struct
   let target_old i ps =
     assert (i >= 0);
     let replace g = function
-      | [] -> assert false
+      | [] -> Error.fatal "could not find a replacement"
       | _::l -> g::l
     in
     let rec aux = function
@@ -777,11 +777,11 @@ end = struct
   let rec suspend_ty = function
     | Unchecked_types.Obj -> Unchecked_types.Arr(Obj, Var (Db 0), Var (Db 1))
     | Arr(a,v,u) -> Arr(suspend_ty a, suspend_tm v, suspend_tm u)
-    | Meta_ty _ -> assert false
+    | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
   and suspend_tm = function
     | Var v -> Var (Var.suspend v)
     | Coh (c,s) -> Coh(suspend_coh c, suspend_sub_ps s)
-    | Meta_tm _ -> assert false
+    | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
   and suspend_coh = function
     | Cohdecl (p,t) -> Cohdecl(suspend_ps p, suspend_ty t)
     | Cohchecked c ->
@@ -807,14 +807,14 @@ end = struct
                         (suspend_ctx  ps, 1, m+2))
                      l)
     and ps_concat = function
-      | [] -> assert false
+      | [] -> Error.fatal "empty is not a pasting scheme"
       | ps :: [] -> ps
       | ps :: l -> ps_glue (ps_concat l) ps
     and ps_glue (p1,t1,m1) (p2,t2,m2) =
       List.append (chop_and_increase p2 t1 m1) p1, t2+m1, m1+m2
     and chop_and_increase ctx i m =
       match ctx with
-      | [] -> assert false
+      | [] -> Error.fatal "empty is not a pasting scheme"
       | _ :: [] -> []
       | (v,(t,expl)) :: ctx ->
         let v = Var.increase_lv v i m in
@@ -849,7 +849,7 @@ end = struct
     match t with
     | Unchecked_types.Var v -> v = x
     | Coh(_,s) -> List.exists (fun t -> tm_contains_var t x) s
-    | Meta_tm _ -> assert false
+    | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
   let tm_contains_vars t l =
     List.exists (tm_contains_var t) l
@@ -857,7 +857,7 @@ end = struct
   let rec dim_ty = function
     | Unchecked_types.Obj -> 0
     | Arr(a,_,_) -> 1 + dim_ty a
-    | Meta_ty _ -> assert false
+    | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
 
   let rec dim_ctx = function
     | [] -> 0

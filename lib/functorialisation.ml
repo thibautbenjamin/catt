@@ -2,6 +2,7 @@ open Kernel
 open Kernel.Unchecked_types
 
 exception NonMaximal of string
+exception FunctorialiseMeta
 
 let ctx_one_var c x =
   let x',xf = Unchecked.two_fresh_vars c in
@@ -49,7 +50,7 @@ let rec find_places ctx s l =
   | [], [] -> []
   | (x,_)::c,  t::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
   | _::c, _::s -> find_places c s l
-  | [],_::_ | _::_,[] -> assert false
+  | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
 let rec tm t l =
   match t with
@@ -79,7 +80,7 @@ let rec tm t l =
         [Coh(cohf,sf);Coh(c,s');Coh(c,s)]
       | [] -> [Coh(c,s)]
     end
-  | Meta_tm _ -> assert false
+  | Meta_tm _ -> (raise FunctorialiseMeta)
 and sub s l =
   match s with
   | [] -> []
@@ -89,7 +90,12 @@ let tm c t l =
   try
     let c,assocs = ctx c l in
     c,List.hd (tm t assocs)
-  with NonMaximal x ->
+  with
+  | NonMaximal x ->
     Error.functorialisation
       ("term: " ^ Unchecked.tm_to_string t)
-      (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
+      (Printf.sprintf "cannot functorialise with respect to variable %s which is not maximal" x)
+  | FunctorialiseMeta ->
+Error.functorialisation
+      ("term: " ^ Unchecked.tm_to_string t)
+      (Printf.sprintf "cannot functorialise meta-variables")
