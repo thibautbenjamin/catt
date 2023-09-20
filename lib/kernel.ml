@@ -93,7 +93,10 @@ end
 
   let check_to_ps src s tgt =
     let tgt = PS.to_ctx tgt in
-    let s = List.map2 (fun (x,_) t -> (x,t)) (Ctx.value tgt) s in
+    let s =
+      try List.map2 (fun (x,_) t -> (x,t)) (Ctx.value tgt) s
+      with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
+    in
     check src s tgt
 
   let forget s = s.unchecked
@@ -826,7 +829,8 @@ end = struct
 
   let sub_ps_to_sub s ps =
     let ps = ps_to_ctx ps in
-    List.map2 (fun t (x,_) -> (x,t)) s ps, ps
+    try List.map2 (fun t (x,_) -> (x,t)) s ps, ps
+    with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
 
   let max_fresh_var c =
     let rec find_max c i =

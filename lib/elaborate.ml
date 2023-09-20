@@ -50,8 +50,13 @@ module Constraints = struct
     match tm1, tm2 with
     | Var v1, Var v2 when v1 = v2 -> ()
     | Coh(coh1,s1), Coh(coh2,s2) ->
-      Unchecked.check_equal_coh coh1 coh2;
-      unify_sub cst s1 s2
+      begin
+        try
+          Unchecked.check_equal_coh coh1 coh2;
+          unify_sub cst s1 s2
+        with Invalid_argument _ ->
+          raise (NotUnifiable (Unchecked.coh_to_string coh1, Unchecked.coh_to_string coh2))
+      end
     | Meta_tm _, _
     | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
