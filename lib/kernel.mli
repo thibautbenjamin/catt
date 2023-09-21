@@ -31,7 +31,9 @@ module rec Unchecked_types : sig
   type ctx = (Var.t * (ty * bool)) list
   type sub = (Var.t * tm) list
   type meta_ctx = ((int * ty) list)
+
 end
+
 and Coh : sig
   type t
   val forget : t -> Unchecked_types.ps * Unchecked_types.ty * string
@@ -63,7 +65,6 @@ module PS : sig
   val mk : Ctx.t -> t
   val forget : t -> ps
 end
-
 
 module Unchecked : sig
   val ps_to_string : ps -> string
