@@ -78,12 +78,17 @@ let rewrite-in-comp2-both (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f
  	            : comp2 f g -> comp2 f' g' = comp2 [a] [b]
 ```
 
-# Built-in coherences
+## Built-in coherences
 Some useful coherences are built-in. This allows for two things: first it is not necessary as a user to define those coherences that already exist, and secondly it allows to have an internal hardcoded mechanism to manage coherence schemes instead of single coherences. The use of built-in can be deactivated via the command-line as follows `catt --no-builtins [FILE]` or `dune exec -- catt --no-builtin [FILE]`. When the use of built-in is activated, the user is prevented from defining terms or operations that have the same name as a built-in.
 
-## Compositions
+### Compositions
 The variadic compositions are defined as built-in, and named `comp`. In practice this means that one can write
 ```
 coh unbias (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : comp (comp f g) h -> comp f g h
 ```
 Notice how the same name `comp` is used for the binary composition and the ternary one.
+
+
+## Practical use
+### The --debug flag
+Calling `catt --debug` on a file will make it so that if there is an error in the file, the program will not abort, but show a menu where the user can either abort the program, ignore the error and keep checking the file, or drop in an interactive mode. For the last option, the environment of the interactive is that at the point of failure, so any coherence defined in the file causing the failure before that point is directly accessible and usable.
