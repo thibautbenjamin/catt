@@ -107,7 +107,7 @@ let coh c s =
 let rec find_places ctx s l =
   match ctx,s with
   | [], [] -> []
-  | (x,(_,true))::c,  t::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
+  | (x,(_,true))::c,  (t,_)::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
   | _::c, _::s -> find_places c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
@@ -116,13 +116,13 @@ let rec find_places ctx s l =
    Returns a list containing the functorialise term followed by its
    target and its source.
 *)
-let rec tm_one_step t l =
+let rec tm_one_step t l expl=
   match t with
   | Var v ->
     begin
       match List.assoc_opt v l with
-      | Some (v',vf) -> [vf; v'; Var v]
-      | None -> [Var v]
+      | Some (v',vf) -> [vf, true; v', false; Var v, false]
+      | None -> [Var v, expl]
     end
   | Coh(c,s) ->
     begin
@@ -136,15 +136,15 @@ let rec tm_one_step t l =
         in
         let sf = sub s l in
         let l' = target_subst l in
-        let s' = List.map (fun t -> Unchecked.tm_apply_sub t l') s in
-        [Coh(cohf,sf);Coh(c,s');Coh(c,s)]
-      | [] -> [Coh(c,s)]
+        let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t l',expl) s in
+        [Coh(cohf,sf), true; Coh(c,s'), false; Coh(c,s), false]
+      | [] -> [Coh(c,s), expl]
     end
   | Meta_tm _ -> (raise FunctorialiseMeta)
 and sub s l =
   match s with
   | [] -> []
-  | t::s -> List.append (tm_one_step t l) (sub s l)
+  | (t, expl)::s -> List.append (tm_one_step t l expl) (sub s l)
 
 (*
    Functorialisation a term possibly mutliple times with respect to a
@@ -154,7 +154,8 @@ let rec tm c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
     let c,assocs = ctx_one_step c l in
-    tm c (List.hd (tm_one_step t assocs)) next
+    let t = fst (List.hd (tm_one_step t assocs true)) in
+    tm c t next
   else c,t
 
 (*

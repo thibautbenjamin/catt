@@ -99,7 +99,7 @@ end
   let check_to_ps src s tgt =
     let tgt = PS.to_ctx tgt in
     let s =
-      try List.map2 (fun (x,_) t -> (x,t)) (Ctx.value tgt) s
+      try List.map2 (fun (x,_) (t,_) -> (x,t)) (Ctx.value tgt) s
       with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
     in
     check src s tgt
@@ -557,7 +557,7 @@ and Unchecked_types : sig
   and coh =
     | Cohdecl of ps * ty * string
     | Cohchecked of Coh.t
-  and sub_ps = tm list
+  and sub_ps = (tm * bool) list
   type ctx = (Var.t * (ty * bool)) list
   type sub = (Var.t * tm) list
   type meta_ctx = ((int * ty) list)
@@ -575,7 +575,7 @@ end = struct
   and coh =
     | Cohdecl of ps * ty * string
     | Cohchecked of Coh.t
-  and sub_ps = tm list
+  and sub_ps = (tm * bool) list
 
   type ctx = (Var.t * (ty * bool)) list
 
@@ -648,7 +648,10 @@ end = struct
           (sub_ps_to_string s)
   and sub_ps_to_string = function
     | [] -> ""
-    | t::s -> Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
+    | (t,expl)::s ->
+      if(expl || !Settings.verbosity >= 3) then
+        Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
+      else sub_ps_to_string s
   and coh_to_string = function
     | Unchecked_types.Cohdecl(ps,ty,name) ->
       if !Settings.verbosity <= 5 then name
@@ -740,7 +743,7 @@ end = struct
       check_equal_ps ps1 ps2;
       check_equal_ty ty1 ty2
   and check_equal_sub_ps s1 s2 =
-    List.iter2 check_equal_tm s1 s2
+    List.iter2 (fun (t1,_) (t2,_) -> check_equal_tm t1 t2) s1 s2
 
   let rec check_equal_ctx ctx1 ctx2 =
     match ctx1, ctx2 with
@@ -757,7 +760,7 @@ end = struct
     | Unchecked_types.Var v -> (f v)
     | Meta_tm i -> Unchecked_types.Meta_tm i
     | Coh(c,s) -> Coh (c, sub_ps_do_on_variables s f)
-  and sub_ps_do_on_variables s f = List.map (fun t -> tm_do_on_variables t f) s
+  and sub_ps_do_on_variables s f = List.map (fun (t,expl) -> tm_do_on_variables t f, expl) s
 
   let rec ty_do_on_variables ty f =
     match ty with
@@ -807,8 +810,8 @@ end = struct
       let p,t,name = Coh.forget c in
       Cohdecl(suspend_ps p, suspend_ty t, "!"^name)
   and suspend_sub_ps = function
-    | [] -> [Var (Var.Db 1); Var (Var.Db 0)]
-    | t::s -> (suspend_tm t) :: (suspend_sub_ps s)
+    | [] -> [Var (Var.Db 1), false; Var (Var.Db 0), false]
+    | (t,expl)::s -> (suspend_tm t, expl) :: (suspend_sub_ps s)
 
   let rec suspend_ctx = function
     | [] -> (Var.Db 1, (Unchecked_types.Obj, false)) :: (Var.Db 0, (Obj, false)) :: []
@@ -844,7 +847,7 @@ end = struct
 
   let sub_ps_to_sub s ps =
     let ps = ps_to_ctx ps in
-    try List.map2 (fun t (x,_) -> (x,t)) s ps, ps
+    try List.map2 (fun (t,_) (x,_) -> (x,t)) s ps, ps
     with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
 
   let max_fresh_var c =
@@ -862,12 +865,12 @@ end = struct
 
   let rec identity_ps = function
     | [] -> []
-    | (x,_)::c -> Unchecked_types.Var x :: (identity_ps c)
+    | (x,(_,expl))::c -> (Unchecked_types.Var x,expl) :: (identity_ps c)
 
   let rec tm_contains_var t x =
     match t with
     | Unchecked_types.Var v -> v = x
-    | Coh(_,s) -> List.exists (fun t -> tm_contains_var t x) s
+    | Coh(_,s) -> List.exists (fun (t,_) -> tm_contains_var t x) s
     | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
   let tm_contains_vars t l =

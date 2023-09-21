@@ -27,7 +27,7 @@ module rec Unchecked_types : sig
   and coh =
     | Cohdecl of ps * ty * string
     | Cohchecked of Coh.t
-  and sub_ps = tm list
+  and sub_ps = (tm * bool) list
   type ctx = (Var.t * (ty * bool)) list
   type sub = (Var.t * tm) list
   type meta_ctx = ((int * ty) list)

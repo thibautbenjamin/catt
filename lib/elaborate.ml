@@ -64,7 +64,7 @@ module Constraints = struct
   and unify_sub cst s1 s2 =
     match s1, s2 with
     | [],[] -> ()
-    | t1::s1, t2::s2 -> unify_tm cst t1 t2; unify_sub cst s1 s2
+    | (t1,_)::s1, (t2,_)::s2 -> unify_tm cst t1 t2; unify_sub cst s1 s2
     | [], _::_ | _::_,[] ->
       raise (NotUnifiable (Unchecked.sub_ps_to_string s1, Unchecked.sub_ps_to_string s2))
 
@@ -87,7 +87,7 @@ let rec tm_replace_meta_tm (i,tm') tm =
   | Meta_tm j when i = j -> tm'
   | Meta_tm _ -> tm
   | Var v -> Var v
-  | Coh(c,s) -> Coh(c, List.map (tm_replace_meta_tm (i,tm')) s)
+  | Coh(c,s) -> Coh(c, List.map (fun (t,expl) -> tm_replace_meta_tm (i,tm') t, expl) s)
 
 let rec ty_replace_meta_tm (i,tm') ty =
   match ty with
@@ -182,9 +182,9 @@ module Constraints_typing = struct
     | Var v -> t, fst (List.assoc v ctx)
     | Meta_tm i -> t, List.assoc i meta_ctx
     | Coh(c,s)-> let ps,ty,_ = Unchecked.coh_data c in
-      let s,tgt = Unchecked.sub_ps_to_sub s ps in
-      let s = sub ctx meta_ctx s tgt cst in
-      Coh(c,(List.map snd s)), Unchecked.ty_apply_sub ty s
+      let s1,tgt = Unchecked.sub_ps_to_sub s ps in
+      let s1 = sub ctx meta_ctx s1 tgt cst in
+      Coh(c,(List.map2 (fun (_,t) (_,expl) -> t,expl) s1 s)), Unchecked.ty_apply_sub ty s1
   and sub src meta_ctx s tgt cst =
     Io.info ~v:5
       (lazy
