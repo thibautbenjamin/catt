@@ -107,7 +107,8 @@ let exec ~loop_fn prog =
     | (t::l)  ->
       let next = try exec_cmd t; KeepGoing
         with
-        | Error.InvalidEntry -> show_menu ()
+        | Error.InvalidEntry ->
+          if !Settings.debug then show_menu() else (Io.printf "Aborting..."; Abort)
         | Error.OptionsError -> KeepGoing
       in
       match next with
