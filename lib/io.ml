@@ -12,4 +12,4 @@ let info ?(v = 0) e =
   if !Settings.verbosity >= v then
     printf "[=I.I=] %s.\n%!" (Lazy.force e)
 let command e = Printf.ksprintf (fun s -> printf "[=^.^=] %s\n%!" s) e
-let error e = Printf.ksprintf (fun s -> eprintf "[=X.X=] %s\n%!" s) e
+let error e = Printf.ksprintf (fun s -> eprintf "\027[1;91m[=X.X=] %s\n\027[0m%!" s) e
