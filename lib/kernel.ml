@@ -625,17 +625,27 @@ end = struct
     | Unchecked_types.Meta_ty i -> Printf.sprintf "_ty%i" i
     | Unchecked_types.Obj -> "*"
     | Unchecked_types.Arr (a,u,v) ->
-      Printf.sprintf "%s | %s -> %s"
-        (ty_to_string a)
-        (tm_to_string u)
-        (tm_to_string v)
+      if !Settings.verbosity >= 3 then
+        Printf.sprintf "%s | %s -> %s"
+          (ty_to_string a)
+          (tm_to_string u)
+          (tm_to_string v)
+      else
+        Printf.sprintf "%s -> %s"
+          (tm_to_string u)
+          (tm_to_string v)
   and tm_to_string = function
     | Unchecked_types.Var v -> Var.to_string v
     | Unchecked_types.Meta_tm i -> Printf.sprintf "_tm%i" i
     | Unchecked_types.Coh (c,s) ->
-      Printf.sprintf "%s[%s]"
-        (coh_to_string c)
-        (sub_ps_to_string s)
+      if !Settings.verbosity <= 5 then
+        Printf.sprintf "(%s%s)"
+          (coh_to_string c)
+          (sub_ps_to_string s)
+      else
+        Printf.sprintf "%s[%s]"
+          (coh_to_string c)
+          (sub_ps_to_string s)
   and sub_ps_to_string = function
     | [] -> ""
     | t::s -> Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
