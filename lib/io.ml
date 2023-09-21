@@ -6,9 +6,10 @@ let read_line_fun = ref read_line
 let read_lin () = !read_line_fun ()
 
 let printf e = Printf.printf e
+let eprintf e = Printf.eprintf e
 let debug e = Printf.ksprintf (fun s -> printf "[=D.D=] %s\n\n%!" s) e
 let info ?(v = 0) e =
   if !Settings.verbosity >= v then
     printf "[=I.I=] %s.\n%!" (Lazy.force e)
 let command e = Printf.ksprintf (fun s -> printf "[=^.^=] %s\n%!" s) e
-let error e = Printf.ksprintf (fun s -> printf "[=X.X=] %s\n%!" s) e
+let error e = Printf.ksprintf (fun s -> eprintf "[=X.X=] %s\n%!" s) e

@@ -90,7 +90,7 @@ type next =
   | Interactive
 
 let show_menu () =
-  Io.printf "Chose an option: \n\t [x/SPC]: ignore and keep going; \n\t [i]: drop in interactive mode; \n\t [q/RET]: quit\n";
+  Io.eprintf "Chose an option: \n\t [x/SPC]: ignore and keep going; \n\t [i]: drop in interactive mode; \n\t [q/RET]: quit\n%!";
   let rec decision () =
     let c = read_line() in
     if c = "x" || c = " " then KeepGoing
