@@ -538,7 +538,7 @@ struct
   let forget (ps,ty,name) = PS.forget ps, Ty.forget ty, name
 
   let to_string (ps,ty,name) =
-    if !Settings.verbosity <= 3 then name else
+    if !Settings.verbosity <= 5 then name else
     Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 end
 
@@ -641,7 +641,7 @@ end = struct
     | t::s -> Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
   and coh_to_string = function
     | Unchecked_types.Cohdecl(ps,ty,name) ->
-      if !Settings.verbosity <= 3 then name
+      if !Settings.verbosity <= 5 then name
       else
         Printf.sprintf "coh(%s,%s)"
           (ps_to_string ps)
