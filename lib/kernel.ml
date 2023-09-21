@@ -71,7 +71,7 @@ end
     List.concat (List.map Tm.free_vars s.list)
 
   let check src s tgt =
-    Io.info ~v:3
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "building kernel substitution \
@@ -387,7 +387,7 @@ struct
     | Arr(_,_,v) -> v
 
   let rec check c t =
-    Io.info ~v:3
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "building kernel type %s in context %s"
@@ -456,7 +456,7 @@ struct
   let _to_string tm = Unchecked.tm_to_string (forget tm)
 
   let check c ?ty t =
-    Io.info ~v:3
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "building kernel term %s in context %s"
@@ -515,7 +515,7 @@ struct
     try
       match coh with
       | Unchecked_types.Cohdecl (ps,t,name) ->
-        Io.info ~v:3
+        Io.info ~v:5
           (lazy
             (Printf.sprintf "checking coherence (%s,%s)"
                (Unchecked.ps_to_string ps)

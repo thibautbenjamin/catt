@@ -171,7 +171,7 @@ end
 module Constraints_typing = struct
 
   let rec tm ctx meta_ctx t cst =
-    Io.info ~v:4
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "constraint typing term %s in ctx %s, meta_ctx %s"
@@ -186,7 +186,7 @@ module Constraints_typing = struct
       let s = sub ctx meta_ctx s tgt cst in
       Coh(c,(List.map snd s)), Unchecked.ty_apply_sub ty s
   and sub src meta_ctx s tgt cst =
-    Io.info ~v:4
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "constraint typing substitution %s in ctx %s, \
@@ -204,7 +204,7 @@ module Constraints_typing = struct
       (x,u)::s
     |[],_::_ | _::_, [] -> Error.fatal "wrong number of arguments"
   and ty ctx meta_ctx t cst =
-    Io.info ~v:4
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "constraint typing type %s in ctx %s, meta_ctx %s"
