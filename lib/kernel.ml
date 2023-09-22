@@ -538,7 +538,7 @@ struct
   let forget (ps,ty,name) = PS.forget ps, Ty.forget ty, name
 
   let to_string (ps,ty,name) =
-    if !Settings.verbosity <= 5 then name else
+    if not (!Settings.unroll_coherences) then name else
     Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 end
 
@@ -638,7 +638,7 @@ end = struct
     | Unchecked_types.Var v -> Var.to_string v
     | Unchecked_types.Meta_tm i -> Printf.sprintf "_tm%i" i
     | Unchecked_types.Coh (c,s) ->
-      if !Settings.verbosity <= 5 then
+      if not (!Settings.unroll_coherences) then
         Printf.sprintf "(%s%s)"
           (coh_to_string c)
           (sub_ps_to_string s)
@@ -654,7 +654,7 @@ end = struct
       else sub_ps_to_string s
   and coh_to_string = function
     | Unchecked_types.Cohdecl(ps,ty,name) ->
-      if !Settings.verbosity <= 5 then name
+      if not (!Settings.unroll_coherences) then name
       else
         Printf.sprintf "coh(%s,%s)"
           (ps_to_string ps)
