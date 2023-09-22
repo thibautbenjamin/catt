@@ -56,6 +56,9 @@ let exec_set o v =
   | _ when String.equal o "explicit_substitutions" ->
     let v = parse_bool v in
     Settings.explicit_substitutions := v
+  | _ when String.equal o "print_explicit_substitutions" ->
+    let v = parse_bool v in
+    Settings.print_explicit_substitutions := v
   | _ when String.equal o "implicit_suspension" ->
     let v = parse_bool v in
     Settings.implicit_suspension := v

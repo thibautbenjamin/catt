@@ -649,7 +649,7 @@ end = struct
   and sub_ps_to_string = function
     | [] -> ""
     | (t,expl)::s ->
-      if(expl || !Settings.verbosity >= 3) then
+      if(expl || !Settings.print_explicit_substitutions) then
         Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
       else sub_ps_to_string s
   and coh_to_string = function
