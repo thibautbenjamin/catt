@@ -34,7 +34,9 @@ let check l e t =
     | Some ty -> let _,ty = Elaborate.ty l ty in Some ty
   in
   let c = Kernel.Ctx.check c in
-  ignore(Kernel.check_term c ?ty e)
+  let tm = Kernel.check_term c ?ty e in
+  let ty = Kernel.(Ty.forget (Tm.typ tm)) in
+  e,ty
 
 let exec_set o v =
   let parse_bool v =
@@ -74,14 +76,16 @@ let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
     Io.command "coh %s = %s" (Var.to_string x) (Raw.string_of_ty e);
-    exec_coh x ps e
+    let coh = exec_coh x ps e in
+    Io.info (lazy (Printf.sprintf "successfully defined %s" (Unchecked.coh_to_string coh)))
   | Check (l, e, t) ->
     Io.command "check %s" (Raw.string_of_tm e);
-    check l e t;
-    Io.info (lazy (Printf.sprintf "valid term %s" (Raw.string_of_tm e)));
+    let e,ty = check l e t in
+    Io.info (lazy (Printf.sprintf "valid term %s of type %s" (Unchecked.tm_to_string e) (Unchecked.ty_to_string ty)));
   | Decl (v,l,e,t) ->
     Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_tm e);
-    exec_decl v l e t
+    let tm,ty = exec_decl v l e t in
+    Io.info (lazy (Printf.sprintf "successfully defined term %s of type %s" (Unchecked.tm_to_string tm) (Unchecked.ty_to_string ty)))
   | Set (o,v) ->
     begin
       try exec_set o v with

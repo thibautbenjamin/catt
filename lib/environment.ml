@@ -23,7 +23,8 @@ let add_let v c ?ty t =
          "defined term %s of type %s"
          (Unchecked.tm_to_string t)
          (Unchecked.ty_to_string ty)));
-  Hashtbl.add env v ({value = Tm (c,t); dim_input; dim_output})
+  Hashtbl.add env v ({value = Tm (c,t); dim_input; dim_output});
+  (t,ty)
 
 let add_coh v ps ty =
   let coh = check_coh (Cohdecl(ps,ty,Var.to_string v)) in
@@ -34,7 +35,8 @@ let add_coh v ps ty =
       (Printf.sprintf
          "defined coherence %s"
          (Var.to_string v)));
-  Hashtbl.add env v ({value = Coh coh; dim_input; dim_output})
+  Hashtbl.add env v ({value = Coh coh; dim_input; dim_output});
+  Cohchecked coh
 
 let find v =
   try Hashtbl.find env v
