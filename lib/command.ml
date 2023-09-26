@@ -1,6 +1,10 @@
 open Kernel
 open Raw_types
 
+exception UnknownOption of string
+exception NotAnInt of string
+exception NotABoolean of string
+
 (**toplevel commands. *)
 type cmd =
   | Coh of Var.t * (Var.t * tyR) list * tyR
@@ -30,7 +34,7 @@ let check l e t =
     | Some ty -> let _,ty = Elaborate.ty l ty in Some ty
   in
   let c = Kernel.Ctx.check c in
-  ignore(Kernel.Tm.check c ?ty e)
+  ignore(Kernel.check_term c ?ty e)
 
 let exec_set o v =
   let parse_bool v =
@@ -41,12 +45,12 @@ let exec_set o v =
     | _ when String.equal v "f" -> false
     | _ when String.equal v "false" -> false
     | _ when String.equal v "0" -> false
-    | _ -> raise (Error.NotABoolean v)
+    | _ -> raise (NotABoolean v)
   in
   let parse_int v =
     match int_of_string_opt v with
     | Some s -> s
-    | None -> raise (Error.NotAnInt v)
+    | None -> raise (NotAnInt v)
   in
   match o with
   | _ when String.equal o "explicit_substitutions" ->
@@ -58,13 +62,13 @@ let exec_set o v =
   | _ when String.equal o "verbosity" ->
     let v = parse_int v in
     Settings.verbosity := v
-  | _ -> raise (Error.UnknownOption o)
+  | _ -> raise (UnknownOption o)
 
 let exec_cmd cmd =
   match cmd with
   | Coh (x,ps,e) ->
-     Io.command "coh %s = %s" (Var.to_string x) (Raw.string_of_ty e);
-     exec_coh x ps e
+    Io.command "coh %s = %s" (Var.to_string x) (Raw.string_of_ty e);
+    exec_coh x ps e
   | Check (l, e, t) ->
     Io.command "check %s" (Raw.string_of_tm e);
     check l e t;
@@ -72,11 +76,44 @@ let exec_cmd cmd =
   | Decl (v,l,e,t) ->
     Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_tm e);
     exec_decl v l e t
-  | Set (o,v) -> exec_set o v
+  | Set (o,v) ->
+    begin
+      try exec_set o v with
+      | UnknownOption o -> Error.unknown_option o
+      | NotAnInt v -> Error.wrong_option_argument ~expected:"int" o v
+      | NotABoolean v -> Error.wrong_option_argument ~expected:"boolean" o v
+    end
 
-let exec prog =
+type next =
+  | Abort
+  | KeepGoing
+  | Interactive
+
+let show_menu () =
+  Io.eprintf "Chose an option: \n\t [x/SPC]: ignore and keep going; \n\t [i]: drop in interactive mode; \n\t [q/RET]: quit\n%!";
+  let rec decision () =
+    let c = read_line() in
+    if c = "x" || c = " " then KeepGoing
+    else if c = "q" || c = "" then Abort
+    else if c = "i" then Interactive
+    else
+      (Io.printf "Please chose a valid option";
+       decision ())
+  in decision ()
+
+let exec ~loop_fn prog =
   let rec aux = function
     | [] -> ()
-    | (t::l)  -> exec_cmd t; aux l
+    | (t::l)  ->
+      let next = try exec_cmd t; KeepGoing
+        with
+        | Error.InvalidEntry ->
+          if !Settings.debug then show_menu() else (Io.printf "Aborting..."; Abort)
+        | Error.OptionsError -> KeepGoing
+      in
+      match next with
+      | KeepGoing -> aux l
+      | Abort -> exit 1
+      | Interactive -> loop_fn()
   in
   aux prog

@@ -32,8 +32,6 @@ module rec Unchecked_types : sig
 end
 and Coh : sig
   type t
-
-  val check : Unchecked_types.coh -> (Var.t * int) list -> t
   val forget : t -> Unchecked_types.ps * Unchecked_types.ty
 end
 
@@ -54,7 +52,6 @@ end
 module Tm : sig
   type t
 
-  val check : Ctx.t -> ?ty : ty -> tm -> t
   val typ : t -> Ty.t
 end
 
@@ -73,6 +70,7 @@ module Unchecked : sig
   val sub_ps_to_string : sub_ps -> string
   val ctx_to_string : ctx -> string
   val sub_to_string : sub -> string
+  val coh_to_string : Unchecked_types.coh -> string
   val meta_ctx_to_string : meta_ctx -> string
   val two_fresh_vars : ctx -> Var.t * Var.t
   val dim_ctx : ctx -> int
@@ -93,3 +91,6 @@ module Unchecked : sig
   val suspend_sub_ps : sub_ps -> sub_ps
   val check_equal_coh : coh -> coh -> unit
 end
+
+val check_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
+val check_coh : Unchecked_types.coh -> (Var.t * int) list -> Coh.t

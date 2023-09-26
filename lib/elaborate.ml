@@ -2,6 +2,8 @@ open Std
 open Kernel
 open Kernel.Unchecked_types
 
+exception NotUnifiable of string * string
+
 module Queue = Base.Queue
 
 module Constraints = struct
@@ -43,26 +45,28 @@ module Constraints = struct
     | _, Meta_ty _ -> Queue.enqueue  cst.ty (ty1, ty2)
     | Arr(_,_,_), Obj
     | Obj, Arr(_,_,_) ->
-      raise (Error.NotUnifiable
-               (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
+      raise (NotUnifiable (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
   and unify_tm cst tm1 tm2 =
     match tm1, tm2 with
     | Var v1, Var v2 when v1 = v2 -> ()
     | Coh(coh1,s1), Coh(coh2,s2) ->
-      Unchecked.check_equal_coh coh1 coh2;
-      unify_sub cst s1 s2
+      begin
+        try
+          Unchecked.check_equal_coh coh1 coh2;
+          unify_sub cst s1 s2
+        with Invalid_argument _ ->
+          raise (NotUnifiable (Unchecked.coh_to_string coh1, Unchecked.coh_to_string coh2))
+      end
     | Meta_tm _, _
     | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
-      raise (Error.NotUnifiable
-               (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
+      raise (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
   and unify_sub cst s1 s2 =
     match s1, s2 with
     | [],[] -> ()
     | t1::s1, t2::s2 -> unify_tm cst t1 t2; unify_sub cst s1 s2
     | [], _::_ | _::_,[] ->
-      raise (Error.NotUnifiable
-               (Unchecked.sub_ps_to_string s1, Unchecked.sub_ps_to_string s2))
+      raise (NotUnifiable (Unchecked.sub_ps_to_string s1, Unchecked.sub_ps_to_string s2))
 
 type mgu = { uty : (int * ty) list; utm : (int * tm) list }
 
@@ -153,7 +157,7 @@ let substitute_tm l tm =
             unify_tm c tm1 tm2;
             c, knowns
         end
-      | None -> assert false
+      | None -> Error.fatal "resolving empty constraints"
 
   let resolve c =
     let rec aux c knowns =
@@ -203,7 +207,7 @@ module Constraints_typing = struct
       let s = sub src meta_ctx s c cst in
       Constraints.unify_ty cst ty (Unchecked.ty_apply_sub t s);
       (x,u)::s
-    |[],_::_ | _::_, [] -> assert false
+    |[],_::_ | _::_, [] -> Error.fatal "wrong number of arguments"
   and ty ctx meta_ctx t cst =
     Io.info ~v:4
       (lazy
@@ -265,39 +269,65 @@ let rec preprocess_ctx = function
     (v, preprocess_ty c t)::c
 
 let ty c ty =
-  let c = preprocess_ctx c in
-  let ty = preprocess_ty c ty in
-  let c = ctx c in
-  let ty, meta_ctx = Translate_raw.ty ty in
-  let cst = Constraints.create () in
-  let ty = Constraints_typing.ty c meta_ctx ty cst in
-  c,Constraints.substitute_ty (Constraints.resolve cst) ty
+  try
+    let c = preprocess_ctx c in
+    let ty = preprocess_ty c ty in
+    let c = ctx c in
+    let ty, meta_ctx = Translate_raw.ty ty in
+    let cst = Constraints.create () in
+    try
+      let ty = Constraints_typing.ty c meta_ctx ty cst in
+      c,Constraints.substitute_ty (Constraints.resolve cst) ty
+    with
+    | NotUnifiable(x,y) -> Error.unsatisfiable_constraints
+                             ("type: "^(Unchecked.ty_to_string ty))
+                             (Printf.sprintf "could not unify %s and %s" x y)
+  with
+    Error.UnknownId(s) -> raise (Error.unknown_id s)
 
 let tm c tm =
-  let c = preprocess_ctx c in
-  let tm = preprocess_tm c tm in
-  let c = ctx c in
-  let tm, meta_ctx = Translate_raw.tm tm in
-  let cst = Constraints.create () in
-  let tm,_ = Constraints_typing.tm c meta_ctx tm cst in
-  Io.info ~v:4
-    (lazy
-      (Printf.sprintf
-         "inferred constraints:%s" (Constraints._to_string cst)));
-  c,Constraints.substitute_tm (Constraints.resolve cst) tm
+  try
+    let c = preprocess_ctx c in
+    let tm = preprocess_tm c tm in
+    let c = ctx c in
+    let tm, meta_ctx = Translate_raw.tm tm in
+    let cst = Constraints.create () in
+    try
+      let tm,_ = Constraints_typing.tm c meta_ctx tm cst in
+      Io.info ~v:4
+        (lazy
+          (Printf.sprintf
+             "inferred constraints:%s" (Constraints._to_string cst)));
+      c,Constraints.substitute_tm (Constraints.resolve cst) tm
+    with
+    | NotUnifiable(x,y) -> Error.unsatisfiable_constraints
+                             ("term: "^(Unchecked.tm_to_string tm))
+                             (Printf.sprintf "could not unify %s and %s" x y)
+  with
+    Error.UnknownId(s) -> raise (Error.unknown_id s)
 
 let ty_in_ps ps t =
-  let ps = preprocess_ctx ps in
-  let t = preprocess_ty ps t in
-  let ps = ctx ps in
-  let t, meta_ctx = Translate_raw.ty t in
-  let cst = Constraints.create () in
-  let t = Constraints_typing.ty ps meta_ctx t cst in
-  Io.info ~v:4
-    (lazy
-      (Printf.sprintf
-         "inferred constraints:%s" (Constraints._to_string cst)));
-  let t = Constraints.substitute_ty (Constraints.resolve cst) t in
-  let _, names,_ = Unchecked.db_levels ps in
-  Kernel.PS.(forget (mk (Kernel.Ctx.check ps))),
-  Unchecked.rename_ty t names
+  try
+    let ps = preprocess_ctx ps in
+    let t = preprocess_ty ps t in
+    let ps = ctx ps in
+    let t, meta_ctx = Translate_raw.ty t in
+    let cst = Constraints.create () in
+    let t =
+      try
+        let t = Constraints_typing.ty ps meta_ctx t cst in
+        Io.info ~v:4
+          (lazy
+            (Printf.sprintf
+               "inferred constraints:%s" (Constraints._to_string cst)));
+        Constraints.substitute_ty (Constraints.resolve cst) t
+      with
+      | NotUnifiable(x,y) -> Error.unsatisfiable_constraints
+                               ("type: "^(Unchecked.ty_to_string t))
+                               (Printf.sprintf "could not unify %s and %s" x y)
+    in
+    let _, names,_ = Unchecked.db_levels ps in
+    Kernel.PS.(forget (mk (Kernel.Ctx.check ps))),
+    Unchecked.rename_ty t names
+  with
+    Error.UnknownId(s) -> raise (Error.unknown_id s)

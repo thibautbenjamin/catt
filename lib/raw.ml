@@ -84,18 +84,18 @@ let rec var_in_ty x ty =
   | ObjR -> false
   | ArrR (u,v) ->
     var_in_tm x u || var_in_tm x v
-  | Letin_ty _ -> assert false
+  | Letin_ty _ -> Error.fatal("letin_ty constructors cannot appear here")
 and var_in_tm x tm =
   match tm with
   | VarR v -> x = v
   | Sub(_,s,_) | Builtin (_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
   | Meta -> false
-  | Letin_tm _ -> assert false
+  | Letin_tm _ -> Error.fatal("letin_tm constructors cannot appear here")
 
 let rec dim_ty ctx = function
   | ObjR -> 0
   | ArrR(u,_) -> 1 + dim_tm ctx u
-  | Letin_ty _ -> assert false
+  | Letin_ty _ -> Error.fatal("letin_ty constructors cannot appear here")
 and dim_tm ctx = function
   | VarR v -> dim_ty ctx (List.assoc v ctx)
   | (Sub(VarR _,s,i) | Builtin(_,s,i)) as t ->
@@ -117,7 +117,8 @@ and dim_tm ctx = function
     in
     d+func+susp
   | Meta -> 0
-  | Letin_tm _ | Sub _ -> assert false
+  | Letin_tm _ -> Error.fatal("letin_tm constructors cannot appear here")
+  | Sub _ -> Error.fatal ("ill-formed term")
 
 let rec dim_sub ctx = function
   | [] -> 0, false
