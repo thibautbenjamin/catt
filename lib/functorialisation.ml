@@ -20,7 +20,11 @@ let ctx_one_var c x =
 
 let ctx c l =
   List.fold_left
-    (fun (c,assocs) x -> let c,p = ctx_one_var c x in c, p::assocs)
+    (fun (c,assocs) (x,i) ->
+       if i > 0 then
+         let c,p = ctx_one_var c x in c, p::assocs
+       else
+         c, assocs)
     (c,[])
     l
 
@@ -48,7 +52,7 @@ let coh ps ty l =
 let rec find_places ctx s l =
   match ctx,s with
   | [], [] -> []
-  | (x,_)::c,  t::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
+  | (x,_)::c,  t::s when Unchecked.tm_contains_vars t l -> (x,1)::(find_places c s l)
   | _::c, _::s -> find_places c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 

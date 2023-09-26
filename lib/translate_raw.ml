@@ -22,21 +22,20 @@ let list_functorialised s c =
     let rec list s c =
       match s,c with
       | [],[] -> [],[]
-      | (t,true)::s, (x,(_, true))::tgt ->
+      | (t,xf)::s, (x,(_, true))::tgt ->
         let s,func = list s tgt in
-        t::s, x::func
-      | (t,false)::s, (_,(_, true))::tgt ->
-        let s,func = list s tgt in
-        t::s, func
-      | s , (_,(_, false))::tgt ->
+        t::s, (x,xf)::func
+      | s, (_,(_, false))::tgt ->
         list s tgt
       | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
     in list s c
   else
     let rec ensure_no_func = function
       | [] -> []
-      | (_,true)::_ -> raise FunctorialiseWithExplicit
-      | (t,false)::s -> t::(ensure_no_func s)
+      | (t,k)::s ->
+        if k > 0
+        then raise FunctorialiseWithExplicit
+        else t::(ensure_no_func s)
     in ensure_no_func s,[]
 
 (* inductive translation on terms and types without let_in *)
@@ -52,7 +51,7 @@ let rec tm tm =
     let s,l = list_functorialised s ctx in
     let
       coh,ps =
-      if l <> [] then Functorialisation.coh ps ty l else coh,ps
+      if List.exists (fun (_,i) -> i > 0) l then Functorialisation.coh ps ty l else coh,ps
     in
     let s, meta_types = sub_ps s ps in
     Coh(coh,s), meta_types

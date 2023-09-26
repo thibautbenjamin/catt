@@ -67,8 +67,8 @@ args:
     | { [] }
 
 nonempty_sub:
-    | sub simple_tmexpr { ($2,false)::$1 }
-    | sub functed_tmexpr { ($2,true)::$1 }
+    | sub simple_tmexpr { ($2,0)::$1 }
+    | sub functed_tmexpr { $2::$1 }
 
 sub:
     | nonempty_sub { $1 }
@@ -80,7 +80,11 @@ simple_tmexpr:
     | IDENT { VarR (Var.make_var $1) }
 
 functed_tmexpr:
-    | LBRA tmexpr RBRA { $2 }
+    | LBRA maybe_functed_tmexpr RBRA { let t,n = $2 in t,n+1 }
+
+maybe_functed_tmexpr:
+    | tmexpr { ($1,0) }
+    | LBRA maybe_functed_tmexpr RBRA { let t,n = $2 in t,n+1 }
 
 simple_tyexpr:
     | LPAR tyexpr RPAR { $2 }

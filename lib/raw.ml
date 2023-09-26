@@ -45,8 +45,13 @@ and string_of_tm e =
 and string_of_sub s=
   match s with
   | []-> ""
-  | (t, true)::s -> Printf.sprintf "%s [%s]" (string_of_sub s)(string_of_tm t)
-  | (t, false)::s -> Printf.sprintf "%s %s" (string_of_sub s) (string_of_tm t)
+  | (t, n)::s -> Printf.sprintf "%s %s" (string_of_sub s)(string_of_functed_tm t n)
+and string_of_functed_tm t n =
+  if n <= 0 then
+    Printf.sprintf "%s" (string_of_tm t)
+  else
+    Printf.sprintf "[%s]" (string_of_functed_tm t (n-1))
+
 
 (** remove the let in in a term *)
 let rec replace_tm l e =
@@ -99,7 +104,7 @@ let rec dim_ty ctx = function
 and dim_tm ctx = function
   | VarR v -> dim_ty ctx (List.assoc v ctx)
   | (Sub(VarR _,s,i) | Builtin(_,s,i)) as t ->
-    let func = if List.exists (fun (_,bool) -> bool) s then 1 else 0 in
+    let func = List.fold_left (fun i (_,j) -> max i j) 0 s in
     let d = match t with
       | Sub (VarR v, _,_) -> Environment.dim_output v
       | Builtin(name, _,_) ->
@@ -121,11 +126,11 @@ and dim_tm ctx = function
   | Sub _ -> Error.fatal ("ill-formed term")
 
 let rec dim_sub ctx = function
-  | [] -> 0, false
+  | [] -> 0, 0
   | (t,f)::s ->
     let (d1,f1) = dim_sub ctx s in
     let d2 = dim_tm ctx t in
-    (max d1 d2, f||f1)
+    (max d1 d2, max f f1)
 
 let rec infer_susp_tm ctx = function
   | VarR v -> VarR v
@@ -144,8 +149,7 @@ let rec infer_susp_tm ctx = function
             end
           | _ -> assert false
         in
-        let d,f = dim_sub ctx s in
-        let func = if f then 1 else 0 in
+        let d,func = dim_sub ctx s in
         let newsusp = Some (d - inp - func) in
         begin
           match t with
@@ -159,7 +163,7 @@ let rec infer_susp_tm ctx = function
   | Letin_tm _ | Sub _ -> assert false
 and infer_susp_sub ctx = function
   | [] -> []
-  | (tm,b)::s -> (infer_susp_tm ctx tm, b)::(infer_susp_sub ctx s)
+  | (tm,i)::s -> (infer_susp_tm ctx tm, i)::(infer_susp_sub ctx s)
 
 let infer_susp_ty ctx = function
   | ObjR -> ObjR
