@@ -28,8 +28,8 @@ let () =
     usage;
   let _ = match !file_in with
     | [f] ->
-      if !no_builtins then Catt.Settings.use_builtins := false;
-      if !debug then Catt.Settings.debug := true;
+      Catt.Settings.use_builtins := not !no_builtins;
+      Catt.Settings.debug := !debug;
       Catt.Command.exec ~loop_fn:Catt.Prover.loop (parse_file f)
     | _ -> ()
   in if !interactive then Catt.Prover.loop ()
