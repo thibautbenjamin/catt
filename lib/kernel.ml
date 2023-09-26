@@ -878,25 +878,34 @@ end
 include Unchecked_types
 
 let check check_fn name =
+  let v = 2 in
+  let fname = if !Settings.verbosity >= v then Lazy.force name else "" in
+  Io.info ~v (lazy ("checking "^fname));
   try check_fn() with
   | NotEqual(s1,s2) ->
-    Error.untypable name (Printf.sprintf "%s and %s are not equal" s1 s2)
+    Error.untypable
+      (if !Settings.verbosity >= v then fname else Lazy.force name)
+      (Printf.sprintf "%s and %s are not equal" s1 s2)
   | InvalidSubTarget (s,tgt) ->
-    Error.untypable name (Printf.sprintf "substitution %s does not apply from context %s" s tgt)
+    Error.untypable
+      (if !Settings.verbosity >= v then fname else Lazy.force name)
+      (Printf.sprintf "substitution %s does not apply from context %s" s tgt)
   | Error.UnknownId (s) ->
-    Error.untypable name (Printf.sprintf "unknown identifier :%s" s)
+    Error.untypable
+      (if !Settings.verbosity >= v then fname else Lazy.force name)
+      (Printf.sprintf "unknown identifier :%s" s)
   | MetaVariable ->
-    Error.incomplete_constraints name
+    Error.incomplete_constraints (if !Settings.verbosity >= v then fname else Lazy.force name)
 
 let check_type ctx a =
-  let ty = "type: "^Unchecked.ty_to_string a in
+  let ty = lazy ("type: "^Unchecked.ty_to_string a) in
   check (fun () -> Ty.check ctx a) ty
 
 let check_term ctx ?ty t =
   let ty = Option.map (check_type ctx) ty in
-  let tm = "term: " ^ (Unchecked.tm_to_string t) in
+  let tm = lazy ("term: " ^ (Unchecked.tm_to_string t)) in
   check (fun () -> Tm.check ctx ?ty t) tm
 
-let check_coh coh l =
-  let c = "coherence: "^(Unchecked.coh_to_string coh) in
-  check (fun () -> Coh.check coh l) c
+let check_coh coh =
+  let c = lazy ("coherence: "^(Unchecked.coh_to_string coh)) in
+  check (fun () -> Coh.check coh) c
