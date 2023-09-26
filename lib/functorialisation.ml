@@ -3,6 +3,30 @@ open Kernel.Unchecked_types
 
 exception NonMaximal of string
 exception FunctorialiseMeta
+exception FunctorialiseWithExplicit
+exception WrongNumberOfArguments
+
+
+let list_functorialised s c =
+  if not !Settings.explicit_substitutions then
+    let rec list s c =
+      match s,c with
+      | [],[] -> []
+      | (_,xf)::s, (x,(_, true))::tgt ->
+        let func = list s tgt in
+        (x,xf)::func
+      | s, (_,(_, false))::tgt ->
+        list s tgt
+      | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
+    in list s c
+  else
+    let rec ensure_no_func = function
+      | [] -> []
+      | (_,k)::s ->
+        if k > 0
+        then raise FunctorialiseWithExplicit
+        else (ensure_no_func s)
+    in ensure_no_func s
 
 let ctx_one_var c x =
   let x',xf = Unchecked.two_fresh_vars c in
@@ -31,28 +55,27 @@ let ctx c l =
 let target_subst l =
   List.map (fun (x,(y,_)) -> (x,y)) l
 
-let coh coh l =
-  let ps,ty =
-    match coh with
-    | Cohdecl (ps,ty) -> ps,ty
-    | Cohchecked coh -> Coh.forget coh
-  in
-  try
-    let ctx_base = Unchecked.ps_to_ctx ps in
-    let ctx,assocs = ctx ctx_base l in
-    let tm = Coh (Cohdecl(ps,ty),(Unchecked.identity_ps ctx_base)) in
-    let tm_f = Unchecked.tm_apply_sub tm (target_subst assocs) in
-    let ty = Arr (ty, tm, tm_f) in
-    let ps = Kernel.PS.(forget (mk (Kernel.Ctx.check ctx))) in
-    let _, names,_ = Unchecked.db_levels ctx in
-    let ty = Unchecked.rename_ty ty names in
-    Cohdecl(ps, ty),ps
-  with
-  NonMaximal x ->
-    Error.functorialisation
-      ("coherence: " ^ Unchecked.coh_to_string(Cohdecl(ps,ty)))
-      (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
-
+let coh coh s =
+  let ps,ty = Unchecked.coh_data coh in
+  let ct = Unchecked.ps_to_ctx ps in
+  let l = list_functorialised s ct in
+  if List.exists (fun (_,i) -> i > 0) l then
+    try
+      let ctx_base = Unchecked.ps_to_ctx ps in
+      let ctx,assocs = ctx ctx_base l in
+      let tm = Coh (Cohdecl(ps,ty),(Unchecked.identity_ps ctx_base)) in
+      let tm_f = Unchecked.tm_apply_sub tm (target_subst assocs) in
+      let ty = Arr (ty, tm, tm_f) in
+      let ps = Kernel.PS.(forget (mk (Kernel.Ctx.check ctx))) in
+      let _, names,_ = Unchecked.db_levels ctx in
+      let ty = Unchecked.rename_ty ty names in
+      Cohdecl(ps, ty)
+    with
+      NonMaximal x ->
+      Error.functorialisation
+        ("coherence: " ^ Unchecked.coh_to_string(Cohdecl(ps,ty)))
+        (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
+  else coh
 
 let rec find_places ctx s l =
   match ctx,s with
@@ -77,7 +100,7 @@ let rec tm t l =
           | Cohdecl(ps,_) -> ps
           | Cohchecked c -> fst (Coh.forget c)
         in
-        let cohf,_ =
+        let cohf =
          let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
          coh c places
         in
@@ -93,7 +116,8 @@ and sub s l =
   | [] -> []
   | t::s -> List.append (tm t l) (sub s l)
 
-let tm c t l =
+let tm c t s =
+  let l = list_functorialised s c in
   try
     let c,assocs = ctx c l in
     c,List.hd (tm t assocs)
@@ -103,6 +127,14 @@ let tm c t l =
       ("term: " ^ Unchecked.tm_to_string t)
       (Printf.sprintf "cannot functorialise with respect to variable %s which is not maximal" x)
   | FunctorialiseMeta ->
-Error.functorialisation
+    Error.functorialisation
       ("term: " ^ Unchecked.tm_to_string t)
       (Printf.sprintf "cannot functorialise meta-variables")
+  | FunctorialiseWithExplicit ->
+    Error.functorialisation
+      ("term: "^(Unchecked.tm_to_string t))
+      "cannot compute functorialisation with explicit arguments"
+  | WrongNumberOfArguments ->
+    Error.parsing_error
+      ("term: " ^ (Unchecked.tm_to_string t))
+      "wrong number of arguments provided"

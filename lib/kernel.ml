@@ -609,6 +609,7 @@ and Unchecked : sig
   val suspend_tm : Unchecked_types.tm -> Unchecked_types.tm
   val suspend_ctx : Unchecked_types.ctx -> Unchecked_types.ctx
   val suspend_sub_ps : Unchecked_types.sub_ps -> Unchecked_types.sub_ps
+  val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty
 end = struct
   let rec ps_to_string = function
     | Unchecked_types.Br l -> Printf.sprintf "[%s]"
@@ -873,6 +874,11 @@ end = struct
   and max_list_ps = function
     | [] -> 0
     | p::l -> max (dim_ps p) (max_list_ps l)
+
+  let coh_data coh =
+    match coh with
+    | Unchecked_types.Cohdecl(ps,ty) -> ps,ty
+    | Unchecked_types.Cohchecked c -> Coh.forget c
 end
 
 include Unchecked_types

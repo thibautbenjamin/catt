@@ -3,7 +3,6 @@ open Kernel.Unchecked_types
 open Raw_types
 
 exception WrongNumberOfArguments
-exception FunctorialiseWithExplicit
 
 let meta_namer_ty = ref 0
 let meta_namer_tm = ref 0
@@ -17,44 +16,12 @@ let new_meta_tm () =
   meta_namer_tm := !meta_namer_tm + 1;
   meta, (i, new_meta_ty())
 
-let list_functorialised s c =
-  if not !Settings.explicit_substitutions then
-    let rec list s c =
-      match s,c with
-      | [],[] -> [],[]
-      | (t,xf)::s, (x,(_, true))::tgt ->
-        let s,func = list s tgt in
-        t::s, (x,xf)::func
-      | s, (_,(_, false))::tgt ->
-        list s tgt
-      | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
-    in list s c
-  else
-    let rec ensure_no_func = function
-      | [] -> []
-      | (t,k)::s ->
-        if k > 0
-        then raise FunctorialiseWithExplicit
-        else t::(ensure_no_func s)
-    in ensure_no_func s,[]
-
 (* inductive translation on terms and types without let_in *)
 let rec tm tm =
   let make_coh coh s susp =
     let coh = Suspension.coh susp coh in
-    let ps=
-      match coh with
-      | Cohdecl (ps,_) -> ps
-      | Cohchecked coh -> fst (Coh.forget coh)
-    in
-    let ctx = Unchecked.ps_to_ctx ps in
-    let s,l = list_functorialised s ctx in
-    let
-      coh,ps =
-      if List.exists (fun (_,i) -> i > 0) l
-      then Functorialisation.coh coh l
-      else coh,ps
-    in
+    let coh = Functorialisation.coh coh s  in
+    let ps = fst (Unchecked.coh_data coh) in
     let s, meta_types = sub_ps s ps in
     Coh(coh,s), meta_types
   in
@@ -67,10 +34,7 @@ let rec tm tm =
       | Tm(c,t) ->
         let c = Suspension.ctx susp c in
         let t = Suspension.tm susp t in
-        let s,l = list_functorialised s c in
-        let c,t =
-          if l <> [] then Functorialisation.tm c t l else c,t
-        in
+        let c,t = Functorialisation.tm c t s in
         let s, meta_types = sub s c in
         Unchecked.tm_apply_sub t s, meta_types
     end;
@@ -86,14 +50,14 @@ let rec tm tm =
 and sub_ps s ps =
   let sub,meta_types = sub s (Unchecked.ps_to_ctx ps) in
   List.map snd sub, meta_types
-and sub s  tgt  =
+and sub s tgt =
   match s,tgt with
   | [],[] -> [],[]
-  | t::s, (x,(_, true))::tgt ->
+  | (t,_)::s, (x,(_, true))::tgt ->
     let t, meta_types_t = tm t in
     let s,meta_types_s = sub s tgt in
     (x,t)::s,  List.append meta_types_t meta_types_s
-  | t::s, (x,(_, false))::tgt when !Settings.explicit_substitutions ->
+  | (t,_)::s, (x,(_, false))::tgt when !Settings.explicit_substitutions ->
     let t, meta_types_t = tm t in
     let s,meta_types_s = sub s tgt in
     (x, t)::s, List.append meta_types_t meta_types_s
@@ -105,10 +69,6 @@ and sub s  tgt  =
 
 let tm t =
   try tm t with
-  | FunctorialiseWithExplicit ->
-    Error.functorialisation
-      ("term: "^(Raw.string_of_tm t))
-      "cannot compute functorialisation with explicit arguments"
   | WrongNumberOfArguments ->
     Error.parsing_error
       ("term: " ^ (Raw.string_of_tm t))
@@ -124,10 +84,11 @@ let ty ty =
 
 let ty t =
   try ty t with
-  | FunctorialiseWithExplicit ->
-    Error.functorialisation
-      ("type: "^(Raw.string_of_ty t))
-      "cannot compute functorialisation with explicit arguments"
+  | WrongNumberOfArguments ->
+    Error.parsing_error
+      ("type: " ^ (Raw.string_of_ty t))
+      "wrong number of arguments provided"
+
 
 let ctx c =
   let rec mark_explicit c after =
