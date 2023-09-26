@@ -31,7 +31,12 @@ let ctx c l =
 let target_subst l =
   List.map (fun (x,(y,_)) -> (x,y)) l
 
-let coh ps ty l =
+let coh coh l =
+  let ps,ty =
+    match coh with
+    | Cohdecl (ps,ty) -> ps,ty
+    | Cohchecked coh -> Coh.forget coh
+  in
   try
     let ctx_base = Unchecked.ps_to_ctx ps in
     let ctx,assocs = ctx ctx_base l in
@@ -68,15 +73,13 @@ let rec tm t l =
     begin
       match l with
       | _::_ ->
+        let ps = match c with
+          | Cohdecl(ps,_) -> ps
+          | Cohchecked c -> fst (Coh.forget c)
+        in
         let cohf,_ =
-          match c with
-          | Cohdecl (ps,ty) ->
-            let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
-            coh ps ty places
-          | Cohchecked c ->
-            let ps,ty = Coh.forget c in
-            let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
-            coh ps ty places
+         let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
+         coh c places
         in
         let sf = sub s l in
         let l' = target_subst l in

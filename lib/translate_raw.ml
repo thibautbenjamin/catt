@@ -42,16 +42,18 @@ let list_functorialised s c =
 let rec tm tm =
   let make_coh coh s susp =
     let coh = Suspension.coh susp coh in
-    let ps,ty =
+    let ps=
       match coh with
-      | Cohdecl (ps,ty) -> ps,ty
-      | Cohchecked coh -> Coh.forget coh
+      | Cohdecl (ps,_) -> ps
+      | Cohchecked coh -> fst (Coh.forget coh)
     in
     let ctx = Unchecked.ps_to_ctx ps in
     let s,l = list_functorialised s ctx in
     let
       coh,ps =
-      if List.exists (fun (_,i) -> i > 0) l then Functorialisation.coh ps ty l else coh,ps
+      if List.exists (fun (_,i) -> i > 0) l
+      then Functorialisation.coh coh l
+      else coh,ps
     in
     let s, meta_types = sub_ps s ps in
     Coh(coh,s), meta_types
