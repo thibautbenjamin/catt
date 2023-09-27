@@ -20,7 +20,7 @@ let new_meta_tm () =
 let rec tm tm =
   let make_coh coh s susp =
     let coh = Suspension.coh susp coh in
-    let coh = Functorialisation.coh coh s  in
+    let coh = Functorialisation.coh coh (List.map snd s) in
     let ps = fst (Unchecked.coh_data coh) in
     let s, meta_types = sub_ps s ps in
     Coh(coh,s), meta_types
@@ -34,7 +34,7 @@ let rec tm tm =
       | Tm(c,t) ->
         let c = Suspension.ctx susp c in
         let t = Suspension.tm susp t in
-        let c,t = Functorialisation.tm c t s in
+        let c,t = Functorialisation.tm c t (List.map snd s) in
         let s, meta_types = sub s c in
         Unchecked.tm_apply_sub t s, meta_types
     end;

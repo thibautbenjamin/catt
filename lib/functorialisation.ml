@@ -3,30 +3,25 @@ open Kernel.Unchecked_types
 
 exception NonMaximal of string
 exception FunctorialiseMeta
-exception FunctorialiseWithExplicit
 exception WrongNumberOfArguments
 
-
-let list_functorialised s c =
-  if not !Settings.explicit_substitutions then
-    let rec list s c =
-      match s,c with
-      | [],[] -> []
-      | (_,xf)::s, (x,(_, true))::tgt ->
-        let func = list s tgt in
-        (x,xf)::func
-      | s, (_,(_, false))::tgt ->
-        list s tgt
-      | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
-    in list s c
-  else
-    let rec ensure_no_func = function
-      | [] -> []
-      | (_,k)::s ->
-        if k > 0
-        then raise FunctorialiseWithExplicit
-        else (ensure_no_func s)
-    in ensure_no_func s
+let list_functorialised l c =
+  let rec list l c =
+    match l,c with
+    | [],[] -> []
+    | xf::l, (x,(_, true))::tgt ->
+      let func = list l tgt in
+      (x,xf)::func
+    | (f::l), (_,(_, false))::tgt ->
+      if !Settings.explicit_substitutions
+      then list l tgt
+      else list (f::l) tgt
+    | [], (_,(_, false))::tgt ->
+      if !Settings.explicit_substitutions
+      then raise WrongNumberOfArguments
+      else list [] tgt
+    | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
+  in list l c
 
 let ctx_one_var c x =
   let x',xf = Unchecked.two_fresh_vars c in
@@ -80,7 +75,8 @@ let coh coh s =
 let rec find_places ctx s l =
   match ctx,s with
   | [], [] -> []
-  | (x,_)::c,  t::s when Unchecked.tm_contains_vars t l -> (x,1)::(find_places c s l)
+  | (_,(_,true))::c,  t::s when Unchecked.tm_contains_vars t l -> 1::(find_places c s l)
+  | (_,(_,true))::c,  _::s -> 0::(find_places c s l)
   | _::c, _::s -> find_places c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
@@ -117,8 +113,8 @@ and sub s l =
   | t::s -> List.append (tm t l) (sub s l)
 
 let tm c t s =
-  let l = list_functorialised s c in
   try
+    let l = list_functorialised s c in
     let c,assocs = ctx c l in
     c,List.hd (tm t assocs)
   with
@@ -130,10 +126,6 @@ let tm c t s =
     Error.functorialisation
       ("term: " ^ Unchecked.tm_to_string t)
       (Printf.sprintf "cannot functorialise meta-variables")
-  | FunctorialiseWithExplicit ->
-    Error.functorialisation
-      ("term: "^(Unchecked.tm_to_string t))
-      "cannot compute functorialisation with explicit arguments"
   | WrongNumberOfArguments ->
     Error.parsing_error
       ("term: " ^ (Unchecked.tm_to_string t))

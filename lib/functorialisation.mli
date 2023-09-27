@@ -1,4 +1,4 @@
 open Kernel.Unchecked_types
 
-val coh : coh -> Raw_types.subR -> coh
-val tm : ctx -> tm -> Raw_types.subR -> ctx * tm
+val coh : coh -> int list -> coh
+val tm : ctx -> tm -> int list -> ctx * tm
