@@ -11,7 +11,8 @@ let list_functorialised l c =
     | [],[] -> [], false
     | xf::l, (x,(_, true))::tgt ->
       let func,b = list l tgt in
-      (x,xf)::func, b || xf > 0
+      let f = xf > 0 in
+      (x,f)::func, b || f
     | (f::l), (_,(_, false))::tgt ->
       if !Settings.explicit_substitutions
       then list l tgt
@@ -39,8 +40,8 @@ let ctx_one_var c x =
 
 let ctx c l =
   List.fold_left
-    (fun (c,assocs) (x,i) ->
-       if i > 0 then
+    (fun (c,assocs) (x,f) ->
+       if f then
          let c,p = ctx_one_var c x in c, p::assocs
        else
          c, assocs)
