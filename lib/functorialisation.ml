@@ -8,10 +8,10 @@ exception WrongNumberOfArguments
 let list_functorialised l c =
   let rec list l c =
     match l,c with
-    | [],[] -> []
+    | [],[] -> [], false
     | xf::l, (x,(_, true))::tgt ->
-      let func = list l tgt in
-      (x,xf)::func
+      let func,b = list l tgt in
+      (x,xf)::func, b || xf > 0
     | (f::l), (_,(_, false))::tgt ->
       if !Settings.explicit_substitutions
       then list l tgt
@@ -53,8 +53,8 @@ let target_subst l =
 let coh coh s =
   let ps,ty = Unchecked.coh_data coh in
   let ct = Unchecked.ps_to_ctx ps in
-  let l = list_functorialised s ct in
-  if List.exists (fun (_,i) -> i > 0) l then
+  let l,is_f = list_functorialised s ct in
+  if is_f then
     try
       let ctx_base = Unchecked.ps_to_ctx ps in
       let ctx,assocs = ctx ctx_base l in
@@ -114,9 +114,11 @@ and sub s l =
 
 let tm c t s =
   try
-    let l = list_functorialised s c in
-    let c,assocs = ctx c l in
-    c,List.hd (tm t assocs)
+    let l,is_f = list_functorialised s c in
+    if is_f then
+      let c,assocs = ctx c l in
+      c,List.hd (tm t assocs)
+    else c,t
   with
   | NonMaximal x ->
     Error.functorialisation
