@@ -7,3 +7,8 @@ let whiskl (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y
 let whiskr (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (a : g -> h) = comp f [a]
 
 let whiskl2 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (a' : f -> g) (m : a -> a') (z : *) (h : y -> z) = whiskl [m] h
+
+let 302 (x : *) (y : *) (z : *) (f : x -> y) (g : x -> y ) (a : f -> g) (b : f -> g) (m : a -> b) (h : y -> z) (k : y -> z) (c : h -> k) = comp [[m]] [c]
+let 303 (x : *) (y : *) (z : *) (f : x -> y) (g : x -> y ) (a : f -> g) (b : f -> g) (m : a -> b) (h : y -> z) (k : y -> z) (c : h -> k) (d : h -> k) (n : c -> d) = comp [[m]] [[n]]
+
+let 504 (x : *) (y : *) (z : *) (f : x -> y) (g : x -> y ) (a : f -> g) (b : f -> g) (m : a -> b) (n : a -> b) (A : m -> n) (B : m -> n) (F : A -> B) (h : y -> z) (k : y -> z) (c : h -> k) (d : h -> k) (p : c -> d) (q : c -> d) (C : p -> q) = 303 [[F]] [C]
