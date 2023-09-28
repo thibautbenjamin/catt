@@ -21,7 +21,7 @@ let rec tm tm =
   let make_coh coh s susp =
     let coh = Suspension.coh susp coh in
     let coh = Functorialisation.coh coh (List.map snd s) in
-    let ps = fst (Unchecked.coh_data coh) in
+    let ps,_,_ = Unchecked.coh_data coh in
     let s, meta_types = sub_ps s ps in
     Coh(coh,s), meta_types
   in

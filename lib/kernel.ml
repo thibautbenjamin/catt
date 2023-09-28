@@ -486,7 +486,7 @@ and Coh : sig
   val algebraic : PS.t -> Ty.t ->  (Var.t * int) list -> t
   val check : Unchecked_types.coh -> (Var.t * int) list -> t
   val to_string : t -> string
-  val forget : t -> Unchecked_types.ps * Unchecked_types.ty
+  val forget : t -> Unchecked_types.ps * Unchecked_types.ty * string
 end
 =
 struct
@@ -514,7 +514,7 @@ struct
   let check coh names =
     try
       match coh with
-      | Unchecked_types.Cohdecl (ps,t) ->
+      | Unchecked_types.Cohdecl (ps,t,_) ->
         Io.info ~v:3
           (lazy
             (Printf.sprintf "checking coherence (%s,%s)"
@@ -528,7 +528,7 @@ struct
     with
     | NotAlgebraic ->
       let ty = match coh with
-        | Unchecked_types.Cohdecl (_, t) -> Unchecked.ty_to_string t
+        | Unchecked_types.Cohdecl (_, t,_) -> Unchecked.ty_to_string t
         | Unchecked_types.Cohchecked c -> Ty.to_string (Coh.ty c)
       in Error.not_valid_coherence (Unchecked.coh_to_string coh)
         (Printf.sprintf "type %s not algebraic in pasting scheme" ty)
@@ -537,7 +537,7 @@ struct
 
 
 
-  let forget (ps,ty,_) = PS.forget ps, Ty.forget ty
+  let forget (ps,ty,_) = PS.forget ps, Ty.forget ty, ""
 
   let to_string (ps,ty,_) =
     Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
@@ -556,7 +556,7 @@ and Unchecked_types : sig
     | Meta_tm of int
     | Coh of coh * sub_ps
   and coh =
-    | Cohdecl of ps * ty
+    | Cohdecl of ps * ty * string
     | Cohchecked of Coh.t
   and sub_ps = tm list
   type ctx = (Var.t * (ty * bool)) list
@@ -574,7 +574,7 @@ end = struct
     | Meta_tm of int
     | Coh of coh * sub_ps
   and coh =
-    | Cohdecl of ps * ty
+    | Cohdecl of ps * ty * string
     | Cohchecked of Coh.t
   and sub_ps = tm list
 
@@ -614,7 +614,7 @@ and Unchecked : sig
   val suspend_tm : Unchecked_types.tm -> Unchecked_types.tm
   val suspend_ctx : Unchecked_types.ctx -> Unchecked_types.ctx
   val suspend_sub_ps : Unchecked_types.sub_ps -> Unchecked_types.sub_ps
-  val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty
+  val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty * string
 end = struct
   let rec ps_to_string = function
     | Unchecked_types.Br l -> Printf.sprintf "[%s]"
@@ -642,10 +642,12 @@ end = struct
     | [] -> ""
     | t::s -> Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
   and coh_to_string = function
-    | Unchecked_types.Cohdecl(ps,ty) ->
-      Printf.sprintf "coh(%s,%s)"
-        (ps_to_string ps)
-        (ty_to_string ty)
+    | Unchecked_types.Cohdecl(ps,ty,name) ->
+      if !Settings.verbosity <= 3 then name
+      else
+        Printf.sprintf "coh(%s,%s)"
+          (ps_to_string ps)
+          (ty_to_string ty)
     | Unchecked_types.Cohchecked c ->
       Coh.to_string c
 
@@ -713,20 +715,20 @@ end = struct
       raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
   and check_equal_coh coh1 coh2 =
     match coh1, coh2 with
-    | Cohdecl(ps1, ty1), Cohdecl(ps2, ty2) ->
+    | Cohdecl(ps1, ty1,_), Cohdecl(ps2, ty2,_) ->
       check_equal_ps ps1 ps2;
       check_equal_ty ty1 ty2
-    | Cohchecked(coh1), Cohdecl(ps2,ty2) ->
-      let ps1, ty1 = Coh.forget coh1 in
+    | Cohchecked(coh1), Cohdecl(ps2,ty2,_) ->
+      let ps1, ty1, _ = Coh.forget coh1 in
       check_equal_ps ps1 ps2;
       check_equal_ty ty1 ty2
-    | Cohdecl(ps1,ty1), Cohchecked(coh2) ->
-      let ps2, ty2 = Coh.forget coh2 in
+    | Cohdecl(ps1,ty1,_), Cohchecked(coh2) ->
+      let ps2, ty2, _ = Coh.forget coh2 in
       check_equal_ps ps1 ps2;
       check_equal_ty ty1 ty2
     | Cohchecked(coh1), Cohchecked(coh2) ->
-      let ps1, ty1 = Coh.forget coh1 in
-      let ps2, ty2 = Coh.forget coh2 in
+      let ps1, ty1, _ = Coh.forget coh1 in
+      let ps2, ty2, _ = Coh.forget coh2 in
       check_equal_ps ps1 ps2;
       check_equal_ty ty1 ty2
   and check_equal_sub_ps s1 s2 =
@@ -792,11 +794,11 @@ end = struct
     | Coh (c,s) -> Coh(suspend_coh c, suspend_sub_ps s)
     | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
   and suspend_coh = function
-    | Cohdecl (p,t) -> Cohdecl(suspend_ps p, suspend_ty t)
+    | Cohdecl (p,t,name) -> Cohdecl(suspend_ps p, suspend_ty t, "!"^name)
     | Cohchecked c ->
       let p,t = Coh.ps c, Coh.ty c in
       let p,t = PS.forget p, Ty.forget t in
-      Cohdecl(suspend_ps p, suspend_ty t)
+      Cohdecl(suspend_ps p, suspend_ty t, "dummy") (*todo: manage name here*)
   and suspend_sub_ps = function
     | [] -> [Var (Var.Db 1); Var (Var.Db 0)]
     | t::s -> (suspend_tm t) :: (suspend_sub_ps s)
@@ -882,7 +884,7 @@ end = struct
 
   let coh_data coh =
     match coh with
-    | Unchecked_types.Cohdecl(ps,ty) -> ps,ty
+    | Unchecked_types.Cohdecl(ps,ty,name) -> ps,ty,name
     | Unchecked_types.Cohchecked c -> Coh.forget c
 end
 

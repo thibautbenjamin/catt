@@ -181,12 +181,7 @@ module Constraints_typing = struct
       match t with
     | Var v -> t, fst (List.assoc v ctx)
     | Meta_tm i -> t, List.assoc i meta_ctx
-    | Coh(c,s)->
-      let ps,ty =
-        match c with
-        | Cohdecl (ps,ty) -> ps,ty
-        | Cohchecked c -> Coh.forget c
-      in
+    | Coh(c,s)-> let ps,ty,_ = Unchecked.coh_data c in
       let s,tgt = Unchecked.sub_ps_to_sub s ps in
       let s = sub ctx meta_ctx s tgt cst in
       Coh(c,(List.map snd s)), Unchecked.ty_apply_sub ty s
