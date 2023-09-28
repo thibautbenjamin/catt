@@ -7,6 +7,11 @@ exception NotEqual of string * string
 exception DoubledVar of string
 exception MetaVariable
 
+(* Internal representation of a functorialisation: each position in
+   the list is a locally maximal variable and each integer indicates
+   how many time the corresponding position is functorialised *)
+type functorialisation_data = int list
+
 module Var = struct
   type t =
     | Name of string

@@ -1,3 +1,5 @@
+type functorialisation_data = int list
+
 module Var : sig
   type t =
     | Name of string
