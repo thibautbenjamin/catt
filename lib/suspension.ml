@@ -19,7 +19,7 @@ let coh i coh =
   | None -> Cohchecked coh
   | Some 0 -> Cohchecked coh
   | Some _ ->
-    let p,t,name = Coh.forget coh in
+    let p,t,(name,susp,f) = Coh.forget coh in
     let p = ps i p in
     let t = ty i t in
-    Cohdecl(p,t, "!"^name)
+    Cohdecl(p,t,(name,susp+1,f))

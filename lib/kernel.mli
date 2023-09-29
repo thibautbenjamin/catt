@@ -14,6 +14,8 @@ module Var : sig
 end
 
 module rec Unchecked_types : sig
+  type coh_pp_data = string * int * functorialisation_data option
+
   type ps = Br of ps list
 
   type ty =
@@ -25,7 +27,7 @@ module rec Unchecked_types : sig
     | Meta_tm of int
     | Coh of coh * sub_ps
   and coh =
-    | Cohdecl of ps * ty * string
+    | Cohdecl of ps * ty * coh_pp_data
     | Cohchecked of Coh.t
   and sub_ps = (tm * bool) list
   type ctx = (Var.t * (ty * bool)) list
@@ -36,7 +38,7 @@ end
 
 and Coh : sig
   type t
-  val forget : t -> Unchecked_types.ps * Unchecked_types.ty * string
+  val forget : t -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
 end
 
 open Unchecked_types
@@ -70,7 +72,7 @@ module Unchecked : sig
   val ps_to_string : ps -> string
   val ty_to_string : ty -> string
   val tm_to_string : tm -> string
-  val sub_ps_to_string : sub_ps -> string
+  val sub_ps_to_string : ?func : functorialisation_data -> sub_ps -> string
   val ctx_to_string : ctx -> string
   val sub_to_string : sub -> string
   val coh_to_string : Unchecked_types.coh -> string
@@ -93,7 +95,7 @@ module Unchecked : sig
   val suspend_ctx : ctx -> ctx
   val suspend_sub_ps : sub_ps -> sub_ps
   val check_equal_coh : coh -> coh -> unit
-  val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty * string
+  val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
 end
 
 val check_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
