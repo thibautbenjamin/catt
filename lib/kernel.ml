@@ -595,7 +595,7 @@ and Unchecked : sig
   val sub_ps_to_string : ?func : functorialisation_data -> Unchecked_types.sub_ps -> string
   val ctx_to_string : Unchecked_types.ctx -> string
   val sub_to_string : Unchecked_types.sub -> string
-  val coh_pp_data_to_string : Unchecked_types.coh_pp_data -> string
+  val coh_pp_data_to_string : ?print_func:bool -> Unchecked_types.coh_pp_data -> string
   val coh_to_string : Unchecked_types.coh -> string
   val meta_ctx_to_string : Unchecked_types.meta_ctx -> string
   val check_equal_ty : Unchecked_types.ty -> Unchecked_types.ty -> unit
@@ -620,6 +620,10 @@ and Unchecked : sig
   val suspend_sub_ps : Unchecked_types.sub_ps -> Unchecked_types.sub_ps
   val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
 end = struct
+
+  let rec func_to_string = function
+    | [] -> ""
+    | i::func -> Printf.sprintf "%s%d" (func_to_string func) i
 
   let coh_data coh =
     match coh with
@@ -680,19 +684,30 @@ end = struct
           Printf.sprintf "%s %s" (sub_ps_to_string ~func s) (tm_to_string t)
         else sub_ps_to_string ~func s
       | _::_,[] | [], _::_ -> Error.fatal "Wrong number of functorialisation arguments"
-  and coh_pp_data_to_string (name, susp, _) =
+  and coh_pp_data_to_string ?(print_func=false) (name, susp, func) =
+    let susp_name =
       if susp > 0 then Printf.sprintf "!%i%s" susp name else name
-  and coh_to_string = function
+    in
+    if print_func
+    then
+      match func with
+      | None -> susp_name
+      | Some func -> let func = func_to_string func in susp_name^"/"^func
+    else susp_name
+  and coh_to_string ?(print_func=false) c =
+    match c with
     | Unchecked_types.Cohdecl(ps,ty,coh_pp_data) ->
       if not (!Settings.unroll_coherences) then
-        coh_pp_data_to_string coh_pp_data
+        coh_pp_data_to_string ~print_func coh_pp_data
       else
         (Printf.sprintf "coh(%s,%s)"
-          (ps_to_string ps)
-          (ty_to_string ty))
+           (ps_to_string ps)
+           (ty_to_string ty))
     | Unchecked_types.Cohchecked c ->
       Coh.to_string c
   and bracket i s = if i <= 0 then s else Printf.sprintf "[%s]" (bracket (i-1) s)
+
+  let coh_to_string c = coh_to_string ~print_func:true c
 
   let rec ctx_to_string = function
     | [] -> ""

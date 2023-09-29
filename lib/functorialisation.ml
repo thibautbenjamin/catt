@@ -122,7 +122,7 @@ let coh c s =
   with
     NonMaximal x ->
     Error.functorialisation
-      ("coherence: " ^ Unchecked.coh_to_string(c))
+      ("coherence: " ^ Unchecked.coh_to_string c)
       (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
 
 (*
