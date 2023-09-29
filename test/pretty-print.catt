@@ -25,5 +25,9 @@ let 302 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (b : f -> g) (F :
 let 202 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y -> z) (k : y -> z) (c : h -> k) = comp [a] [c]
 let 302bis (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (b : f -> g) (F : a -> b) (z : *) (h : y -> z) (k : y -> z) (c : h -> k) = 202 [F] c
 
+
 set unroll_coherences = t
 check (x : *) (f : x -> x) = comp (sq f) (cbd f)
+
+set unroll_coherences = f
+check (x : *) (f : x -> x) = test [id (id f)]
