@@ -13,24 +13,20 @@ exception WrongNumberOfArguments
    the functorialisation that are left to perform after functorialising
    all the adequate variables once
 *)
-let list_functorialised l c =
-  let rec list l c =
-    match l,c with
-    | [],[] -> [],[]
-    | xf::l, (x,(_, true))::tgt ->
-      let func,next_func_data = list l tgt in
-      let func = if  xf > 0  then x::func else func in
-      func,(xf-1)::next_func_data
-    | (f::l), (_,(_, false))::tgt ->
-      if !Settings.explicit_substitutions
-      then list l tgt
-      else list (f::l) tgt
-    | [], (_,(_, false))::tgt ->
-      if !Settings.explicit_substitutions
-      then raise WrongNumberOfArguments
-      else list [] tgt
-    | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
-  in list l c
+let list_functorialised c l =
+  let exp = !Settings.explicit_substitutions in
+  let rec list c l =
+    match c,l,exp with
+    | [],[],_ -> [],[]
+    | (x,(_, true))::tgt, xf::l, _ ->
+      let func, next = list tgt l in
+      (if xf > 0 then x::func else func), (xf-1)::next
+    | _::tgt, _::l, true -> list tgt l
+    | _::tgt, f::l, false -> list tgt (f::l)
+    | (_,(_, false))::tgt, [], false -> list tgt []
+    | (_,(_, false))::_, [], true
+    | _::_,[],_ |[],_::_,_ -> raise WrongNumberOfArguments
+  in list c l
 
 (*
    Functorialisation of a context wrt a variable. For contexts,
@@ -87,7 +83,7 @@ let coh_one_step ps ty l =
 *)
 let rec coh (ps,ty) s =
   let ct = Unchecked.ps_to_ctx ps in
-  let l,next = list_functorialised s ct in
+  let l, next = list_functorialised ct s in
   if l <> [] then coh (coh_one_step ps ty l) next
   else ps,ty
 
@@ -159,7 +155,7 @@ and sub s l =
    functorialisation data
 *)
 let rec tm c t s =
-  let l,next = list_functorialised s c in
+  let l, next = list_functorialised c s in
   if l <> [] then
     let c,assocs = ctx_one_step c l in
     tm c (List.hd (tm_one_step t assocs)) next
