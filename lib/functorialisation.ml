@@ -118,6 +118,14 @@ let coh c s =
     Error.functorialisation
       ("coherence: " ^ Coh.to_string c)
       (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
+  | FunctorialiseMeta ->
+    Error.functorialisation
+      ("coherence: " ^ Coh.to_string c)
+      (Printf.sprintf "cannot functorialise meta-variables")
+  | WrongNumberOfArguments ->
+    Error.parsing_error
+      ("coherence: " ^ Coh.to_string c)
+      "wrong number of arguments provided"
 
 (*
    Given a context, a substitution and a list of variables, returns
