@@ -1,3 +1,5 @@
+type functorialisation_data = int list
+
 module Var : sig
   type t =
     | Name of string
@@ -90,6 +92,7 @@ module Unchecked : sig
   val suspend_ctx : ctx -> ctx
   val suspend_sub_ps : sub_ps -> sub_ps
   val check_equal_coh : coh -> coh -> unit
+  val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty
 end
 
 val check_term : Ctx.t -> ?ty:ty -> tm -> Tm.t

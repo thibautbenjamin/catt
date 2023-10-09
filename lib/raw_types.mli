@@ -14,4 +14,4 @@ and tmR =
   | Builtin of builtin * subR * int option
   | Sub of tmR * subR * int option
   | Meta
-and subR = (tmR * bool) list
+and subR = (tmR * int) list

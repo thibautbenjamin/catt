@@ -3,7 +3,7 @@ open Raw_types
 
 val string_of_ty : tyR -> string
 val string_of_tm : tmR -> string
-val string_of_sub : (tmR * bool) list -> string
+val string_of_sub : subR -> string
 val remove_let_tm : tmR -> tmR
 val remove_let_ty : tyR -> tyR
 val var_in_ty : Var.t -> tyR  -> bool

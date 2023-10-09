@@ -1,5 +1,5 @@
 open Kernel
 open Kernel.Unchecked_types
 
-val coh : ps -> ty -> Var.t list -> coh * ps
-val tm : ctx -> tm -> Var.t list -> ctx * tm
+val coh : coh -> functorialisation_data -> coh
+val tm : ctx -> tm -> functorialisation_data -> ctx * tm

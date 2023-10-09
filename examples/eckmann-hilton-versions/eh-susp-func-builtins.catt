@@ -115,30 +115,6 @@ coh rew5id@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
 		      (x5 : *) (f5 : x4 -> x5) :
 		      comp f1 f2 [id f3] f4 f5 -> id (comp f1 f2 f3 f4 f5)
 
-
-### Rewriting in a rewriting
-# Format : rrew(n)@(k) (n = arity, k < n, k = where to perform the rewriting)
-coh rrew2A (x : *) (y : *) (f : x -> y) (g : x -> y) (a0 : f -> g) (a1 : f -> g) (al : a0 -> a1)
-    	      	   (z : *) (h : y -> z) (k : y -> z) (b0 : h -> k) (b1 : h -> k) (bet : b0 -> b1) :
-		   comp [a0] [b0] -> comp [a1] [b1]
-
-coh rrew3A (x0 : *) (x1 : *) (f1 : x0 -> x1) (g1 : x0 -> x1) (a1 : f1 -> g1) (a2 : f1 -> g1)
-    	      	       	     	      	    	      	    	(al : a1 -> a2)
-                       (x2 : *) (f2 : x1 -> x2) (g2 : x1 -> x2) (b1 : f2 -> g2) (b2 : f2 -> g2)
-		       	     	      	    	      	    	(bet : b1 -> b2)
-		       (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (c1 : f3 -> g3) (c2 : f3 -> g3)
-		       	     	      	    	      	    	(gam : c1 -> c2) :
-     		       comp [a1] [b1] [c1] -> comp [a2] [b2] [c2]
-
-coh rrew5@3 (x0 : *) (x1 : *) (f1 : x0 -> x1)
-                     (x2 : *) (f2 : x1 -> x2)
-		     (x3 : *) (f3 : x2 -> x3) (g3 : x2 -> x3) (a : f3 -> g3)
-		       	    	     	    	     	      (b : f3 -> g3) (c : a -> b)
-		     (x4 : *) (f4 : x3 -> x4)
-		     (x5 : *) (f5 : x4 -> x5) :
-		     comp f1 f2 [a] f4 f5 -> comp f1 f2 [b] f4 f5
-
-
 ### interchanging left and right unitors when possible
 coh id2@/1-,2-/     (x : *) :  id2@1- (id x) -> id2@2- (id x)
 coh id2@/1-,2-/-    (x : *) :  id2@2- (id x) -> id2@1- (id x)
@@ -152,8 +128,6 @@ coh id2@2@1U- (x : *) : id (comp (id x) (id x)) -> comp (id2@2 (id x)) (id2@1- (
 
 coh id2@1@2U   (x : *) : comp (id2@1 (id x)) (id2@2- (id x)) -> id (comp (id x) (id x))
 coh id2@1@2U-  (x : *) : id (comp (id x) (id x)) -> comp (id2@1 (id x)) (id2@2- (id x))
-
-
 
 ### DEFINITION OF TACTICS
 
@@ -239,7 +213,7 @@ let simplrew2A (x : *) (y : *) (z : *)
 	       (a1 : f1 -> f2) (a2 : f2 -> f1) (b1 : g1 -> g2) (b2 : g2 -> g1)
 	       (aU : comp a1 a2 -> id f1) (bU : comp b1 b2 -> id g1) =
 	       comp (rew2compA a1 a2 b1 b2)
-	       	     (rrew2A aU bU)
+	       	     (comp [[aU]] [[bU]])
 		     (rew2idA f1 g1)
 
 let simplrew3A (x0 : *) (x1 : *) (x2 : *) (x3 : *)
@@ -249,7 +223,7 @@ let simplrew3A (x0 : *) (x1 : *) (x2 : *) (x3 : *)
 	       	     	       	     	       (c1 : f3 -> g3) (c2 : g3 -> f3)
 	       (aU : comp a1 a2 -> id f1) (bU : comp b1 b2 -> id f2) (cU : comp c1 c2 -> id f3) =
 comp (rew3compA a1 a2 b1 b2 c1 c2)
-      (rrew3A aU bU cU)
+      (comp [[aU]] [[bU]] [[cU]])
       (rew3idA f1 f2 f3)
 
 let simplrew5 (x0 : *) (x1 : *) (x2 : *) (x3 : *) (x4 : *) (x5 : *)
@@ -257,7 +231,7 @@ let simplrew5 (x0 : *) (x1 : *) (x2 : *) (x3 : *) (x4 : *) (x5 : *)
 	      (f3 : x2 -> x3) (g3 : x2 -> x3) (a : f3 -> g3) (b : g3 -> f3) (abU : comp a b -> id f3)
 	      (f4 : x3 -> x4) (f5 : x4 -> x5)  =
 comp (rew5comp@3 f1 f2 a b f4 f5)
-      (rrew5@3 f1 f2 abU f4 f5)
+      (comp f1 f2 [[abU]] f4 f5)
       (rew5id@3 f1 f2 f3 f4 f5)
 
 
