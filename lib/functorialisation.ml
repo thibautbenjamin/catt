@@ -152,8 +152,8 @@ let rec tm_one_step t l expl=
     end
   | Coh(c,s) ->
     begin
-      match l with
-      | _::_ ->
+      if List.exists (fun (x,_) -> Unchecked.tm_contains_var t x) l
+      then
         let ps,_,_ = Unchecked.coh_data c in
         let cohf =
           let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
@@ -161,9 +161,9 @@ let rec tm_one_step t l expl=
         in
         let sf = sub s l in
         let l' = target_subst l in
-        let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t l',expl) s in
-        [Coh(cohf,sf), true; Coh(c,s'), false; Coh(c,s), false]
-      | [] -> [Coh(c,s), expl]
+        let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t l', expl) s in
+        [Coh(cohf,sf), true;Coh(c,s'), false;Coh(c,s), false]
+      else [Coh(c,s), expl]
     end
   | Meta_tm _ -> (raise FunctorialiseMeta)
 and sub s l =

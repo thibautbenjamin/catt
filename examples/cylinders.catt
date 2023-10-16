@@ -1,10 +1,11 @@
-coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
-coh assoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w): comp f (comp g h) ->  comp (comp f g) h
-coh whiskr (x : *) (y : *) (f : x -> y)  (g : x -> y) (m : f -> g) (z : *) (h : y -> z) : comp f h -> comp g h
-coh whiskl (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g ->h) : comp f g -> comp f h
-coh natassoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (w : *) (k : z -> w) : comp (assoc f g k) (whiskr (whiskl f m) k) -> comp (whiskl f (whiskr m k)) (assoc f h k)
-coh whiskl3 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (n : g -> h) (a : m -> n) : whiskl f m -> whiskl f n
-coh whiskr3 (x : *) (y : *) (f : x -> y)  (g : x -> y) (m : f -> g) (n : f -> g) (a : m -> n) (z : *) (h : y -> z) : whiskr m h -> whiskr n h
-let test1 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (n : g -> h) (a : m -> n) (w : *) (k : z -> w) = comp (natassoc f m k) (whiskr (whiskl3 f (whiskr3 a k)) (assoc f h k))
-let test2 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (n : g -> h) (a : m -> n) (w : *) (k : z -> w) = comp (whiskl (assoc f g k) (whiskr3 (whiskl3 f a) k)) (natassoc f n k)
-coh natnatassoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (n : g -> h) (a : m -> n) (w : *) (k : z -> w) : comp (natassoc f m k) (whiskr (whiskl3 f (whiskr3 a k)) (assoc f h k)) -> comp (whiskl (assoc f g k) (whiskr3 (whiskl3 f a) k)) (natassoc f n k)
+let src (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) = comp f (comp g h)
+let tgt (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) = comp (comp f g) h
+
+coh assoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w): src f g h ->  tgt f g h
+
+let srcnat (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (w : *) (k : z -> w) = comp (assoc f g k) (tgt f [m] k)
+let tgtnat (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (w : *) (k : z -> w) = comp (src f [m] k) (assoc f h k)
+
+coh natassoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (w : *) (k : z -> w) : srcnat f m k -> tgtnat f m k
+
+coh natnatassoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (n : g -> h) (a : m -> n) (w : *) (k : z -> w) : comp (natassoc f m k) (tgtnat f [a] k) -> comp (srcnat f [a] k) (natassoc f n k)
