@@ -64,7 +64,7 @@ module Constraints = struct
   and unify_sub cst s1 s2 =
     match s1, s2 with
     | [],[] -> ()
-    | t1::s1, t2::s2 -> unify_tm cst t1 t2; unify_sub cst s1 s2
+    | (t1,_)::s1, (t2,_)::s2 -> unify_tm cst t1 t2; unify_sub cst s1 s2
     | [], _::_ | _::_,[] ->
       raise (NotUnifiable (Unchecked.sub_ps_to_string s1, Unchecked.sub_ps_to_string s2))
 
@@ -87,7 +87,7 @@ let rec tm_replace_meta_tm (i,tm') tm =
   | Meta_tm j when i = j -> tm'
   | Meta_tm _ -> tm
   | Var v -> Var v
-  | Coh(c,s) -> Coh(c, List.map (tm_replace_meta_tm (i,tm')) s)
+  | Coh(c,s) -> Coh(c, List.map (fun (t,expl) -> tm_replace_meta_tm (i,tm') t, expl) s)
 
 let rec ty_replace_meta_tm (i,tm') ty =
   match ty with
@@ -171,7 +171,7 @@ end
 module Constraints_typing = struct
 
   let rec tm ctx meta_ctx t cst =
-    Io.info ~v:4
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "constraint typing term %s in ctx %s, meta_ctx %s"
@@ -181,17 +181,12 @@ module Constraints_typing = struct
       match t with
     | Var v -> t, fst (List.assoc v ctx)
     | Meta_tm i -> t, List.assoc i meta_ctx
-    | Coh(c,s)->
-      let ps,ty =
-        match c with
-        | Cohdecl (ps,ty) -> ps,ty
-        | Cohchecked c -> Coh.forget c
-      in
-      let s,tgt = Unchecked.sub_ps_to_sub s ps in
-      let s = sub ctx meta_ctx s tgt cst in
-      Coh(c,(List.map snd s)), Unchecked.ty_apply_sub ty s
+    | Coh(c,s)-> let ps,ty,_ = Unchecked.coh_data c in
+      let s1,tgt = Unchecked.sub_ps_to_sub s ps in
+      let s1 = sub ctx meta_ctx s1 tgt cst in
+      Coh(c,(List.map2 (fun (_,t) (_,expl) -> t,expl) s1 s)), Unchecked.ty_apply_sub ty s1
   and sub src meta_ctx s tgt cst =
-    Io.info ~v:4
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "constraint typing substitution %s in ctx %s, \
@@ -209,7 +204,7 @@ module Constraints_typing = struct
       (x,u)::s
     |[],_::_ | _::_, [] -> Error.fatal "wrong number of arguments"
   and ty ctx meta_ctx t cst =
-    Io.info ~v:4
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "constraint typing type %s in ctx %s, meta_ctx %s"
@@ -227,6 +222,9 @@ module Constraints_typing = struct
       Arr (a,u,v)
     | Meta_ty _ -> t
 
+  let tm ctx meta_ctx t cst =
+    fst (tm ctx meta_ctx t cst)
+
   let rec ctx c meta_ctx =
     match c with
     | [] -> [], {Constraints.uty=[]; utm=[]}
@@ -243,11 +241,9 @@ end
 
 let ctx c =
   let c,meta_ctx = Translate_raw.ctx c in
+  Io.info ~v:2 (lazy (Printf.sprintf "elaborating context %s" (Unchecked.ctx_to_string c)));
   let c,_ = Constraints_typing.ctx c meta_ctx in
-  Io.info ~v:4
-    (lazy
-      (Printf.sprintf
-         "elaborated context:%s" (Unchecked.ctx_to_string c)));
+  Io.info ~v:4 (lazy (Printf.sprintf "elaborated context:%s" (Unchecked.ctx_to_string c)));
   c
 
 let preprocess_ty ctx ty =
@@ -268,20 +264,33 @@ let rec preprocess_ctx = function
     let c = preprocess_ctx c in
     (v, preprocess_ty c t)::c
 
+let resolve_constraints ~ty_fn ~sub_fn ~print_fn ~kind ctx meta_ctx x =
+  let name = kind^": "^(print_fn x) in
+  Io.info ~v:2 (lazy (Printf.sprintf "inferring constraints for %s" name));
+  let cst = Constraints.create() in
+  try
+    let x = ty_fn ctx meta_ctx x cst in
+    Io.info ~v:4 (lazy (Printf.sprintf "inferred constraints:%s" (Constraints._to_string cst)));
+    let x = sub_fn (Constraints.resolve cst) x in
+    Io.info ~v:3 (lazy (Printf.sprintf "%s elaborated to %s" kind (print_fn x)));
+    ctx, x
+  with
+  | NotUnifiable(a,b) -> Error.unsatisfiable_constraints
+                           name
+                           (Printf.sprintf "could not unify %s and %s" a b)
+
 let ty c ty =
   try
     let c = preprocess_ctx c in
     let ty = preprocess_ty c ty in
     let c = ctx c in
     let ty, meta_ctx = Translate_raw.ty ty in
-    let cst = Constraints.create () in
-    try
-      let ty = Constraints_typing.ty c meta_ctx ty cst in
-      c,Constraints.substitute_ty (Constraints.resolve cst) ty
-    with
-    | NotUnifiable(x,y) -> Error.unsatisfiable_constraints
-                             ("type: "^(Unchecked.ty_to_string ty))
-                             (Printf.sprintf "could not unify %s and %s" x y)
+    resolve_constraints
+      ~ty_fn:Constraints_typing.ty
+      ~sub_fn:Constraints.substitute_ty
+      ~print_fn:Unchecked.ty_to_string
+      ~kind:"type"
+      c meta_ctx ty
   with
     Error.UnknownId(s) -> raise (Error.unknown_id s)
 
@@ -291,18 +300,12 @@ let tm c tm =
     let tm = preprocess_tm c tm in
     let c = ctx c in
     let tm, meta_ctx = Translate_raw.tm tm in
-    let cst = Constraints.create () in
-    try
-      let tm,_ = Constraints_typing.tm c meta_ctx tm cst in
-      Io.info ~v:4
-        (lazy
-          (Printf.sprintf
-             "inferred constraints:%s" (Constraints._to_string cst)));
-      c,Constraints.substitute_tm (Constraints.resolve cst) tm
-    with
-    | NotUnifiable(x,y) -> Error.unsatisfiable_constraints
-                             ("term: "^(Unchecked.tm_to_string tm))
-                             (Printf.sprintf "could not unify %s and %s" x y)
+    resolve_constraints
+      ~ty_fn:Constraints_typing.tm
+      ~sub_fn:Constraints.substitute_tm
+      ~print_fn:Unchecked.tm_to_string
+      ~kind:"term"
+      c meta_ctx tm
   with
     Error.UnknownId(s) -> raise (Error.unknown_id s)
 
@@ -312,22 +315,16 @@ let ty_in_ps ps t =
     let t = preprocess_ty ps t in
     let ps = ctx ps in
     let t, meta_ctx = Translate_raw.ty t in
-    let cst = Constraints.create () in
     let t =
-      try
-        let t = Constraints_typing.ty ps meta_ctx t cst in
-        Io.info ~v:4
-          (lazy
-            (Printf.sprintf
-               "inferred constraints:%s" (Constraints._to_string cst)));
-        Constraints.substitute_ty (Constraints.resolve cst) t
-      with
-      | NotUnifiable(x,y) -> Error.unsatisfiable_constraints
-                               ("type: "^(Unchecked.ty_to_string t))
-                               (Printf.sprintf "could not unify %s and %s" x y)
+      resolve_constraints
+        ~ty_fn:Constraints_typing.ty
+        ~sub_fn:Constraints.substitute_ty
+        ~print_fn:Unchecked.ty_to_string
+        ~kind:"type"
+        ps meta_ctx t
     in
     let _, names,_ = Unchecked.db_levels ps in
     Kernel.PS.(forget (mk (Kernel.Ctx.check ps))),
-    Unchecked.rename_ty t names
+    Unchecked.rename_ty (snd t) names
   with
     Error.UnknownId(s) -> raise (Error.unknown_id s)

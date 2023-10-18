@@ -17,24 +17,26 @@ let add_let v c ?ty t =
   let ty = Kernel.(Ty.forget (Tm.typ tm)) in
   let dim_input = Unchecked.dim_ctx c in
   let dim_output = Unchecked.dim_ty ty in
-  Io.info ~v:2
+  Io.info ~v:4
     (lazy
       (Printf.sprintf
-         "defined term %s of type %s"
+         "term %s of type %s added to environment"
          (Unchecked.tm_to_string t)
          (Unchecked.ty_to_string ty)));
-  Hashtbl.add env v ({value = Tm (c,t); dim_input; dim_output})
+  Hashtbl.add env v ({value = Tm (c,t); dim_input; dim_output});
+  (t,ty)
 
 let add_coh v ps ty =
-  let coh = check_coh (Cohdecl(ps,ty)) [] in
+  let coh = check_coh (Cohdecl(ps,ty,(Var.to_string v, 0, None))) in
   let dim_input = Unchecked.dim_ps ps in
   let dim_output = Unchecked.dim_ty ty in
-  Io.info ~v:2
+  Io.info ~v:4
     (lazy
       (Printf.sprintf
-         "defined coherence %s"
+         "coherence %s added to environment"
          (Var.to_string v)));
-  Hashtbl.add env v ({value = Coh coh; dim_input; dim_output})
+  Hashtbl.add env v ({value = Coh coh; dim_input; dim_output});
+  Cohchecked coh
 
 let find v =
   try Hashtbl.find env v

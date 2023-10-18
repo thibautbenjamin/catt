@@ -62,41 +62,67 @@ let ctx_one_step c l =
 let target_subst l =
   List.map (fun (x,(y,_)) -> (x,y)) l
 
+(* compute a new functorialisation data from an old functorialisation
+   data and a list of variables to be functorialised. This also needs
+   a context as argument, to establish the connection between the name
+   f the variables and their positions as locally maximal variables. *)
+let add_functorialisation c func l =
+  let rec add c func =
+    match c,func with
+    | [],func -> func
+    | (x,(_,true))::c,i::func when List.mem x l -> (i+1)::(add c func)
+    | (_,(_,true))::c,i::func -> i::(add c func)
+    | (_,_)::c,func -> (add c func)
+  in
+  let rec make c =
+    match c with
+    | [] -> []
+    | (x,(_,true))::c when List.mem x l -> +1::(make c)
+    | (_,(_,true))::c -> 0::(make c)
+    | (_,_)::c -> (make c)
+  in
+  match func with
+  | None -> make c
+  | Some func -> add c func
+
 (*
    Functorialisation of a coherence once with respect to a list of
    variables
 *)
-let coh_one_step ps ty l =
+let coh_one_step coh l =
+  let ps,ty,(name,susp,func) = Unchecked.coh_data coh in
   let ctx_base = Unchecked.ps_to_ctx ps in
   let ctx,assocs = ctx_one_step ctx_base l in
-  let tm = Coh (Cohdecl(ps,ty),(Unchecked.identity_ps ctx_base)) in
+  let tm = Coh (Cohdecl(ps,ty,(name,susp,func)),(Unchecked.identity_ps ctx_base)) in
   let tm_f = Unchecked.tm_apply_sub tm (target_subst assocs) in
   let ty = Arr (ty, tm, tm_f) in
   let ps = Kernel.PS.(forget (mk (Kernel.Ctx.check ctx))) in
   let _, names,_ = Unchecked.db_levels ctx in
   let ty = Unchecked.rename_ty ty names in
-  ps,ty
+  let newf = add_functorialisation ctx_base func l in
+  Cohdecl (ps,ty, (name,susp, Some newf))
+
 
 (*
    Functorialisation of a coherence possibly multiple times, with
    respect to a functorialisation data
 *)
-let rec coh (ps,ty) s =
+let rec coh c s =
+  let ps,_,_ = Unchecked.coh_data c in
   let ct = Unchecked.ps_to_ctx ps in
   let l, next = list_functorialised ct s in
-  if l <> [] then coh (coh_one_step ps ty l) next
-  else ps,ty
+  if l <> [] then coh (coh_one_step c l) next
+  else c
 
 (*
    Functorialisation of a coherence: exposed function
 *)
 let coh c s =
-  let ps,ty = Unchecked.coh_data c in
-  try let ps,ty = coh (ps,ty) s in Cohdecl(ps,ty)
+  try coh c s
   with
     NonMaximal x ->
     Error.functorialisation
-      ("coherence: " ^ Unchecked.coh_to_string(Cohdecl(ps,ty)))
+      ("coherence: " ^ Unchecked.coh_to_string c)
       (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
 
 (*
@@ -107,7 +133,7 @@ let coh c s =
 let rec find_places ctx s l =
   match ctx,s with
   | [], [] -> []
-  | (x,(_,true))::c,  t::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
+  | (x,(_,true))::c,  (t,_)::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
   | _::c, _::s -> find_places c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
@@ -116,39 +142,34 @@ let rec find_places ctx s l =
    Returns a list containing the functorialise term followed by its
    target and its source.
 *)
-let rec tm_one_step t l =
+let rec tm_one_step t l expl=
   match t with
   | Var v ->
     begin
       match List.assoc_opt v l with
-      | Some (v',vf) -> [vf; v'; Var v]
-      | None -> [Var v]
+      | Some (v',vf) -> [vf, true; v', false; Var v, false]
+      | None -> [Var v, expl]
     end
   | Coh(c,s) ->
     begin
       match l with
       | _::_ ->
-        let ps = match c with
-          | Cohdecl(ps,_) -> ps
-          | Cohchecked c -> fst (Coh.forget c)
-        in
+        let ps,_,_ = Unchecked.coh_data c in
         let cohf =
           let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
-          let ps,ty = Unchecked.coh_data c in
-          let ps,ty = coh_one_step ps ty places in
-          Cohdecl(ps,ty)
+          coh_one_step c places
         in
         let sf = sub s l in
         let l' = target_subst l in
-        let s' = List.map (fun t -> Unchecked.tm_apply_sub t l') s in
-        [Coh(cohf,sf);Coh(c,s');Coh(c,s)]
-      | [] -> [Coh(c,s)]
+        let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t l',expl) s in
+        [Coh(cohf,sf), true; Coh(c,s'), false; Coh(c,s), false]
+      | [] -> [Coh(c,s), expl]
     end
   | Meta_tm _ -> (raise FunctorialiseMeta)
 and sub s l =
   match s with
   | [] -> []
-  | t::s -> List.append (tm_one_step t l) (sub s l)
+  | (t, expl)::s -> List.append (tm_one_step t l expl) (sub s l)
 
 (*
    Functorialisation a term possibly mutliple times with respect to a
@@ -158,7 +179,8 @@ let rec tm c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
     let c,assocs = ctx_one_step c l in
-    tm c (List.hd (tm_one_step t assocs)) next
+    let t = fst (List.hd (tm_one_step t assocs true)) in
+    tm c t next
   else c,t
 
 (*

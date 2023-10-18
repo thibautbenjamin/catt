@@ -1,0 +1,33 @@
+set explicit_substitutions = t
+
+coh id (x : *) : x -> x
+coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
+coh whiskr (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                   (z : *) (g : y -> z) : comp x y f z g -> comp x y f' z g
+coh whiskl (x : *) (y : *) (f : x -> y)
+                   (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') :  comp x y f z g -> comp x y f z g'
+coh horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                  (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') :
+		  comp x y f z g -> comp x y f' z g'
+
+let sq (x : *) (f : x -> x) = comp x x f x f
+
+let cbd (x : *) (f : x -> x) : x -> x = comp x x f x (comp x x f x f)
+
+
+set explicit_substitutions=f
+set verbosity = 2
+
+coh simpl (x : *) : sq (id x) -> id x
+
+coh test (x(f(a)g)y) : comp [a] [id (id y)] -> comp [a] (id y)
+let 302 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (b : f -> g) (F : a -> b) (z : *) (h : y -> z) (k : y -> z) (c : h -> k) = comp [[F]] [c]
+let 202 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y -> z) (k : y -> z) (c : h -> k) = comp [a] [c]
+let 302bis (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (b : f -> g) (F : a -> b) (z : *) (h : y -> z) (k : y -> z) (c : h -> k) = 202 [F] c
+
+
+set unroll_coherences = t
+check (x : *) (f : x -> x) = comp (sq f) (cbd f)
+
+set unroll_coherences = f
+check (x : *) (f : x -> x) = test [id (id f)]

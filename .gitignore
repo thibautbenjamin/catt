@@ -16,3 +16,4 @@ catt
 /_build/
 /catt.opam
 /_install/
+test/test.catt

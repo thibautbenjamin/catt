@@ -71,7 +71,7 @@ end
     List.concat (List.map Tm.free_vars s.list)
 
   let check src s tgt =
-    Io.info ~v:3
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "building kernel substitution \
@@ -99,7 +99,7 @@ end
   let check_to_ps src s tgt =
     let tgt = PS.to_ctx tgt in
     let s =
-      try List.map2 (fun (x,_) t -> (x,t)) (Ctx.value tgt) s
+      try List.map2 (fun (x,_) (t,_) -> (x,t)) (Ctx.value tgt) s
       with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
     in
     check src s tgt
@@ -387,7 +387,7 @@ struct
     | Arr(_,_,v) -> v
 
   let rec check c t =
-    Io.info ~v:3
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "building kernel type %s in context %s"
@@ -456,7 +456,7 @@ struct
   let _to_string tm = Unchecked.tm_to_string (forget tm)
 
   let check c ?ty t =
-    Io.info ~v:3
+    Io.info ~v:5
       (lazy
         (Printf.sprintf
            "building kernel term %s in context %s"
@@ -469,7 +469,7 @@ struct
         ({ty; e; unchecked = t})
       | Meta_tm _ -> raise MetaVariable
       | Coh (coh,s) ->
-        let coh = Coh.check coh [] in
+        let coh = Coh.check coh in
         let sub = Sub.check_to_ps c s (Coh.ps coh) in
         let e, ty = Coh(coh,sub), Ty.apply (Coh.ty coh) sub in
         {ty; e; unchecked = t}
@@ -483,22 +483,22 @@ and Coh : sig
   type t
   val ps : t -> PS.t
   val ty : t -> Ty.t
-  val algebraic : PS.t -> Ty.t ->  (Var.t * int) list -> t
-  val check : Unchecked_types.coh -> (Var.t * int) list -> t
+  val algebraic : PS.t -> Ty.t  -> Unchecked_types.coh_pp_data -> t
+  val check : Unchecked_types.coh -> t
   val to_string : t -> string
-  val forget : t -> Unchecked_types.ps * Unchecked_types.ty
+  val forget : t -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
 end
 =
 struct
-  type t = PS.t * Ty.t * (Var.t * int) list
+  type t = PS.t * Ty.t * Unchecked_types.coh_pp_data
   exception NotAlgebraic
 
   let ps (ps,_,_) = ps
   let ty (_,t,_) = t
 
-  let algebraic ps t l =
+  let algebraic ps t name =
     if List.included (PS.domain ps) (Ty.free_vars t)
-    then (ps,t,l)
+    then (ps,t, name)
     else
       let a,f,g =
         try Ty.retrieve_arrow t with IsObj -> raise NotAlgebraic
@@ -508,14 +508,14 @@ struct
       let fvf = List.union (Tm.free_vars f) (Ty.free_vars a) in
       let fvg = List.union (Tm.free_vars g) (Ty.free_vars a) in
       if (List.set_equal pss fvf && List.set_equal pst fvg)
-      then (ps,t,l)
+      then (ps,t,name)
       else raise NotAlgebraic
 
-  let check coh names =
+  let check coh =
     try
       match coh with
-      | Unchecked_types.Cohdecl (ps,t) ->
-        Io.info ~v:3
+      | Unchecked_types.Cohdecl (ps,t,name) ->
+        Io.info ~v:5
           (lazy
             (Printf.sprintf "checking coherence (%s,%s)"
                (Unchecked.ps_to_string ps)
@@ -523,28 +523,30 @@ struct
         let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
         let ps = PS.mk cps in
         let t = Ty.check cps t in
-        Coh.algebraic ps t names
+        Coh.algebraic ps t name
       | Unchecked_types.Cohchecked c -> c
     with
     | NotAlgebraic ->
       let ty = match coh with
-        | Unchecked_types.Cohdecl (_, t) -> Unchecked.ty_to_string t
+        | Unchecked_types.Cohdecl (_, t,_) -> Unchecked.ty_to_string t
         | Unchecked_types.Cohchecked c -> Ty.to_string (Coh.ty c)
       in Error.not_valid_coherence (Unchecked.coh_to_string coh)
         (Printf.sprintf "type %s not algebraic in pasting scheme" ty)
     | DoubledVar(s) ->
       Error.not_valid_coherence (Unchecked.coh_to_string coh) (Printf.sprintf "variable %s appears twice in the context" s)
 
+  let forget (ps,ty,pp_data) = PS.forget ps, Ty.forget ty, pp_data
 
-
-  let forget (ps,ty,_) = PS.forget ps, Ty.forget ty
-
-  let to_string (ps,ty,_) =
+  let to_string (ps,ty,coh_pp_data) =
+    if not (!Settings.unroll_coherences) then
+      Unchecked.coh_pp_data_to_string coh_pp_data
+    else
     Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 end
 
 
 and Unchecked_types : sig
+  type coh_pp_data = string * int * functorialisation_data option
   type ps = Br of ps list
 
   type ty =
@@ -556,13 +558,15 @@ and Unchecked_types : sig
     | Meta_tm of int
     | Coh of coh * sub_ps
   and coh =
-    | Cohdecl of ps * ty
+    | Cohdecl of ps * ty * coh_pp_data
     | Cohchecked of Coh.t
-  and sub_ps = tm list
+  and sub_ps = (tm * bool) list
   type ctx = (Var.t * (ty * bool)) list
   type sub = (Var.t * tm) list
   type meta_ctx = ((int * ty) list)
 end = struct
+  type coh_pp_data = string * int * functorialisation_data option
+
   type ps = Br of ps list
 
   type ty =
@@ -574,24 +578,24 @@ end = struct
     | Meta_tm of int
     | Coh of coh * sub_ps
   and coh =
-    | Cohdecl of ps * ty
+    | Cohdecl of ps * ty * coh_pp_data
     | Cohchecked of Coh.t
-  and sub_ps = tm list
+  and sub_ps = (tm * bool) list
 
   type ctx = (Var.t * (ty * bool)) list
 
   type sub = (Var.t * tm) list
 
   type meta_ctx = ((int * ty) list)
-
 end
 and Unchecked : sig
   val ps_to_string : Unchecked_types.ps -> string
   val ty_to_string : Unchecked_types.ty -> string
   val tm_to_string : Unchecked_types.tm -> string
-  val sub_ps_to_string : Unchecked_types.sub_ps -> string
+  val sub_ps_to_string : ?func : functorialisation_data -> Unchecked_types.sub_ps -> string
   val ctx_to_string : Unchecked_types.ctx -> string
   val sub_to_string : Unchecked_types.sub -> string
+  val coh_pp_data_to_string : ?print_func:bool -> Unchecked_types.coh_pp_data -> string
   val coh_to_string : Unchecked_types.coh -> string
   val meta_ctx_to_string : Unchecked_types.meta_ctx -> string
   val check_equal_ty : Unchecked_types.ty -> Unchecked_types.ty -> unit
@@ -614,8 +618,18 @@ and Unchecked : sig
   val suspend_tm : Unchecked_types.tm -> Unchecked_types.tm
   val suspend_ctx : Unchecked_types.ctx -> Unchecked_types.ctx
   val suspend_sub_ps : Unchecked_types.sub_ps -> Unchecked_types.sub_ps
-  val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty
+  val coh_data :Unchecked_types.coh -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
 end = struct
+
+  let rec func_to_string = function
+    | [] -> ""
+    | i::func -> Printf.sprintf "%s%d" (func_to_string func) i
+
+  let coh_data coh =
+    match coh with
+    | Unchecked_types.Cohdecl(ps,ty,name) -> ps,ty,name
+    | Unchecked_types.Cohchecked c -> Coh.forget c
+
   let rec ps_to_string = function
     | Unchecked_types.Br l -> Printf.sprintf "[%s]"
                 (List.fold_left
@@ -627,27 +641,73 @@ end = struct
     | Unchecked_types.Meta_ty i -> Printf.sprintf "_ty%i" i
     | Unchecked_types.Obj -> "*"
     | Unchecked_types.Arr (a,u,v) ->
-      Printf.sprintf "%s | %s -> %s"
-        (ty_to_string a)
-        (tm_to_string u)
-        (tm_to_string v)
+      if !Settings.verbosity >= 3 then
+        Printf.sprintf "%s | %s -> %s"
+          (ty_to_string a)
+          (tm_to_string u)
+          (tm_to_string v)
+      else
+        Printf.sprintf "%s -> %s"
+          (tm_to_string u)
+          (tm_to_string v)
   and tm_to_string = function
     | Unchecked_types.Var v -> Var.to_string v
     | Unchecked_types.Meta_tm i -> Printf.sprintf "_tm%i" i
     | Unchecked_types.Coh (c,s) ->
-      Printf.sprintf "%s[%s]"
-        (coh_to_string c)
-        (sub_ps_to_string s)
-  and sub_ps_to_string = function
-    | [] -> ""
-    | t::s -> Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
-  and coh_to_string = function
-    | Unchecked_types.Cohdecl(ps,ty) ->
-      Printf.sprintf "coh(%s,%s)"
-        (ps_to_string ps)
-        (ty_to_string ty)
+      if not (!Settings.unroll_coherences) then
+        let (_,_,(_,_,func)) = coh_data c in
+        Printf.sprintf "(%s%s)"
+          (coh_to_string c)
+          (sub_ps_to_string ?func s)
+      else
+        Printf.sprintf "%s[%s]"
+          (coh_to_string c)
+          (sub_ps_to_string s)
+  and sub_ps_to_string ?func s =
+    match func with
+    | None ->
+      begin
+        match s with
+        | [] -> ""
+        | (t,expl)::s ->
+          if(expl || !Settings.print_explicit_substitutions) then
+            Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
+          else sub_ps_to_string s
+      end
+    | Some func ->
+      match s,func with
+      | [],[] -> ""
+      | (t,true)::s, i::func ->
+        Printf.sprintf "%s %s" (sub_ps_to_string ~func s)  (bracket i (tm_to_string t))
+      | (t,false)::s, func ->
+        if(!Settings.print_explicit_substitutions) then
+          Printf.sprintf "%s %s" (sub_ps_to_string ~func s) (tm_to_string t)
+        else sub_ps_to_string ~func s
+      | _::_,[] | [], _::_ -> Error.fatal "Wrong number of functorialisation arguments"
+  and coh_pp_data_to_string ?(print_func=false) (name, susp, func) =
+    let susp_name =
+      if susp > 0 then Printf.sprintf "!%i%s" susp name else name
+    in
+    if print_func
+    then
+      match func with
+      | None -> susp_name
+      | Some func -> let func = func_to_string func in susp_name^"/"^func
+    else susp_name
+  and coh_to_string ?(print_func=false) c =
+    match c with
+    | Unchecked_types.Cohdecl(ps,ty,coh_pp_data) ->
+      if not (!Settings.unroll_coherences) then
+        coh_pp_data_to_string ~print_func coh_pp_data
+      else
+        (Printf.sprintf "coh(%s,%s)"
+           (ps_to_string ps)
+           (ty_to_string ty))
     | Unchecked_types.Cohchecked c ->
       Coh.to_string c
+  and bracket i s = if i <= 0 then s else Printf.sprintf "[%s]" (bracket (i-1) s)
+
+  let coh_to_string c = coh_to_string ~print_func:true c
 
   let rec ctx_to_string = function
     | [] -> ""
@@ -713,24 +773,24 @@ end = struct
       raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
   and check_equal_coh coh1 coh2 =
     match coh1, coh2 with
-    | Cohdecl(ps1, ty1), Cohdecl(ps2, ty2) ->
+    | Cohdecl(ps1, ty1,_), Cohdecl(ps2, ty2,_) ->
       check_equal_ps ps1 ps2;
       check_equal_ty ty1 ty2
-    | Cohchecked(coh1), Cohdecl(ps2,ty2) ->
-      let ps1, ty1 = Coh.forget coh1 in
+    | Cohchecked(coh1), Cohdecl(ps2,ty2,_) ->
+      let ps1, ty1, _ = Coh.forget coh1 in
       check_equal_ps ps1 ps2;
       check_equal_ty ty1 ty2
-    | Cohdecl(ps1,ty1), Cohchecked(coh2) ->
-      let ps2, ty2 = Coh.forget coh2 in
+    | Cohdecl(ps1,ty1,_), Cohchecked(coh2) ->
+      let ps2, ty2, _ = Coh.forget coh2 in
       check_equal_ps ps1 ps2;
       check_equal_ty ty1 ty2
     | Cohchecked(coh1), Cohchecked(coh2) ->
-      let ps1, ty1 = Coh.forget coh1 in
-      let ps2, ty2 = Coh.forget coh2 in
+      let ps1, ty1, _ = Coh.forget coh1 in
+      let ps2, ty2, _ = Coh.forget coh2 in
       check_equal_ps ps1 ps2;
       check_equal_ty ty1 ty2
   and check_equal_sub_ps s1 s2 =
-    List.iter2 check_equal_tm s1 s2
+    List.iter2 (fun (t1,_) (t2,_) -> check_equal_tm t1 t2) s1 s2
 
   let rec check_equal_ctx ctx1 ctx2 =
     match ctx1, ctx2 with
@@ -747,7 +807,7 @@ end = struct
     | Unchecked_types.Var v -> (f v)
     | Meta_tm i -> Unchecked_types.Meta_tm i
     | Coh(c,s) -> Coh (c, sub_ps_do_on_variables s f)
-  and sub_ps_do_on_variables s f = List.map (fun t -> tm_do_on_variables t f) s
+  and sub_ps_do_on_variables s f = List.map (fun (t,expl) -> tm_do_on_variables t f, expl) s
 
   let rec ty_do_on_variables ty f =
     match ty with
@@ -792,14 +852,13 @@ end = struct
     | Coh (c,s) -> Coh(suspend_coh c, suspend_sub_ps s)
     | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
   and suspend_coh = function
-    | Cohdecl (p,t) -> Cohdecl(suspend_ps p, suspend_ty t)
+    | Cohdecl (p,t,(name,susp,f)) -> Cohdecl(suspend_ps p, suspend_ty t, (name, susp+1, f))
     | Cohchecked c ->
-      let p,t = Coh.ps c, Coh.ty c in
-      let p,t = PS.forget p, Ty.forget t in
-      Cohdecl(suspend_ps p, suspend_ty t)
+      let p,t,(name,susp,f) = Coh.forget c in
+      Cohdecl(suspend_ps p, suspend_ty t, (name, susp+1, f))
   and suspend_sub_ps = function
-    | [] -> [Var (Var.Db 1); Var (Var.Db 0)]
-    | t::s -> (suspend_tm t) :: (suspend_sub_ps s)
+    | [] -> [Var (Var.Db 1), false; Var (Var.Db 0), false]
+    | (t,expl)::s -> (suspend_tm t, expl) :: (suspend_sub_ps s)
 
   let rec suspend_ctx = function
     | [] -> (Var.Db 1, (Unchecked_types.Obj, false)) :: (Var.Db 0, (Obj, false)) :: []
@@ -835,7 +894,7 @@ end = struct
 
   let sub_ps_to_sub s ps =
     let ps = ps_to_ctx ps in
-    try List.map2 (fun t (x,_) -> (x,t)) s ps, ps
+    try List.map2 (fun (t,_) (x,_) -> (x,t)) s ps, ps
     with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
 
   let max_fresh_var c =
@@ -853,12 +912,12 @@ end = struct
 
   let rec identity_ps = function
     | [] -> []
-    | (x,_)::c -> Unchecked_types.Var x :: (identity_ps c)
+    | (x,(_,expl))::c -> (Unchecked_types.Var x,expl) :: (identity_ps c)
 
   let rec tm_contains_var t x =
     match t with
     | Unchecked_types.Var v -> v = x
-    | Coh(_,s) -> List.exists (fun t -> tm_contains_var t x) s
+    | Coh(_,s) -> List.exists (fun (t,_) -> tm_contains_var t x) s
     | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
   let tm_contains_vars t l =
@@ -879,11 +938,6 @@ end = struct
   and max_list_ps = function
     | [] -> 0
     | p::l -> max (dim_ps p) (max_list_ps l)
-
-  let coh_data coh =
-    match coh with
-    | Unchecked_types.Cohdecl(ps,ty) -> ps,ty
-    | Unchecked_types.Cohchecked c -> Coh.forget c
 end
 
 include Unchecked_types

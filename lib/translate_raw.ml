@@ -21,7 +21,7 @@ let rec tm tm =
   let make_coh coh s susp =
     let coh = Suspension.coh susp coh in
     let coh = Functorialisation.coh coh (List.map snd s) in
-    let ps = fst (Unchecked.coh_data coh) in
+    let ps,_,_ = Unchecked.coh_data coh in
     let s, meta_types = sub_ps s ps in
     Coh(coh,s), meta_types
   in
@@ -48,22 +48,38 @@ let rec tm tm =
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
   | Sub(Builtin _, _,_) | Letin_tm _ -> Error.fatal("ill-formed term")
 and sub_ps s ps =
-  let sub,meta_types = sub s (Unchecked.ps_to_ctx ps) in
-  List.map snd sub, meta_types
-and sub s tgt =
+  let tgt = Unchecked.ps_to_ctx ps in
+  let rec aux s tgt =
+    match s,tgt with
+    | [],[] -> [],[]
+    | (t,_)::s, (_,(_, true))::tgt ->
+      let t,meta_types_t = tm t in
+      let s,meta_types_s = aux s tgt in
+      (t, true)::s,  List.append meta_types_t meta_types_s
+    | (t,_)::s, (_,(_, false))::tgt when !Settings.explicit_substitutions ->
+      let t,meta_types_t = tm t in
+      let s,meta_types_s = aux s tgt in
+      (t, false)::s,  List.append meta_types_t meta_types_s
+    | s, (_,(_,false))::tgt ->
+      let t,meta_type = new_meta_tm() in
+      let s,meta_types_s = aux s tgt in
+      (t, false)::s, meta_type::meta_types_s
+    | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
+  in aux s tgt
+and sub s  tgt  =
   match s,tgt with
   | [],[] -> [],[]
-  | (t,_)::s, (x,(_, true))::tgt ->
+  | (t,_)::s, (x,(_, e))::tgt when e || !Settings.explicit_substitutions ->
     let t, meta_types_t = tm t in
     let s,meta_types_s = sub s tgt in
     (x,t)::s,  List.append meta_types_t meta_types_s
-  | (t,_)::s, (x,(_, false))::tgt when !Settings.explicit_substitutions ->
-    let t, meta_types_t = tm t in
-    let s,meta_types_s = sub s tgt in
-    (x, t)::s, List.append meta_types_t meta_types_s
-  | s , (x,(_, false))::tgt ->
+  | (_::_) as s , (x,(_,_))::tgt ->
     let t, meta_type = new_meta_tm() in
     let s,meta_types_s = sub s tgt in
+    (x, t)::s, meta_type::meta_types_s
+  | [], (x,(_,false))::tgt ->
+    let t, meta_type = new_meta_tm() in
+    let s,meta_types_s = sub [] tgt in
     (x, t)::s, meta_type::meta_types_s
   | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
 
@@ -112,5 +128,5 @@ let ctx c =
 let rec sub_to_suspended = function
   | [] ->
     let (m1,mc1),(m0,mc0) = new_meta_tm(), new_meta_tm() in
-    [ m1; m0], [mc1; mc0]
+    [ m1, false; m0, false], [mc1; mc0]
   | t::s -> let s,m = sub_to_suspended s in t::s, m
