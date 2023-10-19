@@ -609,6 +609,7 @@ and Unchecked : sig
   val sub_ps_to_sub : Unchecked_types.sub_ps -> Unchecked_types.ps -> Unchecked_types.sub * Unchecked_types.ctx
   val two_fresh_vars : Unchecked_types.ctx -> Var.t * Var.t
   val identity_ps : Unchecked_types.ctx -> Unchecked_types.sub_ps
+  val tm_contains_var : Unchecked_types.tm -> Var.t -> bool
   val tm_contains_vars : Unchecked_types.tm -> Var.t list -> bool
   val dim_ty : Unchecked_types.ty -> int
   val dim_ctx : Unchecked_types.ctx -> int
