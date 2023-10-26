@@ -192,22 +192,49 @@ and sub s l =
   | (t, expl)::s -> List.append (tm_one_step t l expl) (sub s l)
 
 (*
-   Functorialisation a term possibly mutliple times with respect to a
+   Functorialisation a term possibly multiple times with respect to a
    functorialisation data
 *)
-let rec tm c t s =
+let rec tm_codim0 c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
     let c,assocs = ctx_one_step c l in
     let t = fst (List.hd (tm_one_step t assocs true)) in
-    tm c t next
+    tm_codim0 c t next
   else c,t
+
+let coh_bdry t =
+  let coh, _sub = match t with
+    | Coh(coh, sub) -> coh, sub
+    | _ ->
+      Error.functorialisation
+        ("term: " ^ Unchecked.tm_to_string t)
+        (Printf.sprintf "attempted to functorialise a term which is not a coherence")
+  in let _ps,ty,_ = Coh.forget coh in
+  match ty with
+    | Arr(_,u,v) -> u,v
+    | Meta_ty _ -> Error.fatal "functorialising coherence with meta type"
+    | Obj ->
+      Error.functorialisation
+        ("term: " ^ Unchecked.tm_to_string t)
+        (Printf.sprintf "attempted to functorialise a coherence of type *")
+
+let _tm_codim1 c t s =
+  let _l, _next = list_functorialised c s in
+  let u,v = coh_bdry t in
+  let uf = tm_codim0 c u s in
+  let vf = tm_codim0 c v s in
+  (*
+    let cf? =
+  *)
+  let _comp2 = Builtin.comp_n 2 in
+  uf,vf
 
 (*
    Functorialisation a term: exposed function
 *)
 let tm c t s =
-  try tm c t s
+  try tm_codim0 c t s
   with
   | NonMaximal x ->
     Error.functorialisation
