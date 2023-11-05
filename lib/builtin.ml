@@ -16,11 +16,7 @@ module Memo = struct
     check_coh (Br[]) (Arr(Obj,Var(Db 0),Var(Db 0))) ("builtin_id", 0, None)
 end
 
-let arity_comp s =
-  let n = List.length s in
-  if !Settings.explicit_substitutions then
-    (n-1)/2
-  else n
+let func_codim1_fn : (Coh.t -> Var.t list -> Coh.t) ref = ref (fun _ _ -> failwith "not initialised")
 
 let rec ps_comp i =
   match i with
@@ -36,6 +32,24 @@ let comp_n arity =
     Coh.check_noninv ps (Var (Db 0)) (Var(Db 0)) ("builtin_comp", 0, None)
   in
   Memo.find arity build_comp
+
+let arity_comp s =
+  let n = List.length s in
+  if n == 3 then
+      Printf.printf "Horrible hack: %s\n"
+      (Coh.to_string (!func_codim1_fn Memo.id [Db 0]));
+      (*
+      Printf.printf "Horrible hack: %s\n"
+      (Unchecked.coh_to_string (!func_codim1_fn (Cohchecked (check_coh
+        (Cohdecl(Br[Br[Br[]];Br[]],Arr((ty_comp 2),
+            Coh(Cohchecked(comp_n 2), [(Var(Db 4),true);(Var(Db 3),false);(Var(Db 2),true);(Var(Db 1),false);(Var(Db 0),false)]),
+            Coh(Cohchecked(comp_n 2), [(Var(Db 5),true);(Var(Db 3),false);(Var(Db 2),true);(Var(Db 1),false);(Var(Db 0),false)])),
+            ("whisk", 0, None))))
+      ) [Db 2]));
+      *)
+  if !Settings.explicit_substitutions then
+    (n-1)/2
+  else n
 
 let comp s =
   let arity = arity_comp s in
