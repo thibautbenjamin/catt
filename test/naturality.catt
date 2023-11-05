@@ -1,14 +1,14 @@
 set explicit_substitutions = f
 
-coh id (x : *) : x -> x
-coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
+set verbosity = 4
+set unroll_coherences = t
 
-let whiskl (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y -> z) = comp [a] h
 let whiskr (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (a : g -> h) = comp f [a]
 
-let whiskl2 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (a' : f -> g) (m : a -> a') (z : *) (h : y -> z) = whiskl [m] h
-
 set verbosity = 4
+set unroll_coherences = t
+
+coh unbiase (x(f)y(g)z(h)w) : comp (comp f g) h -> (comp f g h)
 
 let natid (x : *) (y : *) (f : x -> y) = id [f]
 
