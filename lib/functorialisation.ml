@@ -162,7 +162,7 @@ let rec find_places ctx s l =
    Returns a list containing the functorialise term followed by its
    target and its source.
 *)
-let rec tm_one_step t l expl=
+let rec tm_one_step_codim0 t l expl=
   match t with
   | Var v ->
     begin
@@ -189,7 +189,7 @@ let rec tm_one_step t l expl=
 and sub s l =
   match s with
   | [] -> []
-  | (t, expl)::s -> List.append (tm_one_step t l expl) (sub s l)
+  | (t, expl)::s -> List.append (tm_one_step_codim0 t l expl) (sub s l)
 
 (*
    Functorialisation a term possibly multiple times with respect to a
@@ -199,36 +199,72 @@ let rec tm_codim0 c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
     let c,assocs = ctx_one_step c l in
-    let t = fst (List.hd (tm_one_step t assocs true)) in
+    let t = fst (List.hd (tm_one_step_codim0 t assocs true)) in
     tm_codim0 c t next
   else c,t
 
-let coh_bdry t =
+(*
+   Codim 1
+   Functorialisation of a coherence once with respect to a list of
+   variables
+*)
+let coh_one_step_codim1 coh l =
+  let ps_base,ty,(name,susp,func) = Coh.forget coh in
+  let src,tgt = match ty with
+    | Arr(_,src,tgt) -> src,tgt
+    | Meta_ty _ -> Error.fatal "functorialising coherence with meta type"
+    | Obj ->
+      Error.functorialisation
+        ("type: " ^ Unchecked.ty_to_string ty)
+        (Printf.sprintf "attempted to functorialise a coherence of type *")
+  in let ctx_base = Unchecked.ps_to_ctx ps_base in
+  let ctx,assocs = ctx_one_step ctx_base l in
+  let ps = Kernel.PS.(forget (mk (Kernel.Ctx.check ctx))) in
+  let _, names,_ = Unchecked.db_levels ctx in
+  let subst = target_subst assocs in
+  let src_f = fst (List.hd (tm_one_step_codim0 src assocs true)) in
+  let tgt_f = fst (List.hd (tm_one_step_codim0 tgt assocs true)) in
+  let comp2 = Builtin.comp_n 2 in
+  let coh_src = Coh(coh, (Unchecked.identity_ps ps_base)) in
+  let coh_tgt = Unchecked.tm_apply_sub coh_src subst in
+  let src_incl = Unchecked.tm_apply_sub src subst in
+  let tgt_incl = Unchecked.tm_apply_sub tgt subst in
+  let comp_src_sub = [(tgt_f,true);(tgt_incl,false);(coh_src,true);(tgt,false);(src,false)] in
+  let comp_tgt_sub = [(coh_tgt,true);(tgt_incl,false);(src_f,true);(src_incl,false);(src,false)] in
+  let comp_src = Coh(comp2, comp_src_sub) in
+  let comp_tgt = Coh(comp2, comp_tgt_sub) in
+  let ty = Arr (ty, comp_src, comp_tgt) in
+  let ty = Unchecked.rename_ty ty names in
+  let _ = check_term (Ctx.check ctx) comp_src in
+  let _ = check_term (Ctx.check ctx) comp_tgt in
+  let newf = add_functorialisation ctx_base func l in
+  check_coh ps ty (name,susp, Some newf)
+
+let _ = Builtin.func_codim1_fn := coh_one_step_codim1
+
+(*
+   Codim 1
+   Functorialisation of a coherence possibly multiple times, with
+   respect to a functorialisation data
+*)
+let rec coh_codim1 c s =
+  let ps,_,_ = Coh.forget c in
+  let ct = Unchecked.ps_to_ctx ps in
+  let l, next = list_functorialised ct s in
+  if l <> [] then coh_codim1 (coh_one_step_codim1 c l) next
+  else c
+
+let _tm_codim1 c t s =
   let coh, _sub = match t with
     | Coh(coh, sub) -> coh, sub
     | _ ->
       Error.functorialisation
         ("term: " ^ Unchecked.tm_to_string t)
         (Printf.sprintf "attempted to functorialise a term which is not a coherence")
-  in let _ps,ty,_ = Coh.forget coh in
-  match ty with
-    | Arr(_,u,v) -> u,v
-    | Meta_ty _ -> Error.fatal "functorialising coherence with meta type"
-    | Obj ->
-      Error.functorialisation
-        ("term: " ^ Unchecked.tm_to_string t)
-        (Printf.sprintf "attempted to functorialise a coherence of type *")
-
-let _tm_codim1 c t s =
-  let _l, _next = list_functorialised c s in
-  let u,v = coh_bdry t in
-  let uf = tm_codim0 c u s in
-  let vf = tm_codim0 c v s in
-  (*
-    let cf? =
-  *)
-  let _comp2 = Builtin.comp_n 2 in
-  uf,vf
+  in let _l, _next = list_functorialised c s in
+  let res = coh_codim1 coh s
+  in
+  res
 
 (*
    Functorialisation a term: exposed function
