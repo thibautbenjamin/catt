@@ -99,53 +99,6 @@ let coh_one_step coh l =
   Coh.check_noninv (PS.forget (PS.mk (Ctx.check ctx))) tm tm (name,susp,Some newf)
 
 (*
-   Functorialisation of a coherence possibly multiple times, with
-   respect to a functorialisation data
-*)
-let rec coh c s =
-  let ps,_,_ = Coh.forget c in
-  let ct = Unchecked.ps_to_ctx ps in
-  let l, next = list_functorialised ct s in
-  if l <> [] then coh (coh_one_step c l) next
-  else c
-
-(*
-   Functorialisation of a coherence: exposed function
-*)
-let coh c s =
-  try coh c s
-  with
-    NonMaximal x ->
-    Error.functorialisation
-      ("coherence: " ^ Coh.to_string c)
-      (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
-  | FunctorialiseMeta ->
-    Error.functorialisation
-      ("coherence: " ^ Coh.to_string c)
-      (Printf.sprintf "cannot functorialise meta-variables")
-  | WrongNumberOfArguments ->
-    Error.parsing_error
-      ("coherence: " ^ Coh.to_string c)
-      "wrong number of arguments provided"
-
-(*
-   Functorialisation of a coherence once with respect to every maximal
-   argument
-*)
-let coh_all c =
-  let func_data_all ps =
-    let rec func_data n ps =
-      match ps,n with
-      | Br [],0 -> [1]
-      | Br [],_ -> [0]
-      | Br (ps::l),n -> List.append (func_data (n-1) ps) (List.concat (List.map (func_data (n-1)) l))
-    in func_data (Unchecked.dim_ps ps) ps
-  in
-  let ps,_,_ = Coh.forget c in
-  let l = func_data_all ps in
-  coh c l
-
-(*
    Given a context, a substitution and a list of variables, returns
    the list of all variables in the context whose corresponding term
    in the substitution contains a variable from the input list
@@ -210,8 +163,8 @@ let rec tm_codim0 c t s =
 *)
 let coh_one_step_codim1 coh l =
   let ps_base,ty,(name,susp,func) = Coh.forget coh in
-  let src,tgt = match ty with
-    | Arr(_,src,tgt) -> src,tgt
+  let ty_base,src,tgt = match ty with
+    | Arr(ty_base,src,tgt) -> ty_base,src,tgt
     | Meta_ty _ -> Error.fatal "functorialising coherence with meta type"
     | Obj ->
       Error.functorialisation
@@ -224,23 +177,26 @@ let coh_one_step_codim1 coh l =
   let subst = target_subst assocs in
   let src_f = fst (List.hd (tm_one_step_codim0 src assocs true)) in
   let tgt_f = fst (List.hd (tm_one_step_codim0 tgt assocs true)) in
-  let comp2 = Builtin.comp_n 2 in
+  let n = Unchecked.dim_ty ty in
+  let comp2 = Suspension.coh (Some (n-1)) (Builtin.comp_n 2) in
   let coh_src = Coh(coh, (Unchecked.identity_ps ps_base)) in
   let coh_tgt = Unchecked.tm_apply_sub coh_src subst in
   let src_incl = Unchecked.tm_apply_sub src subst in
   let tgt_incl = Unchecked.tm_apply_sub tgt subst in
-  let comp_src_sub = [(tgt_f,true);(tgt_incl,false);(coh_src,true);(tgt,false);(src,false)] in
-  let comp_tgt_sub = [(coh_tgt,true);(tgt_incl,false);(src_f,true);(src_incl,false);(src,false)] in
+  let comp_src_sub = ([(tgt_f,true);(tgt_incl,false);(coh_src,true);(tgt,false);(src,false)]) @ (Unchecked.ty_to_sub_ps ty_base)
+  in
+  let comp_tgt_sub = [(coh_tgt,true);(tgt_incl,false);(src_f,true);(src_incl,false);(src,false)] @ (Unchecked.ty_to_sub_ps ty_base) in
   let comp_src = Coh(comp2, comp_src_sub) in
   let comp_tgt = Coh(comp2, comp_tgt_sub) in
   let ty = Arr (ty, comp_src, comp_tgt) in
   let ty = Unchecked.rename_ty ty names in
+  Io.debug "About to check source term";
   let _ = check_term (Ctx.check ctx) comp_src in
+  Io.debug "About to check target term";
   let _ = check_term (Ctx.check ctx) comp_tgt in
   let newf = add_functorialisation ctx_base func l in
+  Io.debug "About to check whole thing";
   check_coh ps ty (name,susp, Some newf)
-
-let _ = Builtin.func_codim1_fn := coh_one_step_codim1
 
 (*
    Codim 1
@@ -265,6 +221,57 @@ let _tm_codim1 c t s =
   let res = coh_codim1 coh s
   in
   res
+
+(*
+   Functorialisation of a coherence possibly multiple times, with
+   respect to a functorialisation data
+*)
+let coh c s =
+    coh_codim1 c s
+(*
+  let ps,_,_ = Unchecked.coh_data c in
+  let ct = Unchecked.ps_to_ctx ps in
+  let l, next = list_functorialised ct s in
+  if l <> [] then coh (coh_one_step c l) next
+  else c
+*)
+
+(*
+   Functorialisation of a coherence: exposed function
+*)
+let coh c s =
+  try coh c s
+  with
+    NonMaximal x ->
+    Error.functorialisation
+      ("coherence: " ^ Coh.to_string c)
+      (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
+  | FunctorialiseMeta ->
+    Error.functorialisation
+      ("coherence: " ^ Coh.to_string c)
+      (Printf.sprintf "cannot functorialise meta-variables")
+  | WrongNumberOfArguments ->
+    Error.parsing_error
+      ("coherence: " ^ Coh.to_string c)
+      "wrong number of arguments provided"
+
+(*
+   Functorialisation of a coherence once with respect to every maximal
+   argument
+*)
+let coh_all c =
+  let func_data_all ps =
+    let rec func_data n ps =
+      match ps,n with
+      | Br [],0 -> [1]
+      | Br [],_ -> [0]
+      | Br (ps::l),n -> List.append (func_data (n-1) ps) (List.concat (List.map (func_data (n-1)) l))
+    in func_data (Unchecked.dim_ps ps) ps
+  in
+  let ps,_,_ = Coh.forget c in
+  let l = func_data_all ps in
+  coh c l
+
 
 (*
    Functorialisation a term: exposed function
