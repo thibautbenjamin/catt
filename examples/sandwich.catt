@@ -1,0 +1,134 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Some axioms of weak omega-categories
+coh comp
+    (x : *) (y : *) (f : x -> y)
+    (z : *) (g : y -> z)
+    : x -> z
+
+coh id (x : *) : x -> x
+
+coh unit (x : *) (y : *) (f : x -> y) : comp f (id y) -> f
+
+coh assoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+    : comp (comp f g) h -> comp f (comp g h)
+
+coh vcomp (x : *) (y : *) (f : x -> y)
+                          (g : x -> y)
+                             (a : f -> g)
+                          (h : x -> y)
+                             (b : g -> h)
+   : f -> h
+
+coh hcomp (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
+                  (z : *) (g : y -> z) (g' : y -> z) (b : g -> g')
+   : comp f g -> comp f' g'
+
+# Axioms can be used in arbitrary contexts
+let sq (x : *) (f : x -> x) = comp f f
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Inverses and witnesses for axioms of kind 2
+let assoc-
+    (x : *) (y : *) (f : x -> y)
+    (z : *) (g : y -> z)
+    (w : *) (h : z -> w)
+    = I (assoc f g h)
+
+let assoc_cancel
+    (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+    : comp (assoc f g h) (I (assoc f g h)) -> id (comp (comp f g) h)
+    = U (assoc f g h)
+
+let assoc_cancel-
+    (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+    : id (comp (comp f g) h) -> comp (assoc f g h) (I (assoc f g h))
+    = I(U (assoc f g h))
+
+let assoc-_cancel
+    (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+    : comp (I (assoc f g h)) (assoc f g h) -> id (comp f (comp g h))
+    = (U (I (assoc f g h)))
+
+let assoc-_cancel-
+    (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+    : id (comp f (comp g h)) -> comp (I (assoc f g h)) (assoc f g h)
+    = I (U (I (assoc f g h)))
+
+let assoc_cancel_cancel
+    (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+    : comp (assoc_cancel f g h) (I (assoc_cancel f g h)) ->
+      id (comp (assoc f g h) (I (assoc f g h)))
+    = U (U (assoc f g h))
+
+# let assoc_cancel_cancel
+#     (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+#     = I (f)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # Inverses for axioms of kind 1
+let ex_composite
+    (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+    = comp (assoc f g h) (id (comp f (comp g h)))
+
+let ex_composite-
+    (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+    = I (ex_composite f g h)
+
+let ex_composite_cancel
+    (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w)
+    = U (ex_composite f g h)
+
+
+
+
+# Local Variables:
+# catt-options: "--no-builtins"
+# End:
