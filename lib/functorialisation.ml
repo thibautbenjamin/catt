@@ -197,59 +197,46 @@ let coh_one_step_codim1 coh l =
   let newf = add_functorialisation ctx_base func l in
   Io.debug "About to check whole thing";
   check_coh ps ty (name,susp, Some newf)
-let codim ctx v =
-  let rec compute_codim ctx dv dctx =
-    match ctx,dv with
-    | [], Some dv -> dctx - dv
-    | (x,(ty,_))::ctx,None when x = v ->
-      let n = Unchecked.dim_ty ty in
-      compute_codim ctx (Some n) (max dctx n)
-    | (_,(ty,_))::ctx, _ ->
-      let n = Unchecked.dim_ty ty in
-      compute_codim ctx dv (max dctx n)
-    | [],None -> Error.fatal "computing codim of a variable not in context"
-  in compute_codim ctx None 0
 
-let contains_codim1 ctx l =
-  List.exists (fun v -> codim ctx v = 1) l
+let dim_var ctx v =
+  let (ty,_) = List.assoc v ctx in
+  Unchecked.dim_ty ty
 
-(*
-   Codim 1
-   Functorialisation of a coherence possibly multiple times, with
-   respect to a functorialisation data
-*)
-let rec coh_codim1 c s =
-  let ps,_,_ = Coh.forget c in
-  let ct = Unchecked.ps_to_ctx ps in
-  let l, next = list_functorialised ct s in
-  if contains_codim1 ct l then coh_codim1 (coh_one_step_codim1 c l) next
-  else if l <> [] then coh_codim1 (coh_one_step_codim0 c l) next
-  else c
+let contains_codim1 ctx l d =
+  List.exists (fun v -> dim_var ctx v = d-1) l
 
-let _tm_codim1 c t s =
-  let coh, _sub = match t with
+let _tm_codim1 _c t _s =
+  let _coh, _sub = match t with
     | Coh(coh, sub) -> coh, sub
     | _ ->
       Error.functorialisation
         ("term: " ^ Unchecked.tm_to_string t)
         (Printf.sprintf "attempted to functorialise a term which is not a coherence")
-  in let _l, _next = list_functorialised c s in
-  let res = coh_codim1 coh s
   in
-  res
+  Error.fatal "codim 1 functorialisation for terms not yet implemented"
 
 (*
    Functorialisation of a coherence possibly multiple times, with
    respect to a functorialisation data
 *)
-let coh c s =
-    coh_codim1 c s
+let rec coh c s =
+  let ps,ty,_ = Coh.forget c in
+  let d = Unchecked.dim_ty ty in
+  let ctx = Unchecked.ps_to_ctx ps in
+  let l, next = list_functorialised ctx s in
+  if contains_codim1 ctx l d then
+    coh (coh_one_step_codim1 c l) next
+  else if l <> [] then
+    coh (coh_one_step_codim0 c l) next
+  else c
+
 
 (*
    Functorialisation of a coherence: exposed function
 *)
 let coh c s =
-  try coh c s
+  try
+    coh c s
   with
     NonMaximal x ->
     Error.functorialisation
