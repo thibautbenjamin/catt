@@ -90,7 +90,7 @@ let add_functorialisation c func l =
    Functorialisation of a coherence once with respect to a list of
    variables
 *)
-let coh_one_step coh l =
+let coh_one_step_codim0 coh l =
   let ps,_,(name,susp,func) = Coh.forget coh in
   let ctx_base = Unchecked.ps_to_ctx ps in
   let ctx,_ = ctx_one_step (Unchecked.ps_to_ctx ps) l in
@@ -130,7 +130,7 @@ let rec tm_one_step_codim0 t l expl=
         let ps,_,_ = Coh.forget c in
         let cohf =
           let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
-          coh_one_step c places
+          coh_one_step_codim0 c places
         in
         let sf = sub s l in
         let l' = target_subst l in
@@ -197,6 +197,21 @@ let coh_one_step_codim1 coh l =
   let newf = add_functorialisation ctx_base func l in
   Io.debug "About to check whole thing";
   check_coh ps ty (name,susp, Some newf)
+let codim ctx v =
+  let rec compute_codim ctx dv dctx =
+    match ctx,dv with
+    | [], Some dv -> dctx - dv
+    | (x,(ty,_))::ctx,None when x = v ->
+      let n = Unchecked.dim_ty ty in
+      compute_codim ctx (Some n) (max dctx n)
+    | (_,(ty,_))::ctx, _ ->
+      let n = Unchecked.dim_ty ty in
+      compute_codim ctx dv (max dctx n)
+    | [],None -> Error.fatal "computing codim of a variable not in context"
+  in compute_codim ctx None 0
+
+let contains_codim1 ctx l =
+  List.exists (fun v -> codim ctx v = 1) l
 
 (*
    Codim 1
@@ -207,7 +222,8 @@ let rec coh_codim1 c s =
   let ps,_,_ = Coh.forget c in
   let ct = Unchecked.ps_to_ctx ps in
   let l, next = list_functorialised ct s in
-  if l <> [] then coh_codim1 (coh_one_step_codim1 c l) next
+  if contains_codim1 ct l then coh_codim1 (coh_one_step_codim1 c l) next
+  else if l <> [] then coh_codim1 (coh_one_step_codim0 c l) next
   else c
 
 let _tm_codim1 c t s =
@@ -228,13 +244,6 @@ let _tm_codim1 c t s =
 *)
 let coh c s =
     coh_codim1 c s
-(*
-  let ps,_,_ = Unchecked.coh_data c in
-  let ct = Unchecked.ps_to_ctx ps in
-  let l, next = list_functorialised ct s in
-  if l <> [] then coh (coh_one_step c l) next
-  else c
-*)
 
 (*
    Functorialisation of a coherence: exposed function
