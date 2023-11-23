@@ -1,6 +1,6 @@
 set explicit_substitutions = f
 
-#set verbosity = 5
+# set verbosity = 5
 #set unroll_coherences = t
 
 let idf (x : *) (y : *) (f : x -> y) = id [f]
@@ -17,7 +17,14 @@ let nat_assoc (x : *) (y : *) (z : *) (w : *)
               (a : f -> f') (b : g -> g') (c : h -> h')
               = assoc [a] [b] [c]
 
-# let whiskL (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (a : g -> h) = comp f [a]
+let whiskL (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (a : g -> h) = comp f [a]
+
+let nat_assoc (x : *) (y : *) (z : *) (w : *)
+              (f : x -> y) (g : y -> z) (h : z -> w)
+              (f' : x -> y) (g' : y -> z) (h' : z -> w)
+              (a : f -> f') (b : g -> g') (c : h -> h')
+              (b' : g -> g') (B : b -> b')
+              = assoc [a] [[B]] [c]
 
 # set verbosity = 4
 # set unroll_coherences = t
