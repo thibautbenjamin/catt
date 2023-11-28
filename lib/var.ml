@@ -29,3 +29,10 @@ let check_equal v1 v2 =
 let suspend = function
   | Db i -> Db (i+2)
   | Name _ | New _ as v -> v
+
+let next_fresh = ref 0
+
+let fresh () =
+  let fresh = New (!next_fresh) in
+  incr(next_fresh);
+  fresh
