@@ -79,8 +79,8 @@ let rec ty t l tgt_subst f_vars tm =
       | Arr(ty,src,tgt) -> ty,src,tgt
       | _ -> assert false
     in
-    let src_f = fst (List.hd (tm_one_step_codim0 src tgt_subst f_vars true)) in
-    let tgt_f = fst (List.hd (tm_one_step_codim0 tgt tgt_subst f_vars true)) in
+    let src_f = fst (List.hd (tm_one_step_codim0 src l tgt_subst f_vars true)) in
+    let tgt_f = fst (List.hd (tm_one_step_codim0 tgt l tgt_subst f_vars true)) in
     let n = Unchecked.dim_ty t_base in
     let comp2 = Suspension.coh (Some n) (Builtin.comp_n 2) in
     let coh_tgt = Unchecked.tm_apply_sub tm tgt_subst in
@@ -132,7 +132,9 @@ and coh_one_step coh l =
    Returns a list containing the functorialise term followed by its
    target and its source.
  *)
-and tm_one_step_codim0 t tgt_subst f_vars expl =
+and tm_one_step_codim0 t l tgt_subst f_vars expl =
+  if (not (Unchecked.tm_contains_vars t l)) then [t,expl]
+  else
   match t with
   | Var v ->
     begin
@@ -149,19 +151,19 @@ and tm_one_step_codim0 t tgt_subst f_vars expl =
           let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst f_vars) in
           coh_one_step c places
         in
-        let sf = sub s tgt_subst f_vars in
+        let sf = sub s l tgt_subst f_vars in
         let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t tgt_subst ,expl) s in
         [Coh(cohf,sf), true; Coh(c,s'), false; Coh(c,s), false]
       | [] -> [Coh(c,s), expl]
     end
   | Meta_tm _ -> (raise FunctorialiseMeta)
-and sub s tgt_subst f_vars =
+and sub s l tgt_subst f_vars =
   match s with
   | [] -> []
   | (t, expl)::s ->
     List.append
-      (tm_one_step_codim0 t tgt_subst f_vars expl)
-      (sub s tgt_subst f_vars)
+      (tm_one_step_codim0 t l tgt_subst f_vars expl)
+      (sub s l tgt_subst f_vars)
 
 (*
    Functorialisation a term possibly multiple times with respect to a
@@ -171,7 +173,7 @@ and tm_codim0 c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
     let c,tgt_subst,f_vars = ctx c l in
-    let t = fst (List.hd (tm_one_step_codim0 t tgt_subst f_vars true)) in
+    let t = fst (List.hd (tm_one_step_codim0 t l tgt_subst f_vars true)) in
     tm_codim0 c t next
   else c,t
 
