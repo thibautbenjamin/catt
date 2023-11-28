@@ -101,13 +101,14 @@ and ctx c l =
   match c with
   | [] -> [],[],[]
   | (x,(t,expl))::c when List.mem x l ->
-    let c,tgt_subst,f_vars = ctx c l in
-    let x',xf = Unchecked.two_fresh_vars c in
-    let tgt_subst = (x,Var x')::tgt_subst in
-    let tf = ty t l tgt_subst f_vars (Var x) in
-    (xf,(tf,expl))::(x',(t,false))::(x,(t,false))::c,
-    tgt_subst,
-    (x, (Var x',Var xf))::f_vars
+     let c,tgt_subst,f_vars = ctx c l in
+     let x' = Var.fresh() in
+     let xf = Var.fresh() in
+     let tgt_subst = (x,Var x')::tgt_subst in
+     let tf = ty t l tgt_subst f_vars (Var x) in
+     (xf,(tf,expl))::(x',(t,false))::(x,(t,false))::c,
+     tgt_subst,
+     (x, (Var x',Var xf))::f_vars
   | (x,a)::c -> let c,tgt_subst,f_terms = ctx c l in (x,a)::c, tgt_subst,f_terms
 
 (*
@@ -130,7 +131,7 @@ and coh_one_step coh l =
    Functorialisation a term once with respect to a list of triples.
    Returns a list containing the functorialise term followed by its
    target and its source.
-*)
+ *)
 and tm_one_step_codim0 t tgt_subst f_vars expl =
   match t with
   | Var v ->
