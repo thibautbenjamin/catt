@@ -79,10 +79,10 @@ let rec ty t l tgt_subst f_vars tm =
       | Arr(ty,src,tgt) -> ty,src,tgt
       | _ -> assert false
     in
-    let src_f = fst (List.hd (tm_one_step_codim0 src l tgt_subst f_vars true)) in
-    let tgt_f = fst (List.hd (tm_one_step_codim0 tgt l tgt_subst f_vars true)) in
     let n = Unchecked.dim_ty t_base in
     let comp2 = Suspension.coh (Some n) (Builtin.comp_n 2) in
+    let src_f = fst (List.hd (tm_one_step_codim0 src l tgt_subst f_vars true)) in
+    let tgt_f = fst (List.hd (tm_one_step_codim0 tgt l tgt_subst f_vars true)) in
     let coh_tgt = Unchecked.tm_apply_sub tm tgt_subst in
     let src_incl = Unchecked.tm_apply_sub src tgt_subst in
     let tgt_incl = Unchecked.tm_apply_sub tgt tgt_subst in
@@ -92,7 +92,8 @@ let rec ty t l tgt_subst f_vars tm =
     let comp_tgt_sub = (coh_tgt,true)::(tgt_incl,false)::(src_f,true)::(src_incl,false)::(src,false)::sub_base in
     let comp_src = Coh(comp2, comp_src_sub) in
     let comp_tgt = Coh(comp2, comp_tgt_sub) in
-    Arr (t_base, comp_src, comp_tgt)
+    let t = Arr(t_base, src, tgt_incl) in
+    Arr (t, comp_src, comp_tgt)
   else
     let tm_f = Unchecked.tm_apply_sub tm (tgt_subst) in
     Arr (t, tm, tm_f)
