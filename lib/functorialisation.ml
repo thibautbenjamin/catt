@@ -87,8 +87,7 @@ let rec ty t l tgt_subst f_vars tm =
     let src_incl = Unchecked.tm_apply_sub src tgt_subst in
     let tgt_incl = Unchecked.tm_apply_sub tgt tgt_subst in
     let sub_base = Unchecked.ty_to_sub_ps t_base in
-    let comp_src_sub = (tgt_f,true)::(tgt_incl,false)::(tm,true)::(tgt,false)::(src,false)::sub_base
-    in
+    let comp_src_sub = (tgt_f,true)::(tgt_incl,false)::(tm,true)::(tgt,false)::(src,false)::sub_base in
     let comp_tgt_sub = (coh_tgt,true)::(tgt_incl,false)::(src_f,true)::(src_incl,false)::(src,false)::sub_base in
     let comp_src = Coh(comp2, comp_src_sub) in
     let comp_tgt = Coh(comp2, comp_tgt_sub) in
@@ -200,7 +199,6 @@ let rec coh c s =
   if l <> [] then
     coh (coh_one_step c l) next
   else c
-
 
 (*
    Functorialisation of a coherence: exposed function
