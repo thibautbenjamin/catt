@@ -66,6 +66,7 @@ module PS : sig
 
   val mk : Ctx.t -> t
   val forget : t -> ps
+  val bdry : int -> t -> ps
 end
 
 module Unchecked : sig
