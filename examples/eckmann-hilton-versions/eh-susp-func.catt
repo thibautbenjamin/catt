@@ -397,3 +397,7 @@ simpl5F (simplrew2A (rew2@1id@2CU a) (rew2@2id@1CU b))
 	(simplrew2A (rew2@2id@1U b) (rew2@1id@2U a))
 
 #76 definitions
+
+# Local Variables:
+# catt-options: "--no-builtins"
+# End:

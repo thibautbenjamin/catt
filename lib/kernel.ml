@@ -171,6 +171,7 @@ and PS : sig
   val domain : t -> Var.t list
   val to_ctx : t -> Ctx.t
   val dim : t -> int
+  val bdry : int -> t -> Unchecked_types.ps
   val source : int -> t -> Var.t list
   val target : int -> t -> Var.t list
   val forget : t -> Unchecked_types.ps
@@ -180,14 +181,12 @@ struct
   exception Invalid
 
   (** A pasting scheme. *)
-  type oldrep =
+  type ps_derivation =
     | PNil of (Var.t * Ty.t)
-    | PCons of oldrep * (Var.t * Ty.t) * (Var.t * Ty.t)
-    | PDrop of oldrep
+    | PCons of ps_derivation * (Var.t * Ty.t) * (Var.t * Ty.t)
+    | PDrop of ps_derivation
 
-  type newt = { tree : Unchecked_types.ps; ctx : Ctx.t}
-
-  type t = {oldrep : oldrep; newrep : newt}
+  type t = { tree : Unchecked_types.ps; ctx : Ctx.t}
 
   (** Create a context from a pasting scheme. *)
   (* TODO:fix level of explicitness here *)
@@ -201,10 +200,10 @@ struct
     in Ctx.check (list ps)
 
   (** Domain of definition. *)
-  let domain ps = Ctx.domain ps.newrep.ctx
+  let domain ps = Ctx.domain ps.ctx
 
   (** Dangling variable. *)
-  let rec marker (ps : oldrep) =
+  let rec marker (ps : ps_derivation) =
     match ps with
     | PNil (x,t) -> x,t
     | PCons (_,_,f) -> f
@@ -290,64 +289,63 @@ struct
 
   let mk (l : Ctx.t) =
     let oldrep = make_old l in
-    {oldrep; newrep = {tree = make_tree oldrep; ctx = l}}
+    {tree = make_tree oldrep; ctx = l}
 
-  let forget ps = ps.newrep.tree
+  let forget ps = ps.tree
 
   let to_string ps = Unchecked.ps_to_string (forget ps)
 
   (** Create a context from a pasting scheme. *)
   let to_ctx ps =
-    ps.newrep.ctx
-
-  (** Height of a pasting scheme. *)
-  let rec height_old = function
-    | PNil _ -> 0
-    | PCons (ps,_,_) -> height_old ps + 1
-    | PDrop ps -> height_old ps - 1
-
-  (** Dimension of a pasting scheme. *)
-  let rec dim_old = function
-    | PNil _ -> 0
-    | PCons (ps,_,_) -> max (dim_old ps) (height_old ps + 1)
-    | PDrop ps -> dim_old ps
+    ps.ctx
 
   (* let height ps = height_old ps.oldrep *)
-  let dim ps = dim_old ps.oldrep
+  let dim ps = Unchecked.dim_ps (ps.tree)
 
-  (** Source of a pasting scheme. *)
-  let source_old i ps =
-    assert (i >= 0);
-    let rec aux = function
-      | PNil (x,_) -> [x]
-      | PCons (ps,_,_) when height_old ps >= i -> aux ps
-      | PCons (ps,(y,_),(f,_)) -> f :: y :: (aux ps)
-      | PDrop ps when height_old ps > i -> aux ps
-      | PDrop ps -> (aux ps)
-    in
-    aux ps
+  let bdry i ps =
+    let rec bdry_tree i ps =
+      match ps with
+      | Unchecked_types.Br [] -> Unchecked_types.Br []
+      | Br _ when i <= 0 -> Br []
+      | Br l ->  Br (List.map (bdry_tree (i-1)) l)
+    in bdry_tree i ps.tree
 
-  let source i ps = source_old i ps.oldrep
+  let rec nb_vars ps =
+    match ps with
+    | Unchecked_types.Br [] -> 1
+    | Br l -> List.fold_left (fun nb ps -> nb + (nb_vars ps) + 1) 1 l
 
-  (** Target of a pasting scheme. *)
-  let target_old i ps =
-    assert (i >= 0);
-    let replace g = function
-      | [] -> Error.fatal "could not find a replacement"
-      | _::l -> g::l
-    in
-    let rec aux = function
-      | PNil (x,_) -> [x]
-      | PCons (ps,_,_) when height_old ps > i -> aux ps
-      | PCons (ps,(y,_),_) when height_old ps = i -> replace y (aux ps)
-      | PCons (ps,(y,_),(f,_)) -> f :: y :: (aux ps)
-      | PDrop ps when height_old ps > i -> aux ps
-      | PDrop ps -> aux ps
-    in
-    aux ps
+  let right_point ps =
+    match ps with
+    | Unchecked_types.Br [] -> 0
+    | Br (_::l) -> nb_vars (Br l)
 
-  let target i ps = target_old i ps.oldrep
+  let bdry_inclusion ~select_bdry i ps =
+    let var i = Var.Db i in
+    let rec inclusion i ps next_var =
+      match ps with
+      | Unchecked_types.Br [] -> [(var next_var)], next_var + 1
+      | Br l when i <= 0 ->
+          let m = select_bdry next_var ps in
+          [(var m)], next_var + nb_vars (Br l)
+      | Br l ->
+          let base = (var next_var) in
+          glue i l (next_var + 1) base
+    and glue i l next_var base =
+      match l with
+      | [] -> [base], next_var
+      | ps::l ->
+          let sl, next_var = glue i l next_var base in
+          let v = (var next_var) in
+          let s, next_var = inclusion (i-1) ps (next_var+1) in
+          List.append s (v::sl), next_var
+    in fst (inclusion i ps.tree 0)
+
+  let source = bdry_inclusion ~select_bdry:(fun n _ -> n)
+  let target = bdry_inclusion ~select_bdry:(fun n ps -> n + right_point ps)
 end
+
+
 and Ty : sig
   type t
   val to_string : t -> string
@@ -512,28 +510,30 @@ struct
       else raise NotAlgebraic
 
   let check coh =
-    try
-      match coh with
-      | Unchecked_types.Cohdecl (ps,t,name) ->
+    match coh with
+    | Unchecked_types.Cohdecl (ps,t,name) ->
         Io.info ~v:5
           (lazy
-            (Printf.sprintf "checking coherence (%s,%s)"
-               (Unchecked.ps_to_string ps)
-               (Unchecked.ty_to_string t)));
-        let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
-        let ps = PS.mk cps in
-        let t = Ty.check cps t in
-        Coh.algebraic ps t name
-      | Unchecked_types.Cohchecked c -> c
-    with
-    | NotAlgebraic ->
-      let ty = match coh with
-        | Unchecked_types.Cohdecl (_, t,_) -> Unchecked.ty_to_string t
-        | Unchecked_types.Cohchecked c -> Ty.to_string (Coh.ty c)
-      in Error.not_valid_coherence (Unchecked.coh_to_string coh)
-        (Printf.sprintf "type %s not algebraic in pasting scheme" ty)
-    | DoubledVar(s) ->
-      Error.not_valid_coherence (Unchecked.coh_to_string coh) (Printf.sprintf "variable %s appears twice in the context" s)
+             (Printf.sprintf "checking coherence (%s,%s)"
+                (Unchecked.ps_to_string ps)
+                (Unchecked.ty_to_string t)));
+        begin
+          try
+            let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
+            let ps = PS.mk cps in
+            let t = Ty.check cps t in
+            Coh.algebraic ps t name
+          with
+          | NotAlgebraic ->
+              Error.not_valid_coherence (Unchecked.coh_to_string coh)
+                (Printf.sprintf "type %s not algebraic in pasting scheme %s"
+                   (Unchecked.ty_to_string t)
+                   (Unchecked.(ctx_to_string (ps_to_ctx ps))))
+          | DoubledVar(s) ->
+              Error.not_valid_coherence (Unchecked.coh_to_string coh)
+                (Printf.sprintf "variable %s appears twice in the context" s)
+        end
+    | Unchecked_types.Cohchecked c -> c
 
   let forget (ps,ty,pp_data) = PS.forget ps, Ty.forget ty, pp_data
 
@@ -826,7 +826,8 @@ end = struct
   let _sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
 
   (* rename is applying a variable to de Bruijn levels substitutions *)
-  let rename_ty ty l = ty_do_on_variables ty (fun v -> Unchecked_types.Var (Db (List.assoc v l)))
+  let rename_ty ty l = ty_do_on_variables ty
+                         (fun v -> Unchecked_types.Var (Db (List.assoc v l)))
 
   let rec db_levels c =
     match c with
