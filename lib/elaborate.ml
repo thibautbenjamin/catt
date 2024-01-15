@@ -52,10 +52,10 @@ module Constraints = struct
     | Coh(coh1,s1), Coh(coh2,s2) ->
       begin
         try
-          Unchecked.check_equal_coh coh1 coh2;
+          Coh.check_equal coh1 coh2;
           unify_sub cst s1 s2
         with Invalid_argument _ ->
-          raise (NotUnifiable (Unchecked.coh_to_string coh1, Unchecked.coh_to_string coh2))
+          raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2))
       end
     | Meta_tm _, _
     | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
@@ -181,7 +181,7 @@ module Constraints_typing = struct
       match t with
     | Var v -> t, fst (List.assoc v ctx)
     | Meta_tm i -> t, List.assoc i meta_ctx
-    | Coh(c,s)-> let ps,ty,_ = Unchecked.coh_data c in
+    | Coh(c,s)-> let ps,ty,_ = Coh.forget c in
       let s1,tgt = Unchecked.sub_ps_to_sub s ps in
       let s1 = sub ctx meta_ctx s1 tgt cst in
       Coh(c,(List.map2 (fun (_,t) (_,expl) -> t,expl) s1 s)), Unchecked.ty_apply_sub ty s1

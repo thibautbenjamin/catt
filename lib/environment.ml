@@ -27,7 +27,7 @@ let add_let v c ?ty t =
   (t,ty)
 
 let add_coh v ps ty =
-  let coh = check_coh (Cohdecl(ps,ty,(Var.to_string v, 0, None))) in
+  let coh = check_coh ps ty (Var.to_string v, 0, None) in
   let dim_input = Unchecked.dim_ps ps in
   let dim_output = Unchecked.dim_ty ty in
   Io.info ~v:4
@@ -36,7 +36,7 @@ let add_coh v ps ty =
          "coherence %s added to environment"
          (Var.to_string v)));
   Hashtbl.add env v ({value = Coh coh; dim_input; dim_output});
-  Cohchecked coh
+  coh
 
 let find v =
   try Hashtbl.find env v

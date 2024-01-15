@@ -77,7 +77,7 @@ let exec_cmd cmd =
   | Coh (x,ps,e) ->
     Io.command "coh %s = %s" (Var.to_string x) (Raw.string_of_ty e);
     let coh = exec_coh x ps e in
-    Io.info (lazy (Printf.sprintf "successfully defined %s" (Unchecked.coh_to_string coh)))
+    Io.info (lazy (Printf.sprintf "successfully defined %s" (Coh.to_string coh)))
   | Check (l, e, t) ->
     Io.command "check %s" (Raw.string_of_tm e);
     let e,ty = check l e t in
