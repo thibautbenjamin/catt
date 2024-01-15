@@ -90,17 +90,17 @@ let add_functorialisation c func l =
    variables
 *)
 let coh_one_step coh l =
-  let ps,ty,(name,susp,func) = Unchecked.coh_data coh in
+  let ps,ty,(name,susp,func) = Coh.forget coh in
   let ctx_base = Unchecked.ps_to_ctx ps in
   let ctx,assocs = ctx_one_step ctx_base l in
-  let tm = Coh (Cohdecl(ps,ty,(name,susp,func)),(Unchecked.identity_ps ctx_base)) in
+  let tm = Coh (check_coh ps ty (name,susp,func),(Unchecked.identity_ps ctx_base)) in
   let tm_f = Unchecked.tm_apply_sub tm (target_subst assocs) in
   let ty = Arr (ty, tm, tm_f) in
   let ps = Kernel.PS.(forget (mk (Kernel.Ctx.check ctx))) in
   let _, names,_ = Unchecked.db_levels ctx in
   let ty = Unchecked.rename_ty ty names in
   let newf = add_functorialisation ctx_base func l in
-  Cohdecl (ps,ty, (name,susp, Some newf))
+  check_coh ps ty (name,susp, Some newf)
 
 
 (*
@@ -108,7 +108,7 @@ let coh_one_step coh l =
    respect to a functorialisation data
 *)
 let rec coh c s =
-  let ps,_,_ = Unchecked.coh_data c in
+  let ps,_,_ = Coh.forget c in
   let ct = Unchecked.ps_to_ctx ps in
   let l, next = list_functorialised ct s in
   if l <> [] then coh (coh_one_step c l) next
@@ -122,7 +122,7 @@ let coh c s =
   with
     NonMaximal x ->
     Error.functorialisation
-      ("coherence: " ^ Unchecked.coh_to_string c)
+      ("coherence: " ^ Coh.to_string c)
       (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
 
 (*
@@ -154,7 +154,7 @@ let rec tm_one_step t l expl=
     begin
       if List.exists (fun (x,_) -> Unchecked.tm_contains_var t x) l
       then
-        let ps,_,_ = Unchecked.coh_data c in
+        let ps,_,_ = Coh.forget c in
         let cohf =
           let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
           coh_one_step c places
