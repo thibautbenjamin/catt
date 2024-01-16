@@ -357,7 +357,7 @@ and Ty : sig
   val is_full : t -> bool
   val is_obj : t -> bool
   val check_equal : t -> t -> unit
-  (* val morphism : Tm.t -> Tm.t -> Ty.t *)
+  val morphism : Tm.t -> Tm.t -> Ty.t
   val forget : t -> Unchecked_types.ty
   val check : Ctx.t -> Unchecked_types.ty -> t
   val apply_sub : t -> Sub.t -> t
@@ -428,12 +428,12 @@ struct
     Ctx.check_equal ty1.c ty2.c;
     Unchecked.check_equal_ty (forget ty1) (forget ty2)
 
-  (* let morphism t1 t2 = *)
-  (*   let a1 = Tm.ty t1 in *)
-  (*   let a2 = Tm.ty t2 in *)
-  (*   check_equal a1 a2; *)
-  (*   {c=a1.c; e=Arr(a1,t1,t2); *)
-  (*     unchecked = Unchecked_types.Arr(forget a1, Tm.forget t1, Tm.forget t2)} *)
+  let morphism t1 t2 =
+    let a1 = Tm.ty t1 in
+    let a2 = Tm.ty t2 in
+    check_equal a1 a2;
+    {c=a1.c; e=Arr(a1,t1,t2);
+      unchecked = Unchecked_types.Arr(forget a1, Tm.forget t1, Tm.forget t2)}
 
   let apply_sub t s =
     Ctx.check_equal t.c (Sub.tgt s);
@@ -449,11 +449,11 @@ and Tm : sig
   val typ : t -> Ty.t
   val free_vars : t -> Var.t list
   val is_full : t -> bool
-  (* val forget : t -> Unchecked_types.tm *)
+  val forget : t -> Unchecked_types.tm
   val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types.tm -> t
-  (* val apply_sub : t -> Sub.t -> t *)
+  val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
-  (* val ty : t -> Ty.t *)
+  val ty : t -> Ty.t
 end
 =
 struct
@@ -502,12 +502,12 @@ struct
     | None -> tm
     | Some ty -> Ty.check_equal ty tm.ty; tm
 
-  (* let apply_sub t sub = *)
-  (*   Ctx.check_equal (Sub.tgt sub) (Ty.ctx t.ty); *)
-  (*   let c = Sub.src sub in *)
-  (*   let ty = Ty.apply_sub t.ty sub in *)
-  (*   let t = Unchecked.tm_apply_sub (forget t) (Sub.forget sub) in *)
-  (*   check c ~ty t *)
+  let apply_sub t sub =
+    Ctx.check_equal (Sub.tgt sub) (Ty.ctx t.ty);
+    let c = Sub.src sub in
+    let ty = Ty.apply_sub t.ty sub in
+    let t = Unchecked.tm_apply_sub (forget t) (Sub.forget sub) in
+    check c ~ty t
 
   let preimage t sub =
     Ctx.check_equal (Sub.src sub) (Ty.ctx t.ty);
@@ -515,7 +515,7 @@ struct
     let t = Unchecked.tm_sub_preimage (forget t) (Sub.forget sub) in
     check c t
 
-  (* let ty t = t.ty *)
+  let ty t = t.ty
 end
 
 (** A coherence. *)
@@ -523,8 +523,8 @@ and Coh : sig
   type t
   val ps : t -> PS.t
   val ty : t -> Ty.t
-  val algebraic : PS.t -> Ty.t  -> Unchecked_types.coh_pp_data -> t
   val check : Unchecked_types.ps -> Unchecked_types.ty -> Unchecked_types.coh_pp_data -> t
+  val check_noninv : Unchecked_types.ps -> Unchecked_types.tm -> Unchecked_types.tm -> Unchecked_types.coh_pp_data -> t
   val to_string : t -> string
   (* val data_noninv : t -> PS.t * Tm.t * Tm.t * Sub.t * Sub.t * PS.t *)
   (* val data : t -> PS.t * Ty.t * Unchecked_types.coh_pp_data *)
@@ -562,20 +562,6 @@ end = struct
   (*     Inv({ps; ty}, name) *)
   (*   else raise NotAlgebraic *)
 
-  (* let check_noninv ps src tgt name = *)
-  (*   let i = PS.dim ps in *)
-  (*   let src_inclusion = PS.source (i-1) ps in *)
-  (*   let tgt_inclusion = PS.target (i-1) ps in *)
-  (*   let total_ty = *)
-  (*     Ty.morphism (Tm.apply_sub src src_inclusion) (Tm.apply_sub tgt tgt_inclusion) *)
-  (*   in *)
-  (*   if (Tm.is_full src && Tm.is_full tgt) then *)
-  (*     NonInv *)
-  (*       ({ps; src; tgt; total_ty; src_inclusion; tgt_inclusion; bdry=PS.bdry (i-1) ps}, *)
-  (*          name) *)
-  (*   else *)
-  (*     raise NotAlgebraic *)
-
   let algebraic ps ty name =
     if Ty.is_full ty then
       (Ctx.check_equal (PS.to_ctx ps) (Ty.ctx ty);
@@ -606,7 +592,7 @@ end = struct
       let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
       let ps = PS.mk cps in
       let t = Ty.check cps t in
-      Coh.algebraic ps t pp_data
+      algebraic ps t pp_data
     with
     | NotAlgebraic ->
       Error.not_valid_coherence name
@@ -616,6 +602,26 @@ end = struct
     | DoubledVar(s) ->
       Error.not_valid_coherence name
         (Printf.sprintf "variable %s appears twice in the context" s)
+
+  let check_noninv ps src tgt name =
+    let ps = PS.mk (Ctx.check (Unchecked.ps_to_ctx ps)) in
+    let i = PS.dim ps in
+    let src_inclusion = PS.source (i-1) ps in
+    let tgt_inclusion = PS.target (i-1) ps in
+    let bdry = PS.bdry (i-1) ps in
+    let cbdry = PS.to_ctx bdry in
+    let src = Tm.check cbdry src in
+    let tgt = Tm.check cbdry tgt in
+    let total_ty =
+      Ty.morphism (Tm.apply_sub src src_inclusion)
+        (Tm.apply_sub tgt tgt_inclusion)
+    in
+    if (Tm.is_full src && Tm.is_full tgt) then
+      NonInv
+        ({ps; src; tgt; total_ty; src_inclusion; tgt_inclusion; bdry},
+         name)
+    else
+      raise NotAlgebraic
 
   let data c =
     match c with

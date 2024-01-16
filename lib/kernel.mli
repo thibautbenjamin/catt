@@ -35,9 +35,16 @@ end
 
 and Coh : sig
   type t
-  val forget : t -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
+  val forget :
+    t -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
   val check_equal : t -> t -> unit
   val to_string : t -> string
+  val check_noninv :
+    Unchecked_types.ps ->
+    Unchecked_types.tm ->
+    Unchecked_types.tm ->
+    Unchecked_types.coh_pp_data ->
+    t
 end
 
 open Unchecked_types
