@@ -11,7 +11,8 @@ module Memo = struct
       Hashtbl.add tbl i res;
       res
 
-  let id = check_coh (Br[]) (Arr(Obj,Var(Db 0),Var(Db 0))) ("builtin_id", 0, None)
+  let id =
+    check_coh (Br[]) (Arr(Obj,Var(Db 0),Var(Db 0))) ("builtin_id", 0, None)
 end
 
 let comp_arity s =
@@ -28,15 +29,11 @@ let rec comp_ps i =
     match comp_ps (i-1) with
     | Br l -> Br (Br[] :: l)
 
-let comp_ty i =
-  Arr(Obj, Var(Db 0), Var (Db (2*i-1)))
-
 let comp s =
   let arity = comp_arity s in
   let build_comp i =
     let ps = comp_ps i in
-    let ty = comp_ty i in
-    check_coh ps ty ("builtin_comp", 0, None)
+    Coh.check_noninv ps (Var (Db 0)) (Var(Db 0)) ("builtin_comp", 0, None)
   in
   Memo.find arity build_comp
 
