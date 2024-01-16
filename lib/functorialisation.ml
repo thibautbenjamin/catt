@@ -90,18 +90,12 @@ let add_functorialisation c func l =
    variables
 *)
 let coh_one_step coh l =
-  let ps,ty,(name,susp,func) = Coh.forget coh in
+  let ps,_,(name,susp,func) = Coh.forget coh in
   let ctx_base = Unchecked.ps_to_ctx ps in
-  let ctx,assocs = ctx_one_step ctx_base l in
-  let tm = Coh (check_coh ps ty (name,susp,func),(Unchecked.identity_ps ctx_base)) in
-  let tm_f = Unchecked.tm_apply_sub tm (target_subst assocs) in
-  let ty = Arr (ty, tm, tm_f) in
-  let ps = Kernel.PS.(forget (mk (Kernel.Ctx.check ctx))) in
-  let _, names,_ = Unchecked.db_levels ctx in
-  let ty = Unchecked.rename_ty ty names in
+  let ctx,_ = ctx_one_step ctx_base l in
+  let tm = Coh (coh,(Unchecked.identity_ps ctx_base)) in
   let newf = add_functorialisation ctx_base func l in
-  check_coh ps ty (name,susp, Some newf)
-
+  Coh.check_noninv (PS.forget (PS.mk (Ctx.check ctx))) tm tm (name,susp,Some newf)
 
 (*
    Functorialisation of a coherence possibly multiple times, with
