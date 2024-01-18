@@ -17,7 +17,7 @@ let new_meta_tm () =
   meta, (i, new_meta_ty())
 
 (* inductive translation on terms and types without let_in *)
-let rec tm tm =
+let rec tm t =
   let make_coh coh s susp =
     let coh = Suspension.coh susp coh in
     let coh = Functorialisation.coh coh (List.map snd s) in
@@ -25,7 +25,7 @@ let rec tm tm =
     let s, meta_types = sub_ps s ps in
     Coh(coh,s), meta_types
   in
-  match tm with
+  match t with
   | VarR v -> Var v, []
   | Sub(VarR v, s, susp) ->
     begin
@@ -44,9 +44,10 @@ let rec tm tm =
       | Comp -> Builtin.comp s
       | Id -> Builtin.id
     in make_coh builtin_coh s susp
+  | Op(l,t) -> let t,meta = tm t in Opposite.tm t l, meta
   | Meta -> let m,meta_type = new_meta_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
-  | Sub(Builtin _, _,_) | Letin_tm _ -> Error.fatal("ill-formed term")
+  | Sub(Builtin _, _,_) |Sub(Op _,_,_)| Letin_tm _ -> Error.fatal("ill-formed term")
 and sub_ps s ps =
   let tgt = Unchecked.ps_to_ctx ps in
   let rec aux s tgt =

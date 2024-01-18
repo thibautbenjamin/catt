@@ -40,6 +40,10 @@ and string_of_tm e =
       susp
       (string_of_builtin name)
       (string_of_sub s)
+  | Op (l,t) ->
+    Printf.sprintf "op_{%s}(%s)"
+      (Opposite.op_data_to_string l)
+      (string_of_tm t)
   | Meta -> "_"
 and string_of_sub s=
   match s with
@@ -65,6 +69,7 @@ let rec replace_tm l e =
     Sub(replace_tm l e, replace_sub l s,susp)
   | Builtin (name,s,susp) ->
     Builtin(name,replace_sub l s,susp)
+  | Op(op_data,t) -> Op(op_data, replace_tm l t)
   | Letin_tm (v,t,tm) -> replace_tm ((v,t)::l) tm
   | Meta -> Meta
 and replace_sub l s =
@@ -94,6 +99,7 @@ and var_in_tm x tm =
   | VarR v -> x = v
   | Sub(_,s,_) | Builtin (_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
   | Meta -> false
+  | Op(_,t) -> var_in_tm x t
   | Letin_tm _ -> Error.fatal("letin_tm constructors cannot appear here")
 
 let rec dim_ty ctx = function
@@ -121,6 +127,7 @@ and dim_tm ctx = function
     in
     d+func+susp
   | Meta -> 0
+  | Op(_,tm) -> dim_tm ctx tm
   | Letin_tm _ -> Error.fatal("letin_tm constructors cannot appear here")
   | Sub _ -> Error.fatal ("ill-formed term")
 
@@ -158,6 +165,7 @@ let rec infer_susp_tm ctx = function
         end
       | Some _ -> t
     end
+  | Op(l,tm) -> Op(l,infer_susp_tm ctx tm)
   | Meta -> Meta
   | Letin_tm _ | Sub _ -> assert false
 and infer_susp_sub ctx = function

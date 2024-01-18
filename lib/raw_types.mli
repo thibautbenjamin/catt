@@ -12,4 +12,5 @@ and tmR =
   | Builtin of builtin * subR * int option
   | Sub of tmR * subR * int option
   | Meta
+  | Op of int list * tmR
 and subR = (tmR * int) list
