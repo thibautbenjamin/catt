@@ -36,10 +36,13 @@ let rec tm t =
   | Inverse t ->
     let t,meta_ctx = tm t in
     Inverse.compute_inverse t,meta_ctx
+  | Unit t ->
+    let t,meta_ctx = tm t in
+    Inverse.compute_witness t, meta_ctx
   | Meta -> let m,meta_type = Meta.new_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
-  | Sub(Builtin _, _,_) |Sub(Op _,_,_)| Sub (Inverse _,_,_) | Letin_tm _
-    -> Error.fatal("ill-formed term")
+  |Sub(Op _,_,_) | Sub (Inverse _,_,_) | Sub(Unit _,_,_)
+  | Sub(Builtin _, _,_) | Letin_tm _ -> Error.fatal("ill-formed term")
 and sub_ps s ps =
   let tgt = Unchecked.ps_to_ctx ps in
   let rec aux s tgt =
@@ -59,11 +62,11 @@ and sub_ps s ps =
       (t, false)::s, meta_type::meta_types_s
     | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
   in aux s tgt
-and sub s  tgt  =
+and sub s tgt  =
   match s,tgt with
   | [],[] -> [],[]
   | (t,_)::s, (x,(_, e))::tgt when e || !Settings.explicit_substitutions ->
-    let t, meta_types_t = tm t in
+    let t,meta_types_t = tm t in
     let s,meta_types_s = sub s tgt in
     (x,t)::s,  List.append meta_types_t meta_types_s
   | (_::_) as s , (x,(_,_))::tgt ->

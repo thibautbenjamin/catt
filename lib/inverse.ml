@@ -43,3 +43,48 @@ let compute_inverse t =
       Error.inversion
         ("term: " ^ (Unchecked.tm_to_string t))
         (Printf.sprintf "term %s is not invertible" s)
+
+let compute_witness t  =
+  match t with
+  | Var x -> raise (NotInvertible (Var.to_string x))
+  | Meta_tm _ ->
+    raise (NotInvertible "Meta_variable not allowed in witness generation")
+  | Coh(c,sub) ->
+    let ps,ty,(name,susp,func) = Coh.forget c in
+    let d = Coh.dim c in
+    let sub_base,u,v =
+      match ty with
+      | Arr(ty,u,v) -> Unchecked.ty_to_sub_ps ty, u, v
+      | _ -> Error.fatal "invertible coherence has to be an arrow type"
+    in
+    if Coh.is_inv c then
+      begin
+        let src_wit =
+          let id_ps = Unchecked.(identity_ps ps) in
+          let c_inv = coh c in
+          let comp = Suspension.coh (Some (d - 1)) (Builtin.comp_n 2) in
+          let c_c_inv =
+            (Coh(c_inv, id_ps),true)::
+            (u,false)::
+            (Coh(c,id_ps),true)::
+            (v,true)::
+            (u,true)::
+            sub_base
+          in
+          Coh(comp, c_c_inv)
+        in
+        let tgt_wit =
+          let id = Suspension.coh (Some (d-1)) Builtin.id in
+          let sub_id_u = (u,true)::sub_base in
+          Coh(id, sub_id_u)
+        in
+        let
+          c_wit = Coh.check_inv ps src_wit tgt_wit  (name^"_Unit",susp,func)
+        in
+        Coh(c_wit,sub)
+      end
+    else assert false
+
+let compute_witness t =
+  try compute_witness t with
+  | NotInvertible s -> Error.inversion ("term: " ^ (Unchecked.tm_to_string t)) s

@@ -10,8 +10,8 @@
       | Sub (x,s,Some n) -> Sub (x,s,Some (n+1))
       | Builtin (name,s,None) -> Builtin (name,s,Some 1)
       | Builtin (name,s,Some n) -> Builtin (name,s,Some (n+1))
-      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _->
-         Error.fatal "trying to generate an invalid suspension"
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _
+        -> Error.fatal "trying to generate an invalid suspension"
 
     let context_of_annotated_ps ps =
       let rec context_ending_to x ty l =
@@ -33,7 +33,7 @@
 %token <string> BUILTIN
 %token <string> IDENT
 %token <string> INT
-%token CHECK EQUAL LET IN SET INV
+%token CHECK EQUAL LET IN SET INV UNIT
 %token EOF
 
 %start prog
@@ -85,6 +85,7 @@ simple_tmexpr:
   | LPAR tmexpr RPAR { $2 }
   | WILD { Meta }
   | INV LPAR tmexpr RPAR { Inverse $3 }
+  | UNIT LPAR tmexpr RPAR { Unit $3 }
   | IDENT { VarR (Var.make_var $1) }
 
 functed_tmexpr:
