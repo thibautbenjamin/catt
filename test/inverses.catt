@@ -48,3 +48,9 @@ check (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) =
 I (assoc x y f z g w h)
 
 set explicit_substitutions = f
+# Witnesses of applied invertible coherences
+check
+        (x : *) (y : *) (f : x -> y)
+        (z : *) (g : y -> z)
+        (w : *) (h : z -> w)
+    = U (assoc f g h)
