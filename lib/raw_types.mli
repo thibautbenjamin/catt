@@ -14,4 +14,5 @@ and tmR =
   | Meta
   | Op of int list * tmR
   | Inverse of tmR
+  | Unit of tmR
 and subR = (tmR * int) list
