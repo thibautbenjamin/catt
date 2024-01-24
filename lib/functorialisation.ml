@@ -1,3 +1,4 @@
+open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
@@ -126,6 +127,23 @@ let coh c s =
     Error.parsing_error
       ("coherence: " ^ Coh.to_string c)
       "wrong number of arguments provided"
+
+(*
+   Functorialisation of a coherence once with respect to every maximal
+   argument
+*)
+let coh_all c =
+  let func_data_all ps =
+    let rec func_data n ps =
+      match ps,n with
+      | Br [],0 -> [1]
+      | Br [],_ -> [0]
+      | Br (ps::l),n -> List.append (func_data (n-1) ps) (List.concat (List.map (func_data (n-1)) l))
+    in func_data (Unchecked.dim_ps ps) ps
+  in
+  let ps,_,_ = Coh.forget c in
+  let l = func_data_all ps in
+  coh c l
 
 (*
    Given a context, a substitution and a list of variables, returns
