@@ -42,3 +42,36 @@ let comp s =
   comp_n arity
 
 let id = Memo.id
+
+let id_all_max ps =
+  let d = Unchecked.dim_ps ps in
+  let rec id_map l =
+    let t = Var (Db 0) in
+    match l with
+    | [] -> [t, false]
+    | Br[]::l -> (Coh(id, [t,true]), true)::(t,false)::(id_map l)
+    | _ -> Error.fatal "identity must be inserted on maximal argument"
+  in
+  let rec aux i ps =
+    match i,ps with
+    | _, Br [] -> [Var (Db 0), true]
+    | 0, Br l -> id_map l
+    | i, Br l -> Unchecked.suspwedge_subs_ps
+                   (List.map (aux (i-1)) l)
+                   (List.map (Unchecked.ps_bdry) l)
+  in
+  aux (d-1) ps
+
+let unbiased_unitor ps t =
+  let bdry =  Unchecked.ps_bdry ps in
+  let src =
+    let coh = Coh.check_noninv ps t t ("endo",0,None) in
+    Coh(coh, id_all_max ps)
+  in
+  let
+    a = Ty.forget (Tm.typ (check_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t))
+  in
+  let da = Unchecked.dim_ty a in
+  let sub_base = Unchecked.ty_to_sub_ps a in
+  let tgt = Coh (Suspension.coh (Some da) id, (t,true)::sub_base) in
+  Coh.check_inv bdry src tgt ("unbiased_unitor",0,None)
