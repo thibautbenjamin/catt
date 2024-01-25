@@ -40,7 +40,6 @@ module PS : sig
 
   val mk : Ctx.t -> t
   val forget : t -> ps
-  val bdry : int -> t -> t
 end
 
 module Unchecked : sig
@@ -78,6 +77,9 @@ module Unchecked : sig
   val suspend_tm : tm -> tm
   val suspend_ctx : ctx -> ctx
   val suspend_sub_ps : sub_ps -> sub_ps
+  val ps_bdry : ps -> ps
+  val ps_src : ps -> sub_ps
+  val ps_tgt : ps -> sub_ps
   val tm_sub_preimage : tm -> sub -> tm
   val suspwedge_subs_ps : sub_ps list -> ps list -> sub_ps
   val opsuspwedge_subs_ps : sub_ps list -> ps list -> sub_ps

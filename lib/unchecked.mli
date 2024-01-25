@@ -46,6 +46,9 @@ module Unchecked (Coh : sig type t end) : sig
     val suspend_tm : tm -> tm
     val suspend_ctx : ctx -> ctx
     val suspend_sub_ps : sub_ps -> sub_ps
+    val ps_bdry : ps -> ps
+    val ps_src : ps -> sub_ps
+    val ps_tgt : ps -> sub_ps
 
     val tm_sub_preimage : tm -> sub -> tm
     val suspwedge_subs_ps : sub_ps list -> ps list -> sub_ps

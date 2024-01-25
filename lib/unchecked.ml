@@ -262,6 +262,13 @@ struct
   let suspend_ctx ctx =
     (suspend_ctx_rp ctx).ctx
 
+ let rec dim_ps = function
+    | Br [] -> 0
+    | Br l -> 1 + max_list_ps l
+  and max_list_ps = function
+    | [] -> 0
+    | p::l -> max (dim_ps p) (max_list_ps l)
+
   let var_inr_wedge v ctx_bp =
     match v with
     | Var.Db j ->
@@ -359,6 +366,28 @@ struct
               (fst (sub_ps_to_sub i (suspend_ps ps))))
          (List.rev list_subs) (List.rev list_ps) (List.rev incls))
 
+  let rec ps_bdry i ps =
+    match ps with
+    | Br [] -> Br []
+    | Br _ when i <= 0 -> Br []
+    | Br l ->  Br (List.map (ps_bdry (i-1)) l)
+
+  let rec ps_src i ps =
+    match i,ps with
+    | 0,_ -> [Var (Var.Db 0), true]
+    | _, Br [] -> [Var (Var.Db 0), true]
+    | i, Br l -> suspwedge_subs_ps (List.map (ps_src (i-1)) l) l
+
+  let rec ps_tgt i ps =
+    match i,ps with
+    | 0, ps -> let c = ps_to_ctx_rp ps in [Var (Var.Db c.rp), true]
+    | _, Br[] -> [Var (Var.Db 0), true]
+    | i, Br l -> suspwedge_subs_ps (List.map (ps_tgt (i-1)) l) l
+
+  let ps_bdry ps = ps_bdry (dim_ps ps - 1) ps
+  let ps_src ps = ps_src (dim_ps ps - 1) ps
+  let ps_tgt ps = ps_tgt (dim_ps ps - 1) ps
+
   let max_fresh_var c =
     let rec find_max c i =
       match c with
@@ -440,13 +469,6 @@ struct
   let rec dim_ctx = function
     | [] -> 0
     | (_,(t,_))::c -> max (dim_ctx c) (dim_ty t)
-
-  let rec dim_ps = function
-    | Br [] -> 0
-    | Br l -> 1 + max_list_ps l
-  and max_list_ps = function
-    | [] -> 0
-    | p::l -> max (dim_ps p) (max_list_ps l)
 
   let rec ty_to_sub_ps a =
     match a with
