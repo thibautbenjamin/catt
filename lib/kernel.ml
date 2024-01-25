@@ -138,10 +138,9 @@ and PS : sig
   val to_string : t -> string
   val mk : Ctx.t -> t
   val to_ctx : t -> Ctx.t
-  val dim : t -> int
-  val bdry : int -> t -> t
-  val source : int -> t -> Sub.t
-  val target : int -> t -> Sub.t
+  val bdry : t -> t
+  val source : t -> Sub.t
+  val target : t -> Sub.t
   val forget : t -> ps
   val check_equal : t -> t -> unit
 end
@@ -267,52 +266,13 @@ struct
   let to_ctx ps =
     ps.ctx
 
-  (* let height ps = height_old ps.oldrep *)
-  let dim ps = Unchecked.dim_ps (ps.tree)
+    let bdry ps =
+    (mk (Ctx.check (Unchecked.ps_to_ctx (Unchecked.ps_bdry ps.tree))))
 
-  let bdry i ps =
-    let rec bdry_tree i ps =
-      match ps with
-      | Br [] -> Br []
-      | Br _ when i <= 0 -> Br []
-      | Br l ->  Br (List.map (bdry_tree (i-1)) l)
-    in (mk (Ctx.check (Unchecked.ps_to_ctx (bdry_tree i ps.tree))))
-
-  let rec nb_vars ps =
-    match ps with
-    | Br [] -> 1
-    | Br l -> List.fold_left (fun nb ps -> nb + (nb_vars ps) + 1) 1 l
-
-  let right_point ps =
-    match ps with
-    | Br [] -> 0
-    | Br (_::l) -> nb_vars (Br l)
-
-  let bdry_inclusion ~select_bdry i ps =
-    let open Unchecked_types(Coh) in
-    let var i = Var (Var.Db i) in
-    let rec inclusion i ps next_var =
-      match ps with
-      | Br [] -> [(var next_var),true], next_var + 1
-      | Br l when i <= 0 ->
-        let m = select_bdry next_var ps in
-        [(var m), false], next_var + nb_vars (Br l)
-      | Br l ->
-        let base = (var next_var) in
-        glue i l (next_var + 1) base
-    and glue i l next_var base =
-      match l with
-      | [] -> [base, false], next_var
-      | ps::l ->
-        let sl, next_var = glue i l next_var base in
-        let v = (var next_var) in
-        let s, next_var = inclusion (i-1) ps (next_var+1) in
-        List.append s ((v,false)::sl), next_var
-    in
-    Sub.check_to_ps (to_ctx ps) (fst (inclusion i ps.tree 0)) (bdry i ps)
-
-  let source = bdry_inclusion ~select_bdry:(fun n _ -> n)
-  let target = bdry_inclusion ~select_bdry:(fun n ps -> n + right_point ps)
+  let source ps =
+    Sub.check_to_ps (to_ctx ps) (Unchecked.ps_src ps.tree) (bdry ps)
+  let target ps =
+    Sub.check_to_ps (to_ctx ps) (Unchecked.ps_tgt ps.tree) (bdry ps)
 
   let check_equal ps1 ps2 =
     Unchecked.check_equal_ps ps1.tree ps2.tree
@@ -549,12 +509,11 @@ end = struct
       (Ctx.check_equal (PS.to_ctx ps) (Ty.ctx ty);
        Inv({ps; ty}, name))
     else
-      let i = PS.dim ps in
       let _,src,tgt =
         try Ty.retrieve_arrow ty with IsObj -> raise NotAlgebraic
       in
-      let src_inclusion = PS.source (i-1) ps in
-      let tgt_inclusion = PS.target (i-1) ps in
+      let src_inclusion = PS.source ps in
+      let tgt_inclusion = PS.target ps in
       let src = Tm.preimage src src_inclusion in
       let tgt = Tm.preimage tgt tgt_inclusion in
       if (Tm.is_full src && Tm.is_full tgt) then
@@ -586,10 +545,9 @@ end = struct
 
   let check_noninv ps src tgt name =
     let ps = PS.mk (Ctx.check (Unchecked.ps_to_ctx ps)) in
-    let i = PS.dim ps in
-    let src_inclusion = PS.source (i-1) ps in
-    let tgt_inclusion = PS.target (i-1) ps in
-    let bdry = PS.bdry (i-1) ps in
+    let src_inclusion = PS.source ps in
+    let tgt_inclusion = PS.target ps in
+    let bdry = PS.bdry ps in
     let cbdry = PS.to_ctx bdry in
     let src = Tm.check cbdry src in
     let tgt = Tm.check cbdry tgt in
