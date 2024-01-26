@@ -120,6 +120,25 @@ struct
         i
         (ty_to_string t)
 
+  let full_name name =
+    let print_func_data func =
+      let rec aux = function
+        | [] -> ""
+        | [i] -> Printf.sprintf "%d" i
+        | i::l -> Printf.sprintf "%s %d" (aux l) i
+      in
+      match func with
+      | None -> ""
+      | Some func -> Printf.sprintf "_func[%s]" (aux func)
+    in
+    let print_susp s =
+      match s with
+      | 0 -> ""
+      | k -> Printf.sprintf "!%i" k
+    in
+    let(name,susp,func) = name in
+    Printf.sprintf "%s%s%s" (print_susp susp) name (print_func_data func)
+
   let rec check_equal_ps ps1 ps2 =
     match ps1, ps2 with
     | Br [], Br[] -> ()
@@ -196,8 +215,10 @@ struct
     | [] -> raise NotInImage
     | (w, Var v')::_ when v = v' -> Var w
     | _::s -> var_sub_preimage v s
-  let tm_sub_preimage tm s = tm_do_on_variables tm
-      (fun v -> var_sub_preimage v s)
+  let tm_sub_preimage tm s =
+    tm_do_on_variables tm (fun v -> var_sub_preimage v s)
+  let ty_sub_preimage ty s =
+    ty_do_on_variables ty (fun v -> var_sub_preimage v s)
 
   (* rename is applying a variable to de Bruijn levels substitutions *)
   let rename_ty ty l = ty_do_on_variables ty
