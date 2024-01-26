@@ -54,6 +54,7 @@ module Unchecked : sig
   val sub_to_string : sub -> string
   val meta_ctx_to_string : meta_ctx -> string
   val coh_pp_data_to_string : ?print_func:bool -> coh_pp_data -> string
+  val full_name : coh_pp_data -> string
 
   val check_equal_ctx : ctx -> ctx -> unit
   val check_equal_ps : ps -> ps -> unit
@@ -67,6 +68,8 @@ module Unchecked : sig
   val identity_ps : ps -> sub_ps
   val tm_apply_sub : tm -> sub -> tm
   val ty_apply_sub : ty -> sub -> ty
+  val sub_ps_apply_sub : sub_ps -> sub -> sub_ps
+  val ty_sub_preimage : ty -> sub -> ty
   val db_levels : ctx -> ctx * (Var.t * int) list * int
   val rename_ty : ty -> (Var.t * int) list -> ty
   val tm_contains_var : tm -> Var.t -> bool
