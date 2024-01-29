@@ -48,9 +48,26 @@ check (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) =
 I (assoc x y f z g w h)
 
 set explicit_substitutions = f
+
 # Witnesses of applied invertible coherences
 check
         (x : *) (y : *) (f : x -> y)
         (z : *) (g : y -> z)
         (w : *) (h : z -> w)
     = U (assoc f g h)
+
+# Witnesses of applied non-invertible coherences
+check (x : *) (y : *) (f : x -> y) = U (comp (id f) (id f))
+
+check (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) = U (comp [id f] [id g])
+
+check (x : *) (f : x -> x)
+: comp (comp (assoc f f f) (unbiase f f f)) (I (comp (assoc f f f) (unbiase f f f))) -> id (comp (comp f f) f)
+= U (comp (assoc f f f) (unbiase f f f))
+
+check (x : *) (y : *) (f : x -> x) (g : x -> y)
+:comp (comp (assoc f f g)  (id (comp f (comp f g))) (unbiase f f g) (I(unbiase f f g))) (I (comp (assoc f f g)  (id (comp f (comp f g))) (unbiase f f g) (I(unbiase f f g)))) -> id (comp (comp f f) g)
+= U (comp (assoc f f g)  (id (comp f (comp f g))) (unbiase f f g) (I(unbiase f f g)))
+
+check (x : *) (f : x -> x) (g : x -> x) =
+U (21comp (assoc f f f) (unbiase f f f) (assoc g g g))
