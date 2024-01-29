@@ -1,5 +1,7 @@
+open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
+open Std
 
 exception NotInvertible of string
 exception CohNonInv
@@ -51,12 +53,91 @@ let group_vertically ps t src_t tgt_t =
   let t_vertically_grouped = Coh(coh_vertically_grouped, reduce) in
   Coh.check_inv ps t t_vertically_grouped ("vertical_grouping",0,None)
 
-let compute_witness t  =
+let rec cancel_linear_comp t =
+  let ps,sub = match t with
+    | Coh (c,sub) -> let ps,_,_  = Coh.forget c in ps, sub
+    | _ -> Error.fatal "term must be a linear composite"
+  in
+  let d = Unchecked.dim_ps ps in
+  let k =
+    let rec arity i ps =
+      match i,ps with
+      | 0, Br l -> List.length l
+      | _, Br [Br l] -> arity (i-1) (Br l)
+      | _ -> Error.fatal "term must be a linear composite"
+    in (arity (d-1) ps) / 2
+  in
+  let rec sub_to_telescope i sub invs =
+    match i, sub, invs with
+    | 0,s,_ -> (List.map fst s)
+    | i, (t,_):: _::s, invs when i > k ->
+      sub_to_telescope (i-1) s (t::invs)
+    | i,(t,_)::(x,_)::s, t_inv::invs ->
+      (compute_witness t)::
+      t_inv::
+      t::
+      x::
+      (sub_to_telescope (i-1) s invs)
+    |_,_,_ -> Error.fatal "term must be a linear composite"
+  in
+  let tel = Telescope.telescope k in
+  let ctel = Telescope.ctx k in
+  let
+    stel =
+    Unchecked.list_to_sub
+      (sub_to_telescope (2*k) sub [])
+      (Suspension.ctx (Some (d-1)) ctel)
+  in
+  Unchecked.tm_apply_sub (Suspension.tm (Some (d-1)) tel) stel
+and cancel_all_linear_comp t =
+  let c,sub =
+    match t with
+    | Coh(c,sub) ->  c,sub
+    | _ -> Error.fatal ""
+  in
+  let ps,_,_ = Coh.forget c in
+  let d = Unchecked.dim_ps ps in
+  let rec compute_sub i ps sub ty_base =
+    match ps,sub with
+    | Br [], [t] -> [t]
+    | Br [Br[]], (t,_)::(_,_)::(src_t,_)::sub when i = d-1 ->
+      let t_wit = cancel_linear_comp t in
+      let id_src_t =
+        let sub_base = Unchecked.ty_to_sub_ps ty_base in
+        let id = Suspension.coh (Some (Unchecked.dim_ty ty_base)) Builtin.id in
+        Coh(id, (src_t,true)::sub_base)
+      in
+      (t_wit, true)::
+      (id_src_t, false)::
+      (t,false)::
+      (src_t,false)::
+      (src_t,false)::
+      sub
+    | Br l, sub ->
+      let incls = Unchecked.canonical_inclusions l in
+      let sub,_ = Unchecked.sub_ps_to_sub sub (Br l) in
+      let lsubs =
+        (List.map2
+           (fun p incl ->
+              let s = Unchecked.(sub_ps_to_sub_ps_bp
+                                   (sub_ps_apply_sub incl sub))
+              in
+              {Unchecked.sub_ps =
+                 compute_sub (i+1) p s.sub_ps (Arr(ty_base,s.l,s.r));
+               l = s.l;
+               r = s.r})
+           l incls)
+      in
+      Unchecked.wedge_sub_ps_bp lsubs
+  in
+  Coh(Functorialisation.coh_all c,compute_sub 0 ps sub Obj)
+
+and compute_witness t  =
   match t with
   | Var x -> raise (NotInvertible (Var.to_string x))
   | Meta_tm _ ->
     raise (NotInvertible "Meta_variable not allowed in witness generation")
-  | Coh(c,sub) ->
+  | Coh(c,s) ->
     let ps,ty,(name,susp,func) = Coh.forget c in
     let d = Coh.dim c in
     let sub_base,u,v =
@@ -88,10 +169,87 @@ let compute_witness t  =
         let
           c_wit = Coh.check_inv ps src_wit tgt_wit  (name^"_Unit",susp,func)
         in
-        Coh(c_wit,sub)
+        Coh(c_wit,s)
       end
-    else assert false
+    else
+      let ps_doubled, inl, inr = Unchecked.ps_compose (d-1) ps ps in
+      let t =
+        let tm1 = Coh(c,inl) in
+        let c_op = Opposite.coh c [d] in
+        let tm2 = Coh(c_op, inr) in
+        let sub_inr,_ = Unchecked.sub_ps_to_sub inr ps in
+        let sub_inl,_ = Unchecked.sub_ps_to_sub inl ps in
+        let w = match Coh.forget c_op with
+          | _,Arr(_,_,v),_ ->
+            Unchecked.tm_apply_sub v sub_inr
+          | _ -> Error.fatal "coherence must have an arrow type"
+        in
+        let u = Unchecked.tm_apply_sub u sub_inl in
+        let v = Unchecked.tm_apply_sub v sub_inl in
+        let sub_base = Unchecked.sub_ps_apply_sub sub_base sub_inl in
+        let comp = Suspension.coh (Some (d-1)) (Builtin.comp_n 2) in
+        Coh(comp,
+            (tm2,true)::(w,false)::(tm1,true)::(v,false)::(u,false)::sub_base)
+      in
+      let ps_reduced =
+        Ps_reduction.reduce (Unchecked.dim_ps ps_doubled - 1) ps_doubled
+      in
+      let src_c,_ = Coh.noninv_srctgt c in
+      let sub,cps = Unchecked.sub_ps_to_sub s ps in
+      let m1,src_m1,tgt_m1 =
+        let coh = group_vertically ps_doubled t src_c src_c in
+        let src,tgt =
+          match Coh.forget coh with
+          | _,Arr(_,src,tgt),_ -> src,tgt
+          | _ -> Error.fatal "coherence must be of arrow type"
+        in
+        let
+          sinv =
+          (Unchecked.sub_ps_apply_sub
+             (Opposite.equiv_op_ps ps [d])
+             (sub_inv sub cps (d)))
+        in
+        let ssinv = Unchecked.pullback_up (d-1) ps ps s sinv in
+        let subsinv,_ = Unchecked.sub_ps_to_sub ssinv ps_doubled in
+        Coh(coh,ssinv),
+        Unchecked.tm_apply_sub src subsinv,
+        Unchecked.tm_apply_sub tgt subsinv
+      in
+      let m2 = cancel_all_linear_comp tgt_m1 in
+      let m3,src_m3,tgt_m3 =
+        let coh= Builtin.unbiased_unitor ps_reduced src_c in
+        let src,tgt =
+          match Coh.forget coh with
+          | _,Arr(_,src,tgt),_ -> src,tgt
+          | _ -> Error.fatal "coherence must be of arrow type"
+        in
+        let s = Unchecked.sub_ps_apply_sub (Unchecked.ps_src ps) sub in
+        let sub,_ = Unchecked.sub_ps_to_sub s (Unchecked.ps_bdry ps) in
+        Coh(coh,s),
+        Unchecked.tm_apply_sub src sub,
+        Unchecked.tm_apply_sub tgt sub
+      in
+      let sub_total =
+        (m3, true)::
+        (tgt_m3, false)::
+        (m2, true)::
+        (src_m3, false)::
+        (m1, true)::
+        (tgt_m1, false)::
+        (src_m1, false)::
+        (Unchecked.tm_apply_sub u sub, false)::
+        (Unchecked.tm_apply_sub u sub, false)::
+        (Unchecked.sub_ps_apply_sub sub_base sub)
+      in
+      Coh(Suspension.coh (Some d) (Builtin.comp_n 3), sub_total)
 
 let compute_witness t =
-  try compute_witness t with
-  | NotInvertible s -> Error.inversion ("term: " ^ (Unchecked.tm_to_string t)) s
+  try let r = compute_witness t in
+      Io.info ~v:3
+        (lazy
+           (Printf.sprintf "inverse term: %s"
+                            (Unchecked.tm_to_string r)));
+      r
+  with
+  | NotInvertible s -> Error.inversion ("term: " ^ (Unchecked.tm_to_string t))
+                         (Printf.sprintf "term %s is not invertible" s)
