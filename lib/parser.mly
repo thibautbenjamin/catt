@@ -1,6 +1,5 @@
 %{
     open Command
-    open Kernel
     open Raw_types
 
     type annotated_ps =
