@@ -1,4 +1,3 @@
-open Kernel
 open Raw_types
 
 val string_of_ty : tyR -> string

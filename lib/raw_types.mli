@@ -1,5 +1,3 @@
-open Kernel
-
 type builtin =
   | Comp
   | Id

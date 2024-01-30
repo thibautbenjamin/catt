@@ -1,5 +1,4 @@
 open Std
-open Kernel
 open Raw_types
 
 let string_of_builtin = function
