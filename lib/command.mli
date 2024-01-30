@@ -1,4 +1,3 @@
-open Kernel
 open Raw_types
 
 type cmd =
