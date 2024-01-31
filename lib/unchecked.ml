@@ -1,3 +1,4 @@
+open Std
 open Common
 open Unchecked_types
 
@@ -186,6 +187,8 @@ struct
     | None -> Var v
   let tm_apply_sub tm s = tm_do_on_variables tm (fun v -> var_apply_sub v s)
   let ty_apply_sub ty s = ty_do_on_variables ty (fun v -> var_apply_sub v s)
+  let sub_ps_apply_sub s1 s2 =
+    sub_ps_do_on_variables s1 (fun v -> var_apply_sub v s2)
   let _sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
 
   let rec var_sub_preimage v s =
@@ -211,9 +214,6 @@ struct
         let lvl = max + 1 in
         (Var.Db lvl, (rename_ty t l, expl)) ::c, (x, lvl)::l, lvl
 
-  let increase_lv_ty ty i m =
-    ty_do_on_variables ty (fun v -> Var (Var.increase_lv v i m))
-
   let suspend_ps ps = Br [ps]
 
   let rec suspend_ty = function
@@ -231,42 +231,134 @@ struct
     | [] -> [Var (Var.Db 1), false; Var (Var.Db 0), false]
     | (t,expl)::s -> (suspend_tm t, expl) :: (suspend_sub_ps s)
 
-  let rec suspend_ctx = function
-    | [] -> (Var.Db 1, (Obj, false)) :: (Var.Db 0, (Obj, false)) :: []
-    | (v,(t,expl))::c -> (Var.suspend v, (suspend_ty t, expl)) :: (suspend_ctx c)
 
-  let ps_to_ctx ps =
-    let rec ps_to_ctx_aux ps =
-      match ps with
-      | Br [] -> [(Var.Db 0), (Obj, true)], 0, 0
-      | Br l ->
-        ps_concat (List.map
-                     (fun ps ->
-                        let ps,_,m = ps_to_ctx_aux ps in
-                        (suspend_ctx  ps, 1, m+2))
-                     l)
-    and ps_concat = function
-      | [] -> Error.fatal "empty is not a pasting scheme"
-      | ps :: [] -> ps
-      | ps :: l -> ps_glue (ps_concat l) ps
-    and ps_glue (p1,t1,m1) (p2,t2,m2) =
-      List.append (chop_and_increase p2 t1 m1) p1, t2+m1, m1+m2
-    and chop_and_increase ctx i m =
-      match ctx with
-      | [] -> Error.fatal "empty is not a pasting scheme"
-      | _ :: [] -> []
-      | (v,(t,expl)) :: ctx ->
-        let v = Var.increase_lv v i m in
-        let t = increase_lv_ty t i m in
-        let ctx = chop_and_increase ctx i m in
-        (v,(t,expl))::ctx
-    in
-    let c,_,_ = ps_to_ctx_aux ps in c
+  (* Definition of FreePos(B):
+     - in the paper, we define the bipointed verison with suspension and wedge
+     - here we don't need the left point, as it is always the DeBruijn level 0,\
+     however, we need the right point. We also need to rename every variable in\
+     the right of a wedge, to avoid name clashes. To help with this, we also \
+     carry around the maximal variable of a context. Given a function f, f_rp\
+     is the name of the rightpointed variant, giving the right point and the\
+     maximal variable.
+  *)
+
+  type ctx_bp = {ctx: ctx; max: int; rp: int}
+  type sub_ps_bp = {sub_ps: sub_ps; l: tm; r: tm}
+
+  let rec suspend_ctx_rp ctx =
+    match ctx with
+    | [] ->
+      let ctx = (Var.Db 1, (Obj, false))::(Var.Db 0, (Obj, false))::[] in
+      {ctx; max = 1; rp = 1}
+    | (v,(t,expl))::c ->
+      let c = suspend_ctx_rp c in
+      let v = Var.suspend v in
+      match v with
+      | Var.Db i ->
+        {ctx = (v, (suspend_ty t, expl))::c.ctx; max = max i c.max; rp = c.rp;}
+      | _ ->
+        {ctx = (v, (suspend_ty t, expl))::c.ctx; max = c.max; rp = c.rp}
+
+  let suspend_ctx ctx =
+    (suspend_ctx_rp ctx).ctx
+
+  let var_inr_wedge v ctx_bp =
+    match v with
+    | Var.Db j ->
+      if  j = 0 then (Var.Db ctx_bp.rp)
+      else Var.Db (j + ctx_bp.max)
+    | Name _ | New _ -> Error.fatal "expecting a de-bruijn level"
+
+  let ty_inr_wedge ty ctx_bp =
+    ty_do_on_variables ty (fun v -> Var (var_inr_wedge v ctx_bp))
+  let tm_inr_wedge tm ctx_bp =
+    tm_do_on_variables tm (fun v -> Var (var_inr_wedge v ctx_bp))
+
+  let rec ps_to_ctx_rp ps =
+    match ps with
+    | Br [] -> {ctx = [(Var.Db 0), (Obj, true)]; rp = 0; max = 0}
+    | Br l -> let _,ctx = canonical_inclusions l in
+      ctx
+  and canonical_inclusions l =
+    match l with
+    | [] -> Error.fatal "empty inclusions"
+    | [ps] ->
+      [suspend_sub_ps (identity_ps ps)], suspend_ctx_rp (ps_to_ctx_rp ps).ctx
+    | ps::l ->
+      let id = suspend_sub_ps (identity_ps ps) in
+      let ctx_ps = suspend_ctx_rp (ps_to_ctx_rp ps).ctx in
+      let incls,ctx_base = canonical_inclusions l in
+      let ctx_bp =
+        {ctx = append_onto_ctx ctx_ps ctx_base;
+         rp = ctx_ps.rp + ctx_base.max;
+         max = ctx_ps.max + ctx_base.max}
+      in
+      let incl = List.map (fun (t,e) -> tm_inr_wedge t ctx_base,e) id in
+      incl::incls, ctx_bp
+  and append_onto_ctx ctx base =
+    let rec aux = function
+      | [] -> Error.fatal "empty context in wedge"
+      | [_] -> base.ctx
+      | (v,(t,expl))::ctx ->
+        let t = ty_inr_wedge t base in
+        let v = var_inr_wedge v base in
+        (v,(t,expl))::(aux ctx)
+    in aux ctx.ctx
+  and identity_ps ps =
+    match ps with
+    | Br [] -> [Var (Var.Db 0), true]
+    | Br l ->
+      let incls,_ = canonical_inclusions l in
+      wedge_sub_ps incls
+  and wedge_sub_ps (l : sub_ps list) =
+    let lp = (sub_ps_to_sub_ps_bp (List.last l)).l in
+    List.fold_right
+      (fun s sub ->
+         let s = sub_ps_to_sub_ps_bp s in
+         List.append s.sub_ps((s.r,false)::sub))
+      l
+      [lp,false]
+  and sub_ps_to_sub_ps_bp sub_ps =
+    match sub_ps with
+    | [] | [_] -> Error.fatal "need two basepoints"
+    | [(r,_);(l,_)] -> {sub_ps = []; l; r}
+    | t::s ->
+      let s = sub_ps_to_sub_ps_bp s in
+      {sub_ps = t::s.sub_ps; l = s.l; r = s.r}
+
+  let canonical_inclusions l = let incls,_ = canonical_inclusions l in incls
+  let ps_to_ctx ps = (ps_to_ctx_rp ps).ctx
 
   let sub_ps_to_sub s ps =
     let ps = ps_to_ctx ps in
     try List.map2 (fun (t,_) (x,_) -> (x,t)) s ps, ps
     with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
+
+  let suspwedge_subs_ps list_subs list_ps =
+    let incls = canonical_inclusions list_ps in
+    wedge_sub_ps
+      (List.map3
+         (fun s ps i ->
+            sub_ps_apply_sub
+              (suspend_sub_ps s)
+              (fst (sub_ps_to_sub i (suspend_ps ps))))
+         list_subs list_ps incls)
+
+  let opsuspwedge_subs_ps list_subs list_ps =
+    let rec swap_bp sub =
+      match sub with
+      | [] | [_] -> Error.fatal "wedge without two basepoints"
+      | [r;l] -> [l;r]
+      | t::sub -> t::(swap_bp sub)
+    in
+    let incls = canonical_inclusions list_ps in
+    wedge_sub_ps
+      (List.map3
+         (fun s ps i ->
+            sub_ps_apply_sub
+              (swap_bp (suspend_sub_ps s))
+              (fst (sub_ps_to_sub i (suspend_ps ps))))
+         (List.rev list_subs) (List.rev list_ps) (List.rev incls))
 
   let max_fresh_var c =
     let rec find_max c i =
@@ -280,10 +372,6 @@ struct
   let two_fresh_vars c =
     let i = max_fresh_var c in
     Var.New (i+1), Var.New (i+2)
-
-  let rec identity_ps = function
-    | [] -> []
-    | (x,(_,expl))::c -> (Var x,expl) :: (identity_ps c)
 
   let rec tm_contains_var t x =
     match t with

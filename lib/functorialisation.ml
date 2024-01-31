@@ -92,8 +92,8 @@ let add_functorialisation c func l =
 let coh_one_step coh l =
   let ps,_,(name,susp,func) = Coh.forget coh in
   let ctx_base = Unchecked.ps_to_ctx ps in
-  let ctx,_ = ctx_one_step ctx_base l in
-  let tm = Coh (coh,(Unchecked.identity_ps ctx_base)) in
+  let ctx,_ = ctx_one_step (Unchecked.ps_to_ctx ps) l in
+  let tm = Coh (coh,(Unchecked.identity_ps ps)) in
   let newf = add_functorialisation ctx_base func l in
   Coh.check_noninv (PS.forget (PS.mk (Ctx.check ctx))) tm tm (name,susp,Some newf)
 
