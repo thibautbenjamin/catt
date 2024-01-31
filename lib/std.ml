@@ -4,6 +4,11 @@ module List = struct
   let remove x l =
     filter (fun y -> y <> x) l
 
+  let rec last = function
+    | [] -> raise (Invalid_argument "last")
+    | [t] -> t
+    | _::l -> last l
+
   let union l1 l2 =
     fold_left (fun l x -> if not (mem x l) then x::l else l) l1 l2
 
@@ -30,4 +35,10 @@ module List = struct
 
   let map_right fn =
     List.map (fun (a,b) -> (a, fn b))
+
+  let rec map3 fn l1 l2 l3 =
+    match l1,l2,l3 with
+    | [],[],[] -> []
+    | a1::l1, a2::l2, a3::l3 -> (fn a1 a2 a3) :: (map3 fn l1 l2 l3)
+    | _ -> raise (Invalid_argument "List.map3")
 end

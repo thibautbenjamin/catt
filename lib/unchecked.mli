@@ -31,7 +31,7 @@ module Unchecked (Coh : sig type t end) : sig
     val dim_ty : ty -> int
     val dim_ps : ps -> int
     val ps_to_ctx : ps -> ctx
-    val identity_ps : ctx -> sub_ps
+    val identity_ps : ps -> sub_ps
     val tm_apply_sub : tm -> sub -> tm
     val ty_apply_sub : ty -> sub -> ty
     val db_levels : ctx -> ctx * (Var.t * int) list * int
@@ -46,5 +46,8 @@ module Unchecked (Coh : sig type t end) : sig
     val suspend_sub_ps : sub_ps -> sub_ps
 
     val tm_sub_preimage : tm -> sub -> tm
+    val suspwedge_subs_ps : sub_ps list -> ps list -> sub_ps
+    val opsuspwedge_subs_ps : sub_ps list -> ps list -> sub_ps
+    val canonical_inclusions : ps list -> sub_ps list
   end
 end

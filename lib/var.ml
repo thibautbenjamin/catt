@@ -26,11 +26,6 @@ let check_equal v1 v2 =
   | Db _, Name _| Db _, New _
     -> raise (NotEqual(to_string v1, to_string v2))
 
-let increase_lv v i m =
-  match v with
-  | Db j -> if  j == 0 then Db (i) else Db (j + m)
-  | Name _ | New _ -> Error.fatal "expecting a de-bruijn level"
-
 let suspend = function
   | Db i -> Db (i+2)
   | Name _ | New _ as v -> v
