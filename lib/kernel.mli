@@ -1,41 +1,17 @@
 open Common
+open Unchecked_types
 
-module rec Unchecked_types : sig
-  type coh_pp_data = string * int * functorialisation_data option
-
-  type ps = Br of ps list
-
-  type ty =
-    | Meta_ty of int
-    | Obj
-    | Arr of ty * tm * tm
-  and tm =
-    | Var of Var.t
-    | Meta_tm of int
-    | Coh of Coh.t * sub_ps
-  and sub_ps = (tm * bool) list
-  type ctx = (Var.t * (ty * bool)) list
-  type sub = (Var.t * tm) list
-  type meta_ctx = ((int * ty) list)
-
-end
-
-and Coh : sig
+module rec Coh : sig
   type t
-  val forget :
-    t -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
+  val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
   val check_equal : t -> t -> unit
   val to_string : t -> string
   val check_noninv :
-    Unchecked_types.ps ->
-    Unchecked_types.tm ->
-    Unchecked_types.tm ->
-    Unchecked_types.coh_pp_data ->
-    t
+    ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
+  val func_data : t -> functorialisation_data option
 end
 
-open Unchecked_types
-
+open Unchecked_types(Coh)
 module Ctx : sig
   type t
 
@@ -70,6 +46,12 @@ module Unchecked : sig
   val ctx_to_string : ctx -> string
   val sub_to_string : sub -> string
   val meta_ctx_to_string : meta_ctx -> string
+  val coh_pp_data_to_string : ?print_func:bool -> coh_pp_data -> string
+
+  val check_equal_ctx : ctx -> ctx -> unit
+  val check_equal_ps : ps -> ps -> unit
+  val check_equal_ty : ty -> ty -> unit
+
   val two_fresh_vars : ctx -> Var.t * Var.t
   val dim_ctx : ctx -> int
   val dim_ty : ty -> int
@@ -80,7 +62,7 @@ module Unchecked : sig
   val ty_apply_sub : ty -> sub -> ty
   val db_levels : ctx -> ctx * (Var.t * int) list * int
   val rename_ty : ty -> (Var.t * int) list -> ty
-  val tm_contains_var : Unchecked_types.tm -> Var.t -> bool
+  val tm_contains_var : tm -> Var.t -> bool
   val tm_contains_vars : tm -> Var.t list -> bool
   val sub_ps_to_sub : sub_ps -> ps -> sub * ctx
   val suspend_ps : ps -> ps
@@ -88,7 +70,10 @@ module Unchecked : sig
   val suspend_tm : tm -> tm
   val suspend_ctx : ctx -> ctx
   val suspend_sub_ps : sub_ps -> sub_ps
+
+  val tm_sub_preimage : tm -> sub -> tm
 end
+
 
 val check_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
 val check_coh : ps -> ty -> coh_pp_data -> Coh.t
