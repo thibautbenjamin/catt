@@ -1,4 +1,6 @@
-open Kernel.Unchecked_types
+open Common
+open Kernel
+open Unchecked_types.Unchecked_types(Coh)
 open Raw_types
 
 val ctx : (Var.t * tyR) list -> ctx

@@ -1,18 +1,19 @@
 open Std
 open Common
+open Unchecked_types
+open Unchecked
 
 exception IsObj
 exception IsCoh
 exception InvalidSubTarget of string * string
-exception DoubledVar of string
 exception MetaVariable
 
 (** Operations on substitutions. *)
 module rec Sub
   : sig
     type t
-    val check_to_ps : Ctx.t -> Unchecked_types.sub_ps -> PS.t -> t
-    val forget : t -> Unchecked_types.sub
+    val check_to_ps : Ctx.t -> Unchecked_types(Coh).sub_ps -> PS.t -> t
+    val forget : t -> Unchecked_types(Coh).sub
     val free_vars : t -> Var.t list
     val src : t -> Ctx.t
     val tgt : t -> Ctx.t
@@ -21,15 +22,19 @@ module rec Sub
   type t = {list : Tm.t list;
             src : Ctx.t;
             tgt : Ctx.t;
-            unchecked : Unchecked_types.sub}
+            unchecked : Unchecked_types(Coh).sub}
 
   let src s = s.src
   let tgt s = s.tgt
+
+  open Unchecked(Coh)
+  module Unchecked = Make(Coh)
 
   let free_vars s =
     List.concat (List.map Tm.free_vars s.list)
 
   let check src s tgt =
+
     Io.info ~v:5
       (lazy
         (Printf.sprintf
@@ -38,7 +43,9 @@ module rec Sub
            (Ctx.to_string src)
            (Unchecked.sub_to_string s)
            (Ctx.to_string tgt)));
-    let sub_exn = InvalidSubTarget(Unchecked.sub_to_string s, Ctx.to_string tgt) in
+    let
+      sub_exn = InvalidSubTarget(Unchecked.sub_to_string s, Ctx.to_string tgt)
+    in
     let rec aux src s tgt =
       let expr s tgt =
         match s, Ctx.value tgt with
@@ -76,14 +83,17 @@ and Ctx
     val ty_var : t -> Var.t -> Ty.t
     val domain : t -> Var.t list
     val value : t -> (Var.t * Ty.t) list
-    val extend : t -> expl:bool -> Var.t -> Unchecked_types.ty -> t
-    val forget : t -> Unchecked_types.ctx
-    val check : Unchecked_types.ctx -> t
+    val extend : t -> expl:bool -> Var.t -> Unchecked_types(Coh).ty -> t
+    val forget : t -> Unchecked_types(Coh).ctx
+    val check : Unchecked_types(Coh).ctx -> t
     val check_notin : t -> Var.t -> unit
     val check_equal : t -> t -> unit
   end = struct
   type t = {c : (Var.t * Ty.t) list;
-            unchecked : Unchecked_types.ctx}
+            unchecked : Unchecked_types(Coh).ctx}
+
+  open Unchecked(Coh)
+  module Unchecked = Make(Coh)
 
   let tail ctx =
     match ctx.c, ctx.unchecked with
@@ -100,8 +110,7 @@ and Ctx
   let domain ctx = List.map fst ctx.c
   let value ctx = ctx.c
   let forget c = c.unchecked
-  let to_string ctx =
-    Unchecked.ctx_to_string (forget ctx)
+  let to_string ctx = Unchecked.ctx_to_string (forget ctx)
   let check_equal ctx1 ctx2 =
     Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
 
@@ -133,12 +142,14 @@ and PS : sig
   val bdry : int -> t -> t
   val source : int -> t -> Sub.t
   val target : int -> t -> Sub.t
-  val forget : t -> Unchecked_types.ps
+  val forget : t -> ps
   val check_equal : t -> t -> unit
 end
 =
 struct
   exception Invalid
+  open Unchecked(Coh)
+  module Unchecked = Make(Coh)
 
   (** A pasting scheme. *)
   type ps_derivation =
@@ -146,7 +157,7 @@ struct
     | PCons of ps_derivation * (Var.t * Ty.t) * (Var.t * Ty.t)
     | PDrop of ps_derivation
 
-  type t = { tree : Unchecked_types.ps; ctx : Ctx.t}
+  type t = { tree : ps; ctx : Ctx.t}
 
   (** Create a context from a pasting scheme. *)
   (* TODO:fix level of explicitness here *)
@@ -228,8 +239,8 @@ struct
   let make_tree ps =
     let rec find_previous ps list =
       match ps with
-      | PNil x -> (Unchecked_types.Br list, PNil x)
-      | PCons (ps,_,_) -> (Unchecked_types.Br list, ps)
+      | PNil x -> (Br list, PNil x)
+      | PCons (ps,_,_) -> (Br list, ps)
       | PDrop _ as ps ->
         let p,ps = build_till_previous ps in
         Br p, ps
@@ -242,7 +253,7 @@ struct
         let prev,ps = build_till_previous ps in
         p::prev, ps
     in
-    Unchecked_types.Br (fst (build_till_previous ps))
+    Br (fst (build_till_previous ps))
 
   let mk (l : Ctx.t) =
     let oldrep = make_old l in
@@ -262,26 +273,27 @@ struct
   let bdry i ps =
     let rec bdry_tree i ps =
       match ps with
-      | Unchecked_types.Br [] -> Unchecked_types.Br []
+      | Br [] -> Br []
       | Br _ when i <= 0 -> Br []
       | Br l ->  Br (List.map (bdry_tree (i-1)) l)
     in (mk (Ctx.check (Unchecked.ps_to_ctx (bdry_tree i ps.tree))))
 
   let rec nb_vars ps =
     match ps with
-    | Unchecked_types.Br [] -> 1
+    | Br [] -> 1
     | Br l -> List.fold_left (fun nb ps -> nb + (nb_vars ps) + 1) 1 l
 
   let right_point ps =
     match ps with
-    | Unchecked_types.Br [] -> 0
+    | Br [] -> 0
     | Br (_::l) -> nb_vars (Br l)
 
   let bdry_inclusion ~select_bdry i ps =
-    let var i = Unchecked_types.Var (Var.Db i) in
+    let open Unchecked_types(Coh) in
+    let var i = Var (Var.Db i) in
     let rec inclusion i ps next_var =
       match ps with
-      | Unchecked_types.Br [] -> [(var next_var),true], next_var + 1
+      | Br [] -> [(var next_var),true], next_var + 1
       | Br l when i <= 0 ->
         let m = select_bdry next_var ps in
         [(var m), false], next_var + nb_vars (Br l)
@@ -306,7 +318,6 @@ struct
     Unchecked.check_equal_ps ps1.tree ps2.tree
 end
 
-
 and Ty : sig
   type t
   val to_string : t -> string
@@ -315,8 +326,8 @@ and Ty : sig
   val is_obj : t -> bool
   val check_equal : t -> t -> unit
   val morphism : Tm.t -> Tm.t -> Ty.t
-  val forget : t -> Unchecked_types.ty
-  val check : Ctx.t -> Unchecked_types.ty -> t
+  val forget : t -> Unchecked_types(Coh).ty
+  val check : Ctx.t -> Unchecked_types(Coh).ty -> t
   val apply_sub : t -> Sub.t -> t
   val retrieve_arrow : t -> (t * Tm.t * Tm.t)
   val under_type : t -> t
@@ -330,7 +341,10 @@ struct
   type expr =
     | Obj
     | Arr of t * Tm.t * Tm.t
-  and t = {c : Ctx.t; e : expr; unchecked : Unchecked_types.ty}
+  and t = {c : Ctx.t; e : expr; unchecked : Unchecked_types(Coh).ty}
+
+  open Unchecked(Coh)
+  module Unchecked = Make(Coh)
 
   let is_obj t = (t.e = Obj)
 
@@ -377,8 +391,7 @@ struct
 
   let forget t = t.unchecked
 
-  let to_string ty =
-    Unchecked.ty_to_string (forget ty)
+  let to_string ty = Unchecked.ty_to_string (forget ty)
 
   (** Test for equality. *)
   let check_equal ty1 ty2 =
@@ -390,7 +403,7 @@ struct
     let a2 = Tm.ty t2 in
     check_equal a1 a2;
     {c=a1.c; e=Arr(a1,t1,t2);
-      unchecked = Unchecked_types.Arr(forget a1, Tm.forget t1, Tm.forget t2)}
+      unchecked = Arr(forget a1, Tm.forget t1, Tm.forget t2)}
 
   let apply_sub t s =
     Ctx.check_equal t.c (Sub.tgt s);
@@ -406,8 +419,8 @@ and Tm : sig
   val typ : t -> Ty.t
   val free_vars : t -> Var.t list
   val is_full : t -> bool
-  val forget : t -> Unchecked_types.tm
-  val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types.tm -> t
+  val forget : t -> Unchecked_types(Coh).tm
+  val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types(Coh).tm -> t
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
   val ty : t -> Ty.t
@@ -417,9 +430,12 @@ struct
   type expr =
     | Var of Var.t (** a context variable *)
     | Coh of Coh.t * Sub.t
-  and t = {ty : Ty.t; e : expr; unchecked : Unchecked_types.tm}
+  and t = {ty : Ty.t; e : expr; unchecked : Unchecked_types(Coh).tm}
 
   let typ t = t.ty
+
+  open Unchecked(Coh)
+  module Unchecked = Make(Coh)
 
   let to_var tm =
     match tm.e with
@@ -480,12 +496,12 @@ and Coh : sig
   type t
   val ps : t -> PS.t
   val ty : t -> Ty.t
-  val check : Unchecked_types.ps -> Unchecked_types.ty -> Unchecked_types.coh_pp_data -> t
-  val check_noninv : Unchecked_types.ps -> Unchecked_types.tm -> Unchecked_types.tm -> Unchecked_types.coh_pp_data -> t
+  val check : ps -> Unchecked_types(Coh).ty -> coh_pp_data -> t
+  val check_noninv : ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
   val to_string : t -> string
   (* val data_noninv : t -> PS.t * Tm.t * Tm.t * Sub.t * Sub.t * PS.t *)
-  (* val data : t -> PS.t * Ty.t * Unchecked_types.coh_pp_data *)
-  val forget : t -> Unchecked_types.ps * Unchecked_types.ty * Unchecked_types.coh_pp_data
+  (* val data : t -> PS.t * Ty.t * coh_pp_data *)
+  val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
   val func_data : t -> functorialisation_data option
   val check_equal : t -> t -> unit
 end = struct
@@ -500,10 +516,13 @@ end = struct
                     total_ty: Ty.t}
 
   type t =
-    | Inv of cohInv * Unchecked_types.coh_pp_data
-    | NonInv of cohNonInv * Unchecked_types.coh_pp_data
+    | Inv of cohInv * coh_pp_data
+    | NonInv of cohNonInv * coh_pp_data
 
   exception NotAlgebraic
+
+  open Unchecked(Coh)
+  module Unchecked = Make(Coh)
 
   let ps = function
     | Inv(data,_) -> data.ps
@@ -616,371 +635,8 @@ end = struct
       raise (NotEqual (to_string coh1, to_string coh2))
 end
 
-
-and Unchecked_types : sig
-  type coh_pp_data = string * int * functorialisation_data option
-  type ps = Br of ps list
-
-  type ty =
-    | Meta_ty of int
-    | Obj
-    | Arr of ty * tm * tm
-  and tm =
-    | Var of Var.t
-    | Meta_tm of int
-    | Coh of Coh.t * sub_ps
-  and sub_ps = (tm * bool) list
-  type ctx = (Var.t * (ty * bool)) list
-  type sub = (Var.t * tm) list
-  type meta_ctx = ((int * ty) list)
-end = struct
-  type coh_pp_data = string * int * functorialisation_data option
-
-  type ps = Br of ps list
-
-  type ty =
-    | Meta_ty of int
-    | Obj
-    | Arr of ty * tm * tm
-  and tm =
-    | Var of Var.t
-    | Meta_tm of int
-    | Coh of Coh.t * sub_ps
-
-  and sub_ps = (tm * bool) list
-
-  type ctx = (Var.t * (ty * bool)) list
-
-  type sub = (Var.t * tm) list
-
-  type meta_ctx = ((int * ty) list)
-end
-and Unchecked : sig
-  exception NotInImage
-  val ps_to_string : Unchecked_types.ps -> string
-  val ty_to_string : Unchecked_types.ty -> string
-  val tm_to_string : Unchecked_types.tm -> string
-  val sub_ps_to_string : ?func : functorialisation_data -> Unchecked_types.sub_ps -> string
-  val ctx_to_string : Unchecked_types.ctx -> string
-  val sub_to_string : Unchecked_types.sub -> string
-  val coh_pp_data_to_string : ?print_func:bool -> Unchecked_types.coh_pp_data -> string
-  val meta_ctx_to_string : Unchecked_types.meta_ctx -> string
-  val check_equal_ty : Unchecked_types.ty -> Unchecked_types.ty -> unit
-  val check_equal_ctx : Unchecked_types.ctx -> Unchecked_types.ctx -> unit
-  val check_equal_ps : Unchecked_types.ps -> Unchecked_types.ps -> unit
-  val tm_apply_sub : Unchecked_types.tm -> Unchecked_types.sub -> Unchecked_types.tm
-  val ty_apply_sub : Unchecked_types.ty -> Unchecked_types.sub -> Unchecked_types.ty
-  val tm_sub_preimage : Unchecked_types.tm -> Unchecked_types.sub -> Unchecked_types.tm
-  val rename_ty : Unchecked_types.ty -> (Var.t * int) list -> Unchecked_types.ty
-  val db_levels : Unchecked_types.ctx -> Unchecked_types.ctx * (Var.t * int) list * int
-  val ps_to_ctx : Unchecked_types.ps -> Unchecked_types.ctx
-  val sub_ps_to_sub : Unchecked_types.sub_ps -> Unchecked_types.ps -> Unchecked_types.sub * Unchecked_types.ctx
-  val two_fresh_vars : Unchecked_types.ctx -> Var.t * Var.t
-  val identity_ps : Unchecked_types.ctx -> Unchecked_types.sub_ps
-  val tm_contains_var : Unchecked_types.tm -> Var.t -> bool
-  val tm_contains_vars : Unchecked_types.tm -> Var.t list -> bool
-  val dim_ty : Unchecked_types.ty -> int
-  val dim_ctx : Unchecked_types.ctx -> int
-  val dim_ps : Unchecked_types.ps -> int
-  val suspend_ps : Unchecked_types.ps -> Unchecked_types.ps
-  val suspend_ty : Unchecked_types.ty -> Unchecked_types.ty
-  val suspend_tm : Unchecked_types.tm -> Unchecked_types.tm
-  val suspend_ctx : Unchecked_types.ctx -> Unchecked_types.ctx
-  val suspend_sub_ps : Unchecked_types.sub_ps -> Unchecked_types.sub_ps
-end = struct
-  exception NotInImage
-
-  let rec func_to_string = function
-    | [] -> ""
-    | i::func -> Printf.sprintf "%s%d" (func_to_string func) i
-
-  let rec ps_to_string = function
-    | Unchecked_types.Br l -> Printf.sprintf "[%s]"
-                                (List.fold_left
-                                   (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s)
-                                   ""
-                                   l)
-
-  let rec ty_to_string = function
-    | Unchecked_types.Meta_ty i -> Printf.sprintf "_ty%i" i
-    | Unchecked_types.Obj -> "*"
-    | Unchecked_types.Arr (a,u,v) ->
-      if !Settings.verbosity >= 3 then
-        Printf.sprintf "%s | %s -> %s"
-          (ty_to_string a)
-          (tm_to_string u)
-          (tm_to_string v)
-      else
-        Printf.sprintf "%s -> %s"
-          (tm_to_string u)
-          (tm_to_string v)
-  and tm_to_string = function
-    | Unchecked_types.Var v -> Var.to_string v
-    | Unchecked_types.Meta_tm i -> Printf.sprintf "_tm%i" i
-    | Unchecked_types.Coh (c,s) ->
-      if not (!Settings.unroll_coherences) then
-        let func = Coh.func_data c in
-        Printf.sprintf "(%s%s)"
-          (Coh.to_string c)
-          (sub_ps_to_string ?func s)
-      else
-        Printf.sprintf "%s[%s]"
-          (Coh.to_string c)
-          (sub_ps_to_string s)
-  and sub_ps_to_string ?func s =
-    match func with
-    | None ->
-      begin
-        match s with
-        | [] -> ""
-        | (t,expl)::s ->
-          if(expl || !Settings.print_explicit_substitutions) then
-            Printf.sprintf "%s %s" (sub_ps_to_string s)  (tm_to_string t)
-          else sub_ps_to_string s
-      end
-    | Some func ->
-      match s,func with
-      | [],[] -> ""
-      | (t,true)::s, i::func ->
-        Printf.sprintf "%s %s" (sub_ps_to_string ~func s)  (bracket i (tm_to_string t))
-      | (t,false)::s, func ->
-        if(!Settings.print_explicit_substitutions) then
-          Printf.sprintf "%s %s" (sub_ps_to_string ~func s) (tm_to_string t)
-        else sub_ps_to_string ~func s
-      | _::_,[] | [], _::_ -> Error.fatal "Wrong number of functorialisation arguments"
-  and coh_pp_data_to_string ?(print_func=false) (name, susp, func) =
-    let susp_name =
-      if susp > 0 then Printf.sprintf "!%i%s" susp name else name
-    in
-    if print_func
-    then
-      match func with
-      | None -> susp_name
-      | Some func -> let func = func_to_string func in susp_name^"/"^func
-    else susp_name
-  and bracket i s = if i <= 0 then s else Printf.sprintf "[%s]" (bracket (i-1) s)
-
-  let rec ctx_to_string = function
-    | [] -> ""
-    | (x,(t,true))::c ->
-      Printf.sprintf "%s (%s: %s)"
-        (ctx_to_string c)
-        (Var.to_string x)
-        (ty_to_string t)
-    | (x,(t,false))::c ->
-      Printf.sprintf "%s {%s: %s}"
-        (ctx_to_string c)
-        (Var.to_string x)
-        (ty_to_string t)
-  let rec sub_to_string = function
-    | [] -> ""
-    | (x,t)::s ->
-      Printf.sprintf "%s (%s: %s)"
-        (sub_to_string s)
-        (Var.to_string x)
-        (tm_to_string t)
-
-  let rec meta_ctx_to_string = function
-    | [] -> ""
-    | (i,t)::c ->
-      Printf.sprintf "%s (_tm%i: %s)"
-        (meta_ctx_to_string c)
-        i
-        (ty_to_string t)
-
-  let rec check_equal_ps ps1 ps2 =
-    match ps1, ps2 with
-    | Unchecked_types.Br [], Unchecked_types.Br[] -> ()
-    | Unchecked_types.Br (ps1::l1), Unchecked_types.Br(ps2::l2) ->
-      check_equal_ps ps1 ps2;
-      List.iter2 check_equal_ps l1 l2
-    | Unchecked_types.Br[], Unchecked_types.Br (_::_) | Unchecked_types.Br(_::_), Unchecked_types.Br[] ->
-      raise (NotEqual (ps_to_string ps1, ps_to_string ps2))
-
-  let rec check_equal_ty ty1 ty2 =
-    match ty1, ty2 with
-    | Unchecked_types.Meta_ty i, Unchecked_types.Meta_ty j ->
-      if i <> j then raise (NotEqual(string_of_int i, string_of_int j))
-    | Unchecked_types.Obj, Unchecked_types.Obj -> ()
-    | Unchecked_types.Arr(ty1, u1, v1), Unchecked_types.Arr(ty2, u2, v2) ->
-      check_equal_ty ty1 ty2;
-      check_equal_tm u1 u2;
-      check_equal_tm v1 v2
-    | Obj, Arr _ | Arr _, Obj
-    | Meta_ty _, Obj | Meta_ty _, Arr _
-    | Obj, Meta_ty _ | Arr _, Meta_ty _ ->
-      raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
-  and check_equal_tm tm1 tm2 =
-    match tm1, tm2 with
-    | Var v1, Var v2 -> Var.check_equal v1 v2
-    | Meta_tm i, Meta_tm j ->
-      if i <> j then raise (NotEqual(string_of_int i, string_of_int j))
-    | Coh(coh1, s1), Coh(coh2, s2) ->
-      Coh.check_equal coh1 coh2;
-      check_equal_sub_ps s1 s2
-    | Var _, Coh _ | Coh _, Var _
-    | Meta_tm _, Var _| Meta_tm _, Coh _
-    | Var _, Meta_tm _ | Coh _, Meta_tm _ ->
-      raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
-  and check_equal_sub_ps s1 s2 =
-    List.iter2 (fun (t1,_) (t2,_) -> check_equal_tm t1 t2) s1 s2
-
-  let rec check_equal_ctx ctx1 ctx2 =
-    match ctx1, ctx2 with
-    | [], [] -> ()
-    | (v1,(t1,_))::c1, (v2,(t2,_))::c2 ->
-      Var.check_equal v1 v2;
-      check_equal_ty t1 t2;
-      check_equal_ctx c1 c2
-    | _::_,[] | [],_::_ ->
-      raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
-
-  let rec tm_do_on_variables tm f =
-    match tm with
-    | Unchecked_types.Var v -> (f v)
-    | Meta_tm i -> Unchecked_types.Meta_tm i
-    | Coh(c,s) -> Coh (c, sub_ps_do_on_variables s f)
-  and sub_ps_do_on_variables s f = List.map (fun (t,expl) -> tm_do_on_variables t f, expl) s
-
-  let rec ty_do_on_variables ty f =
-    match ty with
-    | Unchecked_types.Meta_ty i -> Unchecked_types.Meta_ty i
-    | Obj -> Obj
-    | Arr(a,u,v) ->
-      Arr(ty_do_on_variables a f, tm_do_on_variables u f, tm_do_on_variables v f)
-
-  let var_apply_sub v s =
-    match List.assoc_opt v s with
-    | Some t -> t
-    | None -> Unchecked_types.Var v
-  let tm_apply_sub tm s = tm_do_on_variables tm (fun v -> var_apply_sub v s)
-  let ty_apply_sub ty s = ty_do_on_variables ty (fun v -> var_apply_sub v s)
-  let _sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
-
-  let rec var_sub_preimage v s =
-    match s with
-    | [] -> raise NotInImage
-    | (w, Unchecked_types.Var v')::_ when v = v' -> Unchecked_types.Var w
-    | _::s -> var_sub_preimage v s
-  let tm_sub_preimage tm s = tm_do_on_variables tm
-      (fun v -> var_sub_preimage v s)
-
-  (* rename is applying a variable to de Bruijn levels substitutions *)
-  let rename_ty ty l = ty_do_on_variables ty
-      (fun v -> Unchecked_types.Var (Db (List.assoc v l)))
-
-  let rec db_levels c =
-    match c with
-    | [] -> [], [], -1
-    | (x,(t,expl))::c ->
-      let c,l,max = db_levels c in
-      if List.mem_assoc x l then
-        raise (DoubledVar(Var.to_string x))
-      else
-        let lvl = max + 1 in
-        (Var.Db lvl, (rename_ty t l, expl)) ::c, (x, lvl)::l, lvl
-
-  let increase_lv_ty ty i m =
-    ty_do_on_variables ty (fun v -> Unchecked_types.Var (Var.increase_lv v i m))
-
-  let suspend_ps ps = Unchecked_types.Br [ps]
-
-  let rec suspend_ty = function
-    | Unchecked_types.Obj -> Unchecked_types.Arr(Obj, Var (Db 0), Var (Db 1))
-    | Arr(a,v,u) -> Arr(suspend_ty a, suspend_tm v, suspend_tm u)
-    | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
-  and suspend_tm = function
-    | Var v -> Var (Var.suspend v)
-    | Coh (c,s) -> Coh(suspend_coh c, suspend_sub_ps s)
-    | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
-  and suspend_coh c =
-    let p,t,(name,susp,f) = Coh.forget c in
-    Coh.check (suspend_ps p) (suspend_ty t) (name, susp+1, f)
-  and suspend_sub_ps = function
-    | [] -> [Var (Var.Db 1), false; Var (Var.Db 0), false]
-    | (t,expl)::s -> (suspend_tm t, expl) :: (suspend_sub_ps s)
-
-  let rec suspend_ctx = function
-    | [] -> (Var.Db 1, (Unchecked_types.Obj, false)) :: (Var.Db 0, (Obj, false)) :: []
-    | (v,(t,expl))::c -> (Var.suspend v, (suspend_ty t, expl)) :: (suspend_ctx c)
-
-  let ps_to_ctx ps =
-    let rec ps_to_ctx_aux ps =
-      match ps with
-      | Unchecked_types.Br [] -> [(Var.Db 0), (Unchecked_types.Obj, true)], 0, 0
-      | Br l ->
-        ps_concat (List.map
-                     (fun ps ->
-                        let ps,_,m = ps_to_ctx_aux ps in
-                        (suspend_ctx  ps, 1, m+2))
-                     l)
-    and ps_concat = function
-      | [] -> Error.fatal "empty is not a pasting scheme"
-      | ps :: [] -> ps
-      | ps :: l -> ps_glue (ps_concat l) ps
-    and ps_glue (p1,t1,m1) (p2,t2,m2) =
-      List.append (chop_and_increase p2 t1 m1) p1, t2+m1, m1+m2
-    and chop_and_increase ctx i m =
-      match ctx with
-      | [] -> Error.fatal "empty is not a pasting scheme"
-      | _ :: [] -> []
-      | (v,(t,expl)) :: ctx ->
-        let v = Var.increase_lv v i m in
-        let t = increase_lv_ty t i m in
-        let ctx = chop_and_increase ctx i m in
-        (v,(t,expl))::ctx
-    in
-    let c,_,_ = ps_to_ctx_aux ps in c
-
-  let sub_ps_to_sub s ps =
-    let ps = ps_to_ctx ps in
-    try List.map2 (fun (t,_) (x,_) -> (x,t)) s ps, ps
-    with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
-
-  let max_fresh_var c =
-    let rec find_max c i =
-      match c with
-      | [] -> i
-      | (Var.New j, _) :: c when j >= i -> find_max c j
-      | ((Var.Name _ | Var.Db _ | Var.New _ ), _) :: c  -> find_max c i
-    in
-    find_max c 0
-
-  let two_fresh_vars c =
-    let i = max_fresh_var c in
-    Var.New (i+1), Var.New (i+2)
-
-  let rec identity_ps = function
-    | [] -> []
-    | (x,(_,expl))::c -> (Unchecked_types.Var x,expl) :: (identity_ps c)
-
-  let rec tm_contains_var t x =
-    match t with
-    | Unchecked_types.Var v -> v = x
-    | Coh(_,s) -> List.exists (fun (t,_) -> tm_contains_var t x) s
-    | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
-
-  let tm_contains_vars t l =
-    List.exists (tm_contains_var t) l
-
-  let rec dim_ty = function
-    | Unchecked_types.Obj -> 0
-    | Arr(a,_,_) -> 1 + dim_ty a
-    | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
-
-  let rec dim_ctx = function
-    | [] -> 0
-    | (_,(t,_))::c -> max (dim_ctx c) (dim_ty t)
-
-  let rec dim_ps = function
-    | Unchecked_types.Br [] -> 0
-    | Br l -> 1 + max_list_ps l
-  and max_list_ps = function
-    | [] -> 0
-    | p::l -> max (dim_ps p) (max_list_ps l)
-end
-
-include Unchecked_types
+module U = Unchecked(Coh)
+module Unchecked = U.Make(Coh)
 
 let check check_fn name =
   let v = 2 in
@@ -1000,7 +656,8 @@ let check check_fn name =
       (if !Settings.verbosity >= v then fname else Lazy.force name)
       (Printf.sprintf "unknown identifier :%s" s)
   | MetaVariable ->
-    Error.incomplete_constraints (if !Settings.verbosity >= v then fname else Lazy.force name)
+    Error.incomplete_constraints
+      (if !Settings.verbosity >= v then fname else Lazy.force name)
 
 let check_type ctx a =
   let ty = lazy ("type: "^Unchecked.ty_to_string a) in
