@@ -79,6 +79,7 @@ module Unchecked : sig
   val suspwedge_subs_ps : sub_ps list -> ps list -> sub_ps
   val opsuspwedge_subs_ps : sub_ps list -> ps list -> sub_ps
   val canonical_inclusions : ps list -> sub_ps list
+  val ty_to_sub_ps : ty -> sub_ps
 end
 
 

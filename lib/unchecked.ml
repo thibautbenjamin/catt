@@ -398,5 +398,11 @@ struct
     | [] -> 0
     | p::l -> max (dim_ps p) (max_list_ps l)
 
+  let rec ty_to_sub_ps a =
+    match a with
+    | Obj -> []
+    | Arr(a,u,v) -> (v,false)::(u,false)::(ty_to_sub_ps a)
+    | Meta_ty _ -> Error.fatal "substitution can only be computed after\
+                                resolving the type"
 end
 end
