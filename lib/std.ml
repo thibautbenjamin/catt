@@ -41,4 +41,12 @@ module List = struct
     | [],[],[] -> []
     | a1::l1, a2::l2, a3::l3 -> (fn a1 a2 a3) :: (map3 fn l1 l2 l3)
     | _ -> raise (Invalid_argument "List.map3")
+
+  let rec map4 fn l1 l2 l3 l4 =
+    match l1,l2,l3,l4 with
+    | [],[],[],[] -> []
+    | a1::l1, a2::l2, a3::l3, a4::l4 ->
+      (fn a1 a2 a3 a4) :: (map4 fn l1 l2 l3 l4)
+    | _ -> raise (Invalid_argument "List.map3")
+
 end

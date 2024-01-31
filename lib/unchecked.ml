@@ -310,17 +310,16 @@ struct
     | Br l ->
       let incls,_ = canonical_inclusions l in
       wedge_sub_ps incls
-  and wedge_sub_ps (l : sub_ps list) =
-    let lp = (sub_ps_to_sub_ps_bp (List.last l)).l in
+  and wedge_sub_ps l = wedge_sub_ps_bp (List.map sub_ps_to_sub_ps_bp l)
+  and wedge_sub_ps_bp l =
+    let lp = (List.last l).l in
     List.fold_right
-      (fun s sub ->
-         let s = sub_ps_to_sub_ps_bp s in
-         List.append s.sub_ps((s.r,false)::sub))
+      (fun s sub -> List.append s.sub_ps((s.r,false)::sub))
       l
       [lp,false]
   and sub_ps_to_sub_ps_bp sub_ps =
     match sub_ps with
-    | [] | [_] -> Error.fatal "need two basepoints"
+    | [] | [_] -> Error.fatal "bipointed substitution need at least two points"
     | [(r,_);(l,_)] -> {sub_ps = []; l; r}
     | t::s ->
       let s = sub_ps_to_sub_ps_bp s in
@@ -368,6 +367,51 @@ struct
       | ((Var.Name _ | Var.Db _ | Var.New _ ), _) :: c  -> find_max c i
     in
     find_max c 0
+
+  let rec ps_compose i ps1 ps2 =
+    match i, ps1, ps2 with
+    | 0, Br l1, Br l2 ->
+      let i1 = identity_ps (Br l1) in
+      let i2 = identity_ps (Br l2) in
+      let ctx_bp = ps_to_ctx_rp ps1 in
+      let i2 = List.map (fun (x,e) -> tm_inr_wedge x ctx_bp, e) i2 in
+      Br (List.append l2 l1),
+      i1,
+      i2
+    | i, Br l1, Br l2 ->
+      try
+        let list = List.map2 (ps_compose (i-1)) l1 l2 in
+        let lps = List.map (fun (x,_,_) -> x) list in
+        let li1 = List.map (fun (_,x,_) -> x) list in
+        let li2 = List.map (fun (_,_,x) -> x) list in
+        Br lps, suspwedge_subs_ps li1 lps, suspwedge_subs_ps li2 lps
+      with Invalid_argument _ ->
+        Error.fatal "composition of pasting schemes only allowed when their\
+                     boundaries match up"
+
+  let rec pullback_up i ps1 ps2 s1 s2 =
+    match i, ps1, ps2, s1, s2 with
+    | 0,_,_,s1,s2 ->
+      let rec append s2 =
+        match s2 with
+        | [] -> Error.fatal "substitution to pasting scheme cannot be empty"
+        | [_] -> s1
+        | t::s2 -> t::(append s2)
+      in append s2
+    | i, Br l1, Br l2, s1, s2 ->
+      let incls1 = canonical_inclusions l1 in
+      let incls2 = canonical_inclusions l2 in
+      let s1,_ = sub_ps_to_sub s1 ps1 in
+      let s2,_ = sub_ps_to_sub s2 ps2 in
+      let ls =
+        List.map4 (fun ps1 ps2 i1 i2 ->
+            let s1 = sub_ps_to_sub_ps_bp (sub_ps_apply_sub i1 s1) in
+            let s2 = sub_ps_to_sub_ps_bp (sub_ps_apply_sub i2 s2) in
+            let hom_sub = pullback_up (i-1) ps1 ps2 s1.sub_ps s2.sub_ps in
+            {sub_ps = hom_sub; l = s1.l; r = s1.r})
+          l1 l2 incls1 incls2
+      in
+      wedge_sub_ps_bp ls
 
   let two_fresh_vars c =
     let i = max_fresh_var c in
