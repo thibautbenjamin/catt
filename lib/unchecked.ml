@@ -426,6 +426,12 @@ struct
   let tm_contains_vars t l =
     List.exists (tm_contains_var t) l
 
+  let rec list_to_sub s ctx =
+    match s,ctx with
+    | t::s, (x,_)::ctx -> (x,t)::(list_to_sub s ctx)
+    | [],[] -> []
+    | _ -> raise WrongNumberOfArguments
+
   let rec dim_ty = function
     | Obj -> 0
     | Arr(a,_,_) -> 1 + dim_ty a
