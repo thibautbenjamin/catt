@@ -1,5 +1,6 @@
+open Common
 open Kernel
-open Kernel.Unchecked_types
+open Unchecked_types.Unchecked_types(Coh)
 
 type value =
   | Coh of Coh.t

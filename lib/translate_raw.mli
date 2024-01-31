@@ -1,4 +1,5 @@
-open Kernel.Unchecked_types
+open Kernel
+open Unchecked_types.Unchecked_types(Coh)
 open Raw_types
 
 val tm : tmR -> tm * meta_ctx
