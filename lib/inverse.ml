@@ -13,15 +13,33 @@ let coh c =
   in
   check_coh ps ty_inv (name^"^-1",susp,func)
 
-let compute_inverse t =
+let rec compute_inverse t =
   match t with
   | Var x -> raise (NotInvertible (Var.to_string x))
   | Meta_tm _ -> t (* Not sure about this case *)
   | Coh(c,sub) ->
-     try
+    try
       let c_inv = coh c in Coh (c_inv, sub)
-    with CohNonInv -> assert false
+    with CohNonInv ->
+      let ps,_,_ = Coh.forget c in
+      let d = Unchecked.dim_ps ps in
+      let sub, pctx = Unchecked.sub_ps_to_sub sub ps in
+      let sub_inv = sub_inv sub pctx d in
+      let equiv = Opposite.equiv_op_ps ps [d] in
+      let coh = Opposite.coh c [d] in
+      Coh(coh, Unchecked.sub_ps_apply_sub equiv sub_inv)
+and sub_inv s ps i =
+  match s,ps with
+  | [], [] -> []
+  | (x,t)::sub, (_,(ty,_))::ctx when Unchecked.dim_ty ty = i ->
+    (x,compute_inverse t)::(sub_inv sub ctx i)
+  | (x,t)::sub, _::ctx ->
+    (x,t)::(sub_inv sub ctx i)
+  | _,_ -> assert false
 
 let compute_inverse t =
   try compute_inverse t with
-  | NotInvertible s -> Error.inversion ("term: " ^ (Unchecked.tm_to_string t)) s
+  | NotInvertible s ->
+      Error.inversion
+        ("term: " ^ (Unchecked.tm_to_string t))
+        (Printf.sprintf "term %s is not invertible" s)
