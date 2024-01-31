@@ -8,3 +8,4 @@ type coh_pp_data = string * int * functorialisation_data option
 
 exception NotEqual of string * string
 exception DoubledVar of string
+exception WrongNumberOfArguments

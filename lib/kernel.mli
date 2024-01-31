@@ -87,6 +87,7 @@ module Unchecked : sig
   val ty_to_sub_ps : ty -> sub_ps
   val sub_ps_to_sub_ps_bp : sub_ps -> sub_ps_bp
   val wedge_sub_ps_bp : sub_ps_bp list -> sub_ps
+  val list_to_sub : tm list -> ctx -> sub
 end
 
 
