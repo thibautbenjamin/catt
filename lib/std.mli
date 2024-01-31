@@ -12,4 +12,6 @@ module List : sig
   val map_both : ('a -> 'b) -> ('a * 'a) list -> ('b * 'b) list
   val map_right : ('b -> 'c) -> ('a * 'b) list -> ('a * 'c) list
   val map3 : ('a -> 'b -> 'c -> 'd) -> 'a list -> 'b list -> 'c list -> 'd list
+  val map4 : ('a -> 'b -> 'c -> 'd -> 'e)
+    -> 'a list -> 'b list -> 'c list -> 'd list -> 'e list
 end
