@@ -333,6 +333,7 @@ and Ty : sig
   val under_type : t -> t
   val target : t -> Tm.t
   val ctx : t -> Ctx.t
+  val dim : t -> int
 
 end
 =
@@ -410,6 +411,11 @@ struct
     check (Sub.src s) (Unchecked.ty_apply_sub (forget t) (Sub.forget s))
 
   let ctx t = t.c
+
+  let rec dim t =
+    match t.e with
+    | Obj -> 0
+    | Arr(a,_,_) -> 1 + dim a
 end
 
 (** Operations on terms. *)
@@ -497,22 +503,24 @@ and Coh : sig
   val ps : t -> PS.t
   val ty : t -> Ty.t
   val check : ps -> Unchecked_types(Coh).ty -> coh_pp_data -> t
-  val check_noninv : ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
+  val check_noninv :
+    ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
+  val check_inv :
+    ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
   val to_string : t -> string
-  (* val data_noninv : t -> PS.t * Tm.t * Tm.t * Sub.t * Sub.t * PS.t *)
-  (* val data : t -> PS.t * Ty.t * coh_pp_data *)
+  val is_inv : t -> bool
+  val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm
+  (* val data : t -> PS.t * Ty.t * Unchecked_types.coh_pp_data *)
   val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
   val func_data : t -> functorialisation_data option
   val check_equal : t -> t -> unit
+  val dim : t -> int
 end = struct
 
   type cohInv = {ps : PS.t; ty : Ty.t}
   type cohNonInv = {ps : PS.t;
-                    bdry : PS.t;
                     src : Tm.t;
-                    src_inclusion : Sub.t;
                     tgt : Tm.t;
-                    tgt_inclusion : Sub.t;
                     total_ty: Ty.t}
 
   type t =
@@ -532,11 +540,9 @@ end = struct
     | Inv(data,_) -> data.ty
     | NonInv(data,_) -> data.total_ty
 
-  (* let check_inv ps ty name = *)
-  (*   Ctx.check_equal (PS.to_ctx ps) (Ty.ctx ty); *)
-  (*   if Ty.is_full ty then *)
-  (*     Inv({ps; ty}, name) *)
-  (*   else raise NotAlgebraic *)
+  let is_inv = function
+    | Inv(_,_) -> true
+    | NonInv(_,_) -> false
 
   let algebraic ps ty name =
     if Ty.is_full ty then
@@ -547,14 +553,13 @@ end = struct
       let _,src,tgt =
         try Ty.retrieve_arrow ty with IsObj -> raise NotAlgebraic
       in
-      let bdry = PS.bdry (i-1) ps in
       let src_inclusion = PS.source (i-1) ps in
       let tgt_inclusion = PS.target (i-1) ps in
       let src = Tm.preimage src src_inclusion in
       let tgt = Tm.preimage tgt tgt_inclusion in
       if (Tm.is_full src && Tm.is_full tgt) then
         NonInv
-          ({ps; src; tgt; total_ty=ty; src_inclusion; tgt_inclusion; bdry},
+          ({ps; src; tgt; total_ty=ty},
            name)
       else raise NotAlgebraic
 
@@ -594,10 +599,20 @@ end = struct
     in
     if (Tm.is_full src && Tm.is_full tgt) then
       NonInv
-        ({ps; src; tgt; total_ty; src_inclusion; tgt_inclusion; bdry},
+        ({ps; src; tgt; total_ty},
          name)
     else
       raise NotAlgebraic
+
+  let check_inv ps src tgt name =
+    let ctx = Ctx.check (Unchecked.ps_to_ctx ps) in
+    let ps = PS.mk ctx in
+    let src = Tm.check ctx src in
+    let tgt = Tm.check ctx tgt in
+    let ty = Ty.morphism src tgt in
+    if Ty.is_full ty then
+      Inv({ps; ty}, name)
+    else raise NotAlgebraic
 
   let data c =
     match c with
@@ -611,10 +626,16 @@ end = struct
     else
       Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 
-  let _data_noninv c =
+  let noninv_srctgt c =
     match c with
     | Inv (_,_) -> Error.fatal "non-invertible data of an invertible coh"
-    | NonInv (d,_) -> d.ps, d.src, d.tgt, d.src_inclusion, d.tgt_inclusion, d.bdry
+    | NonInv (d,_) -> Tm.forget d.src, Tm.forget d.tgt
+
+  let dim c =
+    let ty = match c with
+      | Inv (d,_) -> d.ty
+      | NonInv(d,_) -> d.total_ty
+    in Ty.dim ty
 
   let func_data = function
     | Inv(_,(_,_,func)) |NonInv(_,(_,_,func)) -> func

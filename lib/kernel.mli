@@ -5,9 +5,14 @@ module rec Coh : sig
   type t
   val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
   val check_equal : t -> t -> unit
+  val is_inv : t -> bool
   val to_string : t -> string
+  val dim : t -> int
   val check_noninv :
     ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
+  val check_inv :
+    ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
+  val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm
   val func_data : t -> functorialisation_data option
 end
 
