@@ -16,12 +16,6 @@ module Memo = struct
     check_coh (Br[]) (Arr(Obj,Var(Db 0),Var(Db 0))) ("builtin_id", 0, None)
 end
 
-let arity_comp s =
-  let n = List.length s in
-  if !Settings.explicit_substitutions then
-    (n-1)/2
-  else n
-
 let rec ps_comp i =
   match i with
   | i when i <= 0 -> Error.fatal "builtin composition with less than 0 argument"
@@ -36,6 +30,12 @@ let comp_n arity =
     Coh.check_noninv ps (Var (Db 0)) (Var(Db 0)) ("builtin_comp", 0, None)
   in
   Memo.find arity build_comp
+
+let arity_comp s =
+  let n = List.length s in
+  if !Settings.explicit_substitutions then
+    (n-1)/2
+  else n
 
 let comp s =
   let arity = arity_comp s in

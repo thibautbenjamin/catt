@@ -2,7 +2,6 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
-exception NonMaximal of string
 exception FunctorialiseMeta
 exception WrongNumberOfArguments
 
@@ -29,40 +28,6 @@ let list_functorialised c l =
     | _::_,[],_ |[],_::_,_ -> raise WrongNumberOfArguments
   in list c l
 
-(*
-   Functorialisation of a context wrt a variable. For contexts,
-   successive functorialisation operations commute. Returns the
-   functorialised context as well as a triple indicating the variable
-   that got functorialised, its copy and the new variable representing
-   the higher cell from the original to the copy
-*)
-let ctx_one_var c x =
-  let x',xf = Unchecked.two_fresh_vars c in
-  let rec find c =
-    match c with
-    | [] -> Error.fatal "computing functorialisation with respect to an unknown variable"
-    | (y,(t, true))::c when x = y ->
-      (xf, (Arr(t,Var x,Var x'), true)) ::
-      (x', (t, false)) ::
-      (y, (t, false)) :: c
-    | (y,(_, false))::_ when x = y ->
-      raise (NonMaximal (Var.to_string x))
-    | a::c -> a::(find c)
-  in find c, (x, (Var x', Var xf))
-
-(*
-   Functorialisation of a context with respect to a list of variables.
-   Returns a functorialised context and a list of triplets
-*)
-let ctx_one_step c l =
-  List.fold_left
-    (fun (c,assocs) x -> let c,p = ctx_one_var c x in c, p::assocs)
-    (c,[])
-    l
-
-let target_subst l =
-  List.map (fun (x,(y,_)) -> (x,y)) l
-
 (* compute a new functorialisation data from an old functorialisation
    data and a list of variables to be functorialised. This also needs
    a context as argument, to establish the connection between the name
@@ -86,17 +51,142 @@ let add_functorialisation c func l =
   | None -> make c
   | Some func -> add c func
 
+
+(*
+   Given a context, a substitution and a list of variables, returns
+   the list of all variables in the context whose corresponding term
+   in the substitution contains a variable from the input list
+*)
+let rec find_places ctx s l =
+  match ctx,s with
+  | [], [] -> []
+  | (x,(_,true))::c,  (t,_)::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
+  | _::c, _::s -> find_places c s l
+  | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
+
+let ty_contains_vars t l =
+  match t with
+  | Obj -> false
+  | Arr(_,u,v) ->
+    Unchecked.tm_contains_vars u l ||
+    Unchecked.tm_contains_vars v l
+  | _ -> assert false
+
+let rec ty t l tgt_subst f_vars tm =
+  if ty_contains_vars t l then
+    let t_base,src,tgt =
+      match t with
+      | Arr(ty,src,tgt) -> ty,src,tgt
+      | _ -> assert false
+    in
+    let n = Unchecked.dim_ty t_base in
+    let comp2 = Suspension.coh (Some n) (Builtin.comp_n 2) in
+    let src_f = fst (List.hd (tm_one_step_codim0 src l tgt_subst f_vars true)) in
+    let tgt_f = fst (List.hd (tm_one_step_codim0 tgt l tgt_subst f_vars true)) in
+    let coh_tgt = Unchecked.tm_apply_sub tm tgt_subst in
+    let src_incl = Unchecked.tm_apply_sub src tgt_subst in
+    let tgt_incl = Unchecked.tm_apply_sub tgt tgt_subst in
+    let sub_base = Unchecked.ty_to_sub_ps t_base in
+    let comp_src_sub = (tgt_f,true)::(tgt_incl,false)::(tm,true)::(tgt,false)::(src,false)::sub_base in
+    let comp_tgt_sub = (coh_tgt,true)::(tgt_incl,false)::(src_f,true)::(src_incl,false)::(src,false)::sub_base in
+    let comp_src = Coh(comp2, comp_src_sub) in
+    let comp_tgt = Coh(comp2, comp_tgt_sub) in
+    let t = Arr(t_base, src, tgt_incl) in
+    Arr (t, comp_src, comp_tgt)
+  else
+    let tm_f = Unchecked.tm_apply_sub tm (tgt_subst) in
+    Arr (t, tm, tm_f)
+
+and ctx c l =
+  match c with
+  | [] -> [],[],[]
+  | (x,(t,expl))::c when List.mem x l ->
+     let c,tgt_subst,f_vars = ctx c l in
+     let x' = Var.fresh() in
+     let xf = Var.fresh() in
+     let tgt_subst = (x,Var x')::tgt_subst in
+     let tf = ty t l tgt_subst f_vars (Var x) in
+     (xf,(tf,expl))::(x',(t,false))::(x,(t,false))::c,
+     tgt_subst,
+     (x, (Var x',Var xf))::f_vars
+  | (x,a)::c -> let c,tgt_subst,f_terms = ctx c l in (x,a)::c, tgt_subst,f_terms
+
 (*
    Functorialisation of a coherence once with respect to a list of
    variables
 *)
-let coh_one_step coh l =
-  let ps,_,(name,susp,func) = Coh.forget coh in
-  let ctx_base = Unchecked.ps_to_ctx ps in
-  let ctx,_ = ctx_one_step (Unchecked.ps_to_ctx ps) l in
-  let tm = Coh (coh,(Unchecked.identity_ps ps)) in
-  let newf = add_functorialisation ctx_base func l in
-  Coh.check_noninv (PS.forget (PS.mk (Ctx.check ctx))) tm tm (name,susp,Some newf)
+and coh_one_step coh l =
+  Utils.coh_transformation
+    ~compute_ps_ty:
+      (fun p t ->
+         let new_ctx,tgt_subst,f_vars = ctx (Unchecked.ps_to_ctx p) l in
+         let ty = ty t l tgt_subst f_vars (Coh(coh,Unchecked.identity_ps p)) in
+         new_ctx,ty)
+    ~compute_name:(fun ctx (name,susp,func) ->
+        let newf = add_functorialisation ctx func l in
+        (name,susp, Some newf))
+    coh
+
+(*
+   Functorialisation a term once with respect to a list of triples.
+   Returns a list containing the functorialise term followed by its
+   target and its source.
+ *)
+and tm_one_step_codim0 t l tgt_subst f_vars expl =
+  if (not (Unchecked.tm_contains_vars t l)) then [t,expl]
+  else
+  match t with
+  | Var v ->
+    begin
+      match List.assoc_opt v f_vars with
+      | Some (v',vf) -> [vf, true; v', false; Var v, false]
+      | None -> [Var v, expl]
+    end
+  | Coh(c,s) ->
+    begin
+      match f_vars with
+      | _::_ ->
+        let ps,_,_ = Coh.forget c in
+        let cohf =
+          let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst f_vars) in
+          coh_one_step c places
+        in
+        let sf = sub s l tgt_subst f_vars in
+        let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t tgt_subst ,expl) s in
+        [Coh(cohf,sf), true; Coh(c,s'), false; Coh(c,s), false]
+      | [] -> [Coh(c,s), expl]
+    end
+  | Meta_tm _ -> (raise FunctorialiseMeta)
+and sub s l tgt_subst f_vars =
+  match s with
+  | [] -> []
+  | (t, expl)::s ->
+    List.append
+      (tm_one_step_codim0 t l tgt_subst f_vars expl)
+      (sub s l tgt_subst f_vars)
+
+(*
+   Functorialisation a term possibly multiple times with respect to a
+   functorialisation data
+*)
+and tm_codim0 c t s =
+  let l, next = list_functorialised c s in
+  if l <> [] then
+    let c,tgt_subst,f_vars = ctx c l in
+    let t = fst (List.hd (tm_one_step_codim0 t l tgt_subst f_vars true)) in
+    tm_codim0 c t next
+  else c,t
+
+let _tm_codim1 _c t _s =
+  let _coh, _sub =
+    match t with
+    | Coh(coh, sub) -> coh, sub
+    | _ ->
+      Error.functorialisation
+        ("term: " ^ Unchecked.tm_to_string t)
+        (Printf.sprintf "attempted to functorialise a term which is not a coherence")
+  in
+  Error.fatal "codim 1 functorialisation for terms not yet implemented"
 
 (*
    Functorialisation of a coherence possibly multiple times, with
@@ -104,21 +194,19 @@ let coh_one_step coh l =
 *)
 let rec coh c s =
   let ps,_,_ = Coh.forget c in
-  let ct = Unchecked.ps_to_ctx ps in
-  let l, next = list_functorialised ct s in
-  if l <> [] then coh (coh_one_step c l) next
+  let ctx = Unchecked.ps_to_ctx ps in
+  let l, next = list_functorialised ctx s in
+  if l <> [] then
+    coh (coh_one_step c l) next
   else c
 
 (*
    Functorialisation of a coherence: exposed function
 *)
 let coh c s =
-  try coh c s
+  try
+    coh c s
   with
-    NonMaximal x ->
-    Error.functorialisation
-      ("coherence: " ^ Coh.to_string c)
-      (Printf.sprintf "trying to functorialise with respect to variable %s which is not maximal" x)
   | FunctorialiseMeta ->
     Error.functorialisation
       ("coherence: " ^ Coh.to_string c)
@@ -146,73 +234,11 @@ let coh_all c =
   coh c l
 
 (*
-   Given a context, a substitution and a list of variables, returns
-   the list of all variables in the context whose corresponding term
-   in the substitution contains a variable from the input list
-*)
-let rec find_places ctx s l =
-  match ctx,s with
-  | [], [] -> []
-  | (x,(_,true))::c,  (t,_)::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
-  | _::c, _::s -> find_places c s l
-  | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
-
-(*
-   Functorialisation a term once with respect to a list of triples.
-   Returns a list containing the functorialise term followed by its
-   target and its source.
-*)
-let rec tm_one_step t l expl=
-  match t with
-  | Var v ->
-    begin
-      match List.assoc_opt v l with
-      | Some (v',vf) -> [vf, true; v', false; Var v, false]
-      | None -> [Var v, expl]
-    end
-  | Coh(c,s) ->
-    begin
-      if List.exists (fun (x,_) -> Unchecked.tm_contains_var t x) l
-      then
-        let ps,_,_ = Coh.forget c in
-        let cohf =
-          let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst l) in
-          coh_one_step c places
-        in
-        let sf = sub s l in
-        let l' = target_subst l in
-        let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t l', expl) s in
-        [Coh(cohf,sf), true;Coh(c,s'), false;Coh(c,s), false]
-      else [Coh(c,s), expl]
-    end
-  | Meta_tm _ -> (raise FunctorialiseMeta)
-and sub s l =
-  match s with
-  | [] -> []
-  | (t, expl)::s -> List.append (tm_one_step t l expl) (sub s l)
-
-(*
-   Functorialisation a term possibly mutliple times with respect to a
-   functorialisation data
-*)
-let rec tm c t s =
-  let l, next = list_functorialised c s in
-  if l <> [] then
-    let c,assocs = ctx_one_step c l in
-    let t = fst (List.hd (tm_one_step t assocs true)) in
-    tm c t next
-  else c,t
-
-(*
    Functorialisation a term: exposed function
 *)
 let tm c t s =
-  try tm c t s
+  try tm_codim0 c t s
   with
-  | NonMaximal x ->
-    Error.functorialisation
-      ("term: " ^ Unchecked.tm_to_string t)
-      (Printf.sprintf "cannot functorialise with respect to variable %s which is not maximal" x)
   | FunctorialiseMeta ->
     Error.functorialisation
       ("term: " ^ Unchecked.tm_to_string t)
