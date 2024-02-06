@@ -418,7 +418,6 @@ struct
     List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
 
   let forget tm = tm.unchecked
-  let _to_string tm = Unchecked.tm_to_string (forget tm)
 
   let check c ?ty t =
     Io.info ~v:5
@@ -513,14 +512,16 @@ end = struct
         try Ty.retrieve_arrow ty with IsObj -> raise NotAlgebraic
       in
       let src_inclusion = PS.source ps in
-      let tgt_inclusion = PS.target ps in
       let src = Tm.preimage src src_inclusion in
+      if not (Tm.is_full src) then
+        raise NotAlgebraic
+      else
+      let tgt_inclusion = PS.target ps in
       let tgt = Tm.preimage tgt tgt_inclusion in
-      if (Tm.is_full src && Tm.is_full tgt) then
-        NonInv
-          ({ps; src; tgt; total_ty=ty},
-           name)
-      else raise NotAlgebraic
+      if not (Tm.is_full tgt) then
+        raise NotAlgebraic
+      else
+        NonInv ({ps; src; tgt; total_ty=ty}, name)
 
   let check ps t ((name,_,_) as pp_data) =
     Io.info ~v:5
@@ -550,17 +551,17 @@ end = struct
     let bdry = PS.bdry ps in
     let cbdry = PS.to_ctx bdry in
     let src = Tm.check cbdry src in
-    let tgt = Tm.check cbdry tgt in
-    let total_ty =
-      Ty.morphism (Tm.apply_sub src src_inclusion)
-        (Tm.apply_sub tgt tgt_inclusion)
-    in
-    if (Tm.is_full src && Tm.is_full tgt) then
-      NonInv
-        ({ps; src; tgt; total_ty},
-         name)
+    if not(Tm.is_full src) then raise NotAlgebraic
     else
-      raise NotAlgebraic
+      let tgt = Tm.check cbdry tgt in
+      if not(Tm.is_full tgt)
+      then raise NotAlgebraic
+      else
+        let total_ty =
+          Ty.morphism (Tm.apply_sub src src_inclusion)
+            (Tm.apply_sub tgt tgt_inclusion)
+        in
+        NonInv ({ps; src; tgt; total_ty}, name)
 
   let check_inv ps src tgt name =
     let ctx = Ctx.check (Unchecked.ps_to_ctx ps) in
