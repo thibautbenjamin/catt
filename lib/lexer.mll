@@ -18,10 +18,15 @@ rule token = parse
   | "*" { OBJ }
   | "[" { LBRA }
   | "]" { RBRA }
+  | "{" { LCUR }
+  | "}" { RCUR }
   | "=" { EQUAL }
   | "_" { WILD }
   | "set" { SET }
   | "!" { BANG }
+  | "," { COMA }
+  | "op" { OP }
+  | ['0'-'9']* as str { INT str }
   | (['a'-'z''A'-'Z''0'-'9']['-''+''a'-'z''A'-'Z''0'-'9''_''@''>''{''}''/'',''\'']* as str) { IDENT str }
   | space+ { token lexbuf }
   | "#"[^'\n']* { token lexbuf }

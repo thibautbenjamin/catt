@@ -1,0 +1,47 @@
+set print_explicit_substitutions = t
+
+let opcomp (x : *) (y : *) (z : *) (f : x -> y) (g : y -> z)
+    = op { 1 } (comp g f)
+
+let opwhisk (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (a : f -> f') (g : y -> z)
+    = op { 1 } (comp g [a])
+
+
+coh test (x(f(a)f'(b)f'')y(g(c)g'(d)g'')z) : comp f g -> comp f'' g''
+
+let optest1 (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (f'' : x -> y)
+                                    (a : f -> f') (b : f' -> f'')
+                                    (g : y -> z) (g' : y -> z) (g'' : y -> z)
+                                    (c : g -> g') (d : g' -> g'')
+                                    = op { 1 } (test c d a b)
+
+let optest2 (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (f'' : x -> y)
+                                    (a : f -> f') (b : f' -> f'')
+                                    (g : y -> z) (g' : y -> z) (g'' : y -> z)
+                                    (c : g -> g') (d : g' -> g'')
+                                    = op { 2 } (test b a d c)
+
+let optest12 (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (f'' : x -> y)
+                                    (a : f -> f') (b : f' -> f'')
+                                    (g : y -> z) (g' : y -> z) (g'' : y -> z)
+                                    (c : g -> g') (d : g' -> g'')
+                                    = op { 1 , 2 } (test d c b a)
+
+let nested1  (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (f'' : x -> y)
+                                    (a : f -> f') (b : f' -> f'')
+                                    (g : y -> z) (g' : y -> z) (g'' : y -> z)
+                                    (c : g -> g') (d : g' -> g'')
+                                    = op { 1 } (comp [comp c d] [comp a b])
+
+let nested2  (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (f'' : x -> y)
+                                    (a : f -> f') (b : f' -> f'')
+                                    (g : y -> z) (g' : y -> z) (g'' : y -> z)
+                                    (c : g -> g') (d : g' -> g'')
+                                    = op { 2 } (comp [comp b a] [comp d c])
+
+
+let nested12  (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (f'' : x -> y)
+                                    (a : f -> f') (b : f' -> f'')
+                                    (g : y -> z) (g' : y -> z) (g'' : y -> z)
+                                    (c : g -> g') (d : g' -> g'')
+                                    = op { 1 , 2 } (comp [comp d c] [comp b a])
