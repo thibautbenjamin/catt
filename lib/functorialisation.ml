@@ -5,6 +5,10 @@ open Unchecked_types.Unchecked_types(Coh)
 exception FunctorialiseMeta
 exception WrongNumberOfArguments
 
+let builtin_comp :
+  (int -> Coh.t) ref =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference")
+
 (*
    Takes a functorialisation data with a context and produces 2 pieces
    of data :
@@ -80,7 +84,7 @@ let rec ty t l tgt_subst f_vars tm =
       | _ -> assert false
     in
     let n = Unchecked.dim_ty t_base in
-    let comp2 = Suspension.coh (Some n) (Builtin.comp_n 2) in
+    let comp2 = Suspension.coh (Some n) (!builtin_comp 2) in
     let src_f = fst (List.hd (tm_one_step_codim0 src l tgt_subst f_vars true)) in
     let tgt_f = fst (List.hd (tm_one_step_codim0 tgt l tgt_subst f_vars true)) in
     let coh_tgt = Unchecked.tm_apply_sub tm tgt_subst in
