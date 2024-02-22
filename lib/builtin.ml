@@ -143,3 +143,5 @@ let middle_rewrite k =
   let func_data =
     List.concat [(List.init k (fun _ -> 0)); [1]; (List.init k (fun _ -> 0))] in
   Functorialisation.coh comp func_data
+
+let () = Functorialisation.builtin_comp := comp_n
