@@ -1,7 +1,7 @@
-set explicit_substitutions = f
 
-# set verbosity = 5
-#set unroll_coherences = t
+# set explicit_substitutions = t
+# set verbosity = 4
+# set unroll_coherences = t
 
 let idf (x : *) (y : *) (f : x -> y) = id [f]
 
@@ -25,6 +25,12 @@ let nat_assoc (x : *) (y : *) (z : *) (w : *)
               (a : f -> f') (b : g -> g') (c : h -> h')
               (b' : g -> g') (B : b -> b')
               = assoc [a] [[B]] [c]
+
+let exch (x : *) (y : *) (z : *)
+         (f : x -> y) (g : y -> z)
+         (f' : x -> y) (g' : y -> z)
+         (a : f -> f') (b : g -> g')
+         = whiskl [a] b
 
 # set verbosity = 4
 # set unroll_coherences = t
