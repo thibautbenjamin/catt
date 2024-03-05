@@ -4,12 +4,20 @@ open Unchecked_types.Unchecked_types(Coh)
 
 module Memo = struct
   let tbl = Hashtbl.create 97
+  let tbl_whisk = Hashtbl.create 97
 
   let find i f =
     try Hashtbl.find tbl i with
     | Not_found ->
       let res = f i in
       Hashtbl.add tbl i res;
+      res
+
+  let find_whisk i f =
+    try Hashtbl.find tbl_whisk i with
+    | Not_found ->
+      let res = f i in
+      Hashtbl.add tbl_whisk i res;
       res
 
   let id =
@@ -40,6 +48,16 @@ let arity_comp s =
 let comp s =
   let arity = arity_comp s in
   comp_n arity
+
+(* returns the n-composite of a (n+j)-cell with a (n+k)-cell *)
+let whisk n j k =
+  let build_whisk t =
+    let n,j,k = t in
+    let comp = comp_n 2 in
+    let func_data = [k;j] in
+    Suspension.coh (Some(n)) (Functorialisation.coh comp func_data)
+  in
+  Memo.find_whisk (n,j,k) build_whisk
 
 let id = Memo.id
 
@@ -145,3 +163,6 @@ let middle_rewrite k =
   Functorialisation.coh comp func_data
 
 let () = Functorialisation.builtin_comp := comp_n
+
+let () = Functorialisation.builtin_whisk := whisk
+
