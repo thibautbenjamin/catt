@@ -88,14 +88,12 @@ let rec take n l =
 (* Invariant maintained:
     src_prod returns a term of same dimension as tm
 *)
-let rec src_prod t l tgt_subst f_vars tm tm_t =
+let rec src_prod t l tgt_subst f_vars tm tm_t d n =
     match t with
     | Arr(ty',src,_tgt) when Unchecked.tm_contains_vars src l ->
-        let prod, prod_ty = src_prod ty' l tgt_subst f_vars tm tm_t in
+        let prod, prod_ty = src_prod ty' l tgt_subst f_vars tm tm_t d (n-1) in
         let ty_f = (ty ty' l tgt_subst f_vars src) in
-        let src_f = fst (List.hd (tm_one_step_codim0 src l tgt_subst f_vars true)) in
-        let d = Unchecked.dim_ty tm_t in
-        let n = Unchecked.dim_ty ty' in
+        let src_f = fst (List.hd (tm_one_step src l tgt_subst f_vars true)) in
         let whisk = !builtin_whisk n (d-n-1) 0 in
         let ps,whisk_ty,_ = (Coh.forget whisk) in
         let sub_base = Unchecked.ty_to_sub_ps ty_f in
@@ -108,29 +106,30 @@ let rec src_prod t l tgt_subst f_vars tm tm_t =
         (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
     | Arr(_,_,_) | Obj -> (tm, tm_t)
     | _ -> raise FunctorialiseMeta
-and tgt_prod t l tgt_subst f_vars tm tm_t =
+and tgt_prod t l tgt_subst f_vars tm tm_t d n =
     match t with
     | Arr(ty',_src,tgt) when Unchecked.tm_contains_vars tgt l ->
-        let prod, prod_ty = tgt_prod ty' l tgt_subst f_vars tm tm_t in
+        let prod, prod_ty = tgt_prod ty' l tgt_subst f_vars tm tm_t d (n-1) in
         let ty_f = (ty ty' l tgt_subst f_vars tgt) in
-        let tgt_f = fst (List.hd (tm_one_step_codim0 tgt l tgt_subst f_vars true)) in
-        let d = Unchecked.dim_ty tm_t in
-        let n = Unchecked.dim_ty ty' in
+        let tgt_f = fst (List.hd (tm_one_step tgt l tgt_subst f_vars true)) in
         let whisk = !builtin_whisk n (d-n-1) 0 in
         let ps,whisk_ty,_ = (Coh.forget whisk) in
         let sub_base = Unchecked.ty_to_sub_ps ty_f in
         let sub_ps = List.concat [[(tgt_f,true)];(take (d-n) sub_base);[(prod,true)];(Unchecked.ty_to_sub_ps prod_ty)] in
         (*
         let _ = Printf.printf "Sub: %s\n" (Unchecked.sub_ps_to_string sub_ps) in
-        let _ = Printf.printf "Len tgt: %d %d\n" (List.length sub) (List.length (Unchecked.ps_to_ctx ps)) in
+        let _ = Printf.printf "Len tgt: %d %d\n" (List.length sub_ps) (List.length (Unchecked.ps_to_ctx ps)) in
         *)
         let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
         (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
     | Arr(_,_,_) | Obj -> (tm, tm_t)
     | _ -> raise FunctorialiseMeta
 and ty t l tgt_subst f_vars tm =
-  let src, src_t = tgt_prod t l tgt_subst f_vars tm t in
-  let tgt, tgt_t = src_prod t l tgt_subst f_vars (Unchecked.tm_apply_sub tm tgt_subst) (Unchecked.ty_apply_sub t tgt_subst) in
+  let d = Unchecked.dim_ty t in
+  let tm_incl = Unchecked.tm_apply_sub tm tgt_subst in
+  let t_incl = Unchecked.ty_apply_sub t tgt_subst in
+  let src, src_t = tgt_prod t l tgt_subst f_vars tm t d (d-1) in
+  let tgt, tgt_t = src_prod t l tgt_subst f_vars tm_incl t_incl d (d-1) in
   (*
   let _ = Printf.printf "\nList: %s\n\n" (String.concat "," (List.map Var.to_string l)) in
   let _ = Printf.printf "Tm:\n%s\n ->\n%s\n :\n%s\n%s\n" (Unchecked.tm_to_string src) (Unchecked.tm_to_string tgt) (Unchecked.ty_to_string src_t) (Unchecked.ty_to_string tgt_t) in
@@ -173,7 +172,7 @@ and coh_one_step coh l =
    Returns a list containing the functorialise term followed by its
    target and its source.
  *)
-and tm_one_step_codim0 t l tgt_subst f_vars expl =
+and tm_one_step t l tgt_subst f_vars expl =
   if (not (Unchecked.tm_contains_vars t l)) then [t,expl]
   else
   match t with
@@ -203,31 +202,20 @@ and sub s l tgt_subst f_vars =
   | [] -> []
   | (t, expl)::s ->
     List.append
-      (tm_one_step_codim0 t l tgt_subst f_vars expl)
+      (tm_one_step t l tgt_subst f_vars expl)
       (sub s l tgt_subst f_vars)
 
 (*
    Functorialisation a term possibly multiple times with respect to a
    functorialisation data
 *)
-and tm_codim0 c t s =
+let rec tm c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
     let c,tgt_subst,f_vars = ctx c l in
-    let t = fst (List.hd (tm_one_step_codim0 t l tgt_subst f_vars true)) in
-    tm_codim0 c t next
+    let t = fst (List.hd (tm_one_step t l tgt_subst f_vars true)) in
+    tm c t next
   else c,t
-
-let _tm_codim1 _c t _s =
-  let _coh, _sub =
-    match t with
-    | Coh(coh, sub) -> coh, sub
-    | _ ->
-      Error.functorialisation
-        ("term: " ^ Unchecked.tm_to_string t)
-        (Printf.sprintf "attempted to functorialise a term which is not a coherence")
-  in
-  Error.fatal "codim 1 functorialisation for terms not yet implemented"
 
 (*
    Functorialisation of a coherence possibly multiple times, with
@@ -278,7 +266,7 @@ let coh_all c =
    Functorialisation a term: exposed function
 *)
 let tm c t s =
-  try tm_codim0 c t s
+  try tm c t s
   with
   | FunctorialiseMeta ->
     Error.functorialisation
