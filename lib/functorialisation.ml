@@ -13,6 +13,10 @@ let builtin_whisk :
   (int -> int -> int -> Coh.t) ref =
   ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
+let builtin_whisk_sub_ps :
+  (int -> tm -> ty -> tm -> ty -> sub_ps) ref =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference")
+
 (*
    Takes a functorialisation data with a context and produces 2 pieces
    of data :
@@ -80,60 +84,43 @@ let _ty_contains_vars t l =
     Unchecked.tm_contains_vars v l
   | _ -> raise FunctorialiseMeta
 
-let rec take n l =
-    match l with
-    | h::t when n > 0 -> h::(take (n-1) t)
-    | _ -> []
-
 (* Invariant maintained:
     src_prod returns a term of same dimension as tm
 *)
-let rec src_prod t l tgt_subst f_vars tm tm_t d n =
+let rec src_prod t l tgt_subst f_vars tm tm_t d n cc =
     match t with
     | Arr(ty',src,_tgt) when Unchecked.tm_contains_vars src l ->
-        let prod, prod_ty = src_prod ty' l tgt_subst f_vars tm tm_t d (n-1) in
-        let ty_f = (ty ty' l tgt_subst f_vars src) in
-        let src_f = fst (List.hd (tm_one_step src l tgt_subst f_vars true)) in
-        let whisk = !builtin_whisk n (d-n-1) 0 in
+        let whisk = !builtin_whisk n 0 (d-n-1) in
         let ps,whisk_ty,_ = (Coh.forget whisk) in
-        let sub_base = Unchecked.ty_to_sub_ps ty_f in
-        let sub_ps = List.concat [[(prod,true)];(take (d-n) (Unchecked.ty_to_sub_ps prod_ty));[(src_f,true)];sub_base] in
+        let prod, prod_ty = src_prod ty' l tgt_subst f_vars tm tm_t d (n-1) cc in
+        let ty_f = (ty ty' l tgt_subst f_vars src cc) in
+        let src_f = fst (List.hd (tm_one_step src l tgt_subst f_vars true cc)) in
+        let sub_ps = !builtin_whisk_sub_ps (d-n-1) src_f ty_f prod prod_ty in
         let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
-        (*
-        let _ = Printf.printf "Sub: %s\n" (Unchecked.sub_ps_to_string sub_ps) in
-        let _ = Printf.printf "Len src: %d %d\n" (List.length sub_ps) (List.length (Unchecked.ps_to_ctx ps)) in
-        *)
+        let _ = check_term cc (Coh(whisk, sub_ps)) in
         (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
     | Arr(_,_,_) | Obj -> (tm, tm_t)
     | _ -> raise FunctorialiseMeta
-and tgt_prod t l tgt_subst f_vars tm tm_t d n =
+and tgt_prod t l tgt_subst f_vars tm tm_t d n cc =
     match t with
     | Arr(ty',_src,tgt) when Unchecked.tm_contains_vars tgt l ->
-        let prod, prod_ty = tgt_prod ty' l tgt_subst f_vars tm tm_t d (n-1) in
-        let ty_f = (ty ty' l tgt_subst f_vars tgt) in
-        let tgt_f = fst (List.hd (tm_one_step tgt l tgt_subst f_vars true)) in
         let whisk = !builtin_whisk n (d-n-1) 0 in
         let ps,whisk_ty,_ = (Coh.forget whisk) in
-        let sub_base = Unchecked.ty_to_sub_ps ty_f in
-        let sub_ps = List.concat [[(tgt_f,true)];(take (d-n) sub_base);[(prod,true)];(Unchecked.ty_to_sub_ps prod_ty)] in
-        (*
-        let _ = Printf.printf "Sub: %s\n" (Unchecked.sub_ps_to_string sub_ps) in
-        let _ = Printf.printf "Len tgt: %d %d\n" (List.length sub_ps) (List.length (Unchecked.ps_to_ctx ps)) in
-        *)
+        let prod, prod_ty = tgt_prod ty' l tgt_subst f_vars tm tm_t d (n-1) cc in
+        let ty_f = (ty ty' l tgt_subst f_vars tgt cc) in
+        let tgt_f = fst (List.hd (tm_one_step tgt l tgt_subst f_vars true cc)) in
+        let sub_ps = !builtin_whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
         let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
+        let _ = check_term cc (Coh(whisk, sub_ps)) in
         (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
     | Arr(_,_,_) | Obj -> (tm, tm_t)
     | _ -> raise FunctorialiseMeta
-and ty t l tgt_subst f_vars tm =
+and ty t l tgt_subst f_vars tm cc =
   let d = Unchecked.dim_ty t in
   let tm_incl = Unchecked.tm_apply_sub tm tgt_subst in
   let t_incl = Unchecked.ty_apply_sub t tgt_subst in
-  let src, src_t = tgt_prod t l tgt_subst f_vars tm t d (d-1) in
-  let tgt, tgt_t = src_prod t l tgt_subst f_vars tm_incl t_incl d (d-1) in
-  (*
-  let _ = Printf.printf "\nList: %s\n\n" (String.concat "," (List.map Var.to_string l)) in
-  let _ = Printf.printf "Tm:\n%s\n ->\n%s\n :\n%s\n%s\n" (Unchecked.tm_to_string src) (Unchecked.tm_to_string tgt) (Unchecked.ty_to_string src_t) (Unchecked.ty_to_string tgt_t) in
-  *)
+  let src, src_t = tgt_prod t l tgt_subst f_vars tm t d (d-1) cc in
+  let tgt, tgt_t = src_prod t l tgt_subst f_vars tm_incl t_incl d (d-1) cc in
   let _ = (Unchecked.check_equal_ty src_t tgt_t) in
   Arr (src_t, src, tgt)
 
@@ -145,7 +132,7 @@ and ctx c l =
      let x' = Var.fresh() in
      let xf = Var.fresh() in
      let tgt_subst = (x,Var x')::tgt_subst in
-     let tf = ty t l tgt_subst f_vars (Var x) in
+     let tf = ty t l tgt_subst f_vars (Var x) (Ctx.check c) in
      (xf,(tf,expl))::(x',(t,false))::(x,(t,false))::c,
      tgt_subst,
      (x, (Var x',Var xf))::f_vars
@@ -160,19 +147,18 @@ and coh_one_step coh l =
     ~compute_ps_ty:
       (fun p t ->
          let new_ctx,tgt_subst,f_vars = ctx (Unchecked.ps_to_ctx p) l in
-         let ty = ty t l tgt_subst f_vars (Coh(coh,Unchecked.identity_ps p)) in
+         let ty = ty t l tgt_subst f_vars (Coh(coh,Unchecked.identity_ps p)) (Ctx.check new_ctx) in
          new_ctx,ty)
     ~compute_name:(fun ctx (name,susp,func) ->
         let newf = add_functorialisation ctx func l in
         (name,susp, Some newf))
     coh
-
 (*
    Functorialisation a term once with respect to a list of triples.
    Returns a list containing the functorialise term followed by its
    target and its source.
  *)
-and tm_one_step t l tgt_subst f_vars expl =
+and tm_one_step t l tgt_subst f_vars expl cc =
   if (not (Unchecked.tm_contains_vars t l)) then [t,expl]
   else
   match t with
@@ -191,19 +177,19 @@ and tm_one_step t l tgt_subst f_vars expl =
           let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst f_vars) in
           coh_one_step c places
         in
-        let sf = sub s l tgt_subst f_vars in
+        let sf = sub s l tgt_subst f_vars cc in
         let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t tgt_subst ,expl) s in
         [Coh(cohf,sf), true; Coh(c,s'), false; Coh(c,s), false]
       | [] -> [Coh(c,s), expl]
     end
   | Meta_tm _ -> (raise FunctorialiseMeta)
-and sub s l tgt_subst f_vars =
+and sub s l tgt_subst f_vars cc =
   match s with
   | [] -> []
   | (t, expl)::s ->
     List.append
-      (tm_one_step t l tgt_subst f_vars expl)
-      (sub s l tgt_subst f_vars)
+      (tm_one_step t l tgt_subst f_vars expl cc)
+      (sub s l tgt_subst f_vars cc)
 
 (*
    Functorialisation a term possibly multiple times with respect to a
@@ -213,7 +199,7 @@ let rec tm c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
     let c,tgt_subst,f_vars = ctx c l in
-    let t = fst (List.hd (tm_one_step t l tgt_subst f_vars true)) in
+    let t = fst (List.hd (tm_one_step t l tgt_subst f_vars true (Ctx.check c))) in
     tm c t next
   else c,t
 
