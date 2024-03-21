@@ -59,6 +59,24 @@ let whisk n j k =
   in
   Memo.find_whisk (n,j,k) build_whisk
 
+(*
+  How long should substitutions for whisk be?
+  (whisk 0 0 0) requires ps-context (x(f)y(g)z) so 2+1+1+1
+  (whisk n 0 0) requires 2*(n+1)+1+1+1
+  (whisk n j 0) requires (2*(n+1))+((2*j)+1)+1+1
+  (whisk n 0 k) requires (2*(n+1))+1+(2*k+1)+1
+
+  Assuming ty1 has right dimension, we just need to know k
+*)
+let whisk_sub_ps k t1 ty1 t2 ty2 =
+    let rec take n l =
+        match l with
+        | h::t when n > 0 -> h::(take (n-1) t)
+        | _ -> [] in
+    let sub_base = Unchecked.ty_to_sub_ps ty1 in
+    let sub_ext = take (2*k+1) (Unchecked.ty_to_sub_ps ty2) in
+    List.concat [[(t2,true)];sub_ext;[(t1,true)];sub_base]
+
 let id = Memo.id
 
 let id_all_max ps =
@@ -163,6 +181,6 @@ let middle_rewrite k =
   Functorialisation.coh comp func_data
 
 let () = Functorialisation.builtin_comp := comp_n
-
 let () = Functorialisation.builtin_whisk := whisk
+let () = Functorialisation.builtin_whisk_sub_ps := whisk_sub_ps
 
