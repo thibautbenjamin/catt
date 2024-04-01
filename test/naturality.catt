@@ -45,11 +45,22 @@ let nat_whiskl3 (x : *) (y : *) (z : *)
 
 coh whiskl4 (x(f)y(g(a(m(p)n)b)h)z) : (comp f [[[p]]]) -> (comp f [[[p]]])
 
-let nat_whiskl4 (x : *) (y : *) (z : *)
-              (f : x -> y) (g : y -> z)
-              (f' : x -> y) (h : y -> z)
-              (c : f -> f') (a : g -> h) (b : g -> h)
-			  (m: a -> b) (n: a -> b)
-              (p : m -> n)
-			  = whiskl4 [c] p
+#let nat_whiskl4 (x : *) (y : *) (z : *)
+#              (f : x -> y) (g : y -> z)
+#              (f' : x -> y) (h : y -> z)
+#              (c : f -> f') (a : g -> h) (b : g -> h)
+#              (m: a -> b) (n: a -> b)
+#              (p : m -> n)
+#              = whiskl4 [c] p
+
+coh bias (x(f)y) : f -> (comp f)
+coh unbias (x(f)y) : (comp f) -> f
+
+set verbosity = 2
+#set unroll_coherences = t
+let ccomp_test (x : *) (y : *) (z : *)
+          (f : x -> y) (g : y -> z)
+#	  = ccomp (comp [unbias (id x)] f) (id [f]) (comp f [bias (id y)])
+		  : (comp (id _) (comp g)) -> (comp (comp g) (id _))
+		  = ccomp (id [g])
 
