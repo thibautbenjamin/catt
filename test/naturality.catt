@@ -3,7 +3,7 @@
 # set verbosity = 5
 # set unroll_coherences = t
 
-let idf (x : *) (y : *) (f : x -> y) = id [f]
+let idf (x : *) (y : *) (f : x -> y) : (comp (id x) f) -> (comp f (id y)) = id [f]
 
 coh whiskl (x(f)y(g(a)h)z) : comp f g -> comp f h
 let whisklf (x : *) (y : *) (f : x -> y) (g : x -> y) (z : *) (h : y -> z) (k : y -> z) (a : f -> g) (b : h -> k) = whiskl [a] b
@@ -53,14 +53,20 @@ coh whiskl4 (x(f)y(g(a(m(p)n)b)h)z) : (comp f [[[p]]]) -> (comp f [[[p]]])
 #              (p : m -> n)
 #              = whiskl4 [c] p
 
-coh bias (x(f)y) : f -> (comp f)
-coh unbias (x(f)y) : (comp f) -> f
+let ccomp_manual (x : *) (y : *) (z : *)
+          (f : x -> y) (g : y -> z)
+	: (comp (id x) (comp f g)) -> (comp (comp f g) (id z))
+	= comp (I (assoc (id x) f g)) (comp [id [f]] g) (assoc f (id y) g) (comp f [id [g]]) (I (assoc f g (id z)))
 
 set verbosity = 2
-#set unroll_coherences = t
-let ccomp_test (x : *) (y : *) (z : *)
+
+let ccomp1_test (x : *) (y : *)
+          (f : x -> y)
+		  : (comp (id x) (comp f)) -> (comp (comp f) (id y))
+		  = ccomp (id [f])
+
+let ccomp2_test (x : *) (y : *) (z : *)
           (f : x -> y) (g : y -> z)
-#	  = ccomp (comp [unbias (id x)] f) (id [f]) (comp f [bias (id y)])
-		  : (comp (id _) (comp g)) -> (comp (comp g) (id _))
-		  = ccomp (id [g])
+		  : (comp (id x) (comp f g)) -> (comp (comp f g) (id z))
+		  = ccomp (id [f]) (id [g])
 
