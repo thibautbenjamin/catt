@@ -8,6 +8,7 @@ val comp_n : int -> Coh.t
 val comp : subR -> Coh.t
 val whisk : int -> int -> int -> Coh.t
 val whisk_sub_ps : int -> tm -> ty -> tm -> ty -> sub_ps
+val ccomp : subR -> tm
 val id : Coh.t
 val unbiased_unitor : ps -> tm -> Coh.t
 
