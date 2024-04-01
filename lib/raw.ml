@@ -3,6 +3,7 @@ open Raw_types
 
 let string_of_builtin = function
   | Comp -> "comp"
+  | Ccomp -> "ccomp"
   | Id -> "id"
 
 let rec string_of_ty e =
@@ -124,6 +125,7 @@ and dim_tm ctx = function
         begin
           match name with
           | Comp -> 1
+          | Ccomp -> 1
           | Id -> 1
         end
       | _ -> assert false
@@ -161,6 +163,7 @@ let rec infer_susp_tm ctx = function
             begin
               match name with
               | Comp -> 1
+              | Ccomp -> 1
               | Id -> 0
             end
           | _ -> assert false

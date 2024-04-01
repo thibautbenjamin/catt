@@ -1,5 +1,6 @@
 type builtin =
   | Comp
+  | Ccomp
   | Id
 
 type tyR =
