@@ -131,9 +131,10 @@ and ctx c l =
      let c,tgt_subst,f_vars = ctx c l in
      let x' = Var.fresh() in
      let xf = Var.fresh() in
+     let c_ext = (x',((Unchecked.ty_apply_sub t tgt_subst),false))::(x,(t,false))::c in
      let tgt_subst = (x,Var x')::tgt_subst in
-     let tf = ty t l tgt_subst f_vars (Var x) (Ctx.check c) in
-     (xf,(tf,expl))::(x',(t,false))::(x,(t,false))::c,
+     let tf = ty t l tgt_subst f_vars (Var x) (Ctx.check c_ext) in
+     (xf,(tf,expl))::c_ext,
      tgt_subst,
      (x, (Var x',Var xf))::f_vars
   | (x,a)::c -> let c,tgt_subst,f_terms = ctx c l in (x,a)::c, tgt_subst,f_terms
