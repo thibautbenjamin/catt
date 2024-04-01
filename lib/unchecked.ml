@@ -235,6 +235,10 @@ struct
         let lvl = max + 1 in
         (Var.Db lvl, (rename_ty t l, expl)) ::c, (x, lvl)::l, lvl
 
+  let db_level_sub c =
+      let _,names,_ = db_levels c in
+      List.map (fun (t,n) -> (Var.Db n,Var(t))) names
+
   let suspend_ps ps = Br [ps]
 
   let rec suspend_ty = function
@@ -468,6 +472,13 @@ struct
     | t::s, (x,_)::ctx -> (x,t)::(list_to_sub s ctx)
     | [],[] -> []
     | _ -> raise WrongNumberOfArguments
+
+  let list_to_db_level_sub l =
+    let rec aux l = match l with
+      | [] -> [],0
+      | t::l ->
+        let s,n = aux l in (Var.Db n,t)::s,n+1
+    in fst (aux l)
 
   let rec dim_ty = function
     | Obj -> 0
