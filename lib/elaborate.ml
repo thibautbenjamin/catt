@@ -57,6 +57,7 @@ module Constraints = struct
         with Invalid_argument _ ->
           raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2))
       end
+    | Meta_tm _, Meta_tm _ when tm1 = tm2 -> ()
     | Meta_tm _, _
     | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
