@@ -58,8 +58,6 @@ let ccomp_manual (x : *) (y : *) (z : *)
 	: (comp (id x) (comp f g)) -> (comp (comp f g) (id z))
 	= comp (I (assoc (id x) f g)) (comp [id [f]] g) (assoc f (id y) g) (comp f [id [g]]) (I (assoc f g (id z)))
 
-set verbosity = 2
-
 let ccomp1_test (x : *) (y : *)
           (f : x -> y)
 		  : (comp (id x) (comp f)) -> (comp (comp f) (id y))
@@ -70,3 +68,12 @@ let ccomp2_test (x : *) (y : *) (z : *)
 		  : (comp (id x) (comp f g)) -> (comp (comp f g) (id z))
 		  = ccomp (id [f]) (id [g])
 
+let ccomp3_test (x : *) (y : *) (z : *) (w : *)
+          (f : x -> y) (g : y -> z) (h : z -> w)
+		  : (comp (id x) (comp f g h)) -> (comp (comp f g h) (id w))
+		  = ccomp (id [f]) (id [g]) (id [h])
+
+let ccomp4_test (x : *) (y : *) (z : *) (w : *) (u : *)
+          (f : x -> y) (g : y -> z) (h : z -> w) (k : w -> u)
+		  : (comp (id x) (comp f g h k)) -> (comp (comp f g h k) (id u))
+		  = ccomp (id [f]) (id [g]) (id [h]) (id [k])
