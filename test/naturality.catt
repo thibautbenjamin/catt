@@ -77,3 +77,12 @@ let ccomp4_test (x : *) (y : *) (z : *) (w : *) (u : *)
           (f : x -> y) (g : y -> z) (h : z -> w) (k : w -> u)
 		  : (comp (id x) (comp f g h k)) -> (comp (comp f g h k) (id u))
 		  = ccomp (id [f]) (id [g]) (id [h]) (id [k])
+
+set postprocess = t
+let ccomp2_test (x : *) (y : *) (z : *)
+          (f : x -> y) (g : y -> z)
+		  #: (comp (id x) (comp f g)) -> (comp (comp f g) (id z))
+		  : x -> z
+		  = comp f g
+set postprocess = f
+
