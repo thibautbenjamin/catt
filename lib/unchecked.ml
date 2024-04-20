@@ -423,6 +423,7 @@ struct
       Br (List.append l2 l1),
       i1,
       i2
+    | _, Br [], Br [] -> let s = identity_ps ps1 in ps1, s, s
     | i, Br l1, Br l2 ->
       try
         let list = List.map2 (ps_compose (i-1)) l1 l2 in
@@ -443,6 +444,7 @@ struct
         | [_] -> s1
         | t::s2 -> t::(append s2)
       in append s2
+    | _, Br [], Br [], _, _ -> s1
     | i, Br l1, Br l2, s1, s2 ->
       let incls1 = canonical_inclusions l1 in
       let incls2 = canonical_inclusions l2 in
