@@ -239,6 +239,10 @@ struct
       let _,names,_ = db_levels c in
       List.map (fun (t,n) -> (Var.Db n,Var(t))) names
 
+  let db_level_sub_inv c =
+      let _,names,_ = db_levels c in
+      List.map (fun (t,n) -> (t,Var(Var.Db n))) names
+
   let suspend_ps ps = Br [ps]
 
   let rec suspend_ty = function
