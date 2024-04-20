@@ -468,7 +468,7 @@ and Coh : sig
     ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
   val to_string : t -> string
   val is_inv : t -> bool
-  val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm
+  val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm * Unchecked_types(Coh).ty
   (* val data : t -> PS.t * Ty.t * Unchecked_types.coh_pp_data *)
   val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
   val func_data : t -> functorialisation_data option
@@ -588,7 +588,7 @@ end = struct
   let noninv_srctgt c =
     match c with
     | Inv (_,_) -> Error.fatal "non-invertible data of an invertible coh"
-    | NonInv (d,_) -> Tm.forget d.src, Tm.forget d.tgt
+    | NonInv (d,_) -> Tm.forget d.src, Tm.forget d.tgt, Ty.forget (Tm.ty d.src)
 
   let dim c =
     let ty = match c with

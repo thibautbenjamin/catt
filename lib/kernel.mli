@@ -12,7 +12,7 @@ module rec Coh : sig
     ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
   val check_inv :
     ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
-  val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm
+  val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm * Unchecked_types(Coh).ty
   val func_data : t -> functorialisation_data option
 end
 
