@@ -27,7 +27,7 @@ let rec tm t =
     let ps,_,_ = Coh.forget (Builtin.comp s) in
     let ctx = Unchecked.ps_to_ctx ps in
     let _ = Printf.printf "CTX: %s\n" (Unchecked.ctx_to_string ctx) in
-    let ctx,_,_ = Functorialisation.ctx ctx (List.map fst ctx) in
+    let ctx = Functorialisation.ctx ctx (List.map fst ctx) in
     let _ = Printf.printf "CTXF: %s\n" (Unchecked.ctx_to_string ctx) in
     (* Builtin.ccomp likes to assume ctx_f uses DB nicely but it actually uses a bunch of fresh variables *)
     let fsub = Unchecked.db_level_sub ctx in
