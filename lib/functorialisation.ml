@@ -249,6 +249,23 @@ and sub s l cc =
    Functorialisation a term possibly multiple times with respect to a
    functorialisation data
 *)
+let intch_test c t =
+  let d = Unchecked.dim_ctx c in
+  let l = List.filter_map (fun x -> if Unchecked.dim_ty (fst (snd x)) >= d-1 then Some(fst x) else None) c in
+  (* let l,_next = list_functorialised c s in *)
+  if l <> [] then
+    let t = match t with
+      | Coh(coh,s) -> begin
+          let _ = Printf.printf "SUB: %s\n" (Unchecked.sub_ps_to_string s) in
+          let ps,_,_ = Coh.forget coh in
+          let l = find_places (Unchecked.ps_to_ctx ps) s l in
+          let c,tgt_subst,f_vars = ctx (Unchecked.ps_to_ctx ps) l in
+          (intch_src coh s l tgt_subst f_vars (Ctx.check c))
+        end
+      | _ -> assert false
+    in c,t
+  else c,t
+
 let rec tm c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
