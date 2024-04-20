@@ -1,5 +1,6 @@
 open Kernel
 open Raw_types
+open Unchecked_types.Unchecked_types(Coh)
 
 exception UnknownOption of string
 exception NotAnInt of string
@@ -14,12 +15,16 @@ type cmd =
 
 type prog = cmd list
 
+let postprocess_fn : (ctx -> tm -> ctx * tm) ref =
+  ref (fun c e -> c,e)
+
 let exec_coh v ps ty =
   let ps,ty = Elaborate.ty_in_ps ps ty in
   Environment.add_coh v ps ty
 
 let exec_decl v l e t =
   let c,e = Elaborate.tm l e in
+  let c,e = if !Settings.postprocess then !postprocess_fn c e else c,e in
   match t with
   | None -> Environment.add_let v c e
   | Some ty ->
@@ -61,6 +66,9 @@ let exec_set o v =
   | _ when String.equal o "print_explicit_substitutions" ->
     let v = parse_bool v in
     Settings.print_explicit_substitutions := v
+  | _ when String.equal o "postprocess" ->
+    let v = parse_bool v in
+    Settings.postprocess := v
   | _ when String.equal o "unroll_coherences" ->
     let v = parse_bool v in
     Settings.unroll_coherences := v
