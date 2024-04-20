@@ -65,14 +65,14 @@ let add_functorialisation c func l =
 
 
 (*
-   Given a context, a substitution and a list of variables, returns
+   Given a context, a ps-substitution and a list of variables, returns
    the list of all variables in the context whose corresponding term
    in the substitution contains a variable from the input list
 *)
 let rec find_places ctx s l =
   match ctx,s with
   | [], [] -> []
-  | (x,(_,true))::c,  (t,_)::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
+  | (x,_)::c,  (t,_)::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
   | _::c, _::s -> find_places c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
