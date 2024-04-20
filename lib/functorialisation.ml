@@ -17,6 +17,14 @@ let builtin_whisk_sub_ps :
   (int -> tm -> ty -> tm -> ty -> sub_ps) ref =
   ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
+let ps_reduce :
+  (int -> ps -> ps) ref =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference")
+
+let ps_reduction_sub :
+  (ps -> sub_ps) ref =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference")
+
 (*
    Takes a functorialisation data with a context and produces 2 pieces
    of data :
