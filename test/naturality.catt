@@ -78,11 +78,17 @@ let ccomp4_test (x : *) (y : *) (z : *) (w : *) (u : *)
 		  : (comp (id x) (comp f g h k)) -> (comp (comp f g h k) (id u))
 		  = ccomp (id [f]) (id [g]) (id [h]) (id [k])
 
+set verbosity = 3
+#set unroll_coherences = t
 set postprocess = t
-let ccomp2_test (x : *) (y : *) (z : *)
-          (f : x -> y) (g : y -> z)
+let intch_test (x : *) (y : *) (z : *)
+          (f : x -> y) (f' : x -> y) (g : y -> z) (g' : y -> z)
+#(a : f -> f') (b : f -> f') (c : g -> g') (d : g -> g')
+          #(m: a -> b) (n : a -> b)
+		  #(p: m -> n)
 		  #: (comp (id x) (comp f g)) -> (comp (comp f g) (id z))
-		  : x -> z
-		  = comp f g
+		  #: x -> z
+		  #= comp f g
+		  = comp (id x) f (id y) g (id z)
 set postprocess = f
 
