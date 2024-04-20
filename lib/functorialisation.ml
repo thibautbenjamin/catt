@@ -138,7 +138,7 @@ and ctx c l =
   | (x,a)::c -> (x,a)::(ctx c l)
 
 (* Interchange needed for source of depth-1 non-inv coh *)
-and intch_src coh _s l tgt_subst f_vars cc =
+and intch_src coh l tgt_subst f_vars cc =
     (* Setup *)
     let ps,coh_ty,name = Coh.forget coh in
     let _ = Printf.printf "Sub: %s\n" (String.concat ", " (List.rev (List.map Var.to_string l))) in
@@ -254,13 +254,16 @@ let intch_test c t =
   let l = List.filter_map (fun x -> if Unchecked.dim_ty (fst (snd x)) >= d-1 then Some(fst x) else None) c in
   (* let l,_next = list_functorialised c s in *)
   if l <> [] then
+    let c,tgt_subst,f_vars = ctx c l in
     let t = match t with
       | Coh(coh,s) -> begin
-          let _ = Printf.printf "SUB: %s\n" (Unchecked.sub_ps_to_string s) in
+          let sf_ps = sub s l tgt_subst f_vars (Ctx.check c) in
           let ps,_,_ = Coh.forget coh in
           let l = find_places (Unchecked.ps_to_ctx ps) s l in
-          let c,tgt_subst,f_vars = ctx (Unchecked.ps_to_ctx ps) l in
-          (intch_src coh s l tgt_subst f_vars (Ctx.check c))
+          let ccohf,tgt_subst,f_vars = ctx (Unchecked.ps_to_ctx ps) l in
+          let sf = Unchecked.list_to_sub (List.map fst sf_ps) ccohf in
+          let t = intch_src coh l tgt_subst f_vars (Ctx.check ccohf) in
+          Unchecked.tm_apply_sub t sf
         end
       | _ -> assert false
     in c,t
