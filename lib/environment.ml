@@ -12,9 +12,9 @@ type t = (Var.t, v) Hashtbl.t
 let env : t = Hashtbl.create 70
 
 let add_let v c ?ty t =
-  let kc = Kernel.Ctx.check c in
-  let tm = Kernel.check_term kc ?ty t in
-  let ty = Kernel.(Ty.forget (Tm.typ tm)) in
+  let kc = Ctx.check c in
+  let tm = check_term kc ?ty t in
+  let ty = Ty.forget (Tm.typ tm) in
   let dim_input = Unchecked.dim_ctx c in
   let dim_output = Unchecked.dim_ty ty in
   Io.info ~v:4

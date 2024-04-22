@@ -33,9 +33,9 @@ let check l e t =
     | None -> None
     | Some ty -> let _,ty = Elaborate.ty l ty in Some ty
   in
-  let c = Kernel.Ctx.check c in
-  let tm = Kernel.check_term c ?ty e in
-  let ty = Kernel.(Ty.forget (Tm.typ tm)) in
+  let c = Ctx.check c in
+  let tm = check_term c ?ty e in
+  let ty = (Ty.forget (Tm.typ tm)) in
   e,ty
 
 let exec_set o v =
