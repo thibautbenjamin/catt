@@ -1,7 +1,7 @@
 open Common
-module Tbl (Strictness : StrictnessLv)
+module Tbl (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
 
@@ -16,16 +16,16 @@ end
 
 let env_wk : Tbl(Wk).t = Hashtbl.create 70
 
-module Environment (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
 
   (* This declaration is only well typed thanks to
      the invariant that there is only one module per
      strictness level, hence the use of Obj.magic *)
-  let env : Tbl(Strictness).t =
-    match Strictness.lv with
+  let env : Tbl(S).t =
+    match S.lv with
     | Wk -> Obj.magic(env_wk)
 
   let add_let v c ?ty t =

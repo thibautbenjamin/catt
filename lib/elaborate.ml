@@ -1,12 +1,12 @@
 open Std
 open Common
-module Elaborate (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
-  module Translate_raw = Translate_raw.Translate_raw(Strictness)
-  module Infer_suspension = Infer_suspension.Infer_suspension(Strictness)
+  module Translate_raw = Translate_raw.M(S)
+  module Infer_suspension = Infer_suspension.M(S)
 
   exception NotUnifiable of string * string
 

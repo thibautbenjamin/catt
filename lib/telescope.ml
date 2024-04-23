@@ -1,11 +1,11 @@
 open Common
-module Telescope (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
-  module Suspension = Suspension.Suspension(Strictness)
-  module Builtin = Builtin.Builtin(Strictness)
+  module Suspension = Suspension.M(S)
+  module Builtin = Builtin.M(S)
 
   let tdb i = Var (Db i)
 

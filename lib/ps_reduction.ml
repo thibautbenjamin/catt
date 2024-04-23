@@ -1,9 +1,9 @@
 open Common
-module Ps_reduction (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
-  module Builtin = Builtin.Builtin(Strictness)
+  module Builtin = Builtin.M(S)
   open Kernel.Unchecked_types
 
   let tdb i = Var (Var.Db i)

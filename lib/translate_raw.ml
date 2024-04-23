@@ -1,17 +1,17 @@
 open Common
-module Translate_raw(Strictness : StrictnessLv)
+module M(S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
   open Raw_types
-  module Environment = Environment.Environment(Strictness)
-  module Suspension = Suspension.Suspension(Strictness)
-  module Functorialisation = Functorialisation.Functorialisation(Strictness)
-  module Builtin = Builtin.Builtin(Strictness)
-  module Opposite = Opposite.Opposite(Strictness)
-  module Inverse = Inverse.Inverse(Strictness)
-  module Meta = Meta.Meta(Strictness)
+  module Environment = Environment.M(S)
+  module Suspension = Suspension.M(S)
+  module Functorialisation = Functorialisation.M(S)
+  module Builtin = Builtin.M(S)
+  module Opposite = Opposite.M(S)
+  module Inverse = Inverse.M(S)
+  module Meta = Meta.M(S)
 
   exception WrongNumberOfArguments
 

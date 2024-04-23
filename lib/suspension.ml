@@ -1,7 +1,7 @@
 open Common
-module Suspension (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
 
   let rec iter_n_times n f base =

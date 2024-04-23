@@ -1,8 +1,8 @@
 open Common
-module Meta (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
-    open Kernel.Unchecked_types
+  module Kernel = Kernel.M(S)
+  open Kernel.Unchecked_types
 
   let meta_namer_ty = ref 0
   let meta_namer_tm = ref 0

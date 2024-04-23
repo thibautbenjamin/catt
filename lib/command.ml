@@ -18,9 +18,9 @@ type prog = cmd list
 
 module Exec (S : StrictnessLv)
 = struct
-  module Elaborate = Elaborate.Elaborate(S)
-  module Environment = Environment.Environment(S)
-  module Kernel = Kernel.Kernel(S)
+  module Elaborate = Elaborate.M(S)
+  module Environment = Environment.M(S)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
 
   let coh v ps ty =

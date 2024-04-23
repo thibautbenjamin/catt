@@ -1,14 +1,14 @@
 open Common
-module Inverse (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
-  module Opposite = Opposite.Opposite(Strictness)
-  module Ps_reduction = Ps_reduction.Ps_reduction(Strictness)
-  module Suspension = Suspension.Suspension(Strictness)
-  module Builtin = Builtin.Builtin(Strictness)
-  module Telescope = Telescope.Telescope(Strictness)
-  module Functorialisation = Functorialisation.Functorialisation(Strictness)
+  module Opposite = Opposite.M(S)
+  module Ps_reduction = Ps_reduction.M(S)
+  module Suspension = Suspension.M(S)
+  module Builtin = Builtin.M(S)
+  module Telescope = Telescope.M(S)
+  module Functorialisation = Functorialisation.M(S)
   open Kernel.Unchecked_types
 
   open Std

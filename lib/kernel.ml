@@ -8,7 +8,7 @@ exception IsCoh
 exception InvalidSubTarget of string * string
 exception MetaVariable
 
-module Kernel (Strictness : StrictnessLv) = struct
+module M (S : StrictnessLv) = struct
 
   (** Operations on substitutions. *)
   module rec Sub
@@ -631,7 +631,7 @@ module Kernel (Strictness : StrictnessLv) = struct
   end
   =
   struct
-    let _compute = match Strictness.lv with
+    let _compute = match S.lv with
       | Wk -> (fun x -> x)
   end
 

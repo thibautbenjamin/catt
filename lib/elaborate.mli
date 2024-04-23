@@ -1,7 +1,7 @@
 open Common
-module Elaborate (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
   : sig
-    open Kernel.Kernel(Strictness)
+    open Kernel.M(S)
     open Unchecked_types
     open Raw_types
 

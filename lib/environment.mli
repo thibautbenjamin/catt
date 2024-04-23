@@ -1,7 +1,7 @@
 open Common
-module Tbl (Strictness : StrictnessLv)
+module Tbl (S : StrictnessLv)
   : sig
-    open Kernel.Kernel(Strictness)
+    open Kernel.M(S)
     open Unchecked_types
 
     type value =
@@ -9,10 +9,10 @@ module Tbl (Strictness : StrictnessLv)
       | Tm of ctx * tm
   end
 
-module Environment (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
   : sig
-    open Tbl(Strictness)
-    open Kernel.Kernel(Strictness)
+    open Tbl(S)
+    open Kernel.M(S)
     open Unchecked_types
 
     val add_let : Var.t -> ctx -> ?ty:ty -> tm -> string * string

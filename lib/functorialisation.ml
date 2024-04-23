@@ -1,8 +1,8 @@
 open Common
 
-module Functorialisation(Strictness : StrictnessLv)
+module M(S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   open Kernel.Unchecked_types
   module Unchecked = Kernel.Unchecked
 

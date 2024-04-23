@@ -1,6 +1,6 @@
 open Common
 
-module Kernel (_ : StrictnessLv) : sig
+module M (_ : StrictnessLv) : sig
   module rec Coh : sig
     type t
   end

@@ -1,8 +1,8 @@
 open Common
 open Raw_types
-module Infer_suspension(Strictness : StrictnessLv)
+module M(S : StrictnessLv)
 = struct
-  module Environment = Environment.Environment(Strictness)
+  module Environment = Environment.M(S)
 
 let rec dim_ty ctx = function
   | ObjR -> 0

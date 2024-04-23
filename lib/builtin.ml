@@ -1,12 +1,12 @@
 open Common
 
-module Builtin (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
-  module Suspension = Suspension.Suspension(Strictness)
-  module Functorialisation = Functorialisation.Functorialisation(Strictness)
+  module Suspension = Suspension.M(S)
+  module Functorialisation = Functorialisation.M(S)
 
   module Memo = struct
     let tbl = Hashtbl.create 97

@@ -3,9 +3,9 @@ open Common
 type op_data = int list
 val op_data_to_string : op_data -> string
 
-module Opposite (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
   :sig
-    open Kernel.Kernel(Strictness)
+    open Kernel.M(S)
     open Unchecked_types
 
     val equiv_op_ps : ps -> op_data -> sub_ps

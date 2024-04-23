@@ -1,7 +1,7 @@
 open Common
-module Telescope (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
   : sig
-    open Kernel.Kernel(Strictness)
+    open Kernel.M(S)
     open Unchecked_types
 
     val ctx : int -> ctx

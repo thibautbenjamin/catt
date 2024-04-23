@@ -6,9 +6,9 @@ let rec op_data_to_string = function
   | [i] -> Printf.sprintf "%i" i
   | i::l -> Printf.sprintf "%i,%s" i (op_data_to_string l)
 
-module Opposite (Strictness : StrictnessLv)
+module M (S : StrictnessLv)
 = struct
-  module Kernel = Kernel.Kernel(Strictness)
+  module Kernel = Kernel.M(S)
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
 
