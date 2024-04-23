@@ -1,52 +1,71 @@
-open Kernel
-open Unchecked_types.Unchecked_types(Coh)
+open Common
+module Tbl (Strictness : StrictnessLv)
+= struct
+  module Kernel = Kernel.Kernel(Strictness)
+  module Unchecked = Kernel.Unchecked
+  open Kernel.Unchecked_types
 
-type value =
-  | Coh of Coh.t
-  | Tm of ctx * tm
+  type value =
+    | Coh of Kernel.Coh.t
+    | Tm of ctx * tm
 
-type v = {value : value; dim_input : int; dim_output : int}
+  type v = {value : value; dim_input : int; dim_output : int}
 
-type t = (Var.t, v) Hashtbl.t
+  type t = (Var.t, v) Hashtbl.t
+end
 
-let env : t = Hashtbl.create 70
+let env_wk : Tbl(Wk).t = Hashtbl.create 70
 
-let add_let v c ?ty t =
-  let kc = Ctx.check c in
-  let tm = check_term kc ?ty t in
-  let ty = Ty.forget (Tm.typ tm) in
-  let dim_input = Unchecked.dim_ctx c in
-  let dim_output = Unchecked.dim_ty ty in
-  Io.info ~v:4
-    (lazy
-      (Printf.sprintf
-         "term %s of type %s added to environment"
-         (Unchecked.tm_to_string t)
-         (Unchecked.ty_to_string ty)));
-  Hashtbl.add env v ({value = Tm (c,t); dim_input; dim_output});
-  (t,ty)
+module Environment (Strictness : StrictnessLv)
+= struct
+  module Kernel = Kernel.Kernel(Strictness)
+  module Coh = Kernel.Coh
+  module Ctx = Kernel.Ctx
+  module Ty = Kernel.Ty
+  module Tm = Kernel.Tm
+  module Unchecked = Kernel.Unchecked
 
-let add_coh v ps ty =
-  let coh = check_coh ps ty (Var.to_string v, 0, None) in
-  let dim_input = Unchecked.dim_ps ps in
-  let dim_output = Unchecked.dim_ty ty in
-  Io.info ~v:4
-    (lazy
-      (Printf.sprintf
-         "coherence %s added to environment"
-         (Var.to_string v)));
-  Hashtbl.add env v ({value = Coh coh; dim_input; dim_output});
-  coh
+  let env : Tbl(Strictness).t =
+    match Strictness.lv with
+    | Wk -> Obj.magic(env_wk)
 
-let find v =
-  try Hashtbl.find env v
-  with Not_found -> raise (Error.UnknownId (Var.to_string(v)))
+  let add_let v c ?ty t =
+    let kc = Ctx.check c in
+    let tm = Kernel.check_term kc ?ty t in
+    let ty = Ty.forget (Tm.typ tm) in
+    let dim_input = Unchecked.dim_ctx c in
+    let dim_output = Unchecked.dim_ty ty in
+    Io.info ~v:4
+      (lazy
+        (Printf.sprintf
+           "term %s of type %s added to environment"
+           (Unchecked.tm_to_string t)
+           (Unchecked.ty_to_string ty)));
+    Hashtbl.add env v ({value = Tm (c,t); dim_input; dim_output});
+    (Unchecked.tm_to_string t,Unchecked.ty_to_string ty)
 
-let val_var v =
-  (find v).value
+  let add_coh v ps ty =
+    let coh = Kernel.check_coh ps ty (Var.to_string v, 0, None) in
+    let dim_input = Unchecked.dim_ps ps in
+    let dim_output = Unchecked.dim_ty ty in
+    Io.info ~v:4
+      (lazy
+        (Printf.sprintf
+           "coherence %s added to environment"
+           (Var.to_string v)));
+    Hashtbl.add env v ({value = Coh coh; dim_input; dim_output});
+    Coh.to_string coh
 
-let dim_output v =
-  (find v).dim_output
+  let find v =
+    try Hashtbl.find env v
+    with Not_found -> raise (Error.UnknownId (Var.to_string(v)))
 
-let dim_input v =
-  (find v).dim_input
+  let val_var v =
+    (find v).value
+
+  let dim_output v =
+    (find v).dim_output
+
+  let dim_input v =
+    (find v).dim_input
+end

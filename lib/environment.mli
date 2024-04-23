@@ -1,15 +1,26 @@
 open Common
-open Kernel
-open Unchecked_types.Unchecked_types(Coh)
+module Tbl (Strictness : StrictnessLv)
+  : sig
+    open Kernel.Kernel(Strictness)
+    open Unchecked_types
 
-type value =
-  | Coh of Coh.t
-  | Tm of ctx * tm
+    type value =
+      | Coh of Coh.t
+      | Tm of ctx * tm
 
-type t
+    type t
+  end
 
-val add_let : Var.t -> ctx -> ?ty:ty -> tm -> tm * ty
-val add_coh : Var.t -> ps -> ty -> Coh.t
-val val_var : Var.t -> value
-val dim_output : Var.t -> int
-val dim_input : Var.t -> int
+
+module Environment (Strictness : StrictnessLv)
+  : sig
+    open Tbl(Strictness)
+    open Kernel.Kernel(Strictness)
+    open Unchecked_types
+
+    val add_let : Var.t -> ctx -> ?ty:ty -> tm -> string * string
+    val add_coh : Var.t -> ps -> ty -> string
+    val val_var : Var.t -> value
+    val dim_output : Var.t -> int
+    val dim_input : Var.t -> int
+  end

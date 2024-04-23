@@ -1,9 +1,11 @@
-open Kernel
+open Common
 open Raw_types
 
 exception UnknownOption of string
 exception NotAnInt of string
 exception NotABoolean of string
+
+let strictness :(module StrictnessLv) ref = ref (module Wk : StrictnessLv)
 
 (**toplevel commands. *)
 type cmd =
@@ -14,29 +16,55 @@ type cmd =
 
 type prog = cmd list
 
+module Exec (S : StrictnessLv)
+= struct
+  module Elaborate = Elaborate.Elaborate(S)
+  module Environment = Environment.Environment(S)
+  module Kernel = Kernel.Kernel(S)
+  module Unchecked = Kernel.Unchecked
+  module Tm = Kernel.Tm
+  module Ty = Kernel.Ty
+  module Ctx = Kernel.Ctx
+
+  let coh v ps ty =
+    let ps,ty = Elaborate.ty_in_ps ps ty in
+    Environment.add_coh v ps ty
+
+  let decl v l e t =
+    let c,e = Elaborate.tm l e in
+    match t with
+    | None -> Environment.add_let v c e
+    | Some ty ->
+      let _,ty = Elaborate.ty l ty in
+      Environment.add_let v c ~ty e
+
+  let check l e t =
+    let c,e = Elaborate.tm l e in
+    let ty =
+      match t with
+      | None -> None
+      | Some ty -> let _,ty = Elaborate.ty l ty in Some ty
+    in
+    let c = Ctx.check c in
+    let tm = Kernel.check_term c ?ty e in
+    let ty = Ty.forget (Tm.typ tm) in
+    Unchecked.tm_to_string e,Unchecked.ty_to_string ty
+end
+
 let exec_coh v ps ty =
-  let ps,ty = Elaborate.ty_in_ps ps ty in
-  Environment.add_coh v ps ty
+  let module S = (val !strictness) in
+  let module Wrapper = Exec(S) in
+  Wrapper.coh v ps ty
 
 let exec_decl v l e t =
-  let c,e = Elaborate.tm l e in
-  match t with
-  | None -> Environment.add_let v c e
-  | Some ty ->
-     let _,ty = Elaborate.ty l ty in
-     Environment.add_let v c ~ty e
+  let module S = (val !strictness) in
+  let module Wrapper = Exec(S) in
+  Wrapper.decl v l e t
 
 let check l e t =
-  let c,e = Elaborate.tm l e in
-  let ty =
-    match t with
-    | None -> None
-    | Some ty -> let _,ty = Elaborate.ty l ty in Some ty
-  in
-  let c = Ctx.check c in
-  let tm = check_term c ?ty e in
-  let ty = (Ty.forget (Tm.typ tm)) in
-  e,ty
+  let module S = (val !strictness) in
+  let module Wrapper = Exec(S) in
+  Wrapper.check l e t
 
 let exec_set o v =
   let parse_bool v =
@@ -77,15 +105,16 @@ let exec_cmd cmd =
   | Coh (x,ps,e) ->
     Io.command "coh %s = %s" (Var.to_string x) (Raw.string_of_ty e);
     let coh = exec_coh x ps e in
-    Io.info (lazy (Printf.sprintf "successfully defined %s" (Coh.to_string coh)))
+    Io.info (lazy (Printf.sprintf "successfully defined %s" coh))
   | Check (l, e, t) ->
     Io.command "check %s" (Raw.string_of_tm e);
     let e,ty = check l e t in
-    Io.info (lazy (Printf.sprintf "valid term %s of type %s" (Unchecked.tm_to_string e) (Unchecked.ty_to_string ty)));
+    Io.info (lazy (Printf.sprintf "valid term %s of type %s"  e ty));
   | Decl (v,l,e,t) ->
     Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_tm e);
     let tm,ty = exec_decl v l e t in
-    Io.info (lazy (Printf.sprintf "successfully defined term %s of type %s" (Unchecked.tm_to_string tm) (Unchecked.ty_to_string ty)))
+    Io.info
+      (lazy (Printf.sprintf "successfully defined term %s of type %s"  tm  ty))
   | Set (o,v) ->
     begin
       try exec_set o v with

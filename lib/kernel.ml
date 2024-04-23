@@ -8,7 +8,7 @@ exception IsCoh
 exception InvalidSubTarget of string * string
 exception MetaVariable
 
-module Kernel = struct
+module Kernel (Strictness : StrictnessLv) = struct
 
   (** Operations on substitutions. *)
   module rec Sub
@@ -624,49 +624,59 @@ module Kernel = struct
         Ty.check_equal d1.total_ty d2.total_ty
       | Inv _, NonInv _ | NonInv _, Inv _ ->
         raise (NotEqual (to_string coh1, to_string coh2))
+        end
+
+  and NF : sig
+    val _compute : Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm
   end
+  =
+  struct
+    let _compute = match Strictness.lv with
+      | Wk -> (fun x -> x)
+  end
+
+  module Unchecked_types = Unchecked_types(Coh)
+  module U = Unchecked(Coh)
+  module Unchecked = U.Make(Coh)
+
+  let check check_fn name =
+    let v = 2 in
+    let fname = if !Settings.verbosity >= v then Lazy.force name else "" in
+    Io.info ~v (lazy ("checking "^fname));
+    try check_fn() with
+    | NotEqual(s1,s2) ->
+      Error.untypable
+        (if !Settings.verbosity >= v then fname else Lazy.force name)
+        (Printf.sprintf "%s and %s are not equal" s1 s2)
+    | InvalidSubTarget (s,tgt) ->
+      Error.untypable
+        (if !Settings.verbosity >= v then fname else Lazy.force name)
+        (Printf.sprintf "substitution %s does not apply from context %s" s tgt)
+    | Error.UnknownId (s) ->
+      Error.untypable
+        (if !Settings.verbosity >= v then fname else Lazy.force name)
+        (Printf.sprintf "unknown identifier :%s" s)
+    | MetaVariable ->
+      Error.incomplete_constraints
+        (if !Settings.verbosity >= v then fname else Lazy.force name)
+
+  let check_type ctx a =
+    let ty = lazy ("type: "^Unchecked.ty_to_string a) in
+    check (fun () -> Ty.check ctx a) ty
+
+  let check_term ctx ?ty t =
+    let ty = Option.map (check_type ctx) ty in
+    let tm = lazy ("term: " ^ (Unchecked.tm_to_string t)) in
+    check (fun () -> Tm.check ctx ?ty t) tm
+
+  let check_coh ps ty pp_data =
+    let c = lazy ("coherence: "^(Unchecked.coh_pp_data_to_string pp_data)) in
+    check (fun () -> Coh.check ps ty pp_data) c
+
+  let forget_coh = Coh.forget
+  let is_inv_coh = Coh.is_inv
+  let check_inv_coh = Coh.check_inv
+  let check_noninv_coh = Coh.check_noninv
+  let coh_to_string = Coh.to_string
+  let coh_noninv_srctgt = Coh.noninv_srctgt
 end
-
-module Ctx = Kernel.Ctx
-module PS = Kernel.PS
-module Tm = Kernel.Tm
-module Ty = Kernel.Ty
-module Coh = Kernel.Coh
-module U = Unchecked(Coh)
-module Unchecked = U.Make(Coh)
-
-
-
-let check check_fn name =
-  let v = 2 in
-  let fname = if !Settings.verbosity >= v then Lazy.force name else "" in
-  Io.info ~v (lazy ("checking "^fname));
-  try check_fn() with
-  | NotEqual(s1,s2) ->
-    Error.untypable
-      (if !Settings.verbosity >= v then fname else Lazy.force name)
-      (Printf.sprintf "%s and %s are not equal" s1 s2)
-  | InvalidSubTarget (s,tgt) ->
-    Error.untypable
-      (if !Settings.verbosity >= v then fname else Lazy.force name)
-      (Printf.sprintf "substitution %s does not apply from context %s" s tgt)
-  | Error.UnknownId (s) ->
-    Error.untypable
-      (if !Settings.verbosity >= v then fname else Lazy.force name)
-      (Printf.sprintf "unknown identifier :%s" s)
-  | MetaVariable ->
-    Error.incomplete_constraints
-      (if !Settings.verbosity >= v then fname else Lazy.force name)
-
-let check_type ctx a =
-  let ty = lazy ("type: "^Unchecked.ty_to_string a) in
-  check (fun () -> Ty.check ctx a) ty
-
-let check_term ctx ?ty t =
-  let ty = Option.map (check_type ctx) ty in
-  let tm = lazy ("term: " ^ (Unchecked.tm_to_string t)) in
-  check (fun () -> Tm.check ctx ?ty t) tm
-
-let check_coh ps ty pp_data =
-  let c = lazy ("coherence: "^(Unchecked.coh_pp_data_to_string pp_data)) in
-  check (fun () -> Coh.check ps ty pp_data) c
