@@ -57,7 +57,7 @@ module M (S : StrictnessLv) = struct
           | (_,t)::s, (_,a)::_ ->
             let sub = aux src s (Ctx.tail tgt) in
             let t = Tm.check src t in
-            Ty.check_equal (Tm.typ t) (Ty.apply_sub a sub);
+            Ty.check_equal (Tm.ty t) (Ty.apply_sub a sub);
             t::sub.list
         in
         {list = expr s tgt; src; tgt; unchecked = s}
@@ -304,8 +304,11 @@ module M (S : StrictnessLv) = struct
     (** A type exepression. *)
     type expr =
       | Obj
-      | Arr of t * Tm.t * Tm.t
-    and t = {c : Ctx.t; e : expr; unchecked : Unchecked_types(Coh).ty}
+      | Arr of Ty.t * Tm.t * Tm.t
+    and t = {c : Ctx.t;
+             e : expr;
+             nf : Unchecked_types(Coh).ty;
+             unchecked : Unchecked_types(Coh).ty}
 
     open Unchecked(Coh)
     module Unchecked = Make(Coh)
@@ -334,16 +337,16 @@ module M (S : StrictnessLv) = struct
              "building kernel type %s in context %s"
              (Unchecked.ty_to_string t)
              (Ctx.to_string c)));
-      let e =
+      let e, (nf : Unchecked_types(Coh).ty) =
         match t with
-        | Obj -> Obj
+        | Obj -> Obj, Obj
         | Arr(a,u,v) ->
           let a = check c a in
           let u = Tm.check c ~ty:a u in
           let v = Tm.check c ~ty:a v in
-          Arr(a,u,v)
+          Arr(a,u,v), Arr(a.nf, Tm.nf u, Tm.nf v)
         | Meta_ty _ -> raise MetaVariable
-      in {c; e; unchecked = t}
+      in {c; e; nf; unchecked = t}
 
     (** Free variables of a type. *)
     let rec free_vars ty =
@@ -360,13 +363,14 @@ module M (S : StrictnessLv) = struct
     (** Test for equality. *)
     let check_equal ty1 ty2 =
       Ctx.check_equal ty1.c ty2.c;
-      Unchecked.check_equal_ty (forget ty1) (forget ty2)
+      Unchecked.check_equal_ty ty1.nf ty2.nf
 
     let morphism t1 t2 =
       let a1 = Tm.ty t1 in
       let a2 = Tm.ty t2 in
       check_equal a1 a2;
-      {c=a1.c; e=Arr(a1,t1,t2);
+      let (nf : Unchecked_types(Coh).ty) = Arr (a1.nf, Tm.nf t1, Tm.nf t2) in
+      {c=a1.c; e=Arr(a1,t1,t2); nf;
        unchecked = Arr(forget a1, Tm.forget t1, Tm.forget t2)}
 
     let apply_sub t s =
@@ -385,7 +389,6 @@ module M (S : StrictnessLv) = struct
   and Tm : sig
     type t
     val to_var : t -> Var.t
-    val typ : t -> Ty.t
     val free_vars : t -> Var.t list
     val is_full : t -> bool
     val forget : t -> Unchecked_types(Coh).tm
@@ -393,15 +396,15 @@ module M (S : StrictnessLv) = struct
     val apply_sub : t -> Sub.t -> t
     val preimage : t -> Sub.t -> t
     val ty : t -> Ty.t
+    val nf : t -> Unchecked_types(Coh).tm
   end
   =
   struct
     type expr =
       | Var of Var.t (** a context variable *)
       | Coh of Coh.t * Sub.t
-    and t = {ty : Ty.t; e : expr; unchecked : Unchecked_types(Coh).tm}
-
-    let typ t = t.ty
+    and t = {ty : Ty.t; e : expr; nf : Unchecked_types(Coh).tm;
+             unchecked : Unchecked_types(Coh).tm}
 
     open Unchecked(Coh)
     module Unchecked = Make(Coh)
@@ -422,6 +425,7 @@ module M (S : StrictnessLv) = struct
 
     let forget tm = tm.unchecked
 
+
     let check c ?ty t =
       Io.info ~v:5
         (lazy
@@ -429,16 +433,18 @@ module M (S : StrictnessLv) = struct
              "building kernel term %s in context %s"
              (Unchecked.tm_to_string t)
              (Ctx.to_string c)));
-      let tm =
+      let check_expr (t : Unchecked_types(Coh).tm) =
         match t with
-        | Var x ->
-          let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
-          ({ty; e; unchecked = t})
+        | Var x -> Var x, Ty.check c (Ty.forget (Ctx.ty_var c x))
         | Meta_tm _ -> raise MetaVariable
         | Coh (coh,s) ->
           let sub = Sub.check_to_ps c s (Coh.ps coh) in
-          let e, ty = Coh(coh,sub), Ty.apply_sub (Coh.ty coh) sub in
-          {ty; e; unchecked = t}
+          Coh(coh,sub), Ty.apply_sub (Coh.ty coh) sub
+      in
+      let tm =
+        let e, ty = check_expr t in
+        let nf =  NF.compute t in
+        ({ty; e; nf; unchecked = t})
       in match ty with
       | None -> tm
       | Some ty -> Ty.check_equal ty tm.ty; tm
@@ -457,6 +463,7 @@ module M (S : StrictnessLv) = struct
       check c t
 
     let ty t = t.ty
+    let nf t = t.nf
   end
 
   (** A coherence. *)
@@ -627,11 +634,11 @@ module M (S : StrictnessLv) = struct
         end
 
   and NF : sig
-    val _compute : Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm
+    val compute : Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm
   end
   =
   struct
-    let _compute = match S.lv with
+    let compute = match S.lv with
       | Wk -> (fun x -> x)
   end
 
@@ -668,7 +675,7 @@ module M (S : StrictnessLv) = struct
     let ctx = Ctx.check ctx in
     let ty = Option.map (check_type ctx) ty in
     let tm = lazy ("term: " ^ (Unchecked.tm_to_string t)) in
-    check (fun () -> Ty.forget (Tm.typ (Tm.check ctx ?ty t))) tm
+    check (fun () -> Ty.forget (Tm.ty (Tm.check ctx ?ty t))) tm
 
   let check_coh ps ty pp_data =
     let c = lazy ("coherence: "^(Unchecked.coh_pp_data_to_string pp_data)) in
