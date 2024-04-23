@@ -248,30 +248,7 @@ module M (S : StrictnessLv)
         Constraints.combine_mgu known_mgu new_mgu
   end
 
-  let ctx c =
-    let c,meta_ctx = Translate_raw.ctx c in
-    Io.info ~v:2 (lazy (Printf.sprintf "elaborating context %s" (Unchecked.ctx_to_string c)));
-    let c,_ = Constraints_typing.ctx c meta_ctx in
-    Io.info ~v:4 (lazy (Printf.sprintf "elaborated context:%s" (Unchecked.ctx_to_string c)));
-    c
-
-  let preprocess_ty ctx ty =
-    let ty = Raw.remove_let_ty ty in
-    if !Settings.implicit_suspension then
-      Infer_suspension.ty ctx ty
-    else ty
-
-  let preprocess_tm ctx tm =
-    let tm = Raw.remove_let_tm tm in
-    if !Settings.implicit_suspension then
-      Infer_suspension.tm ctx tm
-    else tm
-
-  let rec preprocess_ctx = function
-    | [] -> []
-    | (v,t)::c ->
-      let c = preprocess_ctx c in
-      (v, preprocess_ty c t)::c
+  let ctx c meta_ctx = fst (Constraints_typing.ctx c meta_ctx)
 
   let resolve_constraints ~ty_fn ~sub_fn ~print_fn ~kind ctx meta_ctx x =
     let name = kind^": "^(print_fn x) in
@@ -288,53 +265,20 @@ module M (S : StrictnessLv)
                              name
                              (Printf.sprintf "could not unify %s and %s" a b)
 
-  let ty c ty =
-    try
-      let c = preprocess_ctx c in
-      let ty = preprocess_ty c ty in
-      let c = ctx c in
-      let ty, meta_ctx = Translate_raw.ty ty in
-      resolve_constraints
-        ~ty_fn:Constraints_typing.ty
-        ~sub_fn:Constraints.substitute_ty
-        ~print_fn:Unchecked.ty_to_string
-        ~kind:"type"
-        c meta_ctx ty
-    with
-      Error.UnknownId(s) -> raise (Error.unknown_id s)
+  let ty c meta_ctx ty =
+    resolve_constraints
+      ~ty_fn:Constraints_typing.ty
+      ~sub_fn:Constraints.substitute_ty
+      ~print_fn:Unchecked.ty_to_string
+      ~kind:"type"
+      c meta_ctx ty
 
-  let tm c tm =
-    try
-      let c = preprocess_ctx c in
-      let tm = preprocess_tm c tm in
-      let c = ctx c in
-      let tm, meta_ctx = Translate_raw.tm tm in
+
+  let tm c meta_ctx tm =
       resolve_constraints
         ~ty_fn:Constraints_typing.tm
         ~sub_fn:Constraints.substitute_tm
         ~print_fn:Unchecked.tm_to_string
         ~kind:"term"
         c meta_ctx tm
-    with
-      Error.UnknownId(s) -> raise (Error.unknown_id s)
-
-  let ty_in_ps ps t =
-    try
-      let ps = preprocess_ctx ps in
-      let t = preprocess_ty ps t in
-      let ps = ctx ps in
-      let t, meta_ctx = Translate_raw.ty t in
-      let t =
-        resolve_constraints
-          ~ty_fn:Constraints_typing.ty
-          ~sub_fn:Constraints.substitute_ty
-          ~print_fn:Unchecked.ty_to_string
-          ~kind:"type"
-          ps meta_ctx t
-      in
-      let _, names,_ = Unchecked.db_levels ps in
-      Kernel.ctx_to_ps ps,
-      Unchecked.rename_ty (snd t) names
-    with
-      Error.UnknownId(s) -> raise (Error.unknown_id s)
 end

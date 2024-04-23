@@ -8,6 +8,7 @@ type coh_pp_data = string * int * functorialisation_data option
 
 type strictness_lv =
   | Wk
+  | Su
 
 module type StrictnessLv =
 sig
@@ -15,6 +16,7 @@ sig
     lv : strictness_lv
 end
 module Wk : StrictnessLv
+module Su : StrictnessLv
 
 exception NotEqual of string * string
 exception DoubledVar of string

@@ -8,6 +8,7 @@ type coh_pp_data = string * int * functorialisation_data option
 
 type strictness_lv =
   | Wk
+  | Su
 
 module type StrictnessLv =
 sig
@@ -16,6 +17,9 @@ sig
 end
 module Wk : StrictnessLv = struct
   let lv = Wk
+end
+module Su : StrictnessLv = struct
+  let lv = Su
 end
 
 exception NotEqual of string * string

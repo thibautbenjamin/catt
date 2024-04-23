@@ -15,6 +15,7 @@ module Tbl (S : StrictnessLv)
 end
 
 let env_wk : Tbl(Wk).t = Hashtbl.create 70
+let env_su : Tbl(Su).t = Hashtbl.create 70
 
 module M (S : StrictnessLv)
 = struct
@@ -27,6 +28,7 @@ module M (S : StrictnessLv)
   let env : Tbl(S).t =
     match S.lv with
     | Wk -> Obj.magic(env_wk)
+    | Su -> Obj.magic(env_su)
 
   let add_let v c ?ty t =
     let ty = Kernel.check_term c ?ty t in

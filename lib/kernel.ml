@@ -638,8 +638,18 @@ module M (S : StrictnessLv) = struct
   end
   =
   struct
-    let compute = match S.lv with
-      | Wk -> (fun x -> x)
+    module type RewSig = sig
+      val nf : Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm
+    end
+
+    let compute =
+      let rew_module =
+        match S.lv with
+        | Wk -> (module Rewrite_wk.M(Coh) : RewSig)
+        | Su -> (module Rewrite_su.M(Coh) : RewSig)
+      in
+      let module Rew = (val rew_module) in
+      Rew.nf
   end
 
   module Unchecked_types = Unchecked_types(Coh)
