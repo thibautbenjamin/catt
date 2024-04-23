@@ -90,6 +90,13 @@ let exec_set o v =
   | _ when String.equal o "implicit_suspension" ->
     let v = parse_bool v in
     Settings.implicit_suspension := v
+  | _ when String.equal o "strictness" ->
+    begin
+      match v with
+      | _ when String.equal v "wk" -> strictness := (module Wk : StrictnessLv)
+      | _ when String.equal v "su" -> strictness := (module Su : StrictnessLv)
+      | _ -> Error.unknown_option ("unknown strictness : " ^ v)
+    end
   | _ when String.equal o "verbosity" ->
     let v = parse_int v in
     Settings.verbosity := v
