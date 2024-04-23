@@ -19,20 +19,17 @@ let env_wk : Tbl(Wk).t = Hashtbl.create 70
 module Environment (Strictness : StrictnessLv)
 = struct
   module Kernel = Kernel.Kernel(Strictness)
-  module Coh = Kernel.Coh
-  module Ctx = Kernel.Ctx
-  module Ty = Kernel.Ty
-  module Tm = Kernel.Tm
   module Unchecked = Kernel.Unchecked
 
+  (* This declaration is only well typed thanks to
+     the invariant that there is only one module per
+     strictness level, hence the use of Obj.magic *)
   let env : Tbl(Strictness).t =
     match Strictness.lv with
     | Wk -> Obj.magic(env_wk)
 
   let add_let v c ?ty t =
-    let kc = Ctx.check c in
-    let tm = Kernel.check_term kc ?ty t in
-    let ty = Ty.forget (Tm.typ tm) in
+    let ty = Kernel.check_term c ?ty t in
     let dim_input = Unchecked.dim_ctx c in
     let dim_output = Unchecked.dim_ty ty in
     Io.info ~v:4
@@ -54,7 +51,7 @@ module Environment (Strictness : StrictnessLv)
            "coherence %s added to environment"
            (Var.to_string v)));
     Hashtbl.add env v ({value = Coh coh; dim_input; dim_output});
-    Coh.to_string coh
+    Kernel.coh_to_string coh
 
   let find v =
     try Hashtbl.find env v

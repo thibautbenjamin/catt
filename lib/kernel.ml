@@ -665,9 +665,10 @@ module Kernel (Strictness : StrictnessLv) = struct
     check (fun () -> Ty.check ctx a) ty
 
   let check_term ctx ?ty t =
+    let ctx = Ctx.check ctx in
     let ty = Option.map (check_type ctx) ty in
     let tm = lazy ("term: " ^ (Unchecked.tm_to_string t)) in
-    check (fun () -> Tm.check ctx ?ty t) tm
+    check (fun () -> Ty.forget (Tm.typ (Tm.check ctx ?ty t))) tm
 
   let check_coh ps ty pp_data =
     let c = lazy ("coherence: "^(Unchecked.coh_pp_data_to_string pp_data)) in
@@ -679,4 +680,7 @@ module Kernel (Strictness : StrictnessLv) = struct
   let check_noninv_coh = Coh.check_noninv
   let coh_to_string = Coh.to_string
   let coh_noninv_srctgt = Coh.noninv_srctgt
+  let coh_dim = Coh.dim
+  let check_equal_coh = Coh.check_equal
+  let ctx_to_ps c = PS.forget (PS.mk (Ctx.check c))
 end

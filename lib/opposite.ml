@@ -10,7 +10,6 @@ module Opposite (Strictness : StrictnessLv)
 = struct
   module Kernel = Kernel.Kernel(Strictness)
   module Unchecked = Kernel.Unchecked
-  module Coh = Kernel.Coh
   open Kernel.Unchecked_types
 
   let ps ps op_data =
@@ -53,7 +52,7 @@ module Opposite (Strictness : StrictnessLv)
     match t with
     | Var x -> Var x
     | Coh(c,s) ->
-      let p,_,_ = Coh.forget c in
+      let p,_,_ = Kernel.forget_coh c in
       let equiv = equiv_op_ps p op_data in
       let c = coh c op_data equiv in
       let op_s = sub (fst (Unchecked.sub_ps_to_sub s p)) op_data in
@@ -78,7 +77,7 @@ module Opposite (Strictness : StrictnessLv)
     Kernel.check_coh op_p t' (name,0,None)
 
   let coh c op_data =
-    let ps,_,_ = Coh.forget c in
+    let ps,_,_ = Kernel.forget_coh c in
     let equiv = equiv_op_ps ps op_data in
     coh c op_data equiv
 

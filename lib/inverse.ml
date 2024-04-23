@@ -11,8 +11,6 @@ module Inverse (Strictness : StrictnessLv)
   module Functorialisation = Functorialisation.Functorialisation(Strictness)
   open Kernel.Unchecked_types
 
-  module Coh = Kernel.Coh
-
   open Std
 
   exception NotInvertible of string
@@ -159,7 +157,7 @@ module Inverse (Strictness : StrictnessLv)
       raise (NotInvertible "Meta_variable not allowed in witness generation")
     | Coh(c,s) ->
       let ps,ty,pp_data = Kernel.forget_coh c in
-      let d = Coh.dim c in
+      let d = Kernel.coh_dim c in
       let sub_base,u,v =
         match ty with
         | Arr(ty,u,v) -> Unchecked.ty_to_sub_ps ty, u, v

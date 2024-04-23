@@ -1,29 +1,9 @@
 open Common
-open Unchecked_types
 
 module Kernel (_ : StrictnessLv) : sig
   module rec Coh : sig
     type t
-    val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
-    val check_equal : t -> t -> unit
-    val is_inv : t -> bool
-    val to_string : t -> string
-    val dim : t -> int
-    val check_noninv :
-      ps ->
-      Unchecked_types(Coh).tm ->
-      Unchecked_types(Coh).tm ->
-      coh_pp_data -> t
-    val check_inv :
-      ps ->
-      Unchecked_types(Coh).tm ->
-      Unchecked_types(Coh).tm ->
-      coh_pp_data ->
-      t
-    val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm
-    val func_data : t -> functorialisation_data option
   end
-
 
   module Unchecked_types :sig
     type ty =
@@ -45,32 +25,6 @@ module Kernel (_ : StrictnessLv) : sig
   end
 
   open Unchecked_types
-
-  module Ctx : sig
-    type t
-
-    val check : ctx -> t
-  end
-
-  module Ty : sig
-    type t
-
-    val forget : t -> ty
-  end
-
-  module Tm : sig
-    type t
-
-    val typ : t -> Ty.t
-  end
-
-  module PS : sig
-    type t
-
-    val mk : Ctx.t -> t
-    val forget : t -> ps
-  end
-
 
   module Unchecked : sig
 
@@ -125,7 +79,7 @@ module Kernel (_ : StrictnessLv) : sig
     val list_to_sub : tm list -> ctx -> sub
   end
 
-  val check_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
+  val check_term : ctx -> ?ty:ty -> tm -> ty
   val check_coh : ps -> ty -> coh_pp_data -> Coh.t
   val forget_coh : Coh.t -> ps * ty * coh_pp_data
   val is_inv_coh : Coh.t -> bool
@@ -133,4 +87,7 @@ module Kernel (_ : StrictnessLv) : sig
   val check_noninv_coh : ps -> tm -> tm -> coh_pp_data -> Coh.t
   val coh_to_string : Coh.t -> string
   val coh_noninv_srctgt : Coh.t -> tm * tm
+  val coh_dim : Coh.t -> int
+  val check_equal_coh : Coh.t -> Coh.t -> unit
+  val ctx_to_ps : ctx -> ps
 end

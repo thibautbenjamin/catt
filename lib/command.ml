@@ -22,9 +22,6 @@ module Exec (S : StrictnessLv)
   module Environment = Environment.Environment(S)
   module Kernel = Kernel.Kernel(S)
   module Unchecked = Kernel.Unchecked
-  module Tm = Kernel.Tm
-  module Ty = Kernel.Ty
-  module Ctx = Kernel.Ctx
 
   let coh v ps ty =
     let ps,ty = Elaborate.ty_in_ps ps ty in
@@ -45,9 +42,7 @@ module Exec (S : StrictnessLv)
       | None -> None
       | Some ty -> let _,ty = Elaborate.ty l ty in Some ty
     in
-    let c = Ctx.check c in
-    let tm = Kernel.check_term c ?ty e in
-    let ty = Ty.forget (Tm.typ tm) in
+    let ty = Kernel.check_term c ?ty e in
     Unchecked.tm_to_string e,Unchecked.ty_to_string ty
 end
 

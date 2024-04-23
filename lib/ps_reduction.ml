@@ -2,7 +2,6 @@ open Common
 module Ps_reduction (Strictness : StrictnessLv)
 = struct
   module Kernel = Kernel.Kernel(Strictness)
-  module Coh = Kernel.Coh
   module Unchecked = Kernel.Unchecked
   module Builtin = Builtin.Builtin(Strictness)
   open Kernel.Unchecked_types
@@ -29,17 +28,17 @@ module Ps_reduction (Strictness : StrictnessLv)
     aux (Unchecked.dim_ps ps - 1) ps
 
   let coh c =
-    let ps,ty,name = Coh.forget c in
+    let ps,ty,name = Kernel.forget_coh c in
     let name = Unchecked.full_name name in
     let ps = reduce (Unchecked.dim_ps ps - 1) ps in
-    if Coh.is_inv c then
+    if Kernel.is_inv_coh c then
       let src,tgt =
         match ty with
         | Arr (_,src,tgt) -> src,tgt
         | _ -> Error.fatal "type of a coherence must be an arrow type"
       in
-      Coh.check_inv ps src tgt (name^"_red", 0, None)
+      Kernel.check_inv_coh ps src tgt (name^"_red", 0, None)
     else
-      let src,tgt = Coh.noninv_srctgt c in
-      Coh.check_noninv ps src tgt (name^"_red", 0, None)
+      let src,tgt = Kernel.coh_noninv_srctgt c in
+      Kernel.check_noninv_coh ps src tgt (name^"_red", 0, None)
 end

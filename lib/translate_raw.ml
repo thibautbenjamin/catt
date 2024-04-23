@@ -2,7 +2,6 @@ open Common
 module Translate_raw(Strictness : StrictnessLv)
 = struct
   module Kernel = Kernel.Kernel(Strictness)
-  module Coh = Kernel.Coh
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
   open Raw_types
@@ -21,7 +20,7 @@ module Translate_raw(Strictness : StrictnessLv)
     let make_coh coh s susp =
       let coh = Suspension.coh susp coh in
       let coh = Functorialisation.coh coh (List.map snd s) in
-      let ps,_,_ = Coh.forget coh in
+      let ps,_,_ = Kernel.forget_coh coh in
       let s, meta_types = sub_ps s ps in
       Coh(coh,s), meta_types
     in

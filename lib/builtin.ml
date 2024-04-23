@@ -3,9 +3,6 @@ open Common
 module Builtin (Strictness : StrictnessLv)
 = struct
   module Kernel = Kernel.Kernel(Strictness)
-  module Ty = Kernel.Ty
-  module Tm = Kernel.Tm
-  module Ctx = Kernel.Ctx
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
   module Suspension = Suspension.Suspension(Strictness)
@@ -77,9 +74,7 @@ module Builtin (Strictness : StrictnessLv)
       let coh = Kernel.check_noninv_coh ps t t ("endo",0,None) in
       Coh(coh, id_all_max ps)
     in
-    let
-      a = Ty.forget (Tm.typ (Kernel.check_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t))
-    in
+    let a = Kernel.check_term (Unchecked.ps_to_ctx bdry) t in
     let da = Unchecked.dim_ty a in
     let sub_base = Unchecked.ty_to_sub_ps a in
     let tgt = Coh (Suspension.coh (Some da) id, (t,true)::sub_base) in

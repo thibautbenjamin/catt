@@ -3,7 +3,6 @@ open Common
 module Elaborate (Strictness : StrictnessLv)
 = struct
   module Kernel = Kernel.Kernel(Strictness)
-  module Coh = Kernel.Coh
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
   module Translate_raw = Translate_raw.Translate_raw(Strictness)
@@ -59,10 +58,12 @@ module Elaborate (Strictness : StrictnessLv)
       | Coh(coh1,s1), Coh(coh2,s2) ->
         begin
           try
-            Coh.check_equal coh1 coh2;
+            Kernel.check_equal_coh coh1 coh2;
             unify_sub cst s1 s2
           with Invalid_argument _ ->
-            raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2))
+            raise (NotUnifiable
+                     (Kernel.coh_to_string coh1,
+                      Kernel.coh_to_string coh2))
         end
       | Meta_tm _, _
       | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
@@ -332,7 +333,7 @@ module Elaborate (Strictness : StrictnessLv)
           ps meta_ctx t
       in
       let _, names,_ = Unchecked.db_levels ps in
-      Kernel.PS.(forget (mk (Kernel.Ctx.check ps))),
+      Kernel.ctx_to_ps ps,
       Unchecked.rename_ty (snd t) names
     with
       Error.UnknownId(s) -> raise (Error.unknown_id s)

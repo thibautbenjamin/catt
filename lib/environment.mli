@@ -7,10 +7,7 @@ module Tbl (Strictness : StrictnessLv)
     type value =
       | Coh of Coh.t
       | Tm of ctx * tm
-
-    type t
   end
-
 
 module Environment (Strictness : StrictnessLv)
   : sig

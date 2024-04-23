@@ -2,7 +2,6 @@ open Common
 module Telescope (Strictness : StrictnessLv)
 = struct
   module Kernel = Kernel.Kernel(Strictness)
-  module Ctx = Kernel.Ctx
   module Unchecked = Kernel.Unchecked
   open Kernel.Unchecked_types
   module Suspension = Suspension.Suspension(Strictness)
@@ -109,6 +108,4 @@ module Telescope (Strictness : StrictnessLv)
          tdb 0, false;
          tdb 0, false]
       in Coh (comp, sub_telescope)
-
-  let checked k = Kernel.check_term (Ctx.check (ctx k)) (telescope k)
 end

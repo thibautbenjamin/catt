@@ -3,8 +3,6 @@ open Common
 module Functorialisation(Strictness : StrictnessLv)
 = struct
   module Kernel = Kernel.Kernel(Strictness)
-  module PS = Kernel.PS
-  module Ctx = Kernel.Ctx
   open Kernel.Unchecked_types
   module Unchecked = Kernel.Unchecked
 
@@ -104,7 +102,7 @@ module Functorialisation(Strictness : StrictnessLv)
     let tm = Coh (coh,(Unchecked.identity_ps ps)) in
     let newf = add_functorialisation ctx_base func l in
     Kernel.check_noninv_coh
-      (PS.forget (PS.mk (Ctx.check ctx))) tm tm (name,susp,Some newf)
+      (Kernel.ctx_to_ps ctx) tm tm (name,susp,Some newf)
 
 (*
    Functorialisation of a coherence possibly multiple times, with
