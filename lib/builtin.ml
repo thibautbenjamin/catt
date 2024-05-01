@@ -157,7 +157,7 @@ let ccomp_binary =
     (* Phase 4 *)
     let phase4_sub_ps = [(sqmm 1,true);(sqt 1,false);(sqb 1,false);(sqbr 1,false);(sqtm 0,true);(sqtr 0,false);(sqtl 0,false)] in
     let phase4 = Coh(whisk 0 0 1, phase4_sub_ps) in
-    let phase4_sub_contr = [(phase4,true);(comp_binary (sqtl 0) (sqtr 0) (sqtm 0) (sqtr 1) (sqt 1),false)] in
+    let phase4_sub_contr = [(phase4,true);(comp_binary (sqtl 0) (sqtr 0) (sqtm 0) (sqbr 1) (sqt 1),false)] in
     (* Phase 5 *)
     let phase5_sub_ps = [(sqmr 1,true);(sqbr 1,false);(sqtm 1,true);(sqtr 1,false);(sqtm 0,true);(sqtr 0,false);(sqtl 0,false)] in
     let phase5_sub = Unchecked.list_to_db_level_sub (List.map fst phase5_sub_ps) in
