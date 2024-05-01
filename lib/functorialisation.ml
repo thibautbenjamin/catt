@@ -186,11 +186,14 @@ and intch_src coh l cc =
     let coh_tgt = Coh(coh_tgt_coh, coh_tgt_sub_ps) in
     let _ = check_term (Ctx.check (Unchecked.ps_to_ctx phi)) coh_tgt in
     (* Construct map into pullback *)
-    let phi_ind = Unchecked.pullback_up (d-1) gamma bdry_f (Unchecked.identity_ps gamma) tau_f in
+    let phi_ind_sub_ps = Unchecked.pullback_up (d-1) gamma bdry_f (Unchecked.identity_ps gamma) tau_f in
+    let phi_ind,_ = Unchecked.sub_ps_to_sub phi_ind_sub_ps phi in
     (* Construct final coherence *)
-    let intch = Coh(Coh.check_inv phi coh_src coh_tgt ("intch_src",0,None),phi_ind) in
+    let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_src",0,None) in
+    let _,intch_ty,_ = Coh.forget intch_coh in 
+    let intch = Coh(intch_coh,phi_ind_sub_ps) in
     let _ = check_term cc intch in
-    intch
+    intch, Unchecked.ty_apply_sub intch_ty phi_ind
 (*
 https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVycmlnaHRhcnJvd3tcXHBhcnRpYWxcXEdhbW1hfV57WF9cXHRhdX0iXSxbMCwzLCJcXEdhbW1hIl0sWzAsMSwiXFxHYW1tYV57cmVkfSJdLFsxLDIsIlxcRGVsdGEiXSxbMSwzLCJcXFBoaSJdLFszLDIsIlxcRGVsdGFee3JlZH0iXSxbMSw0LCJcXG92ZXJyaWdodGFycm93e1xcR2FtbWF9XlgiXSxbMCwxLCJcXHNpZ21hIl0sWzAsMiwiXFx0YXUiLDEseyJsYWJlbF9wb3NpdGlvbiI6NzAsImN1cnZlIjo1fV0sWzMsMiwiXFxyaG9fXFxHYW1tYSIsMl0sWzAsMywiXFx0YXVfciIsMV0sWzEsNCwial8yIiwxXSxbMyw0LCJqXzEiLDFdLFs0LDAsIiIsMCx7InN0eWxlIjp7Im5hbWUiOiJjb3JuZXIifX1dLFs0LDUsIiIsMCx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6ImRhc2hlZCJ9fX1dLFsyLDUsImlfMSIsMV0sWzEsNSwiaV8yIiwxXSxbNSwwLCIiLDEseyJzdHlsZSI6eyJuYW1lIjoiY29ybmVyIn19XSxbNiw0LCJcXHJob19cXERlbHRhIiwxLHsiY3VydmUiOjF9XSxbMiw3XSxbMSw3LCJcXG92ZXJyaWdodGFycm93e1xcdGF1fV5YIiwxLHsiY3VydmUiOi0zfV0sWzUsNywiIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV1d
  *)
@@ -232,14 +235,65 @@ and intch_tgt coh l cc =
     (* Construct source (comp delta_red src tgt) *)
     let coh_src_coh = Coh.check_noninv delta_red src tgt ((Unchecked.full_name name)^"_red",0,None) in
     let coh_src_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (fst (Unchecked.sub_ps_to_sub delta_ind delta)) in
-    let coh_src = Coh(coh_src_coh, coh_src_sub_ps) in
-    let _ = check_term (Ctx.check (Unchecked.ps_to_ctx phi)) coh_src in
+    let coh_src = Coh(coh_src_coh, coh_src_sub_ps) in let _ = check_term (Ctx.check (Unchecked.ps_to_ctx phi)) coh_src in
     (* Construct map into pullback *)
-    let phi_ind = Unchecked.pullback_up (d-1) bdry_f gamma sigma_f (Unchecked.sub_ps_apply_sub (Unchecked.identity_ps gamma) (tgt_subst l)) in
+    let phi_ind_sub_ps = Unchecked.pullback_up (d-1) bdry_f gamma sigma_f (Unchecked.sub_ps_apply_sub (Unchecked.identity_ps gamma) (tgt_subst l)) in
+    let phi_ind,_ = Unchecked.sub_ps_to_sub phi_ind_sub_ps phi in
     (* Construct final coherence *)
-    let intch = Coh(Coh.check_inv phi coh_src coh_tgt ("intch_tgt",0,None),phi_ind) in
+    let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_tgt",0,None) in
+    let _,intch_ty,_ = Coh.forget intch_coh in 
+    let intch = Coh(intch_coh,phi_ind_sub_ps) in
     let _ = check_term cc intch in
-    intch
+    intch, Unchecked.ty_apply_sub intch_ty phi_ind
+and bridge_depth_1 src_sub tgt_sub l cc =
+  match src_sub,tgt_sub with
+  | [],[] -> []
+  | (src,expl)::src_tl,(tgt,_)::tgt_l ->
+    begin try
+      let _ = Unchecked.check_equal_tm src tgt in
+      (src,expl)::(bridge_depth_1 src_tl tgt_l l cc)
+    with NotEqual(_) ->
+    let (_,ty,_),src_sub = match src with
+    | Coh(c,s) -> Coh.forget c,s
+    | _ -> assert false in
+    let d = Unchecked.dim_ty ty in
+    let src_bridge = fst (List.nth src_sub 2) in
+    let inner_sub,arity = match src_bridge with
+    | Coh(_,s) -> s,((List.length s)-(2*d))/2+1
+    | _ -> assert false in
+    let linear_ps,_,_ = Coh.forget (!builtin_comp arity) in
+    let linear_ctx = Unchecked.ps_to_ctx linear_ps in
+    let linear_ctxf = ctx linear_ctx (List.map fst linear_ctx) in
+    let _ = check_term (Ctx.check linear_ctxf) (Unchecked.tm_apply_sub (Opposite.tm (!builtin_ccomp arity) [2]) (Unchecked.db_level_sub linear_ctxf)) in
+    let ccomp = Suspension.tm (Some(d-1)) (Opposite.tm (!builtin_ccomp arity) [2]) in
+    let inner_subf = sub inner_sub l cc in
+    let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
+    let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
+    let _ = check_term cc bridge in 
+    (bridge,expl)::(tgt,false)::(src,false)::(bridge_depth_1 src_tl tgt_l l cc)
+    end
+  | _,_ -> assert false
+and coh_depth_1 coh l cc =
+  let intch_src,intch_src_ty = intch_src coh l cc in
+  let intch_tgt,intch_tgt_ty = intch_tgt coh l cc in
+  let base_ty,inner_src,inner_tgt,final_tgt = match intch_src_ty,intch_tgt_ty with
+  | Arr(b,_,s), Arr(_,t,t') -> b,s,t,t'
+  | _,_ -> assert false in
+  let c,src_sub_ps,tgt_sub_ps = match inner_src,inner_tgt with
+  | Coh(c,s), Coh(_,s') -> c,s,s'
+  | _,_ -> assert false in
+  let ps,_,_ = Coh.forget c in
+  let src_sub,_ctx = Unchecked.sub_ps_to_sub src_sub_ps ps in
+  let tgt_sub,_ = Unchecked.sub_ps_to_sub tgt_sub_ps ps in
+  let coh_l = List.filter_map (fun (s,t) -> try Unchecked.check_equal_tm (snd s) (snd t); None with NotEqual _ -> Some(fst s)) (List.combine src_sub tgt_sub) in
+  let cohf = coh_one_step c coh_l in
+  let bridge = bridge_depth_1 src_sub_ps tgt_sub_ps l cc in
+  let middle = Coh(cohf,bridge) in
+  (* Combine *)
+  let comp_sub_ps = List.concat [[intch_tgt,true;final_tgt,false;middle,true;inner_tgt,false;intch_src,true];Unchecked.ty_to_sub_ps intch_src_ty] in
+  let comp = Suspension.coh (Some((Unchecked.dim_ty base_ty))) (!builtin_comp 3) in
+  Coh(comp, comp_sub_ps)
+
 (*
    Functorialisation of a coherence once with respect to a list of
    variables
@@ -304,8 +358,7 @@ let intch_test c t =
           let l = find_places (Unchecked.ps_to_ctx ps) s l in
           let ccohf = ctx (Unchecked.ps_to_ctx ps) l in
           let sf = Unchecked.list_to_sub (List.map fst sf_ps) ccohf in
-          let _ = intch_src coh l (Ctx.check ccohf) in
-          let t = intch_tgt coh l (Ctx.check ccohf) in
+          let t = coh_depth_1 coh l (Ctx.check ccohf) in
           Unchecked.tm_apply_sub t sf
         end
       | _ -> assert false
