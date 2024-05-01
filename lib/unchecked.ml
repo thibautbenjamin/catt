@@ -73,9 +73,9 @@ struct
           Printf.sprintf "%s %s"
             (sub_ps_to_string ~func s)
             (bracket i (tm_to_string t))
-        | (t,false)::s, func ->
+        | (t,false)::s, i::func ->
           if(!Settings.print_explicit_substitutions) then
-            Printf.sprintf "%s %s" (sub_ps_to_string ~func s) (tm_to_string t)
+            Printf.sprintf "%s %s" (sub_ps_to_string ~func s) (bracket i (tm_to_string t))
           else sub_ps_to_string ~func s
         | _::_,[] | [], _::_ ->
           Error.fatal "Wrong number of functorialisation arguments"
@@ -255,6 +255,7 @@ struct
     | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
   and suspend_coh c =
     let p,t,(name,susp,f) = Coh.forget c in
+    let f = match f with Some(l) -> Some(List.concat [l;[0;0]]) | None -> f in
     Coh.check (suspend_ps p) (suspend_ty t) (name, susp+1, f)
   and suspend_sub_ps = function
     | [] -> [Var (Var.Db 1), false; Var (Var.Db 0), false]

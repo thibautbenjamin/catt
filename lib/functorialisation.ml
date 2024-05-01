@@ -55,17 +55,16 @@ let list_functorialised c l =
 let add_functorialisation c func l =
   let rec add c func =
     match c,func with
-    | [],func -> func
-    | (x,(_,true))::c,i::func when List.mem x l -> (i+1)::(add c func)
-    | (_,(_,true))::c,i::func -> i::(add c func)
-    | (_,_)::c,func -> (add c func)
+    | [],[] -> []
+    | (x,_)::c,i::func when List.mem x l -> (i+1)::0::0::(add c func)
+    | (_,_)::c,i::func -> i::(add c func)
+    | _,_ -> assert false
   in
   let rec make c =
     match c with
     | [] -> []
-    | (x,(_,true))::c when List.mem x l -> +1::(make c)
-    | (_,(_,true))::c -> 0::(make c)
-    | (_,_)::c -> (make c)
+    | (x,_)::c when List.mem x l -> 1::0::0::(make c)
+    | (_,_)::c -> 0::(make c)
   in
   match func with
   | None -> make c
