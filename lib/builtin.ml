@@ -314,4 +314,4 @@ let middle_rewrite k =
 let () = Functorialisation.builtin_comp := comp_n
 let () = Functorialisation.builtin_whisk := whisk
 let () = Functorialisation.builtin_whisk_sub_ps := whisk_sub_ps
-
+let () = Functorialisation.builtin_ccomp := ccomp_n

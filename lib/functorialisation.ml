@@ -17,6 +17,10 @@ let builtin_whisk_sub_ps :
   (int -> tm -> ty -> tm -> ty -> sub_ps) ref =
   ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
+let builtin_ccomp :
+  (int -> tm) ref =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference")
+
 let ps_reduce :
   (int -> ps -> ps) ref =
   ref (fun _ -> Error.fatal "Uninitialised forward reference")
