@@ -95,41 +95,41 @@ let rec tgt_subst l =
 (* Invariant maintained:
     src_prod returns a term of same dimension as tm
 *)
-let rec src_prod t l tm tm_t d n cc =
+let rec src_prod t l tm tm_t d n ctxf =
     match t with
     | Arr(ty',src,_tgt) when Unchecked.tm_contains_vars src l ->
         let whisk = !builtin_whisk n 0 (d-n-1) in
-        let ps,whisk_ty,_ = (Coh.forget whisk) in
-        let prod, prod_ty = src_prod ty' l tm tm_t d (n-1) cc in
-        let ty_f = (ty ty' l src cc) in
-        let src_f = tm_one_step_tm src l true cc in
+        let ps,whisk_ty,_ = Coh.forget whisk in
+        let prod, prod_ty = src_prod ty' l tm tm_t d (n-1) ctxf in
+        let ty_f = ty ty' l src ctxf in
+        let src_f = tm_one_step_tm src l true ctxf in
         let sub_ps = !builtin_whisk_sub_ps (d-n-1) src_f ty_f prod prod_ty in
         let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
-        let _ = check_term cc (Coh(whisk, sub_ps)) in
+        let _ = check_term (Ctx.check ctxf) (Coh(whisk, sub_ps)) in
         (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
     | Arr(_,_,_) | Obj -> (tm, tm_t)
     | _ -> raise FunctorialiseMeta
-and tgt_prod t l tm tm_t d n cc =
+and tgt_prod t l tm tm_t d n ctxf =
     match t with
     | Arr(ty',_src,tgt) when Unchecked.tm_contains_vars tgt l ->
         let whisk = !builtin_whisk n (d-n-1) 0 in
-        let ps,whisk_ty,_ = (Coh.forget whisk) in
-        let prod, prod_ty = tgt_prod ty' l tm tm_t d (n-1) cc in
-        let ty_f = (ty ty' l tgt cc) in
-        let tgt_f = tm_one_step_tm tgt l true cc in
+        let ps,whisk_ty,_ = Coh.forget whisk in
+        let prod, prod_ty = tgt_prod ty' l tm tm_t d (n-1) ctxf in
+        let ty_f = ty ty' l tgt ctxf in
+        let tgt_f = tm_one_step_tm tgt l true ctxf in
         let sub_ps = !builtin_whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
         let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
-        let _ = check_term cc (Coh(whisk, sub_ps)) in
+        let _ = check_term (Ctx.check ctxf) (Coh(whisk, sub_ps)) in
         (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
     | Arr(_,_,_) | Obj -> (tm, tm_t)
     | _ -> raise FunctorialiseMeta
-and ty t l tm cc =
+and ty t l tm ctxf =
   let d = Unchecked.dim_ty t in
-  let tgt_incl = tgt_subst l in
-  let tm_incl = Unchecked.tm_apply_sub tm tgt_incl in
-  let t_incl = Unchecked.ty_apply_sub t tgt_incl in
-  let src, src_t = tgt_prod t l tm t d (d-1) cc in
-  let tgt, _tgt_t = src_prod t l tm_incl t_incl d (d-1) cc in
+  let tgt_subst = tgt_subst l in
+  let tm_incl = Unchecked.tm_apply_sub tm tgt_subst in
+  let t_incl = Unchecked.ty_apply_sub t tgt_subst in
+  let src, src_t = tgt_prod t l tm t d (d-1) ctxf in
+  let tgt, _tgt_t = src_prod t l tm_incl t_incl d (d-1) ctxf in
   Arr (src_t, src, tgt)
 
 and ctx c l =
@@ -137,7 +137,7 @@ and ctx c l =
   | [] -> []
   | (x,(t,expl))::c when List.mem x l ->
      let c_ext = (Var.Plus(x),(Unchecked.ty_apply_sub t (tgt_subst l),false))::(x,(t,false))::(ctx c l) in
-     let tf = ty t l (Var x) (Ctx.check c_ext) in
+     let tf = ty t l (Var x) c_ext in
      (Var.Bridge(x),(tf,expl))::c_ext
   | (x,a)::c -> (x,a)::(ctx c l)
 
@@ -145,7 +145,7 @@ and ctx c l =
 (*
 https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVycmlnaHRhcnJvd3tcXHBhcnRpYWxcXEdhbW1hfV57WF9cXHRhdX0iXSxbMCwzLCJcXEdhbW1hIl0sWzAsMSwiXFxHYW1tYV57cmVkfSJdLFsxLDIsIlxcRGVsdGEiXSxbMSwzLCJcXFBoaSJdLFszLDIsIlxcRGVsdGFee3JlZH0iXSxbMSw0LCJcXG92ZXJyaWdodGFycm93e1xcR2FtbWF9XlgiXSxbMCwxLCJcXHNpZ21hIl0sWzAsMiwiXFx0YXUiLDEseyJsYWJlbF9wb3NpdGlvbiI6NzAsImN1cnZlIjo1fV0sWzMsMiwiXFxyaG9fXFxHYW1tYSIsMl0sWzAsMywiXFx0YXVfciIsMV0sWzEsNCwial8yIiwxXSxbMyw0LCJqXzEiLDFdLFs0LDAsIiIsMCx7InN0eWxlIjp7Im5hbWUiOiJjb3JuZXIifX1dLFs0LDUsIiIsMCx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6ImRhc2hlZCJ9fX1dLFsyLDUsImlfMSIsMV0sWzEsNSwiaV8yIiwxXSxbNSwwLCIiLDEseyJzdHlsZSI6eyJuYW1lIjoiY29ybmVyIn19XSxbNiw0LCJcXHJob19cXERlbHRhIiwxLHsiY3VydmUiOjF9XSxbMiw3XSxbMSw3LCJcXG92ZXJyaWdodGFycm93e1xcdGF1fV5YIiwxLHsiY3VydmUiOi0zfV0sWzUsNywiIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV1d
  *)
-and intch_src coh l cc =
+and intch_src coh l ctxf =
     (* Setup *)
     let gamma,coh_ty,name = Coh.forget coh in
     let d = Unchecked.dim_ps gamma in
@@ -155,19 +155,19 @@ and intch_src coh l cc =
     let _,bdry_c = Unchecked.sub_ps_to_sub tau bdry in
     let l_tau = find_places bdry_c tau l in
     (* Construct ps_bdry_f *)
-    let bdry_f = ctx bdry_c l_tau in
-    let bdry_f_db = Unchecked.db_level_sub_inv bdry_f in
-    let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f)) in
-    let tau_f = sub tau l cc in
+    let bdry_f_ctx = ctx bdry_c l_tau in
+    let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
+    let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f_ctx)) in
+    let tau_f = sub tau l ctxf in
     (* Construct composite context *)
     let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) gamma bdry_f in
     let i1,_ = Unchecked.sub_ps_to_sub i1_ps gamma in
     let i2,_ = Unchecked.sub_ps_to_sub i2_ps bdry_f in
     (* Construct source (t[i1]) * (tgt_f[i2]) *)
     let src,tgt,ty_base = Coh.noninv_srctgt coh in
-    let tgt_f_ty = ty ty_base l_tau tgt (Ctx.check bdry_c) in
+    let tgt_f_ty = ty ty_base l_tau tgt bdry_c in
     let tgt_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub tgt_f_ty bdry_f_db) i2 in
-    let tgt_f = tm_one_step_tm tgt l_tau true (Ctx.check bdry_c) in
+    let tgt_f = tm_one_step_tm tgt l_tau true bdry_f_ctx in
     let tgt_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub tgt_f bdry_f_db) i2 in
     let coh_src_sub_ps = !builtin_whisk_sub_ps 0 (Coh(coh,i1_ps)) (Unchecked.ty_apply_sub coh_ty i1) tgt_f tgt_f_ty in
     let coh_src = Coh(!builtin_whisk (d-1) 0 0,coh_src_sub_ps) in
@@ -192,12 +192,12 @@ and intch_src coh l cc =
     let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_src",0,None) in
     let _,intch_ty,_ = Coh.forget intch_coh in 
     let intch = Coh(intch_coh,phi_ind_sub_ps) in
-    let _ = check_term cc intch in
+    let _ = check_term (Ctx.check ctxf) intch in
     intch, Unchecked.ty_apply_sub intch_ty phi_ind
 (*
 https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVycmlnaHRhcnJvd3tcXHBhcnRpYWxcXEdhbW1hfV57WF9cXHRhdX0iXSxbMCwzLCJcXEdhbW1hIl0sWzAsMSwiXFxHYW1tYV57cmVkfSJdLFsxLDIsIlxcRGVsdGEiXSxbMSwzLCJcXFBoaSJdLFszLDIsIlxcRGVsdGFee3JlZH0iXSxbMSw0LCJcXG92ZXJyaWdodGFycm93e1xcR2FtbWF9XlgiXSxbMCwxLCJcXHNpZ21hIl0sWzAsMiwiXFx0YXUiLDEseyJsYWJlbF9wb3NpdGlvbiI6NzAsImN1cnZlIjo1fV0sWzMsMiwiXFxyaG9fXFxHYW1tYSIsMl0sWzAsMywiXFx0YXVfciIsMV0sWzEsNCwial8yIiwxXSxbMyw0LCJqXzEiLDFdLFs0LDAsIiIsMCx7InN0eWxlIjp7Im5hbWUiOiJjb3JuZXIifX1dLFs0LDUsIiIsMCx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6ImRhc2hlZCJ9fX1dLFsyLDUsImlfMSIsMV0sWzEsNSwiaV8yIiwxXSxbNSwwLCIiLDEseyJzdHlsZSI6eyJuYW1lIjoiY29ybmVyIn19XSxbNiw0LCJcXHJob19cXERlbHRhIiwxLHsiY3VydmUiOjF9XSxbMiw3XSxbMSw3LCJcXG92ZXJyaWdodGFycm93e1xcdGF1fV5YIiwxLHsiY3VydmUiOi0zfV0sWzUsNywiIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV1d
  *)
-and intch_tgt coh l cc =
+and intch_tgt coh l ctxf =
     (* Setup *)
     let gamma,coh_ty,name = Coh.forget coh in
     let d = Unchecked.dim_ps gamma in
@@ -207,19 +207,19 @@ and intch_tgt coh l cc =
     let _,bdry_c = Unchecked.sub_ps_to_sub sigma bdry in
     let l_sigma = find_places bdry_c sigma l in
     (* Construct ps_bdry_f *)
-    let bdry_f = ctx bdry_c l_sigma in
-    let bdry_f_db = Unchecked.db_level_sub_inv bdry_f in
-    let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f)) in
-    let sigma_f = sub sigma l cc in
+    let bdry_f_ctx = ctx bdry_c l_sigma in
+    let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
+    let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f_ctx)) in
+    let sigma_f = sub sigma l ctxf in
     (* Construct composite context *)
     let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) bdry_f gamma in
     let i1,_ = Unchecked.sub_ps_to_sub i1_ps bdry_f in
     let i2,_ = Unchecked.sub_ps_to_sub i2_ps gamma in
     (* Construct target (src_f[i1]) * (t[i2]) *)
     let src,tgt,ty_base = Coh.noninv_srctgt coh in
-    let src_f_ty = ty ty_base l_sigma src (Ctx.check bdry_c) in
+    let src_f_ty = ty ty_base l_sigma src bdry_c in
     let src_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub src_f_ty bdry_f_db) i1 in
-    let src_f = tm_one_step_tm src l_sigma true (Ctx.check bdry_c) in
+    let src_f = tm_one_step_tm src l_sigma true bdry_f_ctx in
     let src_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub src_f bdry_f_db) i1 in
     let coh_tgt_sub_ps = !builtin_whisk_sub_ps 0 src_f src_f_ty (Coh(coh,i2_ps)) (Unchecked.ty_apply_sub coh_ty i2) in
     let coh_tgt = Coh(!builtin_whisk (d-1) 0 0,coh_tgt_sub_ps) in
@@ -243,15 +243,15 @@ and intch_tgt coh l cc =
     let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_tgt",0,None) in
     let _,intch_ty,_ = Coh.forget intch_coh in 
     let intch = Coh(intch_coh,phi_ind_sub_ps) in
-    let _ = check_term cc intch in
+    let _ = check_term (Ctx.check ctxf) intch in
     intch, Unchecked.ty_apply_sub intch_ty phi_ind
-and bridge_depth_1 src_sub tgt_sub l cc =
+and bridge_depth_1 src_sub tgt_sub l ctxf =
   match src_sub,tgt_sub with
   | [],[] -> []
   | (src,expl)::src_tl,(tgt,_)::tgt_l ->
     begin try
       let _ = Unchecked.check_equal_tm src tgt in
-      (src,expl)::(bridge_depth_1 src_tl tgt_l l cc)
+      (src,expl)::(bridge_depth_1 src_tl tgt_l l ctxf)
     with NotEqual(_) ->
     let (_,ty,_),src_sub = match src with
     | Coh(c,s) -> Coh.forget c,s
@@ -266,16 +266,16 @@ and bridge_depth_1 src_sub tgt_sub l cc =
     let linear_ctxf = ctx linear_ctx (List.map fst linear_ctx) in
     let _ = check_term (Ctx.check linear_ctxf) (Unchecked.tm_apply_sub (Opposite.tm (!builtin_ccomp arity) [2]) (Unchecked.db_level_sub linear_ctxf)) in
     let ccomp = Suspension.tm (Some(d-1)) (Opposite.tm (!builtin_ccomp arity) [2]) in
-    let inner_subf = sub inner_sub l cc in
+    let inner_subf = sub inner_sub l ctxf in
     let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
     let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
-    let _ = check_term cc bridge in 
-    (bridge,expl)::(tgt,false)::(src,false)::(bridge_depth_1 src_tl tgt_l l cc)
+    let _ = check_term (Ctx.check ctxf) bridge in 
+    (bridge,expl)::(tgt,false)::(src,false)::(bridge_depth_1 src_tl tgt_l l ctxf)
     end
   | _,_ -> assert false
-and coh_depth_1 coh l cc =
-  let intch_src,intch_src_ty = intch_src coh l cc in
-  let intch_tgt,intch_tgt_ty = intch_tgt coh l cc in
+and coh_depth_1 coh l ctxf =
+  let intch_src,intch_src_ty = intch_src coh l ctxf in
+  let intch_tgt,intch_tgt_ty = intch_tgt coh l ctxf in
   let base_ty,inner_src,inner_tgt,final_tgt = match intch_src_ty,intch_tgt_ty with
   | Arr(b,_,s), Arr(_,t,t') -> b,s,t,t'
   | _,_ -> assert false in
@@ -287,7 +287,7 @@ and coh_depth_1 coh l cc =
   let tgt_sub,_ = Unchecked.sub_ps_to_sub tgt_sub_ps ps in
   let coh_l = List.filter_map (fun (s,t) -> try Unchecked.check_equal_tm (snd s) (snd t); None with NotEqual _ -> Some(fst s)) (List.combine src_sub tgt_sub) in
   let cohf = coh_one_step c coh_l in
-  let bridge = bridge_depth_1 src_sub_ps tgt_sub_ps l cc in
+  let bridge = bridge_depth_1 src_sub_ps tgt_sub_ps l ctxf in
   let middle = Coh(cohf,bridge) in
   (* Combine *)
   let comp_sub_ps = List.concat [[intch_tgt,true;final_tgt,false;middle,true;inner_tgt,false;intch_src,true];Unchecked.ty_to_sub_ps intch_src_ty] in
@@ -304,42 +304,60 @@ and coh_one_step coh l =
   let ctxf = ctx c l in
   let _,names,_ = Unchecked.db_levels ctxf in
   let psf = PS.forget (PS.mk (Ctx.check ctxf)) in
-  let ty = ty t l (Coh(coh,Unchecked.identity_ps ps)) (Ctx.check ctxf) in
+  let ty = ty t l (Coh(coh,Unchecked.identity_ps ps)) ctxf in
   let ty = Unchecked.rename_ty ty names in
   let pp_data = (name,susp,Some(add_functorialisation c func l)) in
   check_coh psf ty pp_data
+
+and coh_general coh l ctxf =
+  let ps,_,_ = Coh.forget coh in
+  let id = Unchecked.identity_ps ps in
+  let c = Unchecked.ps_to_ctx ps in
+  let d = Unchecked.dim_ctx c in
+  let depth0 = List.for_all
+    (fun (x,(t,_)) -> (not(List.mem x l)) || (Unchecked.dim_ty t = d)) c in
+  let cohf = if depth0 then
+    let sf = sub id l ctxf in
+    let cohf = coh_one_step coh l in
+    Coh(cohf,sf)
+  else
+    coh_depth_1 coh l ctxf
+  in
+  let _ = check_term (Ctx.check ctxf) cohf in
+  cohf
 
 (*
    Functorialisation a term once with respect to a list of triples.
    Returns a list containing the functorialise term followed by its
    target and its source.
  *)
-and tm_one_step t l expl cc =
+and tm_one_step t l expl ctxf =
   if (not (Unchecked.tm_contains_vars t l)) then [t,expl]
   else
   match t with
-  | Var v -> [Var(Var.Bridge(v)), true; Var(Var.Plus(v)), false; Var v, false]
-  | Coh(c,s) ->
+  | Var v -> [Var (Var.Bridge v), expl; Var (Var.Plus v), false; Var v, false]
+  | Coh(coh,s) ->
     begin
-        let ps,_,_ = Coh.forget c in
-        let cohf =
-          let places = find_places (Unchecked.ps_to_ctx ps) s l in
-          coh_one_step c places
-        in
-        let sf = sub s l cc in
-        let tgt_incl = tgt_subst l in
-        let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t tgt_incl,expl) s in
-        [Coh(cohf,sf), true; Coh(c,s'), false; Coh(c,s), false]
+        let t' = Unchecked.tm_apply_sub t (tgt_subst l) in
+        let sf = sub s l ctxf in
+        let ps,_,_ = Coh.forget coh in
+        let psc = Unchecked.ps_to_ctx ps in
+        let places = find_places psc s l in
+        let pscf = ctx psc places in
+        let cohf = coh_general coh places pscf in
+        let subf = Unchecked.list_to_sub (List.map fst sf) pscf in
+        let tm = Unchecked.tm_apply_sub cohf subf in
+        [tm, expl; t', false; t, false]
     end
   | Meta_tm _ -> (raise FunctorialiseMeta)
-and tm_one_step_tm t l expl cc = fst (List.hd (tm_one_step t l expl cc))
-and sub s l cc =
+and tm_one_step_tm t l expl ctxf = fst (List.hd (tm_one_step t l expl ctxf))
+and sub s l ctxf =
   match s with
   | [] -> []
   | (t, expl)::s ->
     List.append
-      (tm_one_step t l expl cc)
-      (sub s l cc)
+      (tm_one_step t l expl ctxf)
+      (sub s l ctxf)
 
 (*
    Functorialisation a term possibly multiple times with respect to a
@@ -348,28 +366,17 @@ and sub s l cc =
 let intch_test c t =
   let d = Unchecked.dim_ctx c in
   let l = List.filter_map (fun x -> if Unchecked.dim_ty (fst (snd x)) >= d-1 then Some(fst x) else None) c in
-  (* let l,_next = list_functorialised c s in *)
   if l <> [] then
     let c = ctx c l in
-    let t = match t with
-      | Coh(coh,s) -> begin
-          let sf_ps = sub s l (Ctx.check c) in
-          let ps,_,_ = Coh.forget coh in
-          let l = find_places (Unchecked.ps_to_ctx ps) s l in
-          let ccohf = ctx (Unchecked.ps_to_ctx ps) l in
-          let sf = Unchecked.list_to_sub (List.map fst sf_ps) ccohf in
-          let t = coh_depth_1 coh l (Ctx.check ccohf) in
-          Unchecked.tm_apply_sub t sf
-        end
-      | _ -> assert false
-    in c,t
+    let t = tm_one_step_tm t l true c in
+    c,t
   else c,t
 
 let rec tm c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
     let c = ctx c l in
-    let t = tm_one_step_tm t l true (Ctx.check c) in
+    let t = tm_one_step_tm t l true c in
     tm c t next
   else c,t
 
