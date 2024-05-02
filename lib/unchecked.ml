@@ -304,7 +304,7 @@ struct
     | Var.Db j ->
       if  j = 0 then (Var.Db ctx_bp.rp)
       else Var.Db (j + ctx_bp.max)
-    | Name _ | New _ -> Error.fatal "expecting a de-bruijn level"
+    | _ -> Error.fatal "expecting a de-bruijn level"
 
   let ty_inr_wedge ty ctx_bp =
     ty_do_on_variables ty (fun v -> Var (var_inr_wedge v ctx_bp))
