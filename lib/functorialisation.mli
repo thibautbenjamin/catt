@@ -10,5 +10,5 @@ val ps_reduction_sub : (ps -> sub_ps) ref
 
 val coh : Coh.t -> functorialisation_data -> Coh.t
 val coh_all : Coh.t -> Coh.t
-val ctx : ctx -> (Var.t list) -> ctx * sub * ((Var.t * (tm * tm)) list)
+val ctx : ctx -> (Var.t list) -> ctx
 val tm : ctx -> tm -> functorialisation_data -> ctx * tm
