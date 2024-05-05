@@ -1,7 +1,5 @@
 set explicit_substitutions = f
 
-coh id (x : *) : x -> x
-coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
 coh whiskr (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                    (z : *) (g : y -> z) : comp f g -> comp f' g
 coh whiskl (x : *) (y : *) (f : x -> y)

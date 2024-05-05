@@ -1,8 +1,6 @@
 ### Functoriality does not support the second coherence rule yet
 
-coh id (x : *) : x -> x
 # let transport (x : *) (y : *) (f : x -> y) = id [f]
-coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
 let whiskl (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                    (z : *) (g : y -> z) =
 		   comp [a] g
