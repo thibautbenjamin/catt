@@ -1,0 +1,9 @@
+src/META.catt
+-R theories Catt
+-I src
+
+theories/Loader.v
+
+src/catt.ml
+src/g_catt.mlg
+src/catt_plugin.mlpack

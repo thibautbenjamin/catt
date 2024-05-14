@@ -1,0 +1,11 @@
+package "catt" (
+    directory = "."
+    version = "dev"
+    description = "Integration of CaTT in Coq"
+    requires = "coq-core.plugins.ltac"
+    archive(byte) = "catt_plugin.cma"
+    archive(native) = "catt_plugin.cmxa"
+    plugin(byte) = "catt_plugin.cma"
+    plugin(native) = "catt_plugin.cmxs"
+)
+directory = "."

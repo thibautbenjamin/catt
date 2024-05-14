@@ -1,0 +1,11 @@
+DECLARE PLUGIN "catt.catt"
+
+{
+open Catt
+}
+
+VERNAC COMMAND EXTEND NoOp CLASSIFIED AS QUERY
+| [ "Nothing" ] -> { () }
+| [ "CaTT" ] -> { example () }
+
+END
