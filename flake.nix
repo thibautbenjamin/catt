@@ -19,7 +19,7 @@
           catt = pkgs.callPackage
             ({ stdenv, dune_3, ocaml, opam, ocamlPackages, ... }:
               stdenv.mkDerivation {
-                pname = "catt";
+                pname = "catt.exe";
                 version = "0.2.0";
                 src = ./.;
                 buildInputs = [ dune_3 ocaml opam ] ++ (with ocamlPackages; [
