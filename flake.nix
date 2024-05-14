@@ -16,6 +16,7 @@
         # via nix develop.
         packages = rec {
           default = self.packages.${system}.catt;
+
           catt = pkgs.callPackage
             ({ stdenv, dune_3, ocaml, opam, ocamlPackages, ... }:
               stdenv.mkDerivation {
@@ -41,6 +42,16 @@
                   #install -Dm644 _build/default/web/*.js $out/web
                 '';
               }) { };
+
+          catt-coq-plugin =
+            pkgs.coqPackages.mkCoqDerivation {
+              pname = "catt-coq-plugin";
+              version = "1.0";
+              src = ./.;
+              mlPlugin = true;
+            };
         };
+
+        devShells.default = self.packages.${system}.catt-coq-plugin;
       });
 }
