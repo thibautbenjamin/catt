@@ -1,7 +1,7 @@
 DECLARE PLUGIN "catt.catt"
 
 {
-open Catt
+open Export
 }
 
 VERNAC COMMAND EXTEND NoOp CLASSIFIED AS QUERY

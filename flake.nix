@@ -48,6 +48,15 @@
               pname = "catt-coq-plugin";
               version = "1.0";
               src = ./.;
+              buildInputs = with pkgs;
+                [ dune_3 ocaml opam ]
+                ++ (with ocamlPackages; [
+                  fmt
+                  js_of_ocaml
+                  js_of_ocaml-ppx
+                  menhir
+                  sedlex
+                ]);
               mlPlugin = true;
             };
         };

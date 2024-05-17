@@ -1,1 +1,1 @@
-Declare ML Module "catt.catt".
+Declare ML Module "catt.coq_plugin".
