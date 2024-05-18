@@ -102,7 +102,7 @@ let rec src_prod t l tm tm_t d n ctxf =
         let ps,whisk_ty,_ = Coh.forget whisk in
         let prod, prod_ty = src_prod ty' l tm tm_t d (n-1) ctxf in
         let ty_f = ty ty' l src ctxf in
-        let src_f = tm_one_step_tm src l true ctxf in
+        let src_f = tm_one_step_tm src l ctxf in
         let sub_ps = !builtin_whisk_sub_ps (d-n-1) src_f ty_f prod prod_ty in
         let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
         let _ = check_term (Ctx.check ctxf) (Coh(whisk, sub_ps)) in
@@ -116,7 +116,7 @@ and tgt_prod t l tm tm_t d n ctxf =
         let ps,whisk_ty,_ = Coh.forget whisk in
         let prod, prod_ty = tgt_prod ty' l tm tm_t d (n-1) ctxf in
         let ty_f = ty ty' l tgt ctxf in
-        let tgt_f = tm_one_step_tm tgt l true ctxf in
+        let tgt_f = tm_one_step_tm tgt l ctxf in
         let sub_ps = !builtin_whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
         let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
         let _ = check_term (Ctx.check ctxf) (Coh(whisk, sub_ps)) in
@@ -167,7 +167,7 @@ and intch_src coh l ctxf =
     let src,tgt,ty_base = Coh.noninv_srctgt coh in
     let tgt_f_ty = ty ty_base l_tau tgt bdry_c in
     let tgt_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub tgt_f_ty bdry_f_db) i2 in
-    let tgt_f = tm_one_step_tm tgt l_tau true bdry_f_ctx in
+    let tgt_f = tm_one_step_tm tgt l_tau bdry_f_ctx in
     let tgt_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub tgt_f bdry_f_db) i2 in
     let coh_src_sub_ps = !builtin_whisk_sub_ps 0 (Coh(coh,i1_ps)) (Unchecked.ty_apply_sub coh_ty i1) tgt_f tgt_f_ty in
     let coh_src = Coh(!builtin_whisk (d-1) 0 0,coh_src_sub_ps) in
@@ -219,7 +219,7 @@ and intch_tgt coh l ctxf =
     let src,tgt,ty_base = Coh.noninv_srctgt coh in
     let src_f_ty = ty ty_base l_sigma src bdry_c in
     let src_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub src_f_ty bdry_f_db) i1 in
-    let src_f = tm_one_step_tm src l_sigma true bdry_f_ctx in
+    let src_f = tm_one_step_tm src l_sigma bdry_f_ctx in
     let src_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub src_f bdry_f_db) i1 in
     let coh_tgt_sub_ps = !builtin_whisk_sub_ps 0 src_f src_f_ty (Coh(coh,i2_ps)) (Unchecked.ty_apply_sub coh_ty i2) in
     let coh_tgt = Coh(!builtin_whisk (d-1) 0 0,coh_tgt_sub_ps) in
@@ -313,9 +313,8 @@ and coh_general coh l ctxf =
   let ps,_,_ = Coh.forget coh in
   let id = Unchecked.identity_ps ps in
   let c = Unchecked.ps_to_ctx ps in
-  let d = Unchecked.dim_ctx c in
   let depth0 = List.for_all
-    (fun (x,(t,_)) -> (not(List.mem x l)) || (Unchecked.dim_ty t = d)) c in
+    (fun (x,(_,e)) -> (not(List.mem x l)) || e) c in
   let cohf = if depth0 then
     let sf = sub id l ctxf in
     let cohf = coh_one_step coh l in
@@ -350,7 +349,7 @@ and tm_one_step t l expl ctxf =
         [tm, expl; t', false; t, false]
     end
   | Meta_tm _ -> (raise FunctorialiseMeta)
-and tm_one_step_tm t l expl ctxf = fst (List.hd (tm_one_step t l expl ctxf))
+and tm_one_step_tm t l ctxf = fst (List.hd (tm_one_step t l true ctxf))
 and sub s l ctxf =
   match s with
   | [] -> []
@@ -368,7 +367,7 @@ let intch_test c t =
   let l = List.filter_map (fun x -> if Unchecked.dim_ty (fst (snd x)) >= d-1 then Some(fst x) else None) c in
   if l <> [] then
     let c = ctx c l in
-    let t = tm_one_step_tm t l true c in
+    let t = tm_one_step_tm t l c in
     c,t
   else c,t
 
@@ -376,7 +375,7 @@ let rec tm c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
     let c = ctx c l in
-    let t = tm_one_step_tm t l true c in
+    let t = tm_one_step_tm t l c in
     tm c t next
   else c,t
 
