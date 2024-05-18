@@ -6,11 +6,9 @@ open Unchecked_types.Unchecked_types(Coh)
 val ps_comp : int -> ps
 val comp_n : int -> Coh.t
 val comp : subR -> Coh.t
+val arity_comp : subR -> int
 val whisk : int -> int -> int -> Coh.t
 val whisk_sub_ps : int -> tm -> ty -> tm -> ty -> sub_ps
-val comp_kn_tm : int -> int -> tm
-val comp_n_tm : int -> tm
-val ccomp : subR -> tm
 val id : Coh.t
 val unbiased_unitor : ps -> tm -> Coh.t
 
