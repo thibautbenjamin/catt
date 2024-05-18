@@ -107,7 +107,6 @@ subst_tmexpr:
               then
                 match $1 with
                 | s when String.equal s "comp" ->  Builtin (Comp,$2,None)
-                | s when String.equal s "ccomp" ->  Builtin (Ccomp,$2,None)
                 | s when String.equal s "id" ->  Builtin (Id,$2,None)
                 | _ -> assert false
               else Sub (VarR (Var.make_var $1), $2, None) }

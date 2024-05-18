@@ -4,15 +4,6 @@ open Raw_types
 
 exception WrongNumberOfArguments
 
-(*
-let rec fund_sub ctx =
-    match ctx with
-    | [] -> 0,[]
-    | (x,_)::c ->
-        let n,s = fund_sub c in
-        n+1,(Var.Db n,Var(x))::s
-*)
-
 (* inductive translation on terms and types without let_in *)
 let rec tm t =
   let make_coh coh s susp =
@@ -21,20 +12,6 @@ let rec tm t =
     let ps,_,_ = Coh.forget coh in
     let s, meta_types = sub_ps s ps in
     Coh(coh,s), meta_types
-  in
-  let make_ccomp s =
-    let t = Builtin.ccomp s in
-    let ps,_,_ = Coh.forget (Builtin.comp s) in
-    let ctx = Unchecked.ps_to_ctx ps in
-    let _ = Printf.printf "CTX: %s\n" (Unchecked.ctx_to_string ctx) in
-    let ctx = Functorialisation.ctx ctx (List.map fst ctx) in
-    let _ = Printf.printf "CTXF: %s\n" (Unchecked.ctx_to_string ctx) in
-    (* Builtin.ccomp likes to assume ctx_f uses DB nicely but it actually uses a bunch of fresh variables *)
-    let fsub = Unchecked.db_level_sub ctx in
-    let _ = Printf.printf "FUND SUB: %s\n" (Unchecked.sub_to_string fsub) in
-    let s, meta_types = sub s ctx in
-    let _ = Printf.printf "SUB: %s\n" (Unchecked.sub_to_string s) in
-    Unchecked.tm_apply_sub (Unchecked.tm_apply_sub t fsub) s, meta_types
   in
   match t with
   | VarR v -> Var v, []
@@ -50,12 +27,11 @@ let rec tm t =
         Unchecked.tm_apply_sub t s, meta_types
     end;
   | Builtin(name,s,susp) ->
-    begin
+    let builtin_coh =
       match name with
-      | Comp -> make_coh (Builtin.comp s) s susp
-      | Ccomp -> make_ccomp s
-      | Id -> make_coh (Builtin.id) s susp
-    end
+      | Comp -> Builtin.comp s
+      | Id -> Builtin.id
+    in make_coh builtin_coh s susp
   | Op(l,t) -> let t,meta = tm t in Opposite.tm t l, meta
   | Inverse t ->
     let t,meta_ctx = tm t in
