@@ -13,4 +13,3 @@ val coh : Coh.t -> functorialisation_data -> Coh.t
 val coh_all : Coh.t -> Coh.t
 val ctx : ctx -> (Var.t list) -> ctx
 val tm : ctx -> tm -> functorialisation_data -> ctx * tm
-val intch_test : ctx -> tm -> ctx * tm

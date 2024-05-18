@@ -358,19 +358,6 @@ and sub s l ctxf =
       (tm_one_step t l expl ctxf)
       (sub s l ctxf)
 
-(*
-   Functorialisation a term possibly multiple times with respect to a
-   functorialisation data
-*)
-let intch_test c t =
-  let d = Unchecked.dim_ctx c in
-  let l = List.filter_map (fun x -> if Unchecked.dim_ty (fst (snd x)) >= d-1 then Some(fst x) else None) c in
-  if l <> [] then
-    let c = ctx c l in
-    let t = tm_one_step_tm t l c in
-    c,t
-  else c,t
-
 let rec tm c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
