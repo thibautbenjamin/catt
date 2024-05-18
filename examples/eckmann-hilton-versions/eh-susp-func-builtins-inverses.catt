@@ -71,3 +71,10 @@ let eh (x : *) (a : id x -> id x) (b : id x  -> id x) =
 let eh- (x : *) (a : id x -> id x) (b : id x  -> id x) = I (eh a b)
 
 let ehU (x : *) (a : id x -> id x) (b : id x  -> id x) : comp (eh a b) (I (eh a b)) -> id (comp a b) = U (eh a b)
+
+let ehNat
+  (x : *) (a : id x -> id x) (b : id x  -> id x)
+  (a' : id x -> id x) (b' : id x  -> id x)
+  (n : a -> a') (m : b -> b')
+  : (comp (eh a b) (comp [m] [n])) -> (comp (comp [n] [m]) (eh a' b'))
+  = eh [n] [m]
