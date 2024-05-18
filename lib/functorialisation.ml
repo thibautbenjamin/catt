@@ -76,14 +76,6 @@ let rec find_places ctx s l =
   | _::c, _::s -> find_places c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
-let _ty_contains_vars t l =
-  match t with
-  | Obj -> false
-  | Arr(_,u,v) ->
-    Unchecked.tm_contains_vars u l ||
-    Unchecked.tm_contains_vars v l
-  | _ -> raise FunctorialiseMeta
-
 (* Invariant maintained:
     src_prod returns a term of same dimension as tm
 *)
@@ -120,8 +112,7 @@ and ty t l tgt_subst f_vars tm cc =
   let tm_incl = Unchecked.tm_apply_sub tm tgt_subst in
   let t_incl = Unchecked.ty_apply_sub t tgt_subst in
   let src, src_t = tgt_prod t l tgt_subst f_vars tm t d (d-1) cc in
-  let tgt, tgt_t = src_prod t l tgt_subst f_vars tm_incl t_incl d (d-1) cc in
-  let _ = (Unchecked.check_equal_ty src_t tgt_t) in
+  let tgt, _tgt_t = src_prod t l tgt_subst f_vars tm_incl t_incl d (d-1) cc in
   Arr (src_t, src, tgt)
 
 and ctx c l =
@@ -144,16 +135,16 @@ and ctx c l =
    variables
 *)
 and coh_one_step coh l =
-  Utils.coh_transformation
-    ~compute_ps_ty:
-      (fun p t ->
-         let new_ctx,tgt_subst,f_vars = ctx (Unchecked.ps_to_ctx p) l in
-         let ty = ty t l tgt_subst f_vars (Coh(coh,Unchecked.identity_ps p)) (Ctx.check new_ctx) in
-         new_ctx,ty)
-    ~compute_name:(fun ctx (name,susp,func) ->
-        let newf = add_functorialisation ctx func l in
-        (name,susp, Some newf))
-    coh
+  let ps,t,(name,susp,func) = Coh.forget coh in
+  let c = Unchecked.ps_to_ctx ps in
+  let ctxf,tgt_subst,f_vars = ctx c l in
+  let _,names,_ = Unchecked.db_levels ctxf in
+  let psf = PS.forget (PS.mk (Ctx.check ctxf)) in
+  let ty = ty t l tgt_subst f_vars (Coh(coh,Unchecked.identity_ps ps)) (Ctx.check ctxf) in
+  let ty = Unchecked.rename_ty ty names in
+  let pp_data = (name,susp,Some(add_functorialisation c func l)) in
+  check_coh psf ty pp_data
+
 (*
    Functorialisation a term once with respect to a list of triples.
    Returns a list containing the functorialise term followed by its
@@ -212,16 +203,13 @@ let rec coh c s =
   let ps,_,_ = Coh.forget c in
   let ctx = Unchecked.ps_to_ctx ps in
   let l, next = list_functorialised ctx s in
-  if l <> [] then
-    coh (coh_one_step c l) next
-  else c
+  if l <> [] then coh (coh_one_step c l) next else c
 
 (*
    Functorialisation of a coherence: exposed function
 *)
 let coh c s =
-  try
-    coh c s
+  try coh c s
   with
   | FunctorialiseMeta ->
     Error.functorialisation
