@@ -4,6 +4,7 @@ open Unchecked_types.Unchecked_types(Coh)
 
 module Memo = struct
   let tbl = Hashtbl.create 97
+  let tbl_whisk = Hashtbl.create 97
 
   let find i f =
     try Hashtbl.find tbl i with
@@ -12,15 +13,16 @@ module Memo = struct
       Hashtbl.add tbl i res;
       res
 
+  let find_whisk i f =
+    try Hashtbl.find tbl_whisk i with
+    | Not_found ->
+      let res = f i in
+      Hashtbl.add tbl_whisk i res;
+      res
+
   let id =
     check_coh (Br[]) (Arr(Obj,Var(Db 0),Var(Db 0))) ("builtin_id", 0, None)
 end
-
-let arity_comp s =
-  let n = List.length s in
-  if !Settings.explicit_substitutions then
-    (n-1)/2
-  else n
 
 let rec ps_comp i =
   match i with
@@ -37,9 +39,43 @@ let comp_n arity =
   in
   Memo.find arity build_comp
 
+let arity_comp s =
+  let n = List.length s in
+  if !Settings.explicit_substitutions then
+    (n-1)/2
+  else n
+
 let comp s =
   let arity = arity_comp s in
   comp_n arity
+
+(* returns the n-composite of a (n+j)-cell with a (n+k)-cell *)
+let whisk n j k =
+  let build_whisk t =
+    let n,j,k = t in
+    let comp = comp_n 2 in
+    let func_data = [k;j] in
+    Suspension.coh (Some(n)) (Functorialisation.coh comp func_data)
+  in
+  Memo.find_whisk (n,j,k) build_whisk
+
+(*
+  How long should substitutions for whisk be?
+  (whisk 0 0 0) requires ps-context (x(f)y(g)z) so 2+1+1+1
+  (whisk n 0 0) requires 2*(n+1)+1+1+1
+  (whisk n j 0) requires (2*(n+1))+((2*j)+1)+1+1
+  (whisk n 0 k) requires (2*(n+1))+1+(2*k+1)+1
+
+  Assuming ty1 has right dimension, we just need to know k
+*)
+let whisk_sub_ps k t1 ty1 t2 ty2 =
+    let rec take n l =
+        match l with
+        | h::t when n > 0 -> h::(take (n-1) t)
+        | _ -> [] in
+    let sub_base = Unchecked.ty_to_sub_ps ty1 in
+    let sub_ext = take (2*k+1) (Unchecked.ty_to_sub_ps ty2) in
+    List.concat [[(t2,true)];sub_ext;[(t1,true)];sub_base]
 
 let id = Memo.id
 
@@ -143,3 +179,8 @@ let middle_rewrite k =
   let func_data =
     List.concat [(List.init k (fun _ -> 0)); [1]; (List.init k (fun _ -> 0))] in
   Functorialisation.coh comp func_data
+
+let () = Functorialisation.builtin_comp := comp_n
+let () = Functorialisation.builtin_whisk := whisk
+let () = Functorialisation.builtin_whisk_sub_ps := whisk_sub_ps
+

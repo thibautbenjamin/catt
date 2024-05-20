@@ -1,0 +1,55 @@
+
+# set explicit_substitutions = t
+# set verbosity = 5
+# set unroll_coherences = t
+
+let idf (x : *) (y : *) (f : x -> y) = id [f]
+
+coh whiskl (x(f)y(g(a)h)z) : comp f g -> comp f h
+let whisklf (x : *) (y : *) (f : x -> y) (g : x -> y) (z : *) (h : y -> z) (k : y -> z) (a : f -> g) (b : h -> k) = whiskl [a] b
+let whisklf (x : *) (y : *) (f : x -> y) (g : x -> y) (z : *) (h : y -> z) (k : y -> z) (a : f -> g) (b : h -> k) (c : h -> k) (m : b -> c) = whiskl f [m]
+
+coh assoc (x(f)y(g)z(h)w) : comp (comp f g) h -> comp f (comp g h)
+
+let nat_assoc (x : *) (y : *) (z : *) (w : *)
+              (f : x -> y) (g : y -> z) (h : z -> w)
+              (f' : x -> y) (g' : y -> z) (h' : z -> w)
+              (a : f -> f') (b : g -> g') (c : h -> h')
+              = assoc [a] [b] [c]
+
+let whiskL (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (a : g -> h) = comp f [a]
+
+let nat_assoc (x : *) (y : *) (z : *) (w : *)
+              (f : x -> y) (g : y -> z) (h : z -> w)
+              (f' : x -> y) (g' : y -> z) (h' : z -> w)
+              (a : f -> f') (b : g -> g') (c : h -> h')
+              (b' : g -> g') (B : b -> b')
+              = assoc [a] [[B]] [c]
+
+let exch (x : *) (y : *) (z : *)
+         (f : x -> y) (g : y -> z)
+         (f' : x -> y) (g' : y -> z)
+         (a : f -> f') (b : g -> g')
+         = whiskl [a] b
+
+# coh unbiase (x(f)y(g)z(h)w) : comp (comp f g) h -> (comp f g h)
+
+coh whiskl3 (x(f)y(g(a(m)b)h)z) : comp f [a] -> comp f [b]
+
+let nat_whiskl3 (x : *) (y : *) (z : *)
+              (f : x -> y) (g : y -> z)
+              (f' : x -> y) (h : y -> z)
+              (c : f -> f') (a : g -> h) (b : g -> h)
+              (m : a -> b)
+			  = whiskl3 [c] m
+
+coh whiskl4 (x(f)y(g(a(m(p)n)b)h)z) : (comp f [[[p]]]) -> (comp f [[[p]]])
+
+let nat_whiskl4 (x : *) (y : *) (z : *)
+              (f : x -> y) (g : y -> z)
+              (f' : x -> y) (h : y -> z)
+              (c : f -> f') (a : g -> h) (b : g -> h)
+			  (m: a -> b) (n: a -> b)
+              (p : m -> n)
+			  = whiskl4 [c] p
+

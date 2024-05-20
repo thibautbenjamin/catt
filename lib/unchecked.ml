@@ -409,15 +409,6 @@ struct
   let ps_src ps = ps_src (dim_ps ps - 1) ps
   let ps_tgt ps = ps_tgt (dim_ps ps - 1) ps
 
-  let max_fresh_var c =
-    let rec find_max c i =
-      match c with
-      | [] -> i
-      | (Var.New j, _) :: c when j >= i -> find_max c j
-      | ((Var.Name _ | Var.Db _ | Var.New _ ), _) :: c  -> find_max c i
-    in
-    find_max c 0
-
   let rec ps_compose i ps1 ps2 =
     match i, ps1, ps2 with
     | 0, Br l1, Br l2 ->
@@ -462,10 +453,6 @@ struct
           l1 l2 incls1 incls2
       in
       wedge_sub_ps_bp ls
-
-  let two_fresh_vars c =
-    let i = max_fresh_var c in
-    Var.New (i+1), Var.New (i+2)
 
   let rec tm_contains_var t x =
     match t with
