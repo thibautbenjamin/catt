@@ -5,9 +5,10 @@ open Unchecked_types.Unchecked_types(Coh)
 exception FunctorialiseMeta
 exception WrongNumberOfArguments
 
-let builtin_ccomp :
-  (int -> tm) ref =
-  ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let cubical_comp = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let depth1_interchanger_src = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let depth1_interchanger_tgt = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let depth1_bridge_sub = ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
 module Memo = struct
   let tbl_whisk = Hashtbl.create 97
@@ -162,141 +163,9 @@ and ctx c l =
     (Var.Bridge(x),(tf,expl))::c_ext
   | (x,a)::c -> (x,a)::(ctx c l)
 
-(* Interchange needed for source of depth-1 non-inv coh *)
-(*
-https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVycmlnaHRhcnJvd3tcXHBhcnRpYWxcXEdhbW1hfV57WF9cXHRhdX0iXSxbMCwzLCJcXEdhbW1hIl0sWzAsMSwiXFxHYW1tYV57cmVkfSJdLFsxLDIsIlxcRGVsdGEiXSxbMSwzLCJcXFBoaSJdLFszLDIsIlxcRGVsdGFee3JlZH0iXSxbMSw0LCJcXG92ZXJyaWdodGFycm93e1xcR2FtbWF9XlgiXSxbMCwxLCJcXHNpZ21hIl0sWzAsMiwiXFx0YXUiLDEseyJsYWJlbF9wb3NpdGlvbiI6NzAsImN1cnZlIjo1fV0sWzMsMiwiXFxyaG9fXFxHYW1tYSIsMl0sWzAsMywiXFx0YXVfciIsMV0sWzEsNCwial8yIiwxXSxbMyw0LCJqXzEiLDFdLFs0LDAsIiIsMCx7InN0eWxlIjp7Im5hbWUiOiJjb3JuZXIifX1dLFs0LDUsIiIsMCx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6ImRhc2hlZCJ9fX1dLFsyLDUsImlfMSIsMV0sWzEsNSwiaV8yIiwxXSxbNSwwLCIiLDEseyJzdHlsZSI6eyJuYW1lIjoiY29ybmVyIn19XSxbNiw0LCJcXHJob19cXERlbHRhIiwxLHsiY3VydmUiOjF9XSxbMiw3XSxbMSw3LCJcXG92ZXJyaWdodGFycm93e1xcdGF1fV5YIiwxLHsiY3VydmUiOi0zfV0sWzUsNywiIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV1d
- *)
-and intch_src coh l ctxf =
-  (* Setup *)
-  let gamma,coh_ty,name = Coh.forget coh in
-  let d = Unchecked.dim_ps gamma in
-  (* Construct preimage locations *)
-  let bdry = Unchecked.ps_bdry gamma in
-  let tau = Unchecked.ps_tgt gamma in
-  let _,bdry_c = Unchecked.sub_ps_to_sub tau bdry in
-  let l_tau = find_places bdry_c tau l in
-  (* Construct ps_bdry_f *)
-  let bdry_f_ctx = ctx bdry_c l_tau in
-  let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
-  let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f_ctx)) in
-  let tau_f = sub tau l ctxf in
-  (* Construct composite context *)
-  let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) gamma bdry_f in
-  let i1,_ = Unchecked.sub_ps_to_sub i1_ps gamma in
-  let i2,_ = Unchecked.sub_ps_to_sub i2_ps bdry_f in
-  (* Construct source (t[i1]) * (tgt_f[i2]) *)
-  let src,tgt,ty_base = Coh.noninv_srctgt coh in
-  let tgt_f_ty = ty ty_base l_tau tgt bdry_c in
-  let tgt_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub tgt_f_ty bdry_f_db) i2 in
-  let tgt_f = tm_one_step_tm tgt l_tau bdry_f_ctx in
-  let tgt_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub tgt_f bdry_f_db) i2 in
-  let coh_src_sub_ps = whisk_sub_ps 0 (Coh(coh,i1_ps)) (Unchecked.ty_apply_sub coh_ty i1) tgt_f tgt_f_ty in
-  let coh_src = Coh(whisk (d-1) 0 0,coh_src_sub_ps) in
-  let _ = check_term (Ctx.check (Unchecked.ps_to_ctx phi)) coh_src in
-  (* Construct reduced context *)
-  let gamma_red = Ps_reduction.reduce (d-1) gamma in
-  let delta,_,_ = Unchecked.ps_compose (d-1) gamma_red bdry_f in
-  let delta_red = Ps_reduction.reduce (d-1) delta in
-  let rho_delta = Ps_reduction.reduction_sub delta in
-  (* Construct biased reduction sub from phi to delta_red *)
-  let rho_gamma_i1 = Unchecked.sub_ps_apply_sub (Ps_reduction.reduction_sub gamma) i1 in
-  let delta_ind = Unchecked.pullback_up (d-1) gamma_red bdry_f rho_gamma_i1 i2_ps in
-  (* Construct target (comp delta_red src tgt) *)
-  let coh_tgt_coh = Coh.check_noninv delta_red src tgt ((Unchecked.full_name name)^"_red",0,None) in
-  let coh_tgt_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (fst (Unchecked.sub_ps_to_sub delta_ind delta)) in
-  let coh_tgt = Coh(coh_tgt_coh, coh_tgt_sub_ps) in
-  let _ = check_term (Ctx.check (Unchecked.ps_to_ctx phi)) coh_tgt in
-  (* Construct map into pullback *)
-  let phi_ind_sub_ps = Unchecked.pullback_up (d-1) gamma bdry_f (Unchecked.identity_ps gamma) tau_f in
-  let phi_ind,_ = Unchecked.sub_ps_to_sub phi_ind_sub_ps phi in
-  (* Construct final coherence *)
-  let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_src",0,None) in
-  let _,intch_ty,_ = Coh.forget intch_coh in
-  let intch = Coh(intch_coh,phi_ind_sub_ps) in
-  let _ = check_term (Ctx.check ctxf) intch in
-  intch, Unchecked.ty_apply_sub intch_ty phi_ind
-(*
-https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVycmlnaHRhcnJvd3tcXHBhcnRpYWxcXEdhbW1hfV57WF9cXHRhdX0iXSxbMCwzLCJcXEdhbW1hIl0sWzAsMSwiXFxHYW1tYV57cmVkfSJdLFsxLDIsIlxcRGVsdGEiXSxbMSwzLCJcXFBoaSJdLFszLDIsIlxcRGVsdGFee3JlZH0iXSxbMSw0LCJcXG92ZXJyaWdodGFycm93e1xcR2FtbWF9XlgiXSxbMCwxLCJcXHNpZ21hIl0sWzAsMiwiXFx0YXUiLDEseyJsYWJlbF9wb3NpdGlvbiI6NzAsImN1cnZlIjo1fV0sWzMsMiwiXFxyaG9fXFxHYW1tYSIsMl0sWzAsMywiXFx0YXVfciIsMV0sWzEsNCwial8yIiwxXSxbMyw0LCJqXzEiLDFdLFs0LDAsIiIsMCx7InN0eWxlIjp7Im5hbWUiOiJjb3JuZXIifX1dLFs0LDUsIiIsMCx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6ImRhc2hlZCJ9fX1dLFsyLDUsImlfMSIsMV0sWzEsNSwiaV8yIiwxXSxbNSwwLCIiLDEseyJzdHlsZSI6eyJuYW1lIjoiY29ybmVyIn19XSxbNiw0LCJcXHJob19cXERlbHRhIiwxLHsiY3VydmUiOjF9XSxbMiw3XSxbMSw3LCJcXG92ZXJyaWdodGFycm93e1xcdGF1fV5YIiwxLHsiY3VydmUiOi0zfV0sWzUsNywiIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV1d
- *)
-and intch_tgt coh l ctxf =
-  (* Setup *)
-  let gamma,coh_ty,name = Coh.forget coh in
-  let d = Unchecked.dim_ps gamma in
-  (* Construct preimage locations *)
-  let bdry = Unchecked.ps_bdry gamma in
-  let sigma = Unchecked.ps_src gamma in
-  let _,bdry_c = Unchecked.sub_ps_to_sub sigma bdry in
-  let l_sigma = find_places bdry_c sigma l in
-  (* Construct ps_bdry_f *)
-  let bdry_f_ctx = ctx bdry_c l_sigma in
-  let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
-  let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f_ctx)) in
-  let sigma_f = sub sigma l ctxf in
-  (* Construct composite context *)
-  let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) bdry_f gamma in
-  let i1,_ = Unchecked.sub_ps_to_sub i1_ps bdry_f in
-  let i2,_ = Unchecked.sub_ps_to_sub i2_ps gamma in
-  (* Construct target (src_f[i1]) * (t[i2]) *)
-  let src,tgt,ty_base = Coh.noninv_srctgt coh in
-  let src_f_ty = ty ty_base l_sigma src bdry_c in
-  let src_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub src_f_ty bdry_f_db) i1 in
-  let src_f = tm_one_step_tm src l_sigma bdry_f_ctx in
-  let src_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub src_f bdry_f_db) i1 in
-  let coh_tgt_sub_ps = whisk_sub_ps 0 src_f src_f_ty (Coh(coh,i2_ps)) (Unchecked.ty_apply_sub coh_ty i2) in
-  let coh_tgt = Coh(whisk (d-1) 0 0,coh_tgt_sub_ps) in
-  let _ = check_term (Ctx.check (Unchecked.ps_to_ctx phi)) coh_tgt in
-  (* Construct reduced context *)
-  let gamma_red = Ps_reduction.reduce (d-1) gamma in
-  let delta,_,_ = Unchecked.ps_compose (d-1) bdry_f gamma_red in
-  let delta_red = Ps_reduction.reduce (d-1) delta in
-  let rho_delta = Ps_reduction.reduction_sub delta in
-  (* Construct biased reduction sub from phi to delta_red *)
-  let rho_gamma_i2 = Unchecked.sub_ps_apply_sub (Ps_reduction.reduction_sub gamma) i2 in
-  let delta_ind = Unchecked.pullback_up (d-1) bdry_f gamma_red i1_ps rho_gamma_i2 in
-  (* Construct source (comp delta_red src tgt) *)
-  let coh_src_coh = Coh.check_noninv delta_red src tgt ((Unchecked.full_name name)^"_red",0,None) in
-  let coh_src_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (fst (Unchecked.sub_ps_to_sub delta_ind delta)) in
-  let coh_src = Coh(coh_src_coh, coh_src_sub_ps) in let _ = check_term (Ctx.check (Unchecked.ps_to_ctx phi)) coh_src in
-  (* Construct map into pullback *)
-  let phi_ind_sub_ps = Unchecked.pullback_up (d-1) bdry_f gamma sigma_f (Unchecked.sub_ps_apply_sub (Unchecked.identity_ps gamma) (tgt_subst l)) in
-  let phi_ind,_ = Unchecked.sub_ps_to_sub phi_ind_sub_ps phi in
-  (* Construct final coherence *)
-  let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_tgt",0,None) in
-  let _,intch_ty,_ = Coh.forget intch_coh in
-  let intch = Coh(intch_coh,phi_ind_sub_ps) in
-  let _ = check_term (Ctx.check ctxf) intch in
-  intch, Unchecked.ty_apply_sub intch_ty phi_ind
-and bridge_depth_1 src_sub tgt_sub l ctxf =
-  match src_sub,tgt_sub with
-  | [],[] -> []
-  | (src,expl)::src_tl,(tgt,_)::tgt_l ->
-    begin try
-        let _ = Unchecked.check_equal_tm src tgt in
-        (src,expl)::(bridge_depth_1 src_tl tgt_l l ctxf)
-      with NotEqual(_) ->
-        let (_,ty,_),src_sub = match src with
-          | Coh(c,s) -> Coh.forget c,s
-          | _ -> assert false in
-        let d = Unchecked.dim_ty ty in
-        let src_bridge = fst (List.nth src_sub 2) in
-        let inner_sub,arity = match src_bridge with
-          | Coh(_,s) -> s,((List.length s)-(2*d))/2+1
-          | _ -> assert false in
-        let linear_ps,_,_ = Coh.forget (Builtin.comp_n arity) in
-        let linear_ctx = Unchecked.ps_to_ctx linear_ps in
-        let linear_ctxf = ctx linear_ctx (List.map fst linear_ctx) in
-        let _ = check_term (Ctx.check linear_ctxf) (Unchecked.tm_apply_sub (Opposite.tm (!builtin_ccomp arity) [2]) (Unchecked.db_level_sub linear_ctxf)) in
-        let ccomp = Suspension.tm (Some(d-1)) (Opposite.tm (!builtin_ccomp arity) [2]) in
-        let inner_subf = sub inner_sub l ctxf in
-        let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
-        let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
-        let _ = check_term (Ctx.check ctxf) bridge in
-        (bridge,expl)::(tgt,false)::(src,false)::(bridge_depth_1 src_tl tgt_l l ctxf)
-    end
-  | _,_ -> assert false
 and coh_depth_1 coh l ctxf =
-  let intch_src,intch_src_ty = intch_src coh l ctxf in
-  let intch_tgt,intch_tgt_ty = intch_tgt coh l ctxf in
+  let intch_src,intch_src_ty = !depth1_interchanger_src coh l ctxf in
+  let intch_tgt,intch_tgt_ty = !depth1_interchanger_tgt coh l ctxf in
   let base_ty,inner_src,inner_tgt,final_tgt = match intch_src_ty,intch_tgt_ty with
     | Arr(b,_,s), Arr(_,t,t') -> b,s,t,t'
     | _,_ -> assert false in
@@ -308,7 +177,7 @@ and coh_depth_1 coh l ctxf =
   let tgt_sub,_ = Unchecked.sub_ps_to_sub tgt_sub_ps ps in
   let coh_l = List.filter_map (fun (s,t) -> try Unchecked.check_equal_tm (snd s) (snd t); None with NotEqual _ -> Some(fst s)) (List.combine src_sub tgt_sub) in
   let cohf = coh_one_step c coh_l in
-  let bridge = bridge_depth_1 src_sub_ps tgt_sub_ps l ctxf in
+  let bridge = !depth1_bridge_sub src_sub_ps tgt_sub_ps l ctxf in
   let middle = Coh(cohf,bridge) in
   (* Combine *)
   let comp_sub_ps = List.concat [[intch_tgt,true;final_tgt,false;middle,true;inner_tgt,false;intch_src,true];Unchecked.ty_to_sub_ps intch_src_ty] in
