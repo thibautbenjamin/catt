@@ -32,6 +32,3 @@ let coh c =
   else
     let src,tgt,_ = Coh.noninv_srctgt c in
     Coh.check_noninv ps src tgt (name^"_red", 0, None)
-
-let () = Functorialisation.ps_reduce := reduce
-let () = Functorialisation.ps_reduction_sub := reduction_sub
