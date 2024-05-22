@@ -1,9 +1,9 @@
 From Catt Require Import Loader.
 
-Print Registered.
+(* Print Registered. *)
 
-CaTT.
+(* CaTT. *)
 
-Print Registered.
+(* Print Registered. *)
 
-Check catt_comp.
+(* Check catt_comp. *)

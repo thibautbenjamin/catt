@@ -1,4 +1,4 @@
-DECLARE PLUGIN "catt.catt"
+DECLARE PLUGIN "catt.coq_plugin"
 
 {
 open Export
@@ -6,6 +6,6 @@ open Export
 
 VERNAC COMMAND EXTEND NoOp CLASSIFIED AS QUERY
 | [ "Nothing" ] -> { () }
-| [ "CaTT" ] -> { example () }
+| [ "Catt" ] -> { example () }
 
 END

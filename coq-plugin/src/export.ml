@@ -4,6 +4,11 @@ open Catt
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
+let catt_var_to_coq_name v =
+  match v with
+  | Var.Db i -> "catt_db_" ^ (string_of_int i)
+  | Var.Name s -> "catt_name_" ^ s
+  | Var.New i -> "catt_new_" ^ (string_of_int i)
 
 let c_Q env sigma =
   let gr = Coqlib.lib_ref "core.eq.type" in
@@ -15,7 +20,7 @@ let c_R env sigma =
 
 let rec find_db ctx x =
   match ctx with
-  | [] -> assert false
+  | [] -> Error.fatal "variable not found"
   | (y,_)::_ when x = y -> 1
   | _::ctx -> 1 + find_db ctx x
 
@@ -26,14 +31,14 @@ let tm_to_lambda env sigma ctx tm =
   let rec ctx_to_lambda ctx inner_tm =
     match ctx with
     | [] ->
-      EConstr.mkLambda(nameR (Names.Id.of_string "Obj"),
+      EConstr.mkLambda(nameR (Names.Id.of_string "catt_Obj"),
                        obj_type,
                        inner_tm)
     | (x,(ty,_))::ctx ->
       ctx_to_lambda
         ctx
         (EConstr.mkLambda
-           (nameR (Names.Id.of_string (Var.to_string x)),
+           (nameR (Names.Id.of_string (catt_var_to_coq_name x)),
             ty_to_lambda ctx ty,
             inner_tm))
   and ty_to_lambda ctx ty =
@@ -44,32 +49,16 @@ let tm_to_lambda env sigma ctx tm =
       let u = tm_to_lambda ctx u in
       let v = tm_to_lambda ctx v in
       EConstr.mkApp (eq_type, [| ty; u; v |])
-    | Meta_ty _ -> assert false
+    | Meta_ty _ -> Error.fatal "unresolved meta type variable"
   and tm_to_lambda ctx tm =
     match tm with
     | Var x -> EConstr.mkRel (find_db ctx x)
-    | _ -> assert false
+    | _ -> Error.fatal "only variables are supported for now"
   in
   sigma, ctx_to_lambda ctx (tm_to_lambda ctx tm)
 
-
-
-let body sigma =
-  let sigma, type_obj =
-    Evarutil.new_Type sigma
-  in
-  let body =
-    EConstr.mkLambda(nameR (Names.Id.of_string "Obj"), EConstr.mkRel 1,
-                     EConstr.mkRel 1)
-  in
-  let body =
-    EConstr.mkLambda(nameR (Names.Id.of_string "Obj"), type_obj,
-                     body)
-  in
-  sigma, body
-
-let ctx = [(Var.Db 0, (Obj, true))]
-let tm = Var (Var.Db 0)
+let ctx = [(Var.Db 2, (Arr(Obj,Var (Var.Db 0), Var (Var.Db 1)), true)); (Var.Db 1, (Obj, true)); (Var.Db 0, (Obj, true))]
+let tm = Var (Var.Db 2)
 
 let example () =
   let env = Global.env () in

@@ -1,9 +1,2 @@
-src/META.catt
--R theories Catt
--I src
-
-theories/Loader.v
-
-src/catt.ml
-src/g_catt.mlg
-src/catt_plugin.mlpack
+-R ../_build/default/coq-plugin/theories/ Catt
+-I ../_build/install/default/lib/catt/
