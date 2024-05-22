@@ -25,14 +25,13 @@ let rec find_db ctx x =
   | _::ctx -> 1 + find_db ctx x
 
 let tm_to_lambda env sigma ctx tm =
-  let sigma, obj_type = Evarutil.new_Type sigma in
+  let obj_type = Constr.mkType (Univ.Universe.type0) in
   let sigma, eq_type = c_Q env sigma in
-  (* let sigma, eq_refl = c_R env sigma in *)
   let rec ctx_to_lambda ctx inner_tm =
     match ctx with
     | [] ->
       EConstr.mkLambda(nameR (Names.Id.of_string "catt_Obj"),
-                       obj_type,
+                       EConstr.of_constr obj_type,
                        inner_tm)
     | (x,(ty,_))::ctx ->
       ctx_to_lambda
@@ -64,6 +63,8 @@ let example () =
   let env = Global.env () in
   let sigma = Evd.from_env env in
   let sigma, body = tm_to_lambda env sigma ctx tm in
+  (* let sigma = Evarutil.add_unification_pb (CONV,env,_,_) sigma in *)
+  let body = Evarutil.nf_evar sigma body in
   let info = Declare.Info.make () in
   let cinfo = Declare.CInfo.make ~name:Id.(of_string "catt_comp") ~typ:None () in
   let gr = Declare.declare_definition
