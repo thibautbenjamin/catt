@@ -3,7 +3,7 @@
 
 (library
  (name catt)
- (public_name catt)
+ (public_name catt.lib)
  (modules_without_implementation raw_types)
  (libraries base)
  ;(libraries landmarks)

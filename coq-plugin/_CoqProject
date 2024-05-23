@@ -1,2 +1,0 @@
--R ../_build/default/coq-plugin/theories/ Catt
--I ../_build/install/default/lib/catt/
