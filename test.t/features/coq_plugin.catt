@@ -1,0 +1,2 @@
+let disc (x : *) (y : *) (f : x -> y) = f
+let fst_var (x : *) (y : *) (f : x -> y) (g : y -> x) = x

@@ -1,6 +1,9 @@
 DECLARE PLUGIN "coq-catt-plugin.lib"
 
-VERNAC COMMAND EXTEND NoOp CLASSIFIED AS QUERY
-| [ "Catt" ] -> { Export.catt_tm () }
+{
+open Stdarg
+}
 
+VERNAC COMMAND EXTEND Catt CLASSIFIED AS QUERY
+| [ "Catt" ne_string_list(tms) "From" "File" string(file) ] -> { Export.catt_tm file tms }
 END

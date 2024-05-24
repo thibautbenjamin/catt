@@ -1,1 +1,1 @@
-val catt_tm : unit -> unit
+val catt_tm : string -> string list -> unit

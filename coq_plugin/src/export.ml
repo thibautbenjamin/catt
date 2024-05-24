@@ -5,6 +5,12 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
+let run_catt_on_file f =
+  Prover.reset();
+  match Prover.parse_file f with
+  | Ok f -> Command.exec ~loop_fn:Prover.loop f
+  | Error () -> ()
+
 let rec catt_var_to_coq_name v =
   match v with
   | Var.Db i -> "catt_db_" ^ (string_of_int i)
@@ -55,24 +61,30 @@ let tm_to_lambda env sigma ctx tm =
   in
   sigma, ctx_to_lambda ctx (tm_to_lambda ctx tm)
 
-let ctx = [(Var.Db 2, (Arr(Obj,Var (Var.Db 0), Var (Var.Db 1)), true)); (Var.Db 1, (Obj, true)); (Var.Db 0, (Obj, true))]
-let tm = Var (Var.Db 2)
-
-let catt_tm () =
-  let env = Global.env () in
-  let sigma = Evd.from_env env in
-  let sigma, body = tm_to_lambda env sigma ctx tm in
-  let sigma, body = Typing.solve_evars env sigma body in
-  let body = Evarutil.nf_evar sigma body in
-  let info = Declare.Info.make () in
-  let cinfo = Declare.CInfo.make ~name:Id.(of_string "catt_comp") ~typ:None () in
-  let gr = Declare.declare_definition
-      ~info
-      ~cinfo
-      ~opaque:false
-      ~body
-      sigma
+let catt_tm file tm_names =
+  run_catt_on_file file;
+  let register_tm tm_name =
+    let ctx,tm =
+      match Environment.val_var (Var.Name tm_name) with
+      | Coh _ -> assert false
+      | Tm (ctx,tm) -> ctx,tm
+    in
+    let env = Global.env () in
+    let sigma = Evd.from_env env in
+    let sigma, body = tm_to_lambda env sigma ctx tm in
+    let sigma, body = Typing.solve_evars env sigma body in
+    let body = Evarutil.nf_evar sigma body in
+    let info = Declare.Info.make () in
+    let cinfo = Declare.CInfo.make ~name:Id.(of_string ("catt_"^tm_name)) ~typ:None () in
+    let gr = Declare.declare_definition
+        ~info
+        ~cinfo
+        ~opaque:false
+        ~body
+        sigma
+    in
+    Coqlib.register_ref
+      ("catt."^tm_name)
+      gr
   in
-  Coqlib.register_ref
-    "catt.test"
-    gr
+  List.iter register_tm tm_names

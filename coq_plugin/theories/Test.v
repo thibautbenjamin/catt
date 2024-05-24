@@ -1,6 +1,6 @@
 From Catt Require Import Loader.
 
-Catt.
+Catt "disc" "fst_var" From File "../../test.t/features/coq_plugin.catt".
 
-Check catt_comp.
-Print catt_comp.
+Print catt_disc.
+Print catt_fst_var.

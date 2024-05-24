@@ -7,6 +7,7 @@ type v = { value : value; dim_input : int; dim_output : int }
 type t = (Var.t, v) Hashtbl.t
 
 let env : t = Hashtbl.create 70
+let reset () = Hashtbl.clear env
 
 let add_let v c ?ty t =
   try
