@@ -1,0 +1,1 @@
+let disc (x : *) (y : *) (f : x -> y) = f

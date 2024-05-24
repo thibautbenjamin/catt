@@ -1,6 +1,6 @@
 From Catt Require Import Loader.
 
-Catt.
+Catt "disc" From File "../../test/coq_plugin.catt".
 
-Check catt_comp.
-Print catt_comp.
+Check catt_disc.
+Print catt_disc.

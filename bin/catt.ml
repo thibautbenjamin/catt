@@ -1,14 +1,4 @@
-(** Main for CATT. *)
-let parse_file f =
-  let sin =
-    let fi = open_in f in
-    let flen = in_channel_length fi in
-    let buf = Bytes.create flen in
-    really_input fi buf 0 flen;
-    close_in fi;
-    buf
-  in
-  Catt.Prover.parse (Bytes.to_string sin)
+open Catt
 
 let usage = "catt [options] [file]"
 let interactive = ref false
@@ -28,8 +18,8 @@ let () =
     usage;
   let _ = match !file_in with
     | [f] ->
-      Catt.Settings.use_builtins := not !no_builtins;
-      Catt.Settings.debug := !debug;
-      Catt.Command.exec ~loop_fn:Catt.Prover.loop (parse_file f)
+      Settings.use_builtins := not !no_builtins;
+      Settings.debug := !debug;
+      Command.exec ~loop_fn:Prover.loop (Prover.parse_file f)
     | _ -> ()
-  in if !interactive then Catt.Prover.loop ()
+  in if !interactive then Prover.loop ()
