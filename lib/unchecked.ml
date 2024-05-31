@@ -502,5 +502,15 @@ struct
     | Arr(a,u,v) -> (v,false)::(u,false)::(ty_to_sub_ps a)
     | Meta_ty _ -> Error.fatal "substitution can only be computed after\
                                 resolving the type"
+
+  let coh_to_sub_ps t =
+    match t with
+    | Coh(coh,s) ->
+      begin
+        let ps,ty,_ = Coh.forget coh in
+        let sub,_ = sub_ps_to_sub s ps in
+        (t,true)::(ty_to_sub_ps (ty_apply_sub ty sub))
+      end
+    | _ -> Error.fatal "can only convert coh to sub ps"
 end
 end

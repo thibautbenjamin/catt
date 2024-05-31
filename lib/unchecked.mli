@@ -60,6 +60,7 @@ module Unchecked (Coh : sig type t end) : sig
     val opsuspwedge_subs_ps : sub_ps list -> ps list -> sub_ps
     val canonical_inclusions : ps list -> sub_ps list
     val ty_to_sub_ps : ty -> sub_ps
+    val coh_to_sub_ps : tm -> sub_ps
     val ps_compose : int -> ps -> ps -> ps * sub_ps * sub_ps
     val pullback_up : int -> ps -> ps -> sub_ps -> sub_ps -> sub_ps
     val sub_ps_to_sub_ps_bp : sub_ps -> sub_ps_bp
