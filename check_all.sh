@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 TESTS=(
 "test/bug.catt"
@@ -20,6 +20,6 @@ TESTS=(
 
 for file in ${TESTS[@]}; do
   echo "Running: $file"
-  dune exec -- catt "$file" || exit 1
+  opam exec -- dune exec -- catt "$file" || exit 1
 done
 
