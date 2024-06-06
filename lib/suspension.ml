@@ -16,6 +16,11 @@ let ctx = iter_option Unchecked.suspend_ctx
 let coh i coh =
   match i with
   | None | Some 0 -> coh
-  | Some _ ->
+  | Some n ->
     let p,t,(name,susp,f) = Coh.forget coh in
-    check_coh (ps i p) (ty i t) (name,susp+1,f)
+    let f = match f with
+    | None -> f
+    | Some(l) ->
+        let pad = List.init (2*n) (fun _ -> 0) in
+        Some(List.concat [l;pad])
+    in check_coh (ps i p) (ty i t) (name,susp+n,f)

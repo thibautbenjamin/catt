@@ -73,9 +73,9 @@ struct
           Printf.sprintf "%s %s"
             (sub_ps_to_string ~func s)
             (bracket i (tm_to_string t))
-        | (t,false)::s, func ->
+        | (t,false)::s, i::func ->
           if(!Settings.print_explicit_substitutions) then
-            Printf.sprintf "%s %s" (sub_ps_to_string ~func s) (tm_to_string t)
+            Printf.sprintf "%s %s" (sub_ps_to_string ~func s) (bracket i (tm_to_string t))
           else sub_ps_to_string ~func s
         | _::_,[] | [], _::_ ->
           Error.fatal "Wrong number of functorialisation arguments"
@@ -235,6 +235,14 @@ struct
         let lvl = max + 1 in
         (Var.Db lvl, (rename_ty t l, expl)) ::c, (x, lvl)::l, lvl
 
+  let db_level_sub c =
+      let _,names,_ = db_levels c in
+      List.map (fun (t,n) -> (Var.Db n,Var(t))) names
+
+  let db_level_sub_inv c =
+      let _,names,_ = db_levels c in
+      List.map (fun (t,n) -> (t,Var(Var.Db n))) names
+
   let suspend_ps ps = Br [ps]
 
   let rec suspend_ty = function
@@ -247,6 +255,7 @@ struct
     | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
   and suspend_coh c =
     let p,t,(name,susp,f) = Coh.forget c in
+    let f = match f with Some(l) -> Some(List.concat [l;[0;0]]) | None -> f in
     Coh.check (suspend_ps p) (suspend_ty t) (name, susp+1, f)
   and suspend_sub_ps = function
     | [] -> [Var (Var.Db 1), false; Var (Var.Db 0), false]
@@ -295,7 +304,7 @@ struct
     | Var.Db j ->
       if  j = 0 then (Var.Db ctx_bp.rp)
       else Var.Db (j + ctx_bp.max)
-    | Name _ | New _ -> Error.fatal "expecting a de-bruijn level"
+    | _ -> Error.fatal "expecting a de-bruijn level"
 
   let ty_inr_wedge ty ctx_bp =
     ty_do_on_variables ty (fun v -> Var (var_inr_wedge v ctx_bp))
@@ -419,6 +428,7 @@ struct
       Br (List.append l2 l1),
       i1,
       i2
+    | _, Br [], Br [] -> let s = identity_ps ps1 in ps1, s, s
     | i, Br l1, Br l2 ->
       try
         let list = List.map2 (ps_compose (i-1)) l1 l2 in
@@ -439,6 +449,7 @@ struct
         | [_] -> s1
         | t::s2 -> t::(append s2)
       in append s2
+    | _, Br [], Br [], _, _ -> s1
     | i, Br l1, Br l2, s1, s2 ->
       let incls1 = canonical_inclusions l1 in
       let incls2 = canonical_inclusions l2 in
@@ -468,6 +479,13 @@ struct
     | t::s, (x,_)::ctx -> (x,t)::(list_to_sub s ctx)
     | [],[] -> []
     | _ -> raise WrongNumberOfArguments
+
+  let list_to_db_level_sub l =
+    let rec aux l = match l with
+      | [] -> [],0
+      | t::l ->
+        let s,n = aux l in (Var.Db n,t)::s,n+1
+    in fst (aux l)
 
   let rec dim_ty = function
     | Obj -> 0

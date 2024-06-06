@@ -1,10 +1,6 @@
-### Definition of identity morphism
-coh id (x) : x -> x
 
 ### Definition of compositions
 # Format = comp(n) (n = arity of the composition)
-coh comp (x1(f1)x2(f2)x3) : x1 -> x3
-
 coh comp3 (x1(f1)x2(f2)x3(f3)x4) : x1 -> x4
 
 coh comp4 (x1(f1)x2(f2)x3(f3)x4(f4)x5) : x1 -> x5

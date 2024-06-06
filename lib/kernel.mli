@@ -12,7 +12,7 @@ module rec Coh : sig
     ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
   val check_inv :
     ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
-  val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm
+  val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm * Unchecked_types(Coh).ty
   val func_data : t -> functorialisation_data option
 end
 
@@ -59,6 +59,7 @@ module Unchecked : sig
   val check_equal_ctx : ctx -> ctx -> unit
   val check_equal_ps : ps -> ps -> unit
   val check_equal_ty : ty -> ty -> unit
+  val check_equal_tm : tm -> tm -> unit
 
   val dim_ctx : ctx -> int
   val dim_ty : ty -> int
@@ -70,6 +71,8 @@ module Unchecked : sig
   val sub_ps_apply_sub : sub_ps -> sub -> sub_ps
   val ty_sub_preimage : ty -> sub -> ty
   val db_levels : ctx -> ctx * (Var.t * int) list * int
+  val db_level_sub : ctx -> sub
+  val db_level_sub_inv : ctx -> sub
   val rename_ty : ty -> (Var.t * int) list -> ty
   val tm_contains_var : tm -> Var.t -> bool
   val tm_contains_vars : tm -> Var.t list -> bool
@@ -92,6 +95,7 @@ module Unchecked : sig
   val sub_ps_to_sub_ps_bp : sub_ps -> sub_ps_bp
   val wedge_sub_ps_bp : sub_ps_bp list -> sub_ps
   val list_to_sub : tm list -> ctx -> sub
+  val list_to_db_level_sub : tm list -> sub
 end
 
 

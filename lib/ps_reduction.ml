@@ -24,16 +24,14 @@ let reduction_sub ps =
   aux (Unchecked.dim_ps ps - 1) ps
 
 let coh c =
-  let ps,ty,name = Coh.forget c in
+  let ps,_,name = Coh.forget c in
   let name = Unchecked.full_name name in
   let ps = reduce (Unchecked.dim_ps ps - 1) ps in
   if Coh.is_inv c then
-    let src,tgt =
-      match ty with
-      | Arr (_,src,tgt) -> src,tgt
-      | _ -> Error.fatal "type of a coherence must be an arrow type"
-    in
-    Coh.check_inv ps src tgt (name^"_red", 0, None)
+      Error.fatal "cannot reduce invertible coherences"
   else
-    let src,tgt = Coh.noninv_srctgt c in
+    let src,tgt,_ = Coh.noninv_srctgt c in
     Coh.check_noninv ps src tgt (name^"_red", 0, None)
+
+let () = Functorialisation.ps_reduce := reduce
+let () = Functorialisation.ps_reduction_sub := reduction_sub
