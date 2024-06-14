@@ -1,5 +1,6 @@
 open Names
 open EConstr
+open Evd
 open Catt
 open Common
 open Kernel
@@ -29,10 +30,11 @@ let rec find_db ctx x =
   | (y,_)::_ when x = y -> 1
   | _::ctx -> 1 + find_db ctx x
 
-let tm_to_lambda env sigma ctx tm =
-  let sigma,obj_type = Evarutil.new_Type sigma in
-  let sigma, eq_type = c_Q env sigma in
-  let rec ctx_to_lambda ctx inner_tm =
+module Translate : sig
+  val tm : Environ.env -> evar_map -> ctx -> tm -> evar_map * econstr
+end = struct
+
+  let rec ctx_to_lambda obj_type eq_type ctx inner_tm =
     match ctx with
     | [] ->
       EConstr.mkLambda(nameR (Names.Id.of_string "catt_Obj"),
@@ -40,26 +42,33 @@ let tm_to_lambda env sigma ctx tm =
                        inner_tm)
     | (x,(ty,_))::ctx ->
       ctx_to_lambda
+        obj_type
+        eq_type
         ctx
         (EConstr.mkLambda
            (nameR (Names.Id.of_string (catt_var_to_coq_name x)),
-            ty_to_lambda ctx ty,
+            ty_to_lambda obj_type eq_type ctx ty,
             inner_tm))
-  and ty_to_lambda ctx ty =
+  and ty_to_lambda obj_type eq_type ctx ty =
     match ty with
     | Obj -> EConstr.mkRel ((List.length ctx) + 1)
     | Arr(ty,u,v) ->
-      let ty = ty_to_lambda ctx ty in
-      let u = tm_to_lambda ctx u in
-      let v = tm_to_lambda ctx v in
+      let ty = ty_to_lambda obj_type eq_type ctx ty in
+      let u = tm_to_lambda obj_type eq_type ctx u in
+      let v = tm_to_lambda obj_type eq_type  ctx v in
       EConstr.mkApp (eq_type, [| ty; u; v |])
     | Meta_ty _ -> Error.fatal "unresolved meta type variable"
-  and tm_to_lambda ctx tm =
+  and tm_to_lambda obj_type eq_type ctx tm =
     match tm with
     | Var x -> EConstr.mkRel (find_db ctx x)
     | _ -> Error.fatal "only variables are supported for now"
-  in
-  sigma, ctx_to_lambda ctx (tm_to_lambda ctx tm)
+
+  let tm env sigma ctx tm =
+    let sigma,obj_type = Evarutil.new_Type sigma in
+    let sigma, eq_type = c_Q env sigma in
+    let tm = tm_to_lambda obj_type eq_type ctx tm in
+    sigma, ctx_to_lambda obj_type eq_type ctx tm
+end
 
 let catt_tm file tm_names =
   run_catt_on_file file;
@@ -71,11 +80,15 @@ let catt_tm file tm_names =
     in
     let env = Global.env () in
     let sigma = Evd.from_env env in
-    let sigma, body = tm_to_lambda env sigma ctx tm in
+    let sigma, body = Translate.tm env sigma ctx tm in
     let sigma, body = Typing.solve_evars env sigma body in
     let body = Evarutil.nf_evar sigma body in
     let info = Declare.Info.make () in
-    let cinfo = Declare.CInfo.make ~name:Id.(of_string ("catt_"^tm_name)) ~typ:None () in
+    let cinfo =
+      Declare.CInfo.make
+        ~name:Id.(of_string ("catt_"^tm_name))
+        ~typ:None ()
+    in
     let gr = Declare.declare_definition
         ~info
         ~cinfo
