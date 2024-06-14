@@ -14,6 +14,7 @@
 (license MIT)
 
 (using menhir 2.0)
+(using coq 0.7)
 
 (package
   (name catt)

@@ -16,10 +16,11 @@
         # via nix develop.
         packages = rec {
           default = self.packages.${system}.catt;
+
           catt = pkgs.callPackage
             ({ stdenv, dune_3, ocaml, opam, ocamlPackages, ... }:
               stdenv.mkDerivation {
-                pname = "catt";
+                pname = "catt.exe";
                 version = "0.2.0";
                 src = ./.;
                 buildInputs = [ dune_3 ocaml opam ] ++ (with ocamlPackages; [
@@ -41,6 +42,25 @@
                   #install -Dm644 _build/default/web/*.js $out/web
                 '';
               }) { };
+
+          catt-coq-plugin =
+            pkgs.coqPackages.mkCoqDerivation {
+              pname = "catt-coq-plugin";
+              version = "1.0";
+              src = ./.;
+              buildInputs = with pkgs;
+                [ dune_3 ocaml opam ]
+                ++ (with ocamlPackages; [
+                  fmt
+                  js_of_ocaml
+                  js_of_ocaml-ppx
+                  menhir
+                  sedlex
+                ]);
+              mlPlugin = true;
+            };
         };
+
+        devShells.default = self.packages.${system}.catt-coq-plugin;
       });
 }

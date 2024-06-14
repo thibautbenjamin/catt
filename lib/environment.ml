@@ -11,6 +11,8 @@ type t = (Var.t, v) Hashtbl.t
 
 let env : t = Hashtbl.create 70
 
+let reset () = Hashtbl.clear env
+
 let add_let v c ?ty t =
   let kc = Kernel.Ctx.check c in
   let tm = Kernel.check_term kc ?ty t in

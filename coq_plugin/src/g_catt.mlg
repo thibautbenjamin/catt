@@ -1,0 +1,10 @@
+DECLARE PLUGIN "catt.coq_plugin"
+
+{
+open Stdarg
+open Export
+}
+
+VERNAC COMMAND EXTEND Catt CLASSIFIED AS QUERY
+| [ "Catt" ne_string_list(tms) "From" "File" string(file) ] -> { example file tms }
+END

@@ -6,3 +6,13 @@ let implicit_suspension = ref true
 let debug = ref false
 let print_explicit_substitutions = ref false
 let unroll_coherences = ref false
+
+let reset () =
+  explicit_substitutions := false;
+  verbosity := 0;
+  use_builtins :=  true;
+  pretty_printing := true;
+  implicit_suspension := true;
+  debug := false;
+  print_explicit_substitutions := false;
+  unroll_coherences := false;
