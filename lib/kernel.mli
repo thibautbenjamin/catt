@@ -92,6 +92,7 @@ module Unchecked : sig
   val ps_compose : int -> ps -> ps -> ps * sub_ps * sub_ps
   val pullback_up : int -> ps -> ps -> sub_ps -> sub_ps -> sub_ps
   val ty_to_sub_ps : ty -> sub_ps
+  val coh_to_sub_ps : tm -> sub_ps
   val sub_ps_to_sub_ps_bp : sub_ps -> sub_ps_bp
   val wedge_sub_ps_bp : sub_ps_bp list -> sub_ps
   val list_to_sub : tm list -> ctx -> sub

@@ -3,7 +3,7 @@
 # set verbosity = 5
 # set unroll_coherences = t
 
-let idf (x : *) (y : *) (f : x -> y) = id [f]
+let idf (x : *) (y : *) (f : x -> y) : (comp (id x) f) -> (comp f (id y)) = id [f]
 
 coh whiskl (x(f)y(g(a)h)z) : comp f g -> comp f h
 let whisklf (x : *) (y : *) (f : x -> y) (g : x -> y) (z : *) (h : y -> z) (k : y -> z) (a : f -> g) (b : h -> k) = whiskl [a] b
@@ -45,11 +45,17 @@ let nat_whiskl3 (x : *) (y : *) (z : *)
 
 coh whiskl4 (x(f)y(g(a(m(p)n)b)h)z) : (comp f [[[p]]]) -> (comp f [[[p]]])
 
-let nat_whiskl4 (x : *) (y : *) (z : *)
-              (f : x -> y) (g : y -> z)
-              (f' : x -> y) (h : y -> z)
-              (c : f -> f') (a : g -> h) (b : g -> h)
-			  (m: a -> b) (n: a -> b)
-              (p : m -> n)
-			  = whiskl4 [c] p
+coh id2 (x) : comp (id x) (id x) (id x) -> comp (id x)
+let nat_id2 (x : *) (y : *) (f : x -> y) = id2 [f]
+
+coh vcompwhisk (x(f)y(g(a)h(b)k)z) : (comp (id x) f g) -> (comp f (id y) k)
+let vcompwhisk2 (x : *) (y : *) (z : *)
+          (f : x -> y) (g : y -> z)
+		  = vcompwhisk f (id g) (id g)
+let nat_vcompwhisk (x : *) (y : *) (z : *)
+          (f : x -> y) (g : y -> z)
+		  (f' : x -> y)
+		  (g' : y -> z)
+		  (a : f -> f') (b : f -> f') (c : g -> g') (d : g -> g')
+		  = vcompwhisk2 [a] [c]
 
