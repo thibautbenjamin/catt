@@ -1,0 +1,23 @@
+coh unitl (x(f)y) : comp (id _) f -> f
+coh unit (x) : comp (id x) (id x) -> id x
+coh lsimp (x) : (unitl (id x)) -> unit x
+coh Ilsimp (x) : I (unitl (id x)) -> I (unit x)
+coh exch (x(f(a)g)y(h(b)k)z) : comp (comp _ [b]) (id (comp f k)) (comp [a] _) -> comp [a] [b]
+
+coh eh1 (x(f(a)g(b)h)y) :
+comp a b -> comp (I (unitl f))
+                 (comp (comp _ [a]) (comp (unitl g) (I (op { 1 } (unitl g)))) (comp [b] _))
+                 (op { 1 } (unitl h))
+
+let eh2 (x : *) (a : id x -> id x) (b : id x -> id x) =
+comp [Ilsimp _]
+     [comp (comp _ [comp (comp [lsimp _] [op { 1 } (Ilsimp _)]) (U (unit _))] _)
+           (exch b a)]
+     [op { 1 } (lsimp _)]
+
+let eh (x : *) (a : id x -> id x) (b : id x -> id x) =
+comp (eh1 a b) (eh2 a b) (I (op { 1 } (eh2 b a))) (I (op { 1 } (eh1 b a)))
+
+let eh- (x : *) (a : id x -> id x) (b : id x  -> id x) = I (eh a b)
+
+let ehU (x : *) (a : id x -> id x) (b : id x  -> id x) : comp (eh a b) (I (eh a b)) -> id (comp a b) = U (eh a b)
