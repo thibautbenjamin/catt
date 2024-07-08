@@ -1,9 +1,11 @@
 open Names
 open Context
 open Evd
+open Pp
 open Catt
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
+
 
 let run_catt_on_file f =
   Prover.reset();
@@ -31,7 +33,12 @@ let rec find_db ctx x =
 
 module Translate : sig
   val tm : Environ.env -> evar_map -> ctx -> tm -> evar_map * econstr
+  val coh : Environ.env -> evar_map -> Coh.t -> evar_map * econstr
 end = struct
+
+  let catt_to_coq_db ctx n = List.length ctx - n
+  let increment_db sigma var i =
+    EConstr.mkRel ((EConstr.destRel sigma var) + i)
 
   let rec ctx_to_lambda obj_type eq_type ctx inner_tm =
     match ctx with
@@ -67,19 +74,119 @@ end = struct
     let sigma, eq_type = c_Q env sigma in
     let tm = tm_to_lambda obj_type eq_type ctx tm in
     sigma, ctx_to_lambda obj_type eq_type ctx tm
+
+  let coh_to_lambda env sigma obj_type eq_type refl coh =
+    let ps,ty,_ = Coh.forget coh in
+    let ctx = Unchecked.ps_to_ctx ps in
+    let max_vars = [(6,3,Obj); (4,1,Obj); (2,0,Obj)] in
+    let ty = ty_to_lambda obj_type eq_type ctx ty in
+    let (eq_ind,univ),_ = Inductiveops.find_inductive env sigma eq_type in
+    let catt_to_coq_db = catt_to_coq_db ctx in
+    let obj = ty_to_lambda obj_type eq_type ctx Obj in
+    let fst_var_coq = EConstr.mkRel (catt_to_coq_db 0) in
+    let rec body max_vars ret =
+      match max_vars with
+      | [] ->
+        EConstr.mkApp (refl, [|obj; fst_var_coq |])
+      (* FIXME: general case: use the type of the coherence *)
+      | (m,s,ty_m)::max_vars ->
+        let v1 = {binder_name = Names.Name.Anonymous;
+                  binder_relevance = Relevant}
+        in
+        let m_coq = EConstr.mkRel (catt_to_coq_db m) in
+        let s_coq = EConstr.mkRel (catt_to_coq_db s) in
+        let ty_m_coq = ty_to_lambda obj_type eq_type ctx ty_m in
+        let ret = EConstr.mkApp (eq_type,
+                                 [| increment_db sigma obj 2;
+                                    increment_db sigma fst_var_coq 2;
+                                    EConstr.mkRel 2|])
+        in
+        (* FIXME: General case: use the type of the coherence *)
+        let case_return = [| v1; v1 |], ret in
+        let case_branches =  [| ([| |], body max_vars ret) |] in
+        let pcase = (Inductiveops.make_case_info env eq_ind Relevant RegularStyle,
+                     univ,
+                     [| ty_m_coq; s_coq |], (* parameters of inductive type *)
+                     case_return,
+                     Constr.NoInvert,
+                     m_coq , (* match m_coq in ... *)
+                     case_branches) in
+        EConstr.mkCase pcase in
+    ctx_to_lambda obj_type eq_type ctx (body max_vars ty)
+
+  let coh env sigma coh =
+    let sigma,obj_type = Evarutil.new_Type sigma in
+    let sigma, eq_type = c_Q env sigma in
+    let sigma, refl = c_R env sigma in
+    sigma, coh_to_lambda env sigma obj_type eq_type refl coh
+
+  (* let coh env sigma _ = *)
+  (*   let sigma, base_type = Evarutil.new_Type sigma in *)
+  (*   let sigma, eq_type = c_Q env sigma in *)
+  (*   let sigma, refl = c_R env sigma in *)
+  (*   let *)
+  (*     (eq_ind,universe),_ = Inductiveops.find_inductive env sigma eq_type *)
+  (*   in *)
+  (*   let a = Names.Id.of_string "a" in *)
+  (*   let abind = {binder_name = Names.Name.mk_name a; binder_relevance = Relevant} in *)
+  (*   let b = Names.Id.of_string "b" in *)
+  (*   let bbind = {binder_name = Names.Name.mk_name b; binder_relevance = Relevant} in *)
+  (*   let ret = EConstr.mkApp (eq_type, [| EConstr.mkRel 8; EConstr.mkRel 6; EConstr.mkRel 2|]) in *)
+  (*   let case_info = Inductiveops.make_case_info env eq_ind Relevant RegularStyle in *)
+  (*   let constructors = [| EConstr.mkRel 6; EConstr.mkRel 4 |] in *)
+  (*   let case_return = [| bbind; abind |], ret in *)
+  (*   let case_invert = Constr.NoInvert in *)
+  (*   let case_branches = [| ([| |], EConstr.mkApp (refl, [| EConstr.mkRel 6; EConstr.mkRel 4|])) |] in *)
+  (*   let constructor = EConstr.mkRel 1 in *)
+  (*   let pcase = (case_info, *)
+  (*                universe, *)
+  (*                constructors, *)
+  (*                case_return, *)
+  (*                case_invert, *)
+  (*                constructor, *)
+  (*                case_branches) in *)
+  (*   let body = EConstr.mkCase pcase in *)
+  (*   sigma, *)
+  (*   EConstr.mkLambda( *)
+  (*     nameR (Names.Id.of_string "A"), *)
+  (*     base_type, *)
+  (*     EConstr.mkLambda( *)
+  (*       nameR (Names.Id.of_string "x"), *)
+  (*       EConstr.mkRel 1, *)
+  (*       EConstr.mkLambda( *)
+  (*         nameR (Names.Id.of_string "y"), *)
+  (*         EConstr.mkRel 2, *)
+  (*         EConstr.mkLambda( *)
+  (*           nameR (Names.Id.of_string "f"), *)
+  (*           EConstr.mkApp (eq_type, [| EConstr.mkRel 3; *)
+  (*                                      EConstr.mkRel 2; *)
+  (*                                      EConstr.mkRel 1 |]), *)
+  (*           EConstr.mkLambda( *)
+  (*             nameR (Names.Id.of_string "z"), *)
+  (*             EConstr.mkRel 4, *)
+  (*              EConstr.mkLambda( *)
+  (*                nameR (Names.Id.of_string "g"), *)
+  (*                EConstr.mkApp (eq_type, [| EConstr.mkRel 5; *)
+  (*                                           EConstr.mkRel 3; *)
+  (*                                           EConstr.mkRel 1 |]), *)
+  (*                body *)
+  (*              )))))) *)
 end
 
 let example file tm_names =
   run_catt_on_file file;
   let register_tm tm_name =
-    let ctx,tm =
-      match Environment.val_var (Var.Name tm_name) with
-      | Coh _ -> assert false
-      | Tm (ctx,tm) -> ctx,tm
-    in
     let env = Global.env () in
     let sigma = Evd.from_env env in
-    let sigma, body = Translate.tm env sigma ctx tm in
+    let sigma,body =
+      match Environment.val_var (Var.Name tm_name) with
+      | Coh c -> Translate.coh env sigma c
+      | Tm (ctx,tm) -> Translate.tm env sigma ctx tm
+    in
+    let _ = Feedback.msg_debug
+      (str "body:" ++
+       (Printer.pr_econstr_env env sigma body))
+    in
     let sigma, body = Typing.solve_evars env sigma body in
     let body = Evarutil.nf_evar sigma body in
     let info = Declare.Info.make () in
@@ -100,42 +207,3 @@ let example file tm_names =
       gr
   in
   List.iter register_tm tm_names
-
-
-  (* and coh_to_lambda env sigma obj_type eq_type refl coh = *)
-  (*   let ps,ty,_ = Coh.forget coh in *)
-  (*   let ctx = Unchecked.ps_to_ctx ps in *)
-  (*   let max_vars = [Var.Db 2; Var.Db 4] in *)
-  (*   let max_vars = *)
-  (*     List.map *)
-  (*       (fun x -> (Names.(Name.mk_name (Id.of_string (catt_var_to_coq_name x))))) *)
-  (*       max_vars *)
-  (*   in *)
-  (*   let ty = ty_to_lambda sigma obj_type eq_type refl ctx ty in *)
-  (*   let *)
-  (*     (eq_ind,universe),_ = Inductiveops.find_inductive env sigma eq_type *)
-  (*   in *)
-  (*   (\* let refl = match constr with *\) *)
-  (*   (\*     | [x] -> x *\) *)
-  (*   (\*     | _ -> assert false *\) *)
-  (*   (\* in *\) *)
-  (*   let rec body max_vars ret = *)
-  (*     match max_vars with *)
-  (*     | [] -> refl *)
-  (*     | m::max_vars -> *)
-  (*       let last_var = {binder_name = m; binder_relevance = Relevant} in *)
-  (*       let case_info = Inductiveops.make_case_info env eq_ind Relevant RegularStyle in *)
-  (*       let constructors = [| refl |] in *)
-  (*       let case_return = [|last_var|], ret in *)
-  (*       let case_invert = Constr.NoInvert in *)
-  (*       let case_branches = [| ([|last_var|], body max_vars ret) |] in *)
-  (*       let constructor = refl in *)
-  (*       let pcase = (case_info, *)
-  (*                    universe, *)
-  (*                    constructors, *)
-  (*                    case_return, *)
-  (*                    case_invert, *)
-  (*                    constructor, *)
-  (*                    case_branches) in *)
-  (*       EConstr.mkCase pcase in *)
-  (*   ctx_to_lambda sigma obj_type eq_type refl ctx (body max_vars ty) *)
