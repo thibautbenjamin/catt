@@ -5,3 +5,6 @@ coh identity (x) : x -> x
 coh composite (x(f)y(g)z) : x -> z
 coh ternarycomposite (x(f)y(g)z(h)w) : x -> w
 coh whisk (x(f(a)g)y(h)z) : comp f h -> comp g h
+
+coh hcomp (x(f(a)g)y(h(b)k)z) : comp f h -> comp g k
+coh vcomp (x(f(a)g(b)h)y) : f -> h
