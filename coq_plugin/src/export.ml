@@ -6,7 +6,6 @@ open Catt
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
-
 let run_catt_on_file f =
   Prover.reset();
   Command.exec ~loop_fn:Prover.loop (Prover.parse_file f)
@@ -36,9 +35,23 @@ module Translate : sig
   val coh : Environ.env -> evar_map -> Coh.t -> evar_map * econstr
 end = struct
 
-  let catt_to_coq_db ctx n = List.length ctx - n
-  let increment_db sigma var i =
-    EConstr.mkRel ((EConstr.destRel sigma var) + i)
+  let catt_to_coq_db ctx var =
+    match var with
+    | Var.Db n -> EConstr.mkRel (List.length ctx - n)
+    | _ -> assert false
+
+  let rec induction_vars ctx =
+    match ctx with
+    | [] -> []
+    | (_,(_,false))::ctx -> induction_vars ctx
+    | (x,(ty,true))::ctx ->
+      match ty with
+      | Obj -> []
+      | Meta_ty _ -> Error.fatal "unresolved meta variable"
+      | Arr(ty,s,_) ->
+        match s with
+        | Var s -> (x,s,ty)::induction_vars ctx
+        | _ -> assert false
 
   let rec ctx_to_lambda obj_type eq_type ctx inner_tm =
     match ctx with
@@ -78,30 +91,30 @@ end = struct
   let coh_to_lambda env sigma obj_type eq_type refl coh =
     let ps,ty,_ = Coh.forget coh in
     let ctx = Unchecked.ps_to_ctx ps in
-    let max_vars = [(6,3,Obj); (4,1,Obj); (2,0,Obj)] in
-    let ty = ty_to_lambda obj_type eq_type ctx ty in
+    let max_vars = induction_vars ctx in
+    let src,ty = match ty with
+      | Arr(ty,s,_) -> (tm_to_lambda obj_type eq_type ctx s,
+                        ty_to_lambda obj_type eq_type ctx ty)
+      | Obj | Meta_ty _ -> assert false
+    in
     let (eq_ind,univ),_ = Inductiveops.find_inductive env sigma eq_type in
     let catt_to_coq_db = catt_to_coq_db ctx in
-    let obj = ty_to_lambda obj_type eq_type ctx Obj in
-    let fst_var_coq = EConstr.mkRel (catt_to_coq_db 0) in
     let rec body max_vars ret =
       match max_vars with
       | [] ->
-        EConstr.mkApp (refl, [|obj; fst_var_coq |])
-      (* FIXME: general case: use the type of the coherence *)
+        EConstr.mkApp (refl, [|ty; src |])
       | (m,s,ty_m)::max_vars ->
         let v1 = {binder_name = Names.Name.Anonymous;
                   binder_relevance = Relevant}
         in
-        let m_coq = EConstr.mkRel (catt_to_coq_db m) in
-        let s_coq = EConstr.mkRel (catt_to_coq_db s) in
+        let m_coq = catt_to_coq_db m in
+        let s_coq = catt_to_coq_db s in
         let ty_m_coq = ty_to_lambda obj_type eq_type ctx ty_m in
         let ret = EConstr.mkApp (eq_type,
-                                 [| increment_db sigma obj 2;
-                                    increment_db sigma fst_var_coq 2;
+                                 [| EConstr.Vars.liftn 2 0 ty;
+                                    EConstr.Vars.liftn 2 0 src;
                                     EConstr.mkRel 2|])
         in
-        (* FIXME: General case: use the type of the coherence *)
         let case_return = [| v1; v1 |], ret in
         let case_branches =  [| ([| |], body max_vars ret) |] in
         let pcase = (Inductiveops.make_case_info env eq_ind Relevant RegularStyle,

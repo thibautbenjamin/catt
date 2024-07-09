@@ -17,7 +17,9 @@ Definition composition (A : Type) (x : A) (y : A) (f : x = y) (z : A) (g : y = z
 Set Printing All.
 Print composition.
 
-Catt "ternarycomposite" From File "../../test/coq_plugin.catt".
+Catt "identity" "composite" "ternarycomposite" From File "../../test/coq_plugin.catt".
+Print catt_identity.
+Print catt_composite.
 Print catt_ternarycomposite.
 
 
