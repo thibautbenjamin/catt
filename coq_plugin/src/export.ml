@@ -37,7 +37,7 @@ end = struct
 
   let catt_to_coq_db ctx var =
     match var with
-    | Var.Db n -> EConstr.mkRel (List.length ctx - n)
+    | Var.Db n -> let l = (List.length ctx - n) in EConstr.mkRel l, l
     | _ -> assert false
 
   let rec induction_vars ctx =
@@ -53,7 +53,28 @@ end = struct
         | Var s -> (x,s,ty)::induction_vars ctx
         | _ -> assert false
 
-  let rec ctx_to_lambda obj_type eq_type ctx inner_tm =
+  (* Abstract a locally maximal variable and its target. Crucially uses that a
+  target of a locally maximal variable must occurs just before said variable *)
+  let abstract env sigma econstr i_lm =
+    Feedback.msg_debug (str (Printf.sprintf "replacing %i in" i_lm) ++ (Printer.pr_econstr_env env sigma econstr));
+    (* let abs_lm = EConstr.mkRel 1 in *)
+    (* let abs_lmtgt = EConstr.mkRel 2 in *)
+    let lm_name = Names.Id.of_string "lm" in
+    let lm_tgt = Names.Id.of_string "tm_tgt" in
+    let econstr = EConstr.Vars.lift 2 econstr in
+    (* Feedback.msg_debug (str (Printf.sprintf "  shifted to") ++ (Printer.pr_econstr_env env sigma econstr)); *)
+    let econstr = EConstr.Vars.substnl [EConstr.mkVar lm_name; EConstr.mkVar lm_tgt] (i_lm + 1) econstr in
+    (* Feedback.msg_debug (str (Printf.sprintf "  replaced %i, result:" (i_lm + 2)) ++ (Printer.pr_econstr_env env sigma econstr)); *)
+    let econstr = EConstr.Vars.subst_vars Evd.empty [lm_name; lm_tgt] econstr in
+    (* Feedback.msg_debug (str "  replaced hello, result:" ++ (Printer.pr_econstr_env env sigma econstr)); *)
+    let econstr = EConstr.Vars.liftn 2 (i_lm + 2) econstr in
+    (* Feedback.msg_debug (str "  final result:" ++ (Printer.pr_econstr_env env sigma econstr)); *)
+    econstr
+
+  let instantiate econstr tysrc src refl =
+    EConstr.Vars.substl [EConstr.mkApp (refl,[|tysrc; src|]); src] econstr
+
+  let rec ctx_to_lambda env sigma obj_type eq_type refl ctx inner_tm =
     match ctx with
     | [] ->
       EConstr.mkLambda(nameR (Names.Id.of_string "catt_Obj"),
@@ -61,62 +82,66 @@ end = struct
                        inner_tm)
     | (x,(ty,_))::ctx ->
       ctx_to_lambda
+        env
+        sigma
         obj_type
         eq_type
+        refl
         ctx
         (EConstr.mkLambda
            (nameR (Names.Id.of_string (catt_var_to_coq_name x)),
-            ty_to_lambda obj_type eq_type ctx ty,
+            ty_to_lambda env sigma obj_type eq_type refl ctx ty,
             inner_tm))
-  and ty_to_lambda obj_type eq_type ctx ty =
+  and ty_to_lambda env sigma obj_type eq_type refl ctx ty =
     match ty with
     | Obj -> EConstr.mkRel ((List.length ctx) + 1)
     | Arr(ty,u,v) ->
-      let ty = ty_to_lambda obj_type eq_type ctx ty in
-      let u = tm_to_lambda obj_type eq_type ctx u in
-      let v = tm_to_lambda obj_type eq_type  ctx v in
+      let ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
+      let u = tm_to_lambda env sigma obj_type eq_type refl ctx u in
+      let v = tm_to_lambda env sigma obj_type eq_type refl ctx v in
       EConstr.mkApp (eq_type, [| ty; u; v |])
-    | Meta_ty _ -> Error.fatal "unresolved meta type variable"
-  and tm_to_lambda obj_type eq_type ctx tm =
+    | Meta_ty _ -> Error.fatal "unresolved type meta-variable"
+  and tm_to_lambda env sigma obj_type eq_type refl ctx tm =
     match tm with
     | Var x -> EConstr.mkRel (find_db ctx x)
-    | _ -> Error.fatal "only variables are supported for now"
-
-  let tm env sigma ctx tm =
-    let sigma,obj_type = Evarutil.new_Type sigma in
-    let sigma, eq_type = c_Q env sigma in
-    let tm = tm_to_lambda obj_type eq_type ctx tm in
-    sigma, ctx_to_lambda obj_type eq_type ctx tm
-
-  let coh_to_lambda env sigma obj_type eq_type refl coh =
+    | Coh(c,s) ->
+      let c = coh_to_lambda env sigma obj_type eq_type refl c in
+      let s = sub_ps_to_lambda env sigma obj_type eq_type refl ctx s in
+      EConstr.mkApp(c,s)
+    | Meta_tm _ -> Error.fatal "unresolved term meta-variable"
+  and sub_ps_to_lambda env sigma obj_type eq_type refl ctx sub_ps =
+    let l = List.length sub_ps in
+    let array = Array.make (l + 1) (EConstr.mkRel 0) in
+    let rec set_next i sub_ps =
+      match sub_ps with
+      | [] -> Array.set array 0 obj_type
+      | (t,_)::s ->
+        Array.set array i (tm_to_lambda env sigma obj_type eq_type refl ctx t);
+        set_next (i - 1) s
+    in set_next (l - 1) sub_ps; array
+  and coh_to_lambda env sigma obj_type eq_type refl coh =
     let ps,ty,_ = Coh.forget coh in
     let ctx = Unchecked.ps_to_ctx ps in
     let max_vars = induction_vars ctx in
-    let src,ty = match ty with
-      | Arr(ty,s,_) -> (tm_to_lambda obj_type eq_type ctx s,
-                        ty_to_lambda obj_type eq_type ctx ty)
-      | Obj | Meta_ty _ -> assert false
-    in
+    let ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
     let (eq_ind,univ),_ = Inductiveops.find_inductive env sigma eq_type in
     let catt_to_coq_db = catt_to_coq_db ctx in
-    let rec body max_vars ret =
+    let rec body max_vars ty =
       match max_vars with
       | [] ->
-        EConstr.mkApp (refl, [|ty; src |])
-      | (m,s,ty_m)::max_vars ->
+        let (_,args) = EConstr.destApp sigma ty in
+        EConstr.mkApp (refl, [|args.(0); args.(1)|])
+      | (m,s_m,ty_m)::max_vars ->
         let v1 = {binder_name = Names.Name.Anonymous;
                   binder_relevance = Relevant}
         in
-        let m_coq = catt_to_coq_db m in
-        let s_coq = catt_to_coq_db s in
-        let ty_m_coq = ty_to_lambda obj_type eq_type ctx ty_m in
-        let ret = EConstr.mkApp (eq_type,
-                                 [| EConstr.Vars.liftn 2 0 ty;
-                                    EConstr.Vars.liftn 2 0 src;
-                                    EConstr.mkRel 2|])
-        in
-        let case_return = [| v1; v1 |], ret in
-        let case_branches =  [| ([| |], body max_vars ret) |] in
+        let m_coq,i_lm = catt_to_coq_db m in
+        let s_coq,_ = catt_to_coq_db s_m in
+        let ty_m_coq = ty_to_lambda env sigma obj_type eq_type refl ctx ty_m in
+        let ty = abstract env sigma ty i_lm in
+        let case_return = [| v1; v1 |], ty in
+        let ty = instantiate ty ty_m_coq s_coq refl in
+        let case_branches =  [| ([| |], body max_vars ty) |] in
         let pcase = (Inductiveops.make_case_info env eq_ind Relevant RegularStyle,
                      univ,
                      [| ty_m_coq; s_coq |], (* parameters of inductive type *)
@@ -125,10 +150,17 @@ end = struct
                      m_coq , (* match m_coq in ... *)
                      case_branches) in
         EConstr.mkCase pcase in
-    ctx_to_lambda obj_type eq_type ctx (body max_vars ty)
+    ctx_to_lambda env sigma obj_type eq_type refl ctx (body max_vars ty)
+
+  let tm env sigma ctx tm =
+    let sigma, obj_type = Evarutil.new_Type sigma in
+    let sigma, eq_type = c_Q env sigma in
+    let sigma, refl = c_R env sigma in
+    let tm = tm_to_lambda env sigma obj_type eq_type refl ctx tm in
+    sigma, ctx_to_lambda env sigma obj_type eq_type refl ctx tm
 
   let coh env sigma coh =
-    let sigma,obj_type = Evarutil.new_Type sigma in
+    let sigma, obj_type = Evarutil.new_Type sigma in
     let sigma, eq_type = c_Q env sigma in
     let sigma, refl = c_R env sigma in
     sigma, coh_to_lambda env sigma obj_type eq_type refl coh

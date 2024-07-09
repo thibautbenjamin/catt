@@ -4,3 +4,4 @@ let fst_var (x : *) (y : *) (f : x -> y) (g : y -> x) = x
 coh identity (x) : x -> x
 coh composite (x(f)y(g)z) : x -> z
 coh ternarycomposite (x(f)y(g)z(h)w) : x -> w
+coh whisk (x(f(a)g)y(h)z) : comp f h -> comp g h
