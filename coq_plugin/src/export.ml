@@ -3,6 +3,7 @@ open Context
 open Evd
 (* open Pp *)
 open Catt
+open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
@@ -40,18 +41,39 @@ end = struct
     | Var.Db n -> let l = (List.length ctx - n) in EConstr.mkRel l, l
     | _ -> assert false
 
-  let rec induction_vars ctx =
-    match ctx with
-    | [] -> []
-    | (_,(_,false))::ctx -> induction_vars ctx
-    | (x,(ty,true))::ctx ->
-      match ty with
-      | Obj -> []
+  let induction_vars ps =
+    let rec find_vars_list lv start l onto =
+      match l with
+      | [] -> start+1, onto
+      | ps::l ->
+        let start, varsl = find_vars_list lv start l onto in
+        find_vars_ps lv (start+1) ps varsl
+    and find_vars_ps lv start ps onto =
+      let onto =
+        if lv > 0
+        then (Var.Db start)::onto
+        else onto
+      in
+      match ps with
+      | Br l  -> find_vars_list (lv+1) start l onto
+    in
+    snd (find_vars_ps 0 0 ps [])
+
+  let induction_data list_vars ctx =
+    let find_data var =
+      match fst (List.assoc var ctx) with
+      | Obj -> assert false
       | Meta_ty _ -> Error.fatal "unresolved meta variable"
       | Arr(ty,s,_) ->
         match s with
-        | Var s -> (x,s,ty)::induction_vars ctx
+        | Var s -> (var,s,ty)
         | _ -> assert false
+    in List.map find_data list_vars
+
+  (* let rec print_list l = *)
+  (*   match l with *)
+  (*   | [] -> "" *)
+  (*   | t::l -> (Var.to_string t) ^", " ^ (print_list l) *)
 
   (* Abstract a locally maximal variable and its target. Crucially uses that a
   target of a locally maximal variable must occurs just before said variable *)
@@ -116,16 +138,21 @@ end = struct
     let sigma, obj_type = Evarutil.new_Type sigma in
     let ps,ty,_ = Coh.forget coh in
     let ctx = Unchecked.ps_to_ctx ps in
-    let max_vars = induction_vars ctx in
+    let l_ind = induction_vars ps in
+    (* Io.debug "====== translation of coherence %s === ===" (Coh.to_string coh); *)
+    (* Io.debug "  ps: %s" (Unchecked.ps_to_string ps); *)
+    (* Io.debug "  context: %s" (Unchecked.ctx_to_string ctx); *)
+    (* Io.debug "  induction list: %s" (print_list l_ind); *)
+    let l_ind = induction_data l_ind ctx in
     let sigma,ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
     let (eq_ind,univ),_ = Inductiveops.find_inductive env sigma eq_type in
     let catt_to_coq_db = catt_to_coq_db ctx in
-    let rec body max_vars ty =
-      match max_vars with
+    let rec body l_ind ty =
+      match l_ind with
       | [] ->
         let (_,args) = EConstr.destApp sigma ty in
         EConstr.mkApp (refl, [|args.(0); args.(1)|])
-      | (m,s_m,ty_m)::max_vars ->
+      | (m,s_m,ty_m)::l_ind ->
         let v1 = {binder_name = Names.Name.Anonymous;
                   binder_relevance = Relevant}
         in
@@ -135,7 +162,7 @@ end = struct
         let ty = abstract env sigma ty i_lm in
         let case_return = [| v1; v1 |], ty in
         let ty = instantiate ty ty_m_coq s_coq refl in
-        let case_branches =  [| ([| |], body max_vars ty) |] in
+        let case_branches =  [| ([| |], body l_ind ty) |] in
         let pcase = (Inductiveops.make_case_info env eq_ind Relevant RegularStyle,
                      univ,
                      [| ty_m_coq; s_coq |], (* parameters of inductive type *)
@@ -144,7 +171,7 @@ end = struct
                      m_coq , (* match m_coq in ... *)
                      case_branches) in
         EConstr.mkCase pcase in
-    ctx_to_lambda env sigma obj_type eq_type refl ctx (body max_vars ty)
+    ctx_to_lambda env sigma obj_type eq_type refl ctx (body l_ind ty)
 
   let tm env sigma ctx tm =
     let sigma, obj_type = Evarutil.new_Type sigma in
