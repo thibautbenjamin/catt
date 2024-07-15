@@ -1,0 +1,4 @@
+(coq.theory
+ (name Catt)
+ (package catt)
+ (plugins catt.coq_plugin))

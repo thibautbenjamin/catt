@@ -1,0 +1,18 @@
+let disc (x : *) (y : *) (f : x -> y) = f
+let fst_var (x : *) (y : *) (f : x -> y) (g : y -> x) = x
+
+coh identity (x) : x -> x
+coh composite (x(f)y(g)z) : x -> z
+coh ternarycomposite (x(f)y(g)z(h)w) : x -> w
+coh whiskr (x(f(a)g)y(h)z) : comp f h -> comp g h
+coh whiskl (x(f)y(g(a)h)z) : comp f g -> comp f h
+
+coh hcomp (x(f(a)g)y(h(b)k)z) : comp f h -> comp g k
+coh vcomp (x(f(a)g(b)h)y) : f -> h
+coh assoc (x(f)y(g)z(h)w) : comp (comp f g) h -> comp f (comp g h)
+coh assocI (x(f)y(g)z(h)w) : comp f (comp g h) -> comp (comp f g) h
+coh assocU (x(f)y(g)z(h)w) : comp (assoc f g h) (assocI f g h) -> id (comp (comp f g) h)
+coh complex (x(f)y(g)z(h)w(k)v) : comp (assoc (comp f g) h k) (assocI (comp f g) h k) -> id (comp (comp (comp f g) h ) k)
+
+
+coh exch (x(f(a)g)y(h(b)k)z) : vcomp (whiskr a h) (whiskl g b) -> vcomp (whiskl f b) (whiskr a k)
