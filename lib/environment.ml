@@ -1,3 +1,4 @@
+open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
@@ -27,7 +28,7 @@ let add_let v c ?ty t =
   (t,ty)
 
 let add_coh v ps ty =
-  let coh = check_coh ps ty (Var.to_string v, 0, None) in
+  let coh = check_coh ps ty (Var.to_string v, 0,[]) in
   let dim_input = Unchecked.dim_ps ps in
   let dim_output = Unchecked.dim_ty ty in
   Io.info ~v:4

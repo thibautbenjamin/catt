@@ -71,7 +71,7 @@ and coh c op_data equiv =
            (fst (Unchecked.sub_ps_to_sub equiv p))
   in
   let name = Printf.sprintf "%s_op{%s}" name (op_data_to_string op_data) in
-  check_coh op_p t' (name,0,None)
+  check_coh op_p t' (name,0,[])
 
 let coh c op_data =
   let ps,_,_ = Coh.forget c in

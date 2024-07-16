@@ -1,4 +1,5 @@
 open Std
+open Common
 open Raw_types
 
 let string_of_builtin = function

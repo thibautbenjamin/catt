@@ -47,11 +47,11 @@ let compute_inverse t =
         (Printf.sprintf "term %s is not invertible" s)
 
 let group_vertically ps t src_t tgt_t =
-  let coh_unbiased = Coh.check_noninv ps src_t tgt_t ("unbiased_comp",0,None) in
+  let coh_unbiased = Coh.check_noninv ps src_t tgt_t ("unbiased_comp",0,[]) in
   let coh_vertically_grouped = Ps_reduction.coh coh_unbiased in
   let reduce = Ps_reduction.reduction_sub ps in
   let t_vertically_grouped = Coh(coh_vertically_grouped, reduce) in
-  Coh.check_inv ps t t_vertically_grouped ("vertical_grouping",0,None)
+  Coh.check_inv ps t t_vertically_grouped ("vertical_grouping",0,[])
 
 type lin_comp = {arity: int; dim: int;  sub_ps: sub_ps}
 

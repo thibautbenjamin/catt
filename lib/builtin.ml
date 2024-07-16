@@ -13,7 +13,7 @@ module Memo = struct
       res
 
   let id =
-    check_coh (Br[]) (Arr(Obj,Var(Db 0),Var(Db 0))) ("builtin_id", 0, None)
+    check_coh (Br[]) (Arr(Obj,Var(Db 0),Var(Db 0))) ("builtin_id", 0, [])
 end
 
 let rec ps_comp i =
@@ -27,7 +27,7 @@ let rec ps_comp i =
 let comp_n arity =
   let build_comp i =
     let ps = ps_comp i in
-    Coh.check_noninv ps (Var (Db 0)) (Var(Db 0)) ("builtin_comp", 0, None)
+    Coh.check_noninv ps (Var (Db 0)) (Var(Db 0)) ("builtin_comp", 0, [])
   in
   Memo.find arity build_comp
 
@@ -65,7 +65,7 @@ let id_all_max ps =
 let unbiased_unitor ps t =
   let bdry =  Unchecked.ps_bdry ps in
   let src =
-    let coh = Coh.check_noninv ps t t ("endo",0,None) in
+    let coh = Coh.check_noninv ps t t ("endo",0,[]) in
     Coh(coh, id_all_max ps)
   in
   let
@@ -74,4 +74,4 @@ let unbiased_unitor ps t =
   let da = Unchecked.dim_ty a in
   let sub_base = Unchecked.ty_to_sub_ps a in
   let tgt = Coh (Suspension.coh (Some da) id, (t,true)::sub_base) in
-  Coh.check_inv bdry src tgt ("unbiased_unitor",0,None)
+  Coh.check_inv bdry src tgt ("unbiased_unitor",0,[])

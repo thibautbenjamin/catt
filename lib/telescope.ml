@@ -1,3 +1,4 @@
+open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
@@ -33,7 +34,7 @@ let middle_associator k =
     in
     Coh(Builtin.comp_n (2*k-1), sub_assoc_middle)
   in
-  Coh.check_inv ps src tgt ("focus", 0, None)
+  Coh.check_inv ps src tgt ("focus", 0, [])
 
 (* returns the unitor cancelling the identity in the middle of a composite of
 (2*k+1) 1-cells. The argument is the integer k *)
@@ -59,16 +60,15 @@ let middle_unitor k =
     in
     Coh(Builtin.comp_n (2*k+1), sub_id_middle) in
   let tgt = Coh(Builtin.comp_n (2*k), Unchecked.(identity_ps ps)) in
-  Coh.check_inv ps src tgt ("unit", 0, None)
+  Coh.check_inv ps src tgt ("unit", 0, [])
 
 
 (* returns the whiskering rewriting the middle term of a composite of (2*k+1)
     1-cells. The argument is the integer k *)
 let middle_rewrite k =
   let comp = Builtin.comp_n (2*k+1) in
-  let func_data =
-    List.concat [(List.init k (fun _ -> 0)); [1]; (List.init k (fun _ -> 0))] in
-  Functorialisation.coh comp func_data
+  let func_data = [Var.Db (2*k+2)] in
+  Functorialisation.coh_depth0 comp func_data
 
 let tdb i = Var (Db i)
 
@@ -170,6 +170,7 @@ let rec telescope k =
        src_m1, false;
        tdb 0, false;
        tdb 0, false]
-    in Coh (comp, sub_telescope)
+    in
+    Coh (comp, sub_telescope)
 
 let checked k = check_term (Ctx.check (ctx k)) (telescope k)

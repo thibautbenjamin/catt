@@ -1,4 +1,6 @@
 set explicit_substitutions = f
+# set unroll_coherences = t
+# set print_explicit_substitutions = t
 
 let whiskl (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y -> z) = comp [a] h
 let whiskr (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (a : g -> h) = comp f [a]

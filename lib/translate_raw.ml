@@ -8,10 +8,11 @@ exception WrongNumberOfArguments
 let rec tm t =
   let make_coh coh s susp =
     let coh = Suspension.coh susp coh in
-    let coh = Functorialisation.coh coh (List.map snd s) in
     let ps,_,_ = Coh.forget coh in
-    let s, meta_types = sub_ps s ps in
-    Coh(coh,s), meta_types
+    let func = find_functorialisation s (Unchecked.ps_to_ctx ps) in
+    let coh,ctx = Functorialisation.coh_successively coh func in
+    let s, meta_types = sub s ctx in
+    Unchecked.tm_apply_sub coh s, meta_types
   in
   match t with
   | VarR v -> Var v, []
@@ -22,7 +23,8 @@ let rec tm t =
       | Tm(c,t) ->
         let c = Suspension.ctx susp c in
         let t = Suspension.tm susp t in
-        let c,t = Functorialisation.tm c t (List.map snd s) in
+        let func = find_functorialisation s c in
+        let t,c = Functorialisation.tm c t func in
         let s, meta_types = sub s c in
         Unchecked.tm_apply_sub t s, meta_types
     end;
@@ -41,42 +43,31 @@ let rec tm t =
     Inverse.compute_witness t, meta_ctx
   | Meta -> let m,meta_type = Meta.new_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
-  |Sub(Op _,_,_) | Sub (Inverse _,_,_) | Sub(Unit _,_,_)
+  | Sub(Op _,_,_) | Sub (Inverse _,_,_) | Sub(Unit _,_,_)
   | Sub(Builtin _, _,_) | Letin_tm _ -> Error.fatal("ill-formed term")
-and sub_ps s ps =
-  let tgt = Unchecked.ps_to_ctx ps in
-  let rec aux s tgt =
-    match s,tgt with
-    | [],[] -> [],[]
-    | (t,_)::s, (_,(_, true))::tgt ->
-      let t,meta_types_t = tm t in
-      let s,meta_types_s = aux s tgt in
-      (t, true)::s,  List.append meta_types_t meta_types_s
-    | (t,_)::s, (_,(_, false))::tgt when !Settings.explicit_substitutions ->
-      let t,meta_types_t = tm t in
-      let s,meta_types_s = aux s tgt in
-      (t, false)::s,  List.append meta_types_t meta_types_s
-    | s, (_,(_,false))::tgt ->
-      let t,meta_type = Meta.new_tm() in
-      let s,meta_types_s = aux s tgt in
-      (t, false)::s, meta_type::meta_types_s
-    | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
-  in aux s tgt
 and sub s tgt  =
   match s,tgt with
   | [],[] -> [],[]
   | (t,_)::s, (x,(_, e))::tgt when e || !Settings.explicit_substitutions ->
-    let t,meta_types_t = tm t in
-    let s,meta_types_s = sub s tgt in
-    (x,t)::s,  List.append meta_types_t meta_types_s
+    let t, meta_types_t = tm t in
+    let s, meta_types_s = sub s tgt in
+    (x,t)::s, List.append meta_types_t meta_types_s
   | (_::_) as s , (x,(_,_))::tgt ->
     let t, meta_type = Meta.new_tm() in
-    let s,meta_types_s = sub s tgt in
+    let s, meta_types_s = sub s tgt in
     (x, t)::s, meta_type::meta_types_s
   | [], (x,(_,false))::tgt ->
     let t, meta_type = Meta.new_tm() in
-    let s,meta_types_s = sub [] tgt in
+    let s, meta_types_s = sub [] tgt in
     (x, t)::s, meta_type::meta_types_s
+  | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
+and find_functorialisation s tgt =
+  match s,tgt with
+  | [],[] -> []
+  | (_,i)::s, (x,(_, e))::tgt when e || !Settings.explicit_substitutions ->
+    (x,i)::(find_functorialisation s tgt)
+  | (_::_) as s , (_,(_,_))::tgt -> find_functorialisation s tgt
+  | [], (_,(_,false))::_ -> []
   | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
 
 let tm t =

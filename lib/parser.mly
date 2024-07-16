@@ -1,4 +1,5 @@
 %{
+    open Common
     open Command
     open Raw_types
 

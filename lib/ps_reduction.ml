@@ -31,4 +31,4 @@ let coh c =
       Error.fatal "cannot reduce invertible coherences"
   else
     let src,tgt,_ = Coh.noninv_srctgt c in
-    Coh.check_noninv ps src tgt (name^"_red", 0, None)
+    Coh.check_noninv ps src tgt (name^"_red", 0, [])

@@ -3,12 +3,8 @@ open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
 exception FunctorialiseMeta
-exception WrongNumberOfArguments
 
-let cubical_comp = ref (fun _ -> Error.fatal "Uninitialised forward reference")
-let depth1_interchanger_src = ref (fun _ -> Error.fatal "Uninitialised forward reference")
-let depth1_interchanger_tgt = ref (fun _ -> Error.fatal "Uninitialised forward reference")
-let depth1_bridge_sub = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
 module Memo = struct
   let tbl_whisk = Hashtbl.create 97
@@ -21,63 +17,49 @@ module Memo = struct
       res
 end
 
+let rec next_round l =
+  match l with
+  | [] -> [],[]
+  | (_,0)::l ->
+    let vars,left = next_round l in
+    vars, left
+  | (v,n)::l when n >= 1 ->
+    let vars,left = next_round l in
+    v::vars, (Var.Bridge v,n-1)::left
+  | _ -> Error.fatal "cannot functorialise a negative number of times."
 
-(*
-   Takes a functorialisation data with a context and produces 2 pieces
-   of data :
-   - a list containing all variables that should be functorialised at least once
-   - a new functorialisation data with all integers decreased by one indicating
-   the functorialisation that are left to perform after functorialising
-   all the adequate variables once
-*)
-let list_functorialised c l =
-  let exp = !Settings.explicit_substitutions in
-  let rec list c l =
-    match c,l,exp with
-    | [],[],_ -> [],[]
-    | (x,(_, true))::tgt, xf::l, _ ->
-      let func, next = list tgt l in
-      (if xf > 0 then x::func else func), (xf-1)::next
-    | _::tgt, _::l, true -> list tgt l
-    | _::tgt, f::l, false -> list tgt (f::l)
-    | (_,(_, false))::tgt, [], false -> list tgt []
-    | (_,(_, false))::_, [], true
-    | _::_,[],_ |[],_::_,_ -> raise WrongNumberOfArguments
-  in list c l
-
-(* compute a new functorialisation data from an old functorialisation
-   data and a list of variables to be functorialised. This also needs
-   a context as argument, to establish the connection between the name
-   f the variables and their positions as locally maximal variables. *)
-let add_functorialisation c func l =
-  let rec add c func =
-    match c,func with
-    | [],[] -> []
-    | (x,_)::c,i::func when List.mem x l -> (i+1)::0::0::(add c func)
-    | (_,_)::c,i::func -> i::(add c func)
-    | _,_ -> assert false
+(* Functorialised coherences with respect to locally maximal variables are
+   coherences. This function updates the list of variables in the resulting
+   coherence that come from a functorialisation *)
+let compute_func_data l func =
+  let incr_db v i =
+    match v with
+    | Var.Db k -> Var.Db (k+i)
+    | _ -> assert false
   in
-  let rec make c =
-    match c with
-    | [] -> []
-    | (x,_)::c when List.mem x l -> 1::0::0::(make c)
-    | (_,_)::c -> 0::(make c)
+  let rec add_in func v =
+    match func with
+    | [] -> [((incr_db v 2),1)]
+    | (w,n)::func when v = w -> (incr_db v 2,n+1)::func
+    | (w,n)::func -> (incr_db w 2,n)::(add_in func v)
   in
-  match func with
-  | None -> make c
-  | Some func -> add c func
-
+  let rec add_all func l =
+    match l with
+    | [] -> func
+    | v::l ->
+      add_all (add_in func v) l
+  in add_all func l
 
 (*
    Given a context, a ps-substitution and a list of variables, returns
    the list of all variables in the context whose corresponding term
    in the substitution contains a variable from the input list
 *)
-let rec find_places ctx s l =
+let rec preimage ctx s l =
   match ctx,s with
   | [], [] -> []
-  | (x,_)::c,  (t,_)::s when Unchecked.tm_contains_vars t l -> x::(find_places c s l)
-  | _::c, _::s -> find_places c s l
+  | (x,_)::c,(t,_)::s when Unchecked.tm_contains_vars t l -> x::(preimage c s l)
+  | _::c, _::s -> preimage c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
 let rec tgt_subst l =
@@ -90,8 +72,12 @@ let rec whisk n j k =
   let build_whisk t =
     let n,j,k = t in
     let comp = Builtin.comp_n 2 in
-    let func_data = [k;j] in
-    Suspension.coh (Some(n)) (coh comp func_data)
+    let func_data = [(Var.Db 4, k);(Var.Db 2, j)] in
+    let whisk =
+      match coh_successively comp func_data with
+      | Coh(c,_),_ -> c
+      | _ -> assert false
+    in Suspension.coh (Some n) whisk
   in
   Memo.find_whisk (n,j,k) build_whisk
 
@@ -161,58 +147,47 @@ and ctx c l =
     (Var.Bridge(x),(tf,expl))::(Var.Plus(x),(ty_tgt,false))::(x,(t,false))::(ctx c l)
   | (x,a)::c -> (x,a)::(ctx c l)
 
-and coh_depth_1 coh l =
-  let intch_src,intch_src_ty = !depth1_interchanger_src coh l in
-  let intch_tgt,intch_tgt_ty = !depth1_interchanger_tgt coh l in
-  let base_ty,inner_src,inner_tgt,final_tgt = match intch_src_ty,intch_tgt_ty with
-    | Arr(b,_,s), Arr(_,t,t') -> b,s,t,t'
-    | _,_ -> assert false in
-  let c,src_sub_ps,tgt_sub_ps = match inner_src,inner_tgt with
-    | Coh(c,s), Coh(_,s') -> c,s,s'
-    | _,_ -> assert false in
-  let ps,_,_ = Coh.forget c in
-  let src_sub,_ctx = Unchecked.sub_ps_to_sub src_sub_ps ps in
-  let tgt_sub,_ = Unchecked.sub_ps_to_sub tgt_sub_ps ps in
-  let coh_l = List.filter_map (fun (s,t) -> try Unchecked.check_equal_tm (snd s) (snd t); None with NotEqual _ -> Some(fst s)) (List.combine src_sub tgt_sub) in
-  let cohf = coh_one_step c coh_l in
-  let bridge = !depth1_bridge_sub src_sub_ps tgt_sub_ps l in
-  let middle = Coh(cohf,bridge) in
-  (* Combine *)
-  let comp_sub_ps = List.concat [[intch_tgt,true;final_tgt,false;middle,true;inner_tgt,false;intch_src,true];Unchecked.ty_to_sub_ps intch_src_ty] in
-  let comp = Suspension.coh (Some((Unchecked.dim_ty base_ty))) (Builtin.comp_n 3) in
-  Coh(comp, comp_sub_ps)
-
-(*
-   Functorialisation of a coherence once with respect to a list of
-   variables
-*)
-and coh_one_step coh l =
+  (* Functorialisation of a coherence once with respect to a list of
+     variables *)
+and coh_depth0 coh l =
   let ps,t,(name,susp,func) = Coh.forget coh in
-  let c = Unchecked.ps_to_ctx ps in
-  let ctxf = ctx c l in
+  let ctxf = ctx (Unchecked.ps_to_ctx ps) l in
   let _,names,_ = Unchecked.db_levels ctxf in
   let psf = PS.forget (PS.mk (Ctx.check ctxf)) in
   let ty = ty t l (Coh(coh,Unchecked.identity_ps ps)) in
   let ty = Unchecked.rename_ty ty names in
-  let pp_data = (name,susp,Some(add_functorialisation c func l)) in
-  check_coh psf ty pp_data
+  let func_data = compute_func_data l func in
+  check_coh psf ty (name,susp,func_data)
 
-and coh_general coh l =
+and coh coh l =
   let ps,_,_ = Coh.forget coh in
-  let id = Unchecked.identity_ps ps in
   let c = Unchecked.ps_to_ctx ps in
-  let depth0 = List.for_all
-      (fun (x,(_,e)) -> (not(List.mem x l)) || e) c in
+  let depth0 =
+    List.for_all
+      (fun (x,(_,e)) -> (e || not(List.mem x l))) c
+  in
   let cohf = if depth0 then
-      let sf = sub id l in
-      let cohf = coh_one_step coh l in
-      Coh(cohf,sf)
-    else
-      coh_depth_1 coh l
-  in cohf
+       let id = Unchecked.identity_ps ps in
+       let sf = sub id l in
+       let pscf = ctx (Unchecked.ps_to_ctx ps) l in
+       let cohf = coh_depth0 coh l in
+       Coh(cohf,sf), pscf
+    else !coh_depth1 coh l
+  in
+  cohf
+
+and coh_successively c l  =
+  let l, next = next_round l in
+  if l = [] then
+    let ps,_,_ = Coh.forget c in
+    let id = Unchecked.identity_ps ps in
+    Coh(c,id), Unchecked.ps_to_ctx ps
+  else
+    let cohf,ctxf = coh c l in
+    tm ctxf cohf next
 
 (*
-   Functorialisation a term once with respect to a list of triples.
+   Functorialisation a term once with respect to a list of variables.
    Returns a list containing the functorialise term followed by its
    target and its source.
  *)
@@ -221,15 +196,14 @@ and tm_one_step t l expl =
   else
     match t with
     | Var v -> [Var (Var.Bridge v), expl; Var (Var.Plus v), false; Var v, false]
-    | Coh(coh,s) ->
+    | Coh(c,s) ->
       begin
         let t' = Unchecked.tm_apply_sub t (tgt_subst l) in
         let sf = sub s l in
-        let ps,_,_ = Coh.forget coh in
+        let ps,_,_ = Coh.forget c in
         let psc = Unchecked.ps_to_ctx ps in
-        let places = find_places psc s l in
-        let pscf = ctx psc places in
-        let cohf = coh_general coh places in
+        let places = preimage psc s l in
+        let cohf,pscf = coh c places in
         let subf = Unchecked.list_to_sub (List.map fst sf) pscf in
         let tm = Unchecked.tm_apply_sub cohf subf in
         [tm, expl; t', false; t, false]
@@ -244,59 +218,52 @@ and sub s l =
       (tm_one_step t l expl)
       (sub s l)
 
-(*
-   Functorialisation of a coherence possibly multiple times, with
-   respect to a functorialisation data
-*)
-and coh c s =
-  let ps,_,_ = Coh.forget c in
-  let ctx = Unchecked.ps_to_ctx ps in
-  let l, next = list_functorialised ctx s in
-  if l <> [] then coh (coh_one_step c l) next else c
-
-let rec tm c t s =
-  let l, next = list_functorialised c s in
+and tm c t s  =
+  let l, next = next_round s in
   if l <> [] then
     let c = ctx c l in
     let t = tm_one_step_tm t l in
     tm c t next
-  else c,t
+  else t,c
 
-(*
-   Functorialisation of a coherence: exposed function
-*)
-let coh c s =
-  try coh c s
+(* Functorialisation of a coherence: exposed function *)
+let coh c l =
+  try coh c l
   with
   | FunctorialiseMeta ->
     Error.functorialisation
       ("coherence: " ^ Coh.to_string c)
       (Printf.sprintf "cannot functorialise meta-variables")
-  | WrongNumberOfArguments ->
-    Error.parsing_error
+
+let coh_depth0 c l =
+  try coh_depth0 c l
+  with
+  | FunctorialiseMeta ->
+    Error.functorialisation
       ("coherence: " ^ Coh.to_string c)
-      "wrong number of arguments provided"
+      (Printf.sprintf "cannot functorialise meta-variables")
 
-(*
-   Functorialisation of a coherence once with respect to every maximal
-   argument
-*)
+let coh_successively c l =
+  try coh_successively c l
+  with
+  | FunctorialiseMeta ->
+    Error.functorialisation
+      ("coherence: " ^ Coh.to_string c)
+      (Printf.sprintf "cannot functorialise meta-variables")
+
+(* Functorialisation once with respect to every maximal argument *)
 let coh_all c =
-  let func_data_all ps =
-    let rec func_data n ps =
-      match ps,n with
-      | Br [],0 -> [1]
-      | Br [],_ -> [0]
-      | Br (ps::l),n -> List.append (func_data (n-1) ps) (List.concat (List.map (func_data (n-1)) l))
-    in func_data (Unchecked.dim_ps ps) ps
-  in
   let ps,_,_ = Coh.forget c in
-  let l = func_data_all ps in
-  coh c l
+  let ct = Unchecked.ps_to_ctx ps in
+  let d = Unchecked.dim_ps ps in
+  let l =
+    List.filter_map
+      (fun (x,(ty,_)) -> if Unchecked.dim_ty ty = d then Some x else None)
+      ct
+  in
+  coh_depth0 c l
 
-(*
-   Functorialisation a term: exposed function
-*)
+(* Functorialisation a term: exposed function *)
 let tm c t s =
   try tm c t s
   with
@@ -304,7 +271,3 @@ let tm c t s =
     Error.functorialisation
       ("term: " ^ Unchecked.tm_to_string t)
       (Printf.sprintf "cannot functorialise meta-variables")
-  | WrongNumberOfArguments ->
-    Error.parsing_error
-      ("term: " ^ (Unchecked.tm_to_string t))
-      "wrong number of arguments provided"

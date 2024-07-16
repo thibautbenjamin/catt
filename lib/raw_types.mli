@@ -1,3 +1,5 @@
+open Common
+
 type builtin =
   | Comp
   | Id
