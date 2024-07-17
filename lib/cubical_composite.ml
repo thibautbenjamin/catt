@@ -69,7 +69,7 @@ let ccomp_unary =
     let phase2_sub_contr = [(sqmm 0,true);(sqb 0,false)] in
     (* Phase 3 *)
     let phase3_sub_ps = sqb_sub_ps 0 in
-    let phase3_sub,_ = Unchecked.sub_ps_to_sub phase3_sub_ps (Builtin.ps_comp 2) in
+    let phase3_sub = Unchecked.sub_ps_to_sub phase3_sub_ps in
     let phase3 = Coh(Coh.check_inv (Builtin.ps_comp 2) unbias biasr ("builtin_biasr",0,[]),phase3_sub_ps) in
     let phase3_sub_contr = [(phase3,true);(Unchecked.tm_apply_sub biasr phase3_sub,false)] in
     (* Collate *)
@@ -125,7 +125,7 @@ let rec build_ccomp_n arity =
       let biasl = comp_binary (comp_n_l 0) (comp_n_r (arity-1)) (comp_binary (comp_n_l 0) (comp_n_r (arity-2)) (comp_n_tm (arity-1)) (comp_n_r (arity-1)) (comp_n_m (arity-1))) (comp_n_r arity) (comp_n_m arity) in
       let biasr = comp_binary (comp_n_l 0) (comp_n_r 0) (comp_n_m 0) (comp_n_r arity) (comp_binary (comp_n_l 1) (comp_n_r (arity-1)) (comp_kn_tm 1 (arity-1)) (comp_n_r arity) (comp_n_m arity)) in
       let sqb_corner_sub_ps = sqb_corner_comp_sub_ps (arity-1) in
-      let sqb_corner_sub = fst (Unchecked.sub_ps_to_sub sqb_corner_sub_ps ps) in
+      let sqb_corner_sub = Unchecked.sub_ps_to_sub sqb_corner_sub_ps in
       (* Phase 1 *)
       let phase1 = Coh(Coh.check_inv ps unbiasl biasl ("builtin_bias_left",0,[]), sqt_corner_comp_sub_ps (arity-1)) in
       (* Phase 2 *)
@@ -154,7 +154,7 @@ let depth1_interchanger_src coh l =
   (* Construct preimage locations *)
   let bdry = Unchecked.ps_bdry gamma in
   let tau = Unchecked.ps_tgt gamma in
-  let _,bdry_c = Unchecked.sub_ps_to_sub tau bdry in
+  let bdry_c = Unchecked.ps_to_ctx bdry in
   let l_tau = Functorialisation.preimage bdry_c tau l in
   (* Construct ps_bdry_f *)
   let bdry_f_ctx = Functorialisation.ctx bdry_c l_tau in
@@ -163,8 +163,8 @@ let depth1_interchanger_src coh l =
   let tau_f = Functorialisation.sub tau l in
   (* Construct composite context *)
   let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) gamma bdry_f in
-  let i1,_ = Unchecked.sub_ps_to_sub i1_ps gamma in
-  let i2,_ = Unchecked.sub_ps_to_sub i2_ps bdry_f in
+  let i1 = Unchecked.sub_ps_to_sub i1_ps in
+  let i2 = Unchecked.sub_ps_to_sub i2_ps in
   (* Construct source (t[i1]) * (tgt_f[i2]) *)
   let src,tgt,ty_base = Coh.noninv_srctgt coh in
   let tgt_f_ty = Functorialisation.ty ty_base l_tau tgt in
@@ -183,11 +183,11 @@ let depth1_interchanger_src coh l =
   let delta_ind = Unchecked.pullback_up (d-1) gamma_red bdry_f rho_gamma_i1 i2_ps in
   (* Construct target (comp delta_red src tgt) *)
   let coh_tgt_coh = Coh.check_noninv delta_red src tgt ((Unchecked.full_name name)^"_red",0,[]) in
-  let coh_tgt_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (fst (Unchecked.sub_ps_to_sub delta_ind delta)) in
+  let coh_tgt_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (Unchecked.sub_ps_to_sub delta_ind) in
   let coh_tgt = Coh(coh_tgt_coh, coh_tgt_sub_ps) in
   (* Construct map into pullback *)
   let phi_ind_sub_ps = Unchecked.pullback_up (d-1) gamma bdry_f (Unchecked.identity_ps gamma) tau_f in
-  let phi_ind,_ = Unchecked.sub_ps_to_sub phi_ind_sub_ps phi in
+  let phi_ind = Unchecked.sub_ps_to_sub phi_ind_sub_ps in
   (* Construct final coherence *)
   let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_src",0,[]) in
   let _,intch_ty,_ = Coh.forget intch_coh in
@@ -201,7 +201,7 @@ let depth1_interchanger_tgt coh l =
   (* Construct preimage locations *)
   let bdry = Unchecked.ps_bdry gamma in
   let sigma = Unchecked.ps_src gamma in
-  let _,bdry_c = Unchecked.sub_ps_to_sub sigma bdry in
+  let bdry_c = Unchecked.ps_to_ctx bdry in
   let l_sigma = Functorialisation.preimage bdry_c sigma l in
   (* Construct ps_bdry_f *)
   let bdry_f_ctx = Functorialisation.ctx bdry_c l_sigma in
@@ -210,8 +210,8 @@ let depth1_interchanger_tgt coh l =
   let sigma_f = Functorialisation.sub sigma l in
   (* Construct composite context *)
   let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) bdry_f gamma in
-  let i1,_ = Unchecked.sub_ps_to_sub i1_ps bdry_f in
-  let i2,_ = Unchecked.sub_ps_to_sub i2_ps gamma in
+  let i1 = Unchecked.sub_ps_to_sub i1_ps in
+  let i2 = Unchecked.sub_ps_to_sub i2_ps in
   (* Construct target (src_f[i1]) * (t[i2]) *)
   let src,tgt,ty_base = Coh.noninv_srctgt coh in
   let src_f_ty = Functorialisation.ty ty_base l_sigma src in
@@ -230,11 +230,11 @@ let depth1_interchanger_tgt coh l =
   let delta_ind = Unchecked.pullback_up (d-1) bdry_f gamma_red i1_ps rho_gamma_i2 in
   (* Construct source (comp delta_red src tgt) *)
   let coh_src_coh = Coh.check_noninv delta_red src tgt ((Unchecked.full_name name)^"_red",0,[]) in
-  let coh_src_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (fst (Unchecked.sub_ps_to_sub delta_ind delta)) in
+  let coh_src_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (Unchecked.sub_ps_to_sub delta_ind) in
   let coh_src = Coh(coh_src_coh, coh_src_sub_ps) in
   (* Construct map into pullback *)
   let phi_ind_sub_ps = Unchecked.pullback_up (d-1) bdry_f gamma sigma_f (Unchecked.sub_ps_apply_sub (Unchecked.identity_ps gamma) (Functorialisation.tgt_subst l)) in
-  let phi_ind,_ = Unchecked.sub_ps_to_sub phi_ind_sub_ps phi in
+  let phi_ind = Unchecked.sub_ps_to_sub phi_ind_sub_ps in
   (* Construct final coherence *)
   let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_tgt",0,[]) in
   let _,intch_ty,_ = Coh.forget intch_coh in
@@ -285,11 +285,9 @@ let coh_depth1 coh l =
   let c,src_sub_ps,tgt_sub_ps =
     match inner_src,inner_tgt with
     | Coh(c,s), Coh(_,s') -> c,s,s'
-    | _,_ -> assert false
-  in
-  let p,_,_ = Coh.forget c in
-  let src_sub,_ = Unchecked.sub_ps_to_sub src_sub_ps p in
-  let tgt_sub,_ = Unchecked.sub_ps_to_sub tgt_sub_ps p in
+    | _,_ -> assert false in
+  let src_sub = Unchecked.sub_ps_to_sub src_sub_ps in
+  let tgt_sub = Unchecked.sub_ps_to_sub tgt_sub_ps in
   let coh_l = List.filter_map
                 (fun (s,t) -> try
                                 Unchecked.check_equal_tm (snd s) (snd t); None

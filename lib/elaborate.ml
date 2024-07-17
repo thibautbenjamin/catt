@@ -183,7 +183,8 @@ module Constraints_typing = struct
     | Var v -> t, fst (List.assoc v ctx)
     | Meta_tm i -> t, List.assoc i meta_ctx
     | Coh(c,s)-> let ps,ty,_ = Coh.forget c in
-      let s1,tgt = Unchecked.sub_ps_to_sub s ps in
+      let tgt = Unchecked.ps_to_ctx ps in
+      let s1 = Unchecked.sub_ps_to_sub s in
       let s1 = sub ctx meta_ctx s1 tgt cst in
       Coh(c,(List.map2 (fun (_,t) (_,expl) -> t,expl) s1 s)), Unchecked.ty_apply_sub ty s1
   and sub src meta_ctx s tgt cst =

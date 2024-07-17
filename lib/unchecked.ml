@@ -362,20 +362,24 @@ struct
     let canonical_inclusions l = let incls,_ = canonical_inclusions l in incls
     let ps_to_ctx ps = (ps_to_ctx_rp ps).ctx
 
-    let sub_ps_to_sub s ps =
-      let ps = ps_to_ctx ps in
-      try List.map2 (fun (t,_) (x,_) -> (x,t)) s ps, ps
-      with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
+    let sub_ps_to_sub s =
+      let rec aux s =
+        match s with
+        | [] -> [],0
+        | (t,_)::s ->
+          let s,i = aux s in
+          (Var.Db i,t)::s, i+1
+      in fst (aux s)
 
     let suspwedge_subs_ps list_subs list_ps =
       let incls = canonical_inclusions list_ps in
       wedge_sub_ps
-        (List.map3
-           (fun s ps i ->
+        (List.map2
+           (fun s i ->
               sub_ps_apply_sub
                 (suspend_sub_ps s)
-                (fst (sub_ps_to_sub i (suspend_ps ps))))
-           list_subs list_ps incls)
+                (sub_ps_to_sub i))
+           list_subs incls)
 
     let opsuspwedge_subs_ps list_subs list_ps =
       let rec swap_bp sub =
@@ -386,12 +390,12 @@ struct
       in
       let incls = canonical_inclusions list_ps in
       wedge_sub_ps
-        (List.map3
-           (fun s ps i ->
+        (List.map2
+           (fun s i ->
               sub_ps_apply_sub
                 (swap_bp (suspend_sub_ps s))
-                (fst (sub_ps_to_sub i (suspend_ps ps))))
-           (List.rev list_subs) (List.rev list_ps) (List.rev incls))
+                (sub_ps_to_sub i))
+           (List.rev list_subs) (List.rev incls))
 
     let rec ps_bdry i ps =
       match ps with
@@ -450,8 +454,8 @@ struct
       | i, Br l1, Br l2, s1, s2 ->
         let incls1 = canonical_inclusions l1 in
         let incls2 = canonical_inclusions l2 in
-        let s1,_ = sub_ps_to_sub s1 ps1 in
-        let s2,_ = sub_ps_to_sub s2 ps2 in
+        let s1 = sub_ps_to_sub s1 in
+        let s2 = sub_ps_to_sub s2 in
         let ls =
           List.map4 (fun ps1 ps2 i1 i2 ->
               let s1 = sub_ps_to_sub_ps_bp (sub_ps_apply_sub i1 s1) in
@@ -504,8 +508,8 @@ struct
       match t with
       | Coh(coh,s) ->
         begin
-          let ps,ty,_ = Coh.forget coh in
-          let sub,_ = sub_ps_to_sub s ps in
+          let _,ty,_ = Coh.forget coh in
+          let sub = sub_ps_to_sub s in
           (t,true)::(ty_to_sub_ps (ty_apply_sub ty sub))
         end
       | _ -> Error.fatal "can only convert coh to sub ps"

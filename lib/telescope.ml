@@ -140,8 +140,8 @@ let rec telescope k =
     let comp = Suspension.coh (Some 1) (Builtin.comp_n 4) in
     let tm_src_tgt coh sub_ps =
       match Coh.forget coh with
-      | ps,Arr(_,t,u),_ ->
-        let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
+      | _,Arr(_,t,u),_ ->
+        let sub = Unchecked.sub_ps_to_sub sub_ps in
         Coh(coh,sub_ps),
         Unchecked.tm_apply_sub t sub,
         Unchecked.tm_apply_sub u sub

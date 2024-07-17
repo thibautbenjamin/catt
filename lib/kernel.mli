@@ -76,7 +76,7 @@ module Unchecked : sig
   val rename_ty : ty -> (Var.t * int) list -> ty
   val tm_contains_var : tm -> Var.t -> bool
   val tm_contains_vars : tm -> Var.t list -> bool
-  val sub_ps_to_sub : sub_ps -> ps -> sub * ctx
+  val sub_ps_to_sub : sub_ps -> sub
   val suspend_ps : ps -> ps
   val suspend_ty : ty -> ty
   val suspend_tm : tm -> tm
