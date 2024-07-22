@@ -271,3 +271,7 @@ let tm c t s =
     Error.functorialisation
       ("term: " ^ Unchecked.tm_to_string t)
       (Printf.sprintf "cannot functorialise meta-variables")
+
+let ps p l =
+  let c = ctx (Unchecked.ps_to_ctx p) l in
+  PS.(forget (mk (Ctx.check c)))

@@ -472,6 +472,14 @@ struct
       | Coh(_,s) -> List.exists (fun (t,_) -> tm_contains_var t x) s
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
+  let rec ty_contains_var a x =
+    match a with
+    | Obj -> false
+    | Arr(a,t,u) -> tm_contains_var t x
+                      || tm_contains_var u x
+                           || ty_contains_var a x
+    | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
+
     let tm_contains_vars t l =
       List.exists (tm_contains_var t) l
 

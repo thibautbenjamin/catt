@@ -272,29 +272,68 @@ let rec depth1_bridge_sub src_sub tgt_sub l =
     end
   | _,_ -> assert false
 
+(* Given a context, a ps-sub and a list of variables, returns
+   the list of all depth 0 variables in the context whose corresponding term
+   in the substitution contains a variable from the input list *)
+let rec depth0_preimage ctx s l d =
+  match ctx,s with
+  | [], [] -> []
+  | (x,(ty,true))::c,(t,_)::s
+      when Unchecked.tm_contains_vars t l && (Unchecked.dim_ty ty = d) ->
+    x::(depth0_preimage c s l d)
+  | _::c, _::s -> depth0_preimage c s l d
+  | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
+
+let image ctx sub l =
+  let idx_image v =
+    match List.assoc v sub with
+    | Coh _ | Meta_tm _ -> Error.fatal "image can only be taken with variables"
+    | Var v -> v
+  in
+  let rec discard_non_closed l =
+    match l with
+    | [] -> []
+    | v::l ->
+      let closure = List.filter (fun (_,(ty,_)) -> Unchecked.ty_contains_var ty v) ctx in
+      if List.for_all (fun (x,_) -> List.mem x l) closure
+      then v::(discard_non_closed l)
+      else (discard_non_closed l)
+  in
+  let img = List.map idx_image l in
+  discard_non_closed img
+
+(* Pasting scheme (Γ_red * ∂Γ_f)red = (∂Γ_f * Γ_red)red = (Γ * ∂Γ_f)_red *)
+let bridge_ps ps l =
+  let d = Unchecked.dim_ps ps in
+  let bdry = Unchecked.ps_bdry ps in
+  let sigma = Unchecked.ps_src ps in
+  let src_preim = Functorialisation.preimage (Unchecked.ps_to_ctx bdry) sigma l in
+  let bdry_f = Functorialisation.ps bdry src_preim in
+  let ps,_,i2 = Unchecked.ps_compose (d-1) bdry_f ps in
+  let i2 = Unchecked.sub_ps_to_sub i2 in
+  let ps_c = Unchecked.ps_to_ctx ps in
+  let red_sub = Ps_reduction.reduction_sub ps in
+  let ps_red = Ps_reduction.reduce (d-1) ps in
+  let coh_l = depth0_preimage (Unchecked.ps_to_ctx ps_red) red_sub (image ps_c i2 l) d in
+  ps_red, coh_l
 
 let coh_depth1 coh l =
-  let ps,_,_ = Coh.forget coh in
   let intch_src,intch_src_ty = depth1_interchanger_src coh l in
   let intch_tgt,intch_tgt_ty = depth1_interchanger_tgt coh l in
+  let ps,_,name = Coh.forget coh in
+  let src,tgt,_ = Coh.noninv_srctgt coh in
+  let ps_bridge, coh_l = bridge_ps ps l in
+  let coh_bridge = Coh.check_noninv ps_bridge src tgt (Unchecked.full_name name^"red",0,[]) in
   let base_ty,inner_src,inner_tgt,final_tgt =
     match intch_src_ty,intch_tgt_ty with
     | Arr(b,_,s), Arr(_,t,t') -> b,s,t,t'
     | _,_ -> assert false
   in
-  let c,src_sub_ps,tgt_sub_ps =
+  let src_sub_ps,tgt_sub_ps =
     match inner_src,inner_tgt with
-    | Coh(c,s), Coh(_,s') -> c,s,s'
+    | Coh(_,s), Coh(_,s') -> s,s'
     | _,_ -> assert false in
-  let src_sub = Unchecked.sub_ps_to_sub src_sub_ps in
-  let tgt_sub = Unchecked.sub_ps_to_sub tgt_sub_ps in
-  let coh_l = List.filter_map
-                (fun (s,t) -> try
-                                Unchecked.check_equal_tm (snd s) (snd t); None
-                              with NotEqual _ -> Some(fst s))
-                (List.combine src_sub tgt_sub)
-  in
-  let cohf = Functorialisation.coh_depth0 c coh_l in
+  let cohf = Functorialisation.coh_depth0 coh_bridge coh_l in
   let bridge = depth1_bridge_sub src_sub_ps tgt_sub_ps l in
   let middle = Coh(cohf, bridge) in
   (* Combine *)
