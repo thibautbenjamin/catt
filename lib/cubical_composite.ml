@@ -147,9 +147,9 @@ and ccomp_n arity =
 (*
 https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVycmlnaHRhcnJvd3tcXHBhcnRpYWxcXEdhbW1hfV57WF9cXHRhdX0iXSxbMCwzLCJcXEdhbW1hIl0sWzAsMSwiXFxHYW1tYV57cmVkfSJdLFsxLDIsIlxcRGVsdGEiXSxbMSwzLCJcXFBoaSJdLFszLDIsIlxcRGVsdGFee3JlZH0iXSxbMSw0LCJcXG92ZXJyaWdodGFycm93e1xcR2FtbWF9XlgiXSxbMCwxLCJcXHNpZ21hIl0sWzAsMiwiXFx0YXUiLDEseyJsYWJlbF9wb3NpdGlvbiI6NzAsImN1cnZlIjo1fV0sWzMsMiwiXFxyaG9fXFxHYW1tYSIsMl0sWzAsMywiXFx0YXVfciIsMV0sWzEsNCwial8yIiwxXSxbMyw0LCJqXzEiLDFdLFs0LDAsIiIsMCx7InN0eWxlIjp7Im5hbWUiOiJjb3JuZXIifX1dLFs0LDUsIiIsMCx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6ImRhc2hlZCJ9fX1dLFsyLDUsImlfMSIsMV0sWzEsNSwiaV8yIiwxXSxbNSwwLCIiLDEseyJzdHlsZSI6eyJuYW1lIjoiY29ybmVyIn19XSxbNiw0LCJcXHJob19cXERlbHRhIiwxLHsiY3VydmUiOjF9XSxbMiw3XSxbMSw3LCJcXG92ZXJyaWdodGFycm93e1xcdGF1fV5YIiwxLHsiY3VydmUiOi0zfV0sWzUsNywiIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV1d
  *)
-let depth1_interchanger_src coh l =
+let depth1_interchanger_src coh coh_bridge l =
   (* Setup *)
-  let gamma,coh_ty,name = Coh.forget coh in
+  let gamma,coh_ty,_ = Coh.forget coh in
   let d = Unchecked.dim_ps gamma in
   (* Construct preimage locations *)
   let bdry = Unchecked.ps_bdry gamma in
@@ -166,7 +166,7 @@ let depth1_interchanger_src coh l =
   let i1 = Unchecked.sub_ps_to_sub i1_ps in
   let i2 = Unchecked.sub_ps_to_sub i2_ps in
   (* Construct source (t[i1]) * (tgt_f[i2]) *)
-  let src,tgt,ty_base = Coh.noninv_srctgt coh in
+  let _,tgt,ty_base = Coh.noninv_srctgt coh in
   let tgt_f_ty = Functorialisation.ty ty_base l_tau tgt in
   let tgt_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub tgt_f_ty bdry_f_db) i2 in
   let tgt_f = Functorialisation.tm_one_step_tm tgt l_tau in
@@ -176,15 +176,13 @@ let depth1_interchanger_src coh l =
   (* Construct reduced context *)
   let gamma_red = Ps_reduction.reduce (d-1) gamma in
   let delta,_,_ = Unchecked.ps_compose (d-1) gamma_red bdry_f in
-  let delta_red = Ps_reduction.reduce (d-1) delta in
   let rho_delta = Ps_reduction.reduction_sub delta in
   (* Construct biased reduction sub from phi to delta_red *)
   let rho_gamma_i1 = Unchecked.sub_ps_apply_sub (Ps_reduction.reduction_sub gamma) i1 in
   let delta_ind = Unchecked.pullback_up (d-1) gamma_red bdry_f rho_gamma_i1 i2_ps in
   (* Construct target (comp delta_red src tgt) *)
-  let coh_tgt_coh = Coh.check_noninv delta_red src tgt ((Unchecked.full_name name)^"_red",0,[]) in
   let coh_tgt_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (Unchecked.sub_ps_to_sub delta_ind) in
-  let coh_tgt = Coh(coh_tgt_coh, coh_tgt_sub_ps) in
+  let coh_tgt = Coh(coh_bridge, coh_tgt_sub_ps) in
   (* Construct map into pullback *)
   let phi_ind_sub_ps = Unchecked.pullback_up (d-1) gamma bdry_f (Unchecked.identity_ps gamma) tau_f in
   let phi_ind = Unchecked.sub_ps_to_sub phi_ind_sub_ps in
@@ -194,9 +192,9 @@ let depth1_interchanger_src coh l =
   let intch = Coh(intch_coh,phi_ind_sub_ps) in
   intch, Unchecked.ty_apply_sub intch_ty phi_ind
 
-let depth1_interchanger_tgt coh l =
+let depth1_interchanger_tgt coh coh_bridge l =
   (* Setup *)
-  let gamma,coh_ty,name = Coh.forget coh in
+  let gamma,coh_ty,_ = Coh.forget coh in
   let d = Unchecked.dim_ps gamma in
   (* Construct preimage locations *)
   let bdry = Unchecked.ps_bdry gamma in
@@ -213,7 +211,7 @@ let depth1_interchanger_tgt coh l =
   let i1 = Unchecked.sub_ps_to_sub i1_ps in
   let i2 = Unchecked.sub_ps_to_sub i2_ps in
   (* Construct target (src_f[i1]) * (t[i2]) *)
-  let src,tgt,ty_base = Coh.noninv_srctgt coh in
+  let src,_,ty_base = Coh.noninv_srctgt coh in
   let src_f_ty = Functorialisation.ty ty_base l_sigma src in
   let src_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub src_f_ty bdry_f_db) i1 in
   let src_f = Functorialisation.tm_one_step_tm src l_sigma in
@@ -223,15 +221,13 @@ let depth1_interchanger_tgt coh l =
   (* Construct reduced context *)
   let gamma_red = Ps_reduction.reduce (d-1) gamma in
   let delta,_,_ = Unchecked.ps_compose (d-1) bdry_f gamma_red in
-  let delta_red = Ps_reduction.reduce (d-1) delta in
   let rho_delta = Ps_reduction.reduction_sub delta in
   (* Construct biased reduction sub from phi to delta_red *)
   let rho_gamma_i2 = Unchecked.sub_ps_apply_sub (Ps_reduction.reduction_sub gamma) i2 in
   let delta_ind = Unchecked.pullback_up (d-1) bdry_f gamma_red i1_ps rho_gamma_i2 in
   (* Construct source (comp delta_red src tgt) *)
-  let coh_src_coh = Coh.check_noninv delta_red src tgt ((Unchecked.full_name name)^"_red",0,[]) in
   let coh_src_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (Unchecked.sub_ps_to_sub delta_ind) in
-  let coh_src = Coh(coh_src_coh, coh_src_sub_ps) in
+  let coh_src = Coh(coh_bridge, coh_src_sub_ps) in
   (* Construct map into pullback *)
   let phi_ind_sub_ps = Unchecked.pullback_up (d-1) bdry_f gamma sigma_f (Unchecked.sub_ps_apply_sub (Unchecked.identity_ps gamma) (Functorialisation.tgt_subst l)) in
   let phi_ind = Unchecked.sub_ps_to_sub phi_ind_sub_ps in
@@ -318,12 +314,12 @@ let bridge_ps ps l =
   ps_red, coh_l
 
 let coh_depth1 coh l =
-  let intch_src,intch_src_ty = depth1_interchanger_src coh l in
-  let intch_tgt,intch_tgt_ty = depth1_interchanger_tgt coh l in
   let ps,_,name = Coh.forget coh in
   let src,tgt,_ = Coh.noninv_srctgt coh in
   let ps_bridge, coh_l = bridge_ps ps l in
   let coh_bridge = Coh.check_noninv ps_bridge src tgt (Unchecked.full_name name^"red",0,[]) in
+  let intch_src,intch_src_ty = depth1_interchanger_src coh coh_bridge l in
+  let intch_tgt,intch_tgt_ty = depth1_interchanger_tgt coh coh_bridge l in
   let base_ty,inner_src,inner_tgt,final_tgt =
     match intch_src_ty,intch_tgt_ty with
     | Arr(b,_,s), Arr(_,t,t') -> b,s,t,t'
