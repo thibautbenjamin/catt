@@ -143,6 +143,52 @@ let rec build_ccomp_n arity =
 and ccomp_n arity =
   Memo.find_ccomp arity build_ccomp_n
 
+
+let naturality_src t gamma ty tgt ty_base dim l i1 i2 =
+  let bdry = Unchecked.ps_bdry gamma in
+  let tau = Unchecked.ps_tgt gamma in
+  let bdry_c = Unchecked.ps_to_ctx bdry in
+  let l_tau = Functorialisation.preimage bdry_c tau l in
+  let bdry_f_ctx = Functorialisation.ctx bdry_c l_tau in
+  let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
+  let tgt_f_ty = Functorialisation.ty ty_base l_tau tgt in
+  let tgt_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub tgt_f_ty bdry_f_db) i2 in
+  let tgt_f = Functorialisation.tm_one_step_tm tgt l_tau in
+  let tgt_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub tgt_f bdry_f_db) i2 in
+  let coh_src_sub_ps = Functorialisation.whisk_sub_ps 0 t (Unchecked.ty_apply_sub ty i1) tgt_f tgt_f_ty in
+  Coh(Functorialisation.whisk (dim-1) 0 0,coh_src_sub_ps)
+
+(* Construct source (t[i1]) * (tgt_f[i2]) *)
+(* let naturality_src coh gamma ty tgt ty_base dim l i1 i2 = *)
+(*   let t = Coh(coh, Unchecked.identity_ps gamma) in *)
+(*   let bdry = Unchecked.ps_bdry gamma in *)
+(*   let tau = Unchecked.ps_tgt gamma in *)
+(*   let bdry_c = Unchecked.ps_to_ctx bdry in *)
+(*   let l_tau = Functorialisation.preimage bdry_c tau l in *)
+(*   let bdry_f_ctx = Functorialisation.ctx bdry_c l_tau in *)
+(*   let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in *)
+(*   let tgt_f_ty = Functorialisation.ty ty_base l_tau tgt in *)
+(*   let tgt_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub tgt_f_ty bdry_f_db) i2 in *)
+(*   let tgt_f = Functorialisation.tm_one_step_tm tgt l_tau in *)
+(*   let tgt_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub tgt_f bdry_f_db) i2 in *)
+(*   let coh_src_sub_ps = Functorialisation.whisk_sub_ps 0 t ty tgt_f tgt_f_ty in *)
+(*   Coh(Functorialisation.whisk (dim-1) 0 0,coh_src_sub_ps) *)
+
+(* Construct target (src_f[i1]) * (t[i2]) *)
+let naturality_tgt t gamma ty src ty_base dim l i1 i2 =
+  let bdry = Unchecked.ps_bdry gamma in
+  let sigma = Unchecked.ps_src gamma in
+  let bdry_c = Unchecked.ps_to_ctx bdry in
+  let l_sigma = Functorialisation.preimage bdry_c sigma l in
+  let bdry_f_ctx = Functorialisation.ctx bdry_c l_sigma in
+  let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
+  let src_f_ty = Functorialisation.ty ty_base l_sigma src in
+  let src_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub src_f_ty bdry_f_db) i1 in
+  let src_f = Functorialisation.tm_one_step_tm src l_sigma in
+  let src_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub src_f bdry_f_db) i1 in
+  let coh_tgt_sub_ps = Functorialisation.whisk_sub_ps 0 src_f src_f_ty t (Unchecked.ty_apply_sub ty i2) in
+  Coh(Functorialisation.whisk (dim-1) 0 0,coh_tgt_sub_ps)
+
 (* Interchange needed for source of depth-1 non-inv coh *)
 (*
 https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVycmlnaHRhcnJvd3tcXHBhcnRpYWxcXEdhbW1hfV57WF9cXHRhdX0iXSxbMCwzLCJcXEdhbW1hIl0sWzAsMSwiXFxHYW1tYV57cmVkfSJdLFsxLDIsIlxcRGVsdGEiXSxbMSwzLCJcXFBoaSJdLFszLDIsIlxcRGVsdGFee3JlZH0iXSxbMSw0LCJcXG92ZXJyaWdodGFycm93e1xcR2FtbWF9XlgiXSxbMCwxLCJcXHNpZ21hIl0sWzAsMiwiXFx0YXUiLDEseyJsYWJlbF9wb3NpdGlvbiI6NzAsImN1cnZlIjo1fV0sWzMsMiwiXFxyaG9fXFxHYW1tYSIsMl0sWzAsMywiXFx0YXVfciIsMV0sWzEsNCwial8yIiwxXSxbMyw0LCJqXzEiLDFdLFs0LDAsIiIsMCx7InN0eWxlIjp7Im5hbWUiOiJjb3JuZXIifX1dLFs0LDUsIiIsMCx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6ImRhc2hlZCJ9fX1dLFsyLDUsImlfMSIsMV0sWzEsNSwiaV8yIiwxXSxbNSwwLCIiLDEseyJzdHlsZSI6eyJuYW1lIjoiY29ybmVyIn19XSxbNiw0LCJcXHJob19cXERlbHRhIiwxLHsiY3VydmUiOjF9XSxbMiw3XSxbMSw3LCJcXG92ZXJyaWdodGFycm93e1xcdGF1fV5YIiwxLHsiY3VydmUiOi0zfV0sWzUsNywiIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV1d
@@ -150,6 +196,7 @@ https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVyc
 let depth1_interchanger_src coh coh_bridge l =
   (* Setup *)
   let gamma,coh_ty,_ = Coh.forget coh in
+  let _,tgt,ty_base = Coh.noninv_srctgt coh in
   let d = Unchecked.dim_ps gamma in
   (* Construct preimage locations *)
   let bdry = Unchecked.ps_bdry gamma in
@@ -158,21 +205,13 @@ let depth1_interchanger_src coh coh_bridge l =
   let l_tau = Functorialisation.preimage bdry_c tau l in
   (* Construct ps_bdry_f *)
   let bdry_f_ctx = Functorialisation.ctx bdry_c l_tau in
-  let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
   let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f_ctx)) in
   let tau_f = Functorialisation.sub tau l in
   (* Construct composite context *)
   let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) gamma bdry_f in
   let i1 = Unchecked.sub_ps_to_sub i1_ps in
   let i2 = Unchecked.sub_ps_to_sub i2_ps in
-  (* Construct source (t[i1]) * (tgt_f[i2]) *)
-  let _,tgt,ty_base = Coh.noninv_srctgt coh in
-  let tgt_f_ty = Functorialisation.ty ty_base l_tau tgt in
-  let tgt_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub tgt_f_ty bdry_f_db) i2 in
-  let tgt_f = Functorialisation.tm_one_step_tm tgt l_tau in
-  let tgt_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub tgt_f bdry_f_db) i2 in
-  let coh_src_sub_ps = Functorialisation.whisk_sub_ps 0 (Coh(coh,i1_ps)) (Unchecked.ty_apply_sub coh_ty i1) tgt_f tgt_f_ty in
-  let coh_src = Coh(Functorialisation.whisk (d-1) 0 0,coh_src_sub_ps) in
+  let coh_src = naturality_src (Coh (coh, i1_ps)) gamma coh_ty tgt ty_base d l i1 i2 in
   (* Construct reduced context *)
   let gamma_red = Ps_reduction.reduce (d-1) gamma in
   let delta,_,_ = Unchecked.ps_compose (d-1) gamma_red bdry_f in
@@ -195,6 +234,7 @@ let depth1_interchanger_src coh coh_bridge l =
 let depth1_interchanger_tgt coh coh_bridge l =
   (* Setup *)
   let gamma,coh_ty,_ = Coh.forget coh in
+  let src,_,ty_base = Coh.noninv_srctgt coh in
   let d = Unchecked.dim_ps gamma in
   (* Construct preimage locations *)
   let bdry = Unchecked.ps_bdry gamma in
@@ -203,21 +243,13 @@ let depth1_interchanger_tgt coh coh_bridge l =
   let l_sigma = Functorialisation.preimage bdry_c sigma l in
   (* Construct ps_bdry_f *)
   let bdry_f_ctx = Functorialisation.ctx bdry_c l_sigma in
-  let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
   let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f_ctx)) in
   let sigma_f = Functorialisation.sub sigma l in
   (* Construct composite context *)
   let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) bdry_f gamma in
   let i1 = Unchecked.sub_ps_to_sub i1_ps in
   let i2 = Unchecked.sub_ps_to_sub i2_ps in
-  (* Construct target (src_f[i1]) * (t[i2]) *)
-  let src,_,ty_base = Coh.noninv_srctgt coh in
-  let src_f_ty = Functorialisation.ty ty_base l_sigma src in
-  let src_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub src_f_ty bdry_f_db) i1 in
-  let src_f = Functorialisation.tm_one_step_tm src l_sigma in
-  let src_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub src_f bdry_f_db) i1 in
-  let coh_tgt_sub_ps = Functorialisation.whisk_sub_ps 0 src_f src_f_ty (Coh(coh,i2_ps)) (Unchecked.ty_apply_sub coh_ty i2) in
-  let coh_tgt = Coh(Functorialisation.whisk (d-1) 0 0,coh_tgt_sub_ps) in
+  let coh_tgt = naturality_tgt (Coh (coh, i2_ps)) gamma coh_ty src ty_base d l i1 i2 in
   (* Construct reduced context *)
   let gamma_red = Ps_reduction.reduce (d-1) gamma in
   let delta,_,_ = Unchecked.ps_compose (d-1) bdry_f gamma_red in
