@@ -18,6 +18,15 @@ struct
 
     exception NotInImage
 
+    let sub_ps_to_sub s =
+      let rec aux s =
+        match s with
+        | [] -> [],0
+        | (t,_)::s ->
+          let s,i = aux s in
+          (Var.Db i,t)::s, i+1
+      in fst (aux s)
+
     let rec func_to_string = function
       | [] -> ""
       | (_,i)::func -> Printf.sprintf "%s%d" (func_to_string func) i
@@ -208,6 +217,10 @@ struct
       sub_ps_do_on_variables s1 (fun v -> var_apply_sub v s2)
     let _sub_apply_sub s1 s2 = List.map (fun (v,t) -> (v,tm_apply_sub t s2)) s1
 
+    let ty_apply_sub_ps ty s = ty_apply_sub ty (sub_ps_to_sub s)
+    let tm_apply_sub_ps tm s = tm_apply_sub tm (sub_ps_to_sub s)
+    let sub_ps_apply_sub_ps sub_ps s = sub_ps_apply_sub sub_ps (sub_ps_to_sub s)
+
     let rec var_sub_preimage v s =
       match s with
       | [] -> raise NotInImage
@@ -363,15 +376,6 @@ struct
 
     let canonical_inclusions l = let incls,_ = canonical_inclusions l in incls
     let ps_to_ctx ps = (ps_to_ctx_rp ps).ctx
-
-    let sub_ps_to_sub s =
-      let rec aux s =
-        match s with
-        | [] -> [],0
-        | (t,_)::s ->
-          let s,i = aux s in
-          (Var.Db i,t)::s, i+1
-      in fst (aux s)
 
     let suspwedge_subs_ps list_subs list_ps =
       let incls = canonical_inclusions list_ps in

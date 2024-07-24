@@ -157,15 +157,13 @@ let ctx_src ps l =
   src_ctx, src_incl, i1, i2, bdry_f, l_tgt, names
 
 (* Construct source (t[i1]) * (tgt_f[i2]) *)
-let naturality_src coh ty tgt ty_base dim l i1_ps i2_ps names =
-  let t = Coh(coh, i1_ps) in
-  let i1 = Unchecked.sub_ps_to_sub i1_ps in
-  let i2 = Unchecked.sub_ps_to_sub i2_ps in
+let naturality_src coh ty tgt ty_base dim l i1 i2 names =
+  let t = Coh(coh, i1) in
   let tgt_f_ty = Functorialisation.ty ty_base l tgt in
-  let tgt_f_ty = Unchecked.(ty_apply_sub (rename_ty tgt_f_ty names) i2) in
+  let tgt_f_ty = Unchecked.(ty_apply_sub_ps (rename_ty tgt_f_ty names) i2) in
   let tgt_f = Functorialisation.tm_one_step_tm tgt l in
-  let tgt_f = Unchecked.(tm_apply_sub (rename_tm tgt_f names) i2) in
-  let coh_src_sub_ps = Functorialisation.whisk_sub_ps 0 t (Unchecked.ty_apply_sub ty i1) tgt_f tgt_f_ty in
+  let tgt_f = Unchecked.(tm_apply_sub_ps (rename_tm tgt_f names) i2) in
+  let coh_src_sub_ps = Functorialisation.whisk_sub_ps 0 t (Unchecked.ty_apply_sub_ps ty i1) tgt_f tgt_f_ty in
   Coh(Functorialisation.whisk (dim-1) 0 0,coh_src_sub_ps)
 
 (* Construct target (src_f[i1]) * (t[i2]) *)
@@ -199,16 +197,16 @@ let depth1_interchanger_src coh coh_bridge l =
   let gamma_red = Ps_reduction.reduce (d-1) gamma in
   let delta,_,_ = Unchecked.ps_compose (d-1) gamma_red bdry_f in
   let rho_delta = Ps_reduction.reduction_sub delta in
-  let rho_gamma_i1 = Unchecked.sub_ps_apply_sub (Ps_reduction.reduction_sub gamma) (Unchecked.sub_ps_to_sub i1) in
+  let rho_gamma_i1 = Unchecked.sub_ps_apply_sub_ps (Ps_reduction.reduction_sub gamma) i1 in
   let delta_ind = Unchecked.pullback_up (d-1) gamma_red bdry_f rho_gamma_i1 i2 in
   (* Construct target (comp delta_red src tgt) *)
-  let coh_tgt_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (Unchecked.sub_ps_to_sub delta_ind) in
+  let coh_tgt_sub_ps = Unchecked.sub_ps_apply_sub_ps rho_delta delta_ind in
   let coh_tgt = Coh(coh_bridge, coh_tgt_sub_ps) in
   (* Construct final coherence *)
   let intch_coh = Coh.check_inv src_ctx coh_src coh_tgt ("intch_src",0,[]) in
   let _,intch_ty,_ = Coh.forget intch_coh in
   let intch = Coh(intch_coh,src_incl) in
-  intch, Unchecked.ty_apply_sub intch_ty (Unchecked.sub_ps_to_sub src_incl)
+  intch, Unchecked.ty_apply_sub_ps intch_ty src_incl
 
 let depth1_interchanger_tgt coh coh_bridge l =
   (* Setup *)

@@ -69,6 +69,9 @@ module Unchecked : sig
   val tm_apply_sub : tm -> sub -> tm
   val ty_apply_sub : ty -> sub -> ty
   val sub_ps_apply_sub : sub_ps -> sub -> sub_ps
+  val ty_apply_sub_ps : ty -> sub_ps -> ty
+  val tm_apply_sub_ps : tm -> sub_ps -> tm
+  val sub_ps_apply_sub_ps: sub_ps -> sub_ps -> sub_ps
   val ty_sub_preimage : ty -> sub -> ty
   val db_levels : ctx -> ctx * (Var.t * int) list * int
   val db_level_sub : ctx -> sub
