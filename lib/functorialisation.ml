@@ -274,4 +274,5 @@ let tm c t s =
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in
-  PS.(forget (mk (Ctx.check c)))
+  let _,names,_ = Unchecked.db_levels c in
+  PS.(forget (mk (Ctx.check c))), names

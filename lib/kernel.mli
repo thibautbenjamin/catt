@@ -73,7 +73,8 @@ module Unchecked : sig
   val db_levels : ctx -> ctx * (Var.t * int) list * int
   val db_level_sub : ctx -> sub
   val db_level_sub_inv : ctx -> sub
-  val rename_ty : ty -> (Var.t * int) list -> ty
+  val rename_ty : ty ->  (Var.t * int) list ->  ty
+  val rename_tm : tm ->  (Var.t * int) list ->  tm
   val tm_contains_var : tm -> Var.t -> bool
   val ty_contains_var : ty -> Var.t -> bool
   val tm_contains_vars : tm -> Var.t list -> bool
