@@ -149,14 +149,12 @@ and ccomp_n arity =
 let ctx_src ps l =
   let d = Unchecked.dim_ps ps in
   let bdry = Unchecked.ps_bdry ps in
-  let tgt_ps = Unchecked.ps_tgt ps in
-  let l_tgt = F.preimage (Unchecked.ps_to_ctx bdry) tgt_ps l in
-  let bdry_f, names = F.ps bdry l_tgt in
+  let tgt_incl_ps = Unchecked.ps_tgt ps in
+  let tgt_f, bdry_f, names, l = F.sub_w_tgt bdry tgt_incl_ps l in
   let src_ctx,i1,i2 = Unchecked.ps_compose (d-1) ps bdry_f in
   let in_minus = Unchecked.identity_ps ps in
-  let tgt_f = F.sub tgt_ps l in
   let src_incl = Unchecked.pullback_up (d-1) ps bdry_f in_minus tgt_f in
-  src_ctx, src_incl, i1, i2, bdry_f, l_tgt, names
+  src_ctx, src_incl, i1, i2, bdry_f, l, names
 
 (* Construct source (t[i1]) * (tgt_f[i2]) *)
 let naturality_src coh ty tgt ty_base dim l i1 i2 names =

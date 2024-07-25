@@ -276,3 +276,9 @@ let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in
   let _,names,_ = Unchecked.db_levels c in
   PS.(forget (mk (Ctx.check c))), names
+
+let sub_w_tgt p s l =
+  let s_f = sub s l in
+  let l = preimage (Unchecked.ps_to_ctx p) s l in
+  let p_f, names = ps p l in
+  s_f,p_f,names,l
