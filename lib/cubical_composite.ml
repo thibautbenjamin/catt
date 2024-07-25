@@ -181,6 +181,22 @@ let naturality_tgt t gamma ty src ty_base dim l i1 i2 =
   let coh_tgt_sub_ps = Functorialisation.whisk_sub_ps 0 src_f src_f_ty t (Unchecked.ty_apply_sub ty i2) in
   Coh(Functorialisation.whisk (dim-1) 0 0,coh_tgt_sub_ps)
 
+let biasor_sub ps bdry_f i1 i2 d =
+  let ps_red = Ps_reduction.reduce (d-1) ps in
+  let prod,_,_ = Unchecked.ps_compose (d-1) ps_red bdry_f in
+  let red_sub_prod = Ps_reduction.reduction_sub prod in
+  let red_sub_ps = Ps_reduction.reduction_sub ps in
+  let
+    prod_to_src =
+    Unchecked.pullback_up
+      (d-1)
+      ps_red
+      bdry_f
+      (Unchecked.sub_ps_apply_sub_ps red_sub_ps i1)
+      i2
+  in
+  Unchecked.sub_ps_apply_sub_ps red_sub_prod prod_to_src
+
 (* Interchange needed for source of depth-1 non-inv coh *)
 (*
 https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVycmlnaHRhcnJvd3tcXHBhcnRpYWxcXEdhbW1hfV57WF9cXHRhdX0iXSxbMCwzLCJcXEdhbW1hIl0sWzAsMSwiXFxHYW1tYV57cmVkfSJdLFsxLDIsIlxcRGVsdGEiXSxbMSwzLCJcXFBoaSJdLFszLDIsIlxcRGVsdGFee3JlZH0iXSxbMSw0LCJcXG92ZXJyaWdodGFycm93e1xcR2FtbWF9XlgiXSxbMCwxLCJcXHNpZ21hIl0sWzAsMiwiXFx0YXUiLDEseyJsYWJlbF9wb3NpdGlvbiI6NzAsImN1cnZlIjo1fV0sWzMsMiwiXFxyaG9fXFxHYW1tYSIsMl0sWzAsMywiXFx0YXVfciIsMV0sWzEsNCwial8yIiwxXSxbMyw0LCJqXzEiLDFdLFs0LDAsIiIsMCx7InN0eWxlIjp7Im5hbWUiOiJjb3JuZXIifX1dLFs0LDUsIiIsMCx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6ImRhc2hlZCJ9fX1dLFsyLDUsImlfMSIsMV0sWzEsNSwiaV8yIiwxXSxbNSwwLCIiLDEseyJzdHlsZSI6eyJuYW1lIjoiY29ybmVyIn19XSxbNiw0LCJcXHJob19cXERlbHRhIiwxLHsiY3VydmUiOjF9XSxbMiw3XSxbMSw3LCJcXG92ZXJyaWdodGFycm93e1xcdGF1fV5YIiwxLHsiY3VydmUiOi0zfV0sWzUsNywiIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV1d
@@ -193,15 +209,7 @@ let depth1_interchanger_src coh coh_bridge l =
   (* Construct composite context *)
   let src_ctx, src_incl, i1, i2, bdry_f, l_tgt, names = ctx_src gamma l in
   let coh_src = naturality_src coh coh_ty tgt ty_base d l_tgt i1 i2 names in
-  (* Construct reduced context *)
-  let gamma_red = Ps_reduction.reduce (d-1) gamma in
-  let delta,_,_ = Unchecked.ps_compose (d-1) gamma_red bdry_f in
-  let rho_delta = Ps_reduction.reduction_sub delta in
-  let rho_gamma_i1 = Unchecked.sub_ps_apply_sub_ps (Ps_reduction.reduction_sub gamma) i1 in
-  let delta_ind = Unchecked.pullback_up (d-1) gamma_red bdry_f rho_gamma_i1 i2 in
-  (* Construct target (comp delta_red src tgt) *)
-  let coh_tgt_sub_ps = Unchecked.sub_ps_apply_sub_ps rho_delta delta_ind in
-  let coh_tgt = Coh(coh_bridge, coh_tgt_sub_ps) in
+  let coh_tgt = Coh(coh_bridge, biasor_sub gamma bdry_f i1 i2 d) in
   (* Construct final coherence *)
   let intch_coh = Coh.check_inv src_ctx coh_src coh_tgt ("intch_src",0,[]) in
   let _,intch_ty,_ = Coh.forget intch_coh in
