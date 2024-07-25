@@ -1,4 +1,4 @@
-open Common
+(* open Common *)
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
@@ -156,6 +156,7 @@ let ctx_src ps l =
   let src_incl = Unchecked.pullback_up (d-1) ps bdry_f in_minus tgt_f in
   src_ctx, src_incl, i1, i2, bdry_f, l, names
 
+(* target and target inclusion of a functorialised ps *)
 let ctx_tgt ps l =
   let d = Unchecked.dim_ps ps in
   let bdry = Unchecked.ps_bdry ps in
@@ -217,9 +218,10 @@ let depth1_interchanger_src coh coh_bridge l =
   let coh_tgt = Coh(coh_bridge, biasor_sub_intch_src gamma bdry_f i1 i2 d) in
   (* Construct final coherence *)
   let intch_coh = Coh.check_inv src_ctx coh_src coh_tgt ("intch_src",0,[]) in
-  let _,intch_ty,_ = Coh.forget intch_coh in
+  let _,ty,_ = Coh.forget intch_coh in
   let intch = Coh(intch_coh,src_incl) in
-  intch, Unchecked.ty_apply_sub_ps intch_ty src_incl
+  let ty = Unchecked.ty_apply_sub_ps ty src_incl in
+  intch, ty
 
 let depth1_interchanger_tgt coh coh_bridge l =
   let gamma,coh_ty,_ = Coh.forget coh in
@@ -229,40 +231,42 @@ let depth1_interchanger_tgt coh coh_bridge l =
   let coh_tgt = naturality_tgt coh coh_ty src ty_base d l_src i1 i2 names in
   let coh_src = Coh(coh_bridge, biasor_sub_intch_tgt gamma bdry_f i1 i2 d) in
   let intch_coh = Coh.check_inv tgt_ctx coh_src coh_tgt ("intch_tgt",0,[]) in
-  let _,intch_ty,_ = Coh.forget intch_coh in
+  let _,ty,_ = Coh.forget intch_coh in
   let intch = Coh(intch_coh,tgt_incl) in
-  intch, Unchecked.ty_apply_sub_ps intch_ty tgt_incl
+  let ty = Unchecked.ty_apply_sub_ps ty tgt_incl in
+  intch, ty
 
 (*
   Compare substitutions out of the same ps-context
   and fill gaps between matching but different terms with
   the correct cubical composite
  *)
-let rec depth1_bridge_sub src_sub tgt_sub l =
-  match src_sub,tgt_sub with
-  | [],[] -> []
-  | (src,expl)::src_tl,(tgt,_)::tgt_l ->
-    begin
-      let rest = depth1_bridge_sub src_tl tgt_l l in
-      try
-        let _ = Unchecked.check_equal_tm src tgt in
-        (src,expl)::rest
-      with NotEqual(_) ->
-        let (_,ty,_),src_sub = match src with
-          | Coh(c,s) -> Coh.forget c,s
-          | _ -> assert false in
-        let d = Unchecked.dim_ty ty in
-        let src_bridge = fst (List.nth src_sub 2) in
-        let inner_sub,arity = match src_bridge with
-          | Coh(_,s) -> s,((List.length s)-(2*d))/2+1
-          | _ -> assert false in
-        let ccomp = Suspension.tm (Some(d-1)) (ccomp_n arity) in
-        let inner_subf = F.sub inner_sub l in
-        let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
-        let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
-        (bridge,expl)::(tgt,false)::(src,false)::rest
-    end
-  | _,_ -> assert false
+let depth1_bridge_sub src_sub tgt_sub l l_bridge =
+  let rec aux src src_sub tgt_sub =
+    match src,src_sub,tgt_sub with
+    | [],[],[] -> []
+    | (v,_)::tl, (src,expl)::src_tl,(tgt,_)::tgt_tl ->
+      begin
+        let rest = aux tl src_tl tgt_tl in
+        if not (List.mem v l_bridge) then
+          (src,expl)::rest
+        else
+          let (_,ty,_),src_sub = match src with
+            | Coh(c,s) -> Coh.forget c,s
+            | _ -> assert false in
+          let d = Unchecked.dim_ty ty in
+          let src_bridge = fst (List.nth src_sub 2) in
+          let inner_sub,arity = match src_bridge with
+            | Coh(_,s) -> s,((List.length s)-(2*d))/2+1
+            | _ -> assert false in
+          let ccomp = Suspension.tm (Some(d-1)) (ccomp_n arity) in
+          let inner_subf = F.sub inner_sub l in
+          let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
+          let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
+          (bridge,expl)::(tgt,false)::(src,false)::rest
+      end
+    | _,_,_ -> assert false
+  in aux (Unchecked.sub_ps_to_sub src_sub) src_sub tgt_sub
 
 let image ctx sub l =
   let idx_image v =
@@ -270,7 +274,7 @@ let image ctx sub l =
     | Coh _ | Meta_tm _ -> Error.fatal "image can only be taken with variables"
     | Var v -> v
   in
-  let rec discard_non_closed l =
+  let rec keep_closed l =
     match l with
     | [] -> []
     | v::l ->
@@ -281,11 +285,11 @@ let image ctx sub l =
           ctx
       in
       if List.for_all (fun (x,_) -> List.mem x l) closure
-      then v::(discard_non_closed l)
-      else (discard_non_closed l)
+      then v::(keep_closed l)
+      else keep_closed l
   in
   let img = List.map idx_image l in
-  discard_non_closed img
+  keep_closed img
 
 (* Pasting scheme (Γ_red * ∂Γ_f)red = (∂Γ_f * Γ_red)red = (Γ * ∂Γ_f)_red *)
 let bridge_ps ps l =
@@ -303,30 +307,31 @@ let bridge_ps ps l =
   let coh_l = F.preimage ps_red_c red_sub (image ps_c i2 l) in
   ps_red, coh_l
 
-let bridge_coh coh l =
-  let ps,_,name = Coh.forget coh in
+let bridge_coh coh ps_bridge =
+  let _,_,name = Coh.forget coh in
   let src,tgt,_ = Coh.noninv_srctgt coh in
-  let ps_bridge, coh_l = bridge_ps ps l in
   let name_red = Unchecked.full_name name^"_red",0,[] in
   let coh_bridge = Coh.check_noninv ps_bridge src tgt name_red in
-  let coh_bridge_f = F.coh_depth0 coh_bridge coh_l in
-  coh_bridge, coh_bridge_f
+  coh_bridge
 
 let coh_depth1 coh l =
   let ps,_,_ = Coh.forget coh in
-  let coh_bridge, coh_bridge_f = bridge_coh coh l in
+  let d = Unchecked.dim_ps ps in
+  let ps_bridge, l_bridge = bridge_ps ps l in
+  let coh_bridge = bridge_coh coh ps_bridge in
   let intch_src,intch_src_ty = depth1_interchanger_src coh coh_bridge l in
   let intch_tgt,intch_tgt_ty = depth1_interchanger_tgt coh coh_bridge l in
-  let base_ty,inner_src,inner_tgt,final_tgt =
+  let inner_src,inner_tgt,final_tgt =
     match intch_src_ty,intch_tgt_ty with
-    | Arr(b,_,s), Arr(_,t,t') -> b,s,t,t'
+    | Arr(_,_,s), Arr(_,t,t') -> s,t,t'
     | _,_ -> assert false
   in
   let src_sub_ps,tgt_sub_ps =
     match inner_src,inner_tgt with
     | Coh(_,s), Coh(_,s') -> s,s'
     | _,_ -> assert false in
-  let bridge = depth1_bridge_sub src_sub_ps tgt_sub_ps l in
+  let bridge = depth1_bridge_sub src_sub_ps tgt_sub_ps l l_bridge in
+  let coh_bridge_f = F.coh_depth0 coh_bridge l_bridge in
   let middle = Coh(coh_bridge_f, bridge) in
   (* Combine *)
   let comp_sub_ps =
@@ -334,7 +339,6 @@ let coh_depth1 coh l =
       [intch_tgt,true;final_tgt,false;middle,true;inner_tgt,false;intch_src,true]
       (Unchecked.ty_to_sub_ps intch_src_ty)
   in
-  let d = Unchecked.dim_ty base_ty in
   let comp = Suspension.coh (Some d) (Builtin.comp_n 3) in
   Coh(comp, comp_sub_ps), F.ctx (Unchecked.ps_to_ctx ps) l
 
