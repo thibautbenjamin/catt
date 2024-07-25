@@ -156,45 +156,52 @@ let ctx_src ps l =
   let src_incl = Unchecked.pullback_up (d-1) ps bdry_f in_minus tgt_f in
   src_ctx, src_incl, i1, i2, bdry_f, l, names
 
+let ctx_tgt ps l =
+  let d = Unchecked.dim_ps ps in
+  let bdry = Unchecked.ps_bdry ps in
+  let src_incl_ps = Unchecked.ps_src ps in
+  let src_f, bdry_f, names, l_bdry = F.sub_w_tgt bdry src_incl_ps l in
+  let tgt_ctx,i1,i2 = Unchecked.ps_compose (d-1) bdry_f ps in
+  let in_plus = Unchecked.sub_to_sub_ps ps (F.tgt_subst l) in
+  let tgt_incl = Unchecked.pullback_up (d-1) bdry_f ps src_f in_plus in
+  tgt_ctx, tgt_incl, i1, i2, bdry_f, l_bdry, names
+
 (* Construct source (t[i1]) * (tgt_f[i2]) *)
 let naturality_src coh ty tgt ty_base dim l i1 i2 names =
   let t = Coh(coh, i1) in
-  let tgt_f_ty = F.ty ty_base l tgt in
-  let tgt_f_ty = Unchecked.(ty_apply_sub_ps (rename_ty tgt_f_ty names) i2) in
-  let tgt_f = F.tm_one_step_tm tgt l in
-  let tgt_f = Unchecked.(tm_apply_sub_ps (rename_tm tgt_f names) i2) in
+  let tgt_f_ty = Unchecked.rename_ty (F.ty ty_base l tgt) names in
+  let tgt_f_ty = Unchecked.ty_apply_sub_ps tgt_f_ty i2 in
+  let tgt_f = Unchecked.rename_tm (F.tm_one_step_tm tgt l) names in
+  let tgt_f = Unchecked.tm_apply_sub_ps tgt_f i2 in
   let coh_src_sub_ps = F.whisk_sub_ps 0 t (Unchecked.ty_apply_sub_ps ty i1) tgt_f tgt_f_ty in
   Coh(F.whisk (dim-1) 0 0,coh_src_sub_ps)
 
 (* Construct target (src_f[i1]) * (t[i2]) *)
-let naturality_tgt t gamma ty src ty_base dim l i1 i2 =
-  let bdry = Unchecked.ps_bdry gamma in
-  let sigma = Unchecked.ps_src gamma in
-  let bdry_c = Unchecked.ps_to_ctx bdry in
-  let l_sigma = F.preimage bdry_c sigma l in
-  let bdry_f_ctx = F.ctx bdry_c l_sigma in
-  let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
-  let src_f_ty = F.ty ty_base l_sigma src in
-  let src_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub src_f_ty bdry_f_db) i1 in
-  let src_f = F.tm_one_step_tm src l_sigma in
-  let src_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub src_f bdry_f_db) i1 in
-  let coh_tgt_sub_ps = F.whisk_sub_ps 0 src_f src_f_ty t (Unchecked.ty_apply_sub ty i2) in
+let naturality_tgt coh ty src ty_base dim l i1 i2 names =
+  let t = Coh(coh, i2) in
+  let src_f_ty = Unchecked.rename_ty (F.ty ty_base l src) names in
+  let src_f_ty = Unchecked.ty_apply_sub_ps src_f_ty i1 in
+  let src_f = Unchecked.rename_tm (F.tm_one_step_tm src l) names in
+  let src_f = Unchecked.tm_apply_sub_ps src_f i1 in
+  let coh_tgt_sub_ps = F.whisk_sub_ps 0 src_f src_f_ty t (Unchecked.ty_apply_sub_ps ty i2) in
   Coh(F.whisk (dim-1) 0 0,coh_tgt_sub_ps)
 
-let biasor_sub ps bdry_f i1 i2 d =
+let biasor_sub_intch_src ps bdry_f i1 i2 d =
   let ps_red = Ps_reduction.reduce (d-1) ps in
   let prod,_,_ = Unchecked.ps_compose (d-1) ps_red bdry_f in
   let red_sub_prod = Ps_reduction.reduction_sub prod in
   let red_sub_ps = Ps_reduction.reduction_sub ps in
-  let
-    prod_to_src =
-    Unchecked.pullback_up
-      (d-1)
-      ps_red
-      bdry_f
-      (Unchecked.sub_ps_apply_sub_ps red_sub_ps i1)
-      i2
-  in
+  let left_leg = Unchecked.sub_ps_apply_sub_ps red_sub_ps i1 in
+  let prod_to_src = Unchecked.pullback_up (d-1) ps_red bdry_f left_leg i2 in
+  Unchecked.sub_ps_apply_sub_ps red_sub_prod prod_to_src
+
+let biasor_sub_intch_tgt ps bdry_f i1 i2 d =
+  let ps_red = Ps_reduction.reduce (d-1) ps in
+  let prod,_,_ = Unchecked.ps_compose (d-1) bdry_f ps_red in
+  let red_sub_prod = Ps_reduction.reduction_sub prod in
+  let red_sub_ps = Ps_reduction.reduction_sub ps in
+  let right_leg = Unchecked.sub_ps_apply_sub_ps red_sub_ps i2 in
+  let prod_to_src = Unchecked.pullback_up (d-1) bdry_f ps_red i1 right_leg in
   Unchecked.sub_ps_apply_sub_ps red_sub_prod prod_to_src
 
 (* Interchange needed for source of depth-1 non-inv coh *)
@@ -202,14 +209,12 @@ let biasor_sub ps bdry_f i1 i2 d =
 https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVycmlnaHRhcnJvd3tcXHBhcnRpYWxcXEdhbW1hfV57WF9cXHRhdX0iXSxbMCwzLCJcXEdhbW1hIl0sWzAsMSwiXFxHYW1tYV57cmVkfSJdLFsxLDIsIlxcRGVsdGEiXSxbMSwzLCJcXFBoaSJdLFszLDIsIlxcRGVsdGFee3JlZH0iXSxbMSw0LCJcXG92ZXJyaWdodGFycm93e1xcR2FtbWF9XlgiXSxbMCwxLCJcXHNpZ21hIl0sWzAsMiwiXFx0YXUiLDEseyJsYWJlbF9wb3NpdGlvbiI6NzAsImN1cnZlIjo1fV0sWzMsMiwiXFxyaG9fXFxHYW1tYSIsMl0sWzAsMywiXFx0YXVfciIsMV0sWzEsNCwial8yIiwxXSxbMyw0LCJqXzEiLDFdLFs0LDAsIiIsMCx7InN0eWxlIjp7Im5hbWUiOiJjb3JuZXIifX1dLFs0LDUsIiIsMCx7InN0eWxlIjp7ImJvZHkiOnsibmFtZSI6ImRhc2hlZCJ9fX1dLFsyLDUsImlfMSIsMV0sWzEsNSwiaV8yIiwxXSxbNSwwLCIiLDEseyJzdHlsZSI6eyJuYW1lIjoiY29ybmVyIn19XSxbNiw0LCJcXHJob19cXERlbHRhIiwxLHsiY3VydmUiOjF9XSxbMiw3XSxbMSw3LCJcXG92ZXJyaWdodGFycm93e1xcdGF1fV5YIiwxLHsiY3VydmUiOi0zfV0sWzUsNywiIiwxLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV1d
  *)
 let depth1_interchanger_src coh coh_bridge l =
-  (* Setup *)
   let gamma,coh_ty,_ = Coh.forget coh in
   let _,tgt,ty_base = Coh.noninv_srctgt coh in
   let d = Unchecked.dim_ps gamma in
-  (* Construct composite context *)
   let src_ctx, src_incl, i1, i2, bdry_f, l_tgt, names = ctx_src gamma l in
   let coh_src = naturality_src coh coh_ty tgt ty_base d l_tgt i1 i2 names in
-  let coh_tgt = Coh(coh_bridge, biasor_sub gamma bdry_f i1 i2 d) in
+  let coh_tgt = Coh(coh_bridge, biasor_sub_intch_src gamma bdry_f i1 i2 d) in
   (* Construct final coherence *)
   let intch_coh = Coh.check_inv src_ctx coh_src coh_tgt ("intch_src",0,[]) in
   let _,intch_ty,_ = Coh.forget intch_coh in
@@ -217,42 +222,16 @@ let depth1_interchanger_src coh coh_bridge l =
   intch, Unchecked.ty_apply_sub_ps intch_ty src_incl
 
 let depth1_interchanger_tgt coh coh_bridge l =
-  (* Setup *)
   let gamma,coh_ty,_ = Coh.forget coh in
   let src,_,ty_base = Coh.noninv_srctgt coh in
   let d = Unchecked.dim_ps gamma in
-  (* Construct preimage locations *)
-  let bdry = Unchecked.ps_bdry gamma in
-  let sigma = Unchecked.ps_src gamma in
-  let bdry_c = Unchecked.ps_to_ctx bdry in
-  let l_sigma = F.preimage bdry_c sigma l in
-  (* Construct ps_bdry_f *)
-  let bdry_f_ctx = F.ctx bdry_c l_sigma in
-  let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f_ctx)) in
-  let sigma_f = F.sub sigma l in
-  (* Construct composite context *)
-  let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) bdry_f gamma in
-  let i1 = Unchecked.sub_ps_to_sub i1_ps in
-  let i2 = Unchecked.sub_ps_to_sub i2_ps in
-  let coh_tgt = naturality_tgt (Coh (coh, i2_ps)) gamma coh_ty src ty_base d l i1 i2 in
-  (* Construct reduced context *)
-  let gamma_red = Ps_reduction.reduce (d-1) gamma in
-  let delta,_,_ = Unchecked.ps_compose (d-1) bdry_f gamma_red in
-  let rho_delta = Ps_reduction.reduction_sub delta in
-  (* Construct biased reduction sub from phi to delta_red *)
-  let rho_gamma_i2 = Unchecked.sub_ps_apply_sub (Ps_reduction.reduction_sub gamma) i2 in
-  let delta_ind = Unchecked.pullback_up (d-1) bdry_f gamma_red i1_ps rho_gamma_i2 in
-  (* Construct source (comp delta_red src tgt) *)
-  let coh_src_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (Unchecked.sub_ps_to_sub delta_ind) in
-  let coh_src = Coh(coh_bridge, coh_src_sub_ps) in
-  (* Construct map into pullback *)
-  let phi_ind_sub_ps = Unchecked.pullback_up (d-1) bdry_f gamma sigma_f (Unchecked.sub_ps_apply_sub (Unchecked.identity_ps gamma) (F.tgt_subst l)) in
-  let phi_ind = Unchecked.sub_ps_to_sub phi_ind_sub_ps in
-  (* Construct final coherence *)
-  let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_tgt",0,[]) in
+  let tgt_ctx,tgt_incl, i1, i2, bdry_f, l_src, names = ctx_tgt gamma l in
+  let coh_tgt = naturality_tgt coh coh_ty src ty_base d l_src i1 i2 names in
+  let coh_src = Coh(coh_bridge, biasor_sub_intch_tgt gamma bdry_f i1 i2 d) in
+  let intch_coh = Coh.check_inv tgt_ctx coh_src coh_tgt ("intch_tgt",0,[]) in
   let _,intch_ty,_ = Coh.forget intch_coh in
-  let intch = Coh(intch_coh,phi_ind_sub_ps) in
-  intch, Unchecked.ty_apply_sub intch_ty phi_ind
+  let intch = Coh(intch_coh,tgt_incl) in
+  intch, Unchecked.ty_apply_sub_ps intch_ty tgt_incl
 
 (*
   Compare substitutions out of the same ps-context

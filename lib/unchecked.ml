@@ -527,5 +527,8 @@ struct
           (t,true)::(ty_to_sub_ps (ty_apply_sub ty sub))
         end
       | _ -> Error.fatal "can only convert coh to sub ps"
+
+    let sub_to_sub_ps ps s =
+      sub_ps_apply_sub (identity_ps ps) s
   end
 end
