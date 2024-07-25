@@ -2,6 +2,8 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
+module F = Functorialisation
+
 module Memo = struct
   let tbl_ccomp = Hashtbl.create 24
 
@@ -90,7 +92,7 @@ let ccomp_binary =
     let phase1_sub_contr = Unchecked.coh_to_sub_ps phase1 in
     (* Phase 2 *)
     let phase2_sub_ps = [(sqmm 1,true);(sqb 1,false);(sqt 1,false);(sqbr 1,false);(sqtm 0,true);(sqtr 0,false);(sqtl 0,false)] in
-    let phase2 = Coh(Functorialisation.whisk 0 0 1, phase2_sub_ps) in
+    let phase2 = Coh(F.whisk 0 0 1, phase2_sub_ps) in
     let phase2_sub_contr = [(phase2,true);(comp_binary (sqtl 0) (sqtr 0) (sqtm 0) (sqbr 1) (sqb 1),false)] in
     (* Phase 3 *)
     let phase3_sub_ps = List.concat [[(sqbm 1,true);(sqbr 1,false)];(sqt_sub_ps 0)] in
@@ -99,7 +101,7 @@ let ccomp_binary =
     let phase3_sub_contr = [(phase3,true);(Unchecked.tm_apply_sub assocl phase3_sub,false)] in
     (* Phase 4 *)
     let phase4_sub_ps = [(sqbm 1,true);(sqbr 1,false);(sqmm 0,true);(sqb 0,false);(sqt 0,false);(sqbr 0,false);(sqtl 0,false)] in
-    let phase4 = Coh(Functorialisation.whisk 0 1 0,phase4_sub_ps) in
+    let phase4 = Coh(F.whisk 0 1 0,phase4_sub_ps) in
     let phase4_sub_contr = [(phase4,true);(comp_binary (sqtl 0) (sqbr 0) (sqb 0) (sqbr 1) (sqbm 1),false)] in
     (* Phase 5 *)
     let phase5_sub_ps = List.concat [[(sqbm 1,true);(sqbr 1,false)];(sqb_sub_ps 0)] in
@@ -148,38 +150,38 @@ let ctx_src ps l =
   let d = Unchecked.dim_ps ps in
   let bdry = Unchecked.ps_bdry ps in
   let tgt_ps = Unchecked.ps_tgt ps in
-  let l_tgt = Functorialisation.preimage (Unchecked.ps_to_ctx bdry) tgt_ps l in
-  let bdry_f, names = Functorialisation.ps bdry l_tgt in
+  let l_tgt = F.preimage (Unchecked.ps_to_ctx bdry) tgt_ps l in
+  let bdry_f, names = F.ps bdry l_tgt in
   let src_ctx,i1,i2 = Unchecked.ps_compose (d-1) ps bdry_f in
   let in_minus = Unchecked.identity_ps ps in
-  let tgt_f = Functorialisation.sub tgt_ps l in
+  let tgt_f = F.sub tgt_ps l in
   let src_incl = Unchecked.pullback_up (d-1) ps bdry_f in_minus tgt_f in
   src_ctx, src_incl, i1, i2, bdry_f, l_tgt, names
 
 (* Construct source (t[i1]) * (tgt_f[i2]) *)
 let naturality_src coh ty tgt ty_base dim l i1 i2 names =
   let t = Coh(coh, i1) in
-  let tgt_f_ty = Functorialisation.ty ty_base l tgt in
+  let tgt_f_ty = F.ty ty_base l tgt in
   let tgt_f_ty = Unchecked.(ty_apply_sub_ps (rename_ty tgt_f_ty names) i2) in
-  let tgt_f = Functorialisation.tm_one_step_tm tgt l in
+  let tgt_f = F.tm_one_step_tm tgt l in
   let tgt_f = Unchecked.(tm_apply_sub_ps (rename_tm tgt_f names) i2) in
-  let coh_src_sub_ps = Functorialisation.whisk_sub_ps 0 t (Unchecked.ty_apply_sub_ps ty i1) tgt_f tgt_f_ty in
-  Coh(Functorialisation.whisk (dim-1) 0 0,coh_src_sub_ps)
+  let coh_src_sub_ps = F.whisk_sub_ps 0 t (Unchecked.ty_apply_sub_ps ty i1) tgt_f tgt_f_ty in
+  Coh(F.whisk (dim-1) 0 0,coh_src_sub_ps)
 
 (* Construct target (src_f[i1]) * (t[i2]) *)
 let naturality_tgt t gamma ty src ty_base dim l i1 i2 =
   let bdry = Unchecked.ps_bdry gamma in
   let sigma = Unchecked.ps_src gamma in
   let bdry_c = Unchecked.ps_to_ctx bdry in
-  let l_sigma = Functorialisation.preimage bdry_c sigma l in
-  let bdry_f_ctx = Functorialisation.ctx bdry_c l_sigma in
+  let l_sigma = F.preimage bdry_c sigma l in
+  let bdry_f_ctx = F.ctx bdry_c l_sigma in
   let bdry_f_db = Unchecked.db_level_sub_inv bdry_f_ctx in
-  let src_f_ty = Functorialisation.ty ty_base l_sigma src in
+  let src_f_ty = F.ty ty_base l_sigma src in
   let src_f_ty = Unchecked.ty_apply_sub (Unchecked.ty_apply_sub src_f_ty bdry_f_db) i1 in
-  let src_f = Functorialisation.tm_one_step_tm src l_sigma in
+  let src_f = F.tm_one_step_tm src l_sigma in
   let src_f = Unchecked.tm_apply_sub (Unchecked.tm_apply_sub src_f bdry_f_db) i1 in
-  let coh_tgt_sub_ps = Functorialisation.whisk_sub_ps 0 src_f src_f_ty t (Unchecked.ty_apply_sub ty i2) in
-  Coh(Functorialisation.whisk (dim-1) 0 0,coh_tgt_sub_ps)
+  let coh_tgt_sub_ps = F.whisk_sub_ps 0 src_f src_f_ty t (Unchecked.ty_apply_sub ty i2) in
+  Coh(F.whisk (dim-1) 0 0,coh_tgt_sub_ps)
 
 let biasor_sub ps bdry_f i1 i2 d =
   let ps_red = Ps_reduction.reduce (d-1) ps in
@@ -225,11 +227,11 @@ let depth1_interchanger_tgt coh coh_bridge l =
   let bdry = Unchecked.ps_bdry gamma in
   let sigma = Unchecked.ps_src gamma in
   let bdry_c = Unchecked.ps_to_ctx bdry in
-  let l_sigma = Functorialisation.preimage bdry_c sigma l in
+  let l_sigma = F.preimage bdry_c sigma l in
   (* Construct ps_bdry_f *)
-  let bdry_f_ctx = Functorialisation.ctx bdry_c l_sigma in
+  let bdry_f_ctx = F.ctx bdry_c l_sigma in
   let bdry_f = PS.forget (PS.mk (Ctx.check bdry_f_ctx)) in
-  let sigma_f = Functorialisation.sub sigma l in
+  let sigma_f = F.sub sigma l in
   (* Construct composite context *)
   let phi,i1_ps,i2_ps = Unchecked.ps_compose (d-1) bdry_f gamma in
   let i1 = Unchecked.sub_ps_to_sub i1_ps in
@@ -246,7 +248,7 @@ let depth1_interchanger_tgt coh coh_bridge l =
   let coh_src_sub_ps = Unchecked.sub_ps_apply_sub rho_delta (Unchecked.sub_ps_to_sub delta_ind) in
   let coh_src = Coh(coh_bridge, coh_src_sub_ps) in
   (* Construct map into pullback *)
-  let phi_ind_sub_ps = Unchecked.pullback_up (d-1) bdry_f gamma sigma_f (Unchecked.sub_ps_apply_sub (Unchecked.identity_ps gamma) (Functorialisation.tgt_subst l)) in
+  let phi_ind_sub_ps = Unchecked.pullback_up (d-1) bdry_f gamma sigma_f (Unchecked.sub_ps_apply_sub (Unchecked.identity_ps gamma) (F.tgt_subst l)) in
   let phi_ind = Unchecked.sub_ps_to_sub phi_ind_sub_ps in
   (* Construct final coherence *)
   let intch_coh = Coh.check_inv phi coh_src coh_tgt ("intch_tgt",0,[]) in
@@ -278,7 +280,7 @@ let rec depth1_bridge_sub src_sub tgt_sub l =
           | Coh(_,s) -> s,((List.length s)-(2*d))/2+1
           | _ -> assert false in
         let ccomp = Suspension.tm (Some(d-1)) (ccomp_n arity) in
-        let inner_subf = Functorialisation.sub inner_sub l in
+        let inner_subf = F.sub inner_sub l in
         let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
         let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
         (bridge,expl)::(tgt,false)::(src,false)::rest
@@ -313,15 +315,15 @@ let bridge_ps ps l =
   let d = Unchecked.dim_ps ps in
   let bdry = Unchecked.ps_bdry ps in
   let src = Unchecked.ps_src ps in
-  let src_preim = Functorialisation.preimage (Unchecked.ps_to_ctx bdry) src l in
-  let bdry_f,_ = Functorialisation.ps bdry src_preim in
+  let src_preim = F.preimage (Unchecked.ps_to_ctx bdry) src l in
+  let bdry_f,_ = F.ps bdry src_preim in
   let ps,_,i2 = Unchecked.ps_compose (d-1) bdry_f ps in
   let i2 = Unchecked.sub_ps_to_sub i2 in
   let ps_c = Unchecked.ps_to_ctx ps in
   let red_sub = Ps_reduction.reduction_sub ps in
   let ps_red = Ps_reduction.reduce (d-1) ps in
   let ps_red_c = Unchecked.ps_to_ctx ps_red in
-  let coh_l = Functorialisation.preimage ps_red_c red_sub (image ps_c i2 l) in
+  let coh_l = F.preimage ps_red_c red_sub (image ps_c i2 l) in
   ps_red, coh_l
 
 let bridge_coh coh l =
@@ -330,7 +332,7 @@ let bridge_coh coh l =
   let ps_bridge, coh_l = bridge_ps ps l in
   let name_red = Unchecked.full_name name^"_red",0,[] in
   let coh_bridge = Coh.check_noninv ps_bridge src tgt name_red in
-  let coh_bridge_f = Functorialisation.coh_depth0 coh_bridge coh_l in
+  let coh_bridge_f = F.coh_depth0 coh_bridge coh_l in
   coh_bridge, coh_bridge_f
 
 let coh_depth1 coh l =
@@ -357,7 +359,7 @@ let coh_depth1 coh l =
   in
   let d = Unchecked.dim_ty base_ty in
   let comp = Suspension.coh (Some d) (Builtin.comp_n 3) in
-  Coh(comp, comp_sub_ps), Functorialisation.ctx (Unchecked.ps_to_ctx ps) l
+  Coh(comp, comp_sub_ps), F.ctx (Unchecked.ps_to_ctx ps) l
 
 let init () =
-  Functorialisation.coh_depth1 := coh_depth1
+  F.coh_depth1 := coh_depth1
