@@ -25,7 +25,6 @@ let rec comp_kn_sub_ps k n = if n = 0 then [(comp_n_m k,true);(comp_n_r k,false)
 let comp_kn_tm k n = Coh(Builtin.comp_n n, comp_kn_sub_ps k (n-1))
 let comp_n_tm n = comp_kn_tm 0 n
 (* short-hands for unary and binary composites *)
-let comp_unary x y f = Coh(Builtin.comp_n 1, [(f,true);(y,false);(x,false)])
 let comp_binary x y f z g = Coh(Builtin.comp_n 2, [(g,true);(z,false);(f,true);(y,false);(x,false)])
 (*
   DB levels of the n-th square in the naturality of linear composite
@@ -56,28 +55,7 @@ let sqt_comp n = Coh(Builtin.comp_n n, sqt_comp_sub_ps (n-1))
 let rec sqb_corner_comp_sub_ps n = if n = 0 then (sqb_sub_ps 0) else (sqbm n,true)::(sqbr n,false)::(sqb_corner_comp_sub_ps (n-1))
 let sqt_corner_comp_sub_ps n = (sqmr n,true)::(sqbr n,false)::(sqt_comp_sub_ps n)
 
-(*
-https://q.uiver.app/#q=WzAsNCxbMCwwLCIwIl0sWzIsMCwiMyJdLFsyLDIsIjQiXSxbMCwyLCIxIl0sWzEsMiwiNSIsMV0sWzAsMywiMiIsMV0sWzEsMywiOCIsMSx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH0sImxldmVsIjoyfV0sWzAsMSwiNiIsMV0sWzMsMiwiNyIsMV0sWzMsMiwiNyIsMSx7ImN1cnZlIjozfV0sWzAsMSwiNiIsMSx7ImN1cnZlIjotM31dLFs4LDksIiIsMSx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbMTAsNywiIiwxLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
-*)
-let ccomp_unary =
-    let unbias = comp_n_tm 2 in
-    let biasl = comp_binary (tdb 0) (tdb 1) (comp_unary (tdb 0) (tdb 1) (tdb 2)) (tdb 3) (tdb 4) in
-    let biasr = comp_binary (tdb 0) (tdb 1) (tdb 2) (tdb 3) (comp_unary (tdb 1) (tdb 3) (tdb 4)) in
-    (* Phase 1 *)
-    let phase1_sub_ps = sqt_sub_ps 0 in
-    let phase1 = Coh(Coh.check_inv (Builtin.ps_comp 2) biasl unbias ("builtin_unbiasl",0,[]),phase1_sub_ps) in
-    let phase1_sub_contr = Unchecked.coh_to_sub_ps phase1 in
-    (* Phase 2 *)
-    let phase2_sub_contr = [(sqmm 0,true);(sqb 0,false)] in
-    (* Phase 3 *)
-    let phase3_sub_ps = sqb_sub_ps 0 in
-    let phase3_sub = Unchecked.sub_ps_to_sub phase3_sub_ps in
-    let phase3 = Coh(Coh.check_inv (Builtin.ps_comp 2) unbias biasr ("builtin_biasr",0,[]),phase3_sub_ps) in
-    let phase3_sub_contr = [(phase3,true);(Unchecked.tm_apply_sub biasr phase3_sub,false)] in
-    (* Collate *)
-    let comp_sub = List.concat [phase3_sub_contr;phase2_sub_contr;phase1_sub_contr] in
-    let comp = Suspension.coh (Some(1)) (Builtin.comp_n 3) in
-    Coh(comp,comp_sub)
+let ccomp_unary = sqmm 0
 
 (*
 https://q.uiver.app/#q=WzAsOSxbMCwxLCIwIl0sWzIsMSwiMyJdLFsyLDMsIjQiXSxbMCwzLCIxIl0sWzQsMSwiOSJdLFs0LDMsIjEwIl0sWzAsMCwiMCJdLFsyLDAsIjEiXSxbNCwwLCIzIl0sWzAsMSwiNiIsMV0sWzEsMiwiNSIsMV0sWzAsMywiMiIsMV0sWzMsMiwiNyIsMV0sWzEsNCwiMTIiLDFdLFs0LDUsIjExIiwxXSxbMiw1LCIxMyIsMV0sWzYsNywiMiIsMV0sWzcsOCwiNCIsMV0sWzMsMSwiOCIsMSx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH0sImxldmVsIjoyfV0sWzIsNCwiMTQiLDEseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9LCJsZXZlbCI6Mn1dXQ==
@@ -271,40 +249,33 @@ let depth1_bridge_sub ps_inter l_inter d =
     match red with
     | [] -> []
     | (t,true)::(w,false)::red ->
-      begin
+      let ps_comp,s =
         match t with
         | Coh(comp,s) ->
           let ps_comp,_,_ = Coh.forget comp in
-          let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
-          if l <> [] then
-            let arity = (List.length l - 1)/2 in
-            let ccomp = Suspension.tm (Some (d-1)) (ccomp_n arity) in
-            let s = F.sub_ps s l_inter in
-            let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
-            let src = Suspension.tm (Some (d-1)) (src_ccomp arity) in
-            let tgt = Suspension.tm (Some (d-1)) (tgt_ccomp arity) in
-            List.append
-              (List.map (fun (x,t) -> Unchecked.tm_apply_sub_ps x s,t) [ccomp,true; tgt, false; src, false])
-              ((w_plus,false)::(aux red))
-          else
-            (t,true)::(w,false)::(aux red)
+          ps_comp,s
         | Var v ->
           let ty,_ = List.assoc v (Unchecked.ps_to_ctx ps_inter) in
           let s = (Var v,true)::(Unchecked.ty_to_sub_ps ty) in
           let ps_comp = Suspension.ps (Some (Unchecked.dim_ty ty)) (Br[]) in
-          let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
-          if l <> [] then
-            let s = F.sub_ps s l_inter in
-            let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
-            let src = Suspension.tm (Some (d-1)) (src_ccomp 1) in
-            let tgt = Suspension.tm (Some (d-1)) (tgt_ccomp 1) in
-            let ccomp = Var (Var.Bridge v) in
-            List.append
-              (List.map (fun (x,t) -> Unchecked.tm_apply_sub_ps x s,t) [ccomp,true; tgt, false; src, false])
-              ((w_plus,false)::(aux red))
-          else (t,true)::(w,false)::(aux red)
+          ps_comp,s
         | Meta_tm _ -> Error.fatal "meta_variables must have been resolved"
-      end
+      in
+      let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
+      if l <> [] then
+        let arity = (List.length l - 1)/2 in
+        let ccomp = Suspension.tm (Some (d-1)) (ccomp_n arity) in
+        let s = F.sub_ps s l_inter in
+        let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
+        let src = Suspension.tm (Some (d-1)) (src_ccomp arity) in
+        let tgt = Suspension.tm (Some (d-1)) (tgt_ccomp arity) in
+        List.append
+          (List.map
+             (fun (x,t) -> Unchecked.tm_apply_sub_ps x s,t)
+             [ccomp,true; tgt, false; src, false])
+          ((w_plus,false)::(aux red))
+      else
+        (t,true)::(w,false)::(aux red)
     | (t,e)::red -> (t,e)::(aux red)
   in aux (Ps_reduction.reduction_sub ps_inter)
 
