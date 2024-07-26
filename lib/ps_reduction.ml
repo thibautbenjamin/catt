@@ -14,6 +14,7 @@ let reduction_sub ps =
   let rec aux i ps =
     match i,ps with
     | _, Br[] -> [tdb 0, true]
+    | 0, Br [Br[]] -> [tdb 2, true; tdb 1, false; tdb 0, false]
     | 0, Br l ->
       let k = List.length l in
       [Coh(Builtin.comp_n k,(Unchecked.(identity_ps (Br l)))), true ;

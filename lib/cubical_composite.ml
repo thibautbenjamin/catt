@@ -305,14 +305,16 @@ let depth1_bridge_sub src_sub tgt_sub l l_bridge =
             | _ -> assert false in
           let d = Unchecked.dim_ty ty in
           let src_bridge = fst (List.nth src_sub 2) in
-          let inner_sub,arity = match src_bridge with
-            | Coh(_,s) -> s,((List.length s)-(2*d))/2+1
-            | _ -> assert false in
-          let ccomp = Suspension.tm (Some(d-1)) (ccomp_n arity) in
-          let inner_subf = F.sub_ps inner_sub l in
-          let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
-          let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
-          (bridge,true)::(tgt,false)::(src,false)::rest
+          match src_bridge with
+          | Var v -> (Var (Var.Bridge v), true)::(tgt,false)::(src,false)::rest
+          | Coh(_,s) ->
+            let inner_sub, arity =  s,((List.length s)-(2*d))/2+1 in
+            let ccomp = Suspension.tm (Some(d-1)) (ccomp_n arity) in
+            let inner_subf = F.sub_ps inner_sub l in
+            let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
+            let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
+            (bridge,true)::(tgt,false)::(src,false)::rest
+          | _ -> assert false
       end
     | _,_,_ -> assert false
   in aux (Unchecked.sub_ps_to_sub src_sub) src_sub tgt_sub
