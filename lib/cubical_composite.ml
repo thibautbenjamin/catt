@@ -1,4 +1,4 @@
-(* open Common *)
+open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
@@ -241,6 +241,27 @@ let depth1_interchanger_tgt coh coh_bridge l =
   and fill gaps between matching but different terms with
   the correct cubical composite
  *)
+(* let depth1_bridge_sub ps src_sub tgt_sub l l_bridge = *)
+  (* let rec aux sub = *)
+  (*   match sub with *)
+  (*   | [] ->  [] *)
+  (*   | (bridgev,_)::(plusv,_)::(v,tm)::sub when (List.mem v l_bridge) -> *)
+  (*     let comp,s = *)
+  (*       match tm with *)
+  (*       | Coh(c,s) ->c,s *)
+  (*       | _ -> assert false *)
+  (*     in *)
+  (*     let ps_comp,_,_ = Coh.forget comp in *)
+  (*     let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l in *)
+  (*     let ccomp,src,tgt = cubical comp l in *)
+  (*     let s = F.sub s l in *)
+  (*     let ccomp = Unchecked.tm_apply_sub ccomp s in *)
+  (*     let src = Unchecked.tm_apply_sub src s in *)
+  (*     let tgt = Unchecked.tm_apply_sub tgt s in *)
+  (*     (bridgev,ccomp)::(plusv,tgt)::(v,src)::(aux sub) *)
+  (*   | (v,tm)::tl when not (List.mem v l_bridge) -> (v,tm)::(aux tl) *)
+  (* in *)
+  (* aux Unchecked.(sub_ps_to_sub (identity_ps ps)) *)
 let depth1_bridge_sub src_sub tgt_sub l l_bridge =
   let rec aux src src_sub tgt_sub =
     match src,src_sub,tgt_sub with
@@ -263,48 +284,42 @@ let depth1_bridge_sub src_sub tgt_sub l l_bridge =
           let inner_subf = F.sub inner_sub l in
           let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
           let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
-          (bridge,expl)::(tgt,false)::(src,false)::rest
+          (bridge,true)::(tgt,false)::(src,false)::rest
       end
     | _,_,_ -> assert false
   in aux (Unchecked.sub_ps_to_sub src_sub) src_sub tgt_sub
 
-let image ctx sub l =
-  let idx_image v =
-    match List.assoc v sub with
-    | Coh _ | Meta_tm _ -> Error.fatal "image can only be taken with variables"
-    | Var v -> v
-  in
-  let rec keep_closed l =
-    match l with
-    | [] -> []
-    | v::l ->
-      let
-        closure =
-        List.filter
-          (fun (_,(ty,_)) -> Unchecked.ty_contains_var ty v)
-          ctx
-      in
-      if List.for_all (fun (x,_) -> List.mem x l) closure
-      then v::(keep_closed l)
-      else keep_closed l
-  in
-  let img = List.map idx_image l in
-  keep_closed img
+let rec keep_closed l ctx =
+  match l with
+  | [] -> []
+  | v::l ->
+    let
+      closure =
+      List.filter
+        (fun (_,(ty,_)) -> Unchecked.ty_contains_var ty v)
+        ctx
+    in
+    if List.for_all (fun (x,_) -> List.mem x l) closure
+    then v::(keep_closed l ctx)
+    else keep_closed l ctx
 
-(* Pasting scheme (Γ_red * ∂Γ_f)red = (∂Γ_f * Γ_red)red = (Γ * ∂Γ_f)_red *)
+let loc_max_dim d ps x =
+  let ctx = Unchecked.ps_to_ctx ps in
+  let ty,expl = List.assoc x ctx in
+  expl &&  (Unchecked.dim_ty ty = d)
+
 let bridge_ps ps l =
   let d = Unchecked.dim_ps ps in
-  let bdry = Unchecked.ps_bdry ps in
-  let src = Unchecked.ps_src ps in
-  let src_preim = F.preimage (Unchecked.ps_to_ctx bdry) src l in
-  let bdry_f,_ = F.ps bdry src_preim in
-  let ps,_,i2 = Unchecked.ps_compose (d-1) bdry_f ps in
-  let i2 = Unchecked.sub_ps_to_sub i2 in
-  let ps_c = Unchecked.ps_to_ctx ps in
-  let red_sub = Ps_reduction.reduction_sub ps in
-  let ps_red = Ps_reduction.reduce (d-1) ps in
+  let l_filtered = List.filter (loc_max_dim (d-1) ps) l in
+  let ps_f_c = F.ctx (Unchecked.ps_to_ctx ps) l_filtered in
+  let _,names,_ = Unchecked.db_levels ps_f_c in
+  let ps_f = PS.(forget (mk (Ctx.check ps_f_c))) in
+  let red_sub = Ps_reduction.reduction_sub ps_f in
+  let ps_red = Ps_reduction.reduce (d-1) ps_f in
   let ps_red_c = Unchecked.ps_to_ctx ps_red in
-  let coh_l = F.preimage ps_red_c red_sub (image ps_c i2 l) in
+  let l_psf = (List.map (fun x -> Var.Db (List.assoc x names)) l) in
+  let l_psf = keep_closed l_psf ps_f_c in
+  let coh_l = F.preimage ps_red_c red_sub l_psf in
   ps_red, coh_l
 
 let bridge_coh coh ps_bridge =
@@ -330,8 +345,13 @@ let coh_depth1 coh l =
     match inner_src,inner_tgt with
     | Coh(_,s), Coh(_,s') -> s,s'
     | _,_ -> assert false in
+  let l_tmp = List.filter (loc_max_dim d ps_bridge) l_tmp in
   let bridge = depth1_bridge_sub src_sub_ps tgt_sub_ps l l_bridge in
-  let coh_bridge_f = F.coh_depth0 coh_bridge l_bridge in
+  let coh_bridge_f =
+    F.coh_depth0
+      coh_bridge
+      (List.filter (loc_max_dim d ps_bridge) l_bridge)
+  in
   let middle = Coh(coh_bridge_f, bridge) in
   (* Combine *)
   let comp_sub_ps =
