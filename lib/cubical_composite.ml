@@ -146,21 +146,28 @@ and ccomp_n arity =
   Memo.find_ccomp arity build_ccomp_n
 
 let src_ccomp arity =
-  let comp = Builtin.comp_n arity in
-  let rec sub i =
-    if i <= 0 then [sqtl 0, false]
-    else (sqtm (i-1), true)::(sqtl i, false)::(sub (i-1))
+  let line = if arity = 1 then
+      sqtm 0
+    else
+      let comp = Builtin.comp_n arity in
+      let rec sub i =
+        if i <= 0 then [sqtl 0, false]
+        else (sqtm (i-1), true)::(sqtl i, false)::(sub (i-1))
+      in
+      Coh(comp, (sub arity))
   in
-  let line = Coh(comp, (sub arity)) in
   Coh(Builtin.comp_n 2, [sqmr (arity - 1), true; sqbr (arity - 1), false; line, true; sqtr (arity - 1), false; sqtl 0, false])
 
 let tgt_ccomp arity =
-  let comp = Builtin.comp_n arity in
-  let rec sub i =
-    if i <= 0 then [sqbl 0, false]
-    else (sqbm (i-1), true)::(sqbl i, false)::(sub (i-1))
+  let line = if arity = 1 then
+      sqbm 0
+    else
+      let comp = Builtin.comp_n arity in
+      let rec sub i =
+        if i <= 0 then [sqbl 0, false]
+        else (sqbm (i-1), true)::(sqbl i, false)::(sub (i-1))
+      in  Coh(comp, (sub arity))
   in
-  let line = Coh(comp, (sub arity)) in
   Coh(Builtin.comp_n 2, [line, true; sqbr (arity - 1), false; sqml 0, true; sqbl 0, false; sqtl 0, false])
 
 (* source and source inclusion of a functorialised ps *)
@@ -259,65 +266,47 @@ let depth1_interchanger_tgt coh coh_bridge l =
   and fill gaps between matching but different terms with
   the correct cubical composite
  *)
-let rec print = function
-  |[] -> ""
-  |v::l -> Printf.sprintf "%s %s" (print l) (Var.to_string v)
-
-let depth1_bridge_sub_tmp ps_inter l_inter d =
+let depth1_bridge_sub ps_inter l_inter d =
   let rec aux red =
-    (* Io.debug "aux on %s" (Unchecked.sub_ps_to_string red); *)
     match red with
     | [] -> []
-    | ((Coh(comp,s),true) as t)::(w,_)::red ->
-      let ps_comp,_,_ = Coh.forget comp in
-      let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
-      if l <> [] then
-        (* let _ = Io.debug "cubical comp of %s \n list: %s" (Unchecked.tm_to_string (Coh(comp,s))) (print l_inter) in *)
-        let arity = (List.length l - 1)/2 in
-        (* let _ = Io.debug "arity: %i" arity in *)
-        let ccomp = Suspension.tm (Some (d-1)) (ccomp_n arity) in
-        let s = F.sub_ps s l_inter in
-        let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
-        let src = Suspension.tm (Some (d-1)) (src_ccomp arity) in
-        let tgt = Suspension.tm (Some (d-1)) (tgt_ccomp arity) in
-        (* let _ = Io.debug "ccomp: %s" (Unchecked.tm_to_string ccomp) in *)
-        (* let _ = Io.debug "sub: %s" (Unchecked.sub_ps_to_string s) in *)
-        List.append
-          (List.map (fun (x,t) -> Unchecked.tm_apply_sub_ps x s,t) [ccomp,true; tgt, false; src, false])
-          ((w_plus,false)::(aux red))
-      else
-        t::(w,false)::(aux red)
-    | t::red -> t::(aux red)
-  in aux (Ps_reduction.reduction_sub ps_inter)
-
-let depth1_bridge_sub src_sub tgt_sub l l_bridge =
-  let rec aux src src_sub tgt_sub =
-    match src,src_sub,tgt_sub with
-    | [],[],[] -> []
-    | (v,_)::tl, (src,expl)::src_tl,(tgt,_)::tgt_tl ->
+    | (t,true)::(w,false)::red ->
       begin
-        let rest = aux tl src_tl tgt_tl in
-        if not (List.mem v l_bridge) then
-          (src,expl)::rest
-        else
-          let (_,ty,_),src_sub = match src with
-            | Coh(c,s) -> Coh.forget c,s
-            | _ -> assert false in
-          let d = Unchecked.dim_ty ty in
-          let src_bridge = fst (List.nth src_sub 2) in
-          match src_bridge with
-          | Var v -> (Var (Var.Bridge v), true)::(tgt,false)::(src,false)::rest
-          | Coh(_,s) ->
-            let inner_sub, arity =  s,((List.length s)-(2*d))/2+1 in
-            let ccomp = Suspension.tm (Some(d-1)) (ccomp_n arity) in
-            let inner_subf = F.sub_ps inner_sub l in
-            let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
-            let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
-            (bridge,true)::(tgt,false)::(src,false)::rest
-          | _ -> assert false
+        match t with
+        | Coh(comp,s) ->
+          let ps_comp,_,_ = Coh.forget comp in
+          let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
+          if l <> [] then
+            let arity = (List.length l - 1)/2 in
+            let ccomp = Suspension.tm (Some (d-1)) (ccomp_n arity) in
+            let s = F.sub_ps s l_inter in
+            let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
+            let src = Suspension.tm (Some (d-1)) (src_ccomp arity) in
+            let tgt = Suspension.tm (Some (d-1)) (tgt_ccomp arity) in
+            List.append
+              (List.map (fun (x,t) -> Unchecked.tm_apply_sub_ps x s,t) [ccomp,true; tgt, false; src, false])
+              ((w_plus,false)::(aux red))
+          else
+            (t,true)::(w,false)::(aux red)
+        | Var v ->
+          let ty,_ = List.assoc v (Unchecked.ps_to_ctx ps_inter) in
+          let s = (Var v,true)::(Unchecked.ty_to_sub_ps ty) in
+          let ps_comp = Suspension.ps (Some (Unchecked.dim_ty ty)) (Br[]) in
+          let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
+          if l <> [] then
+            let s = F.sub_ps s l_inter in
+            let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
+            let src = Suspension.tm (Some (d-1)) (src_ccomp 1) in
+            let tgt = Suspension.tm (Some (d-1)) (tgt_ccomp 1) in
+            let ccomp = Var (Var.Bridge v) in
+            List.append
+              (List.map (fun (x,t) -> Unchecked.tm_apply_sub_ps x s,t) [ccomp,true; tgt, false; src, false])
+              ((w_plus,false)::(aux red))
+          else (t,true)::(w,false)::(aux red)
+        | Meta_tm _ -> Error.fatal "meta_variables must have been resolved"
       end
-    | _,_,_ -> assert false
-  in aux (Unchecked.sub_ps_to_sub src_sub) src_sub tgt_sub
+    | (t,e)::red -> (t,e)::(aux red)
+  in aux (Ps_reduction.reduction_sub ps_inter)
 
 let loc_max_dim d ps x =
   let ctx = Unchecked.ps_to_ctx ps in
@@ -354,35 +343,20 @@ let bridge_coh coh ps_bridge =
 let coh_depth1 coh l =
   let ps,_,_ = Coh.forget coh in
   let d = Unchecked.dim_ps ps in
-  Io.debug "ps: %s, list: %s" (Unchecked.ps_to_string ps) (print l);
   let ps_inter, l_inter, names = intermediate_ps ps l d in
-  Io.debug "ps_inter: %s, l_inter: %s" (Unchecked.ps_to_string ps_inter) (print l_inter);
   let ps_bridge, l_bridge = bridge_ps ps_inter l_inter d in
   let coh_bridge = bridge_coh coh ps_bridge in
   let intch_src,intch_src_ty = depth1_interchanger_src coh coh_bridge l in
   let intch_tgt,intch_tgt_ty = depth1_interchanger_tgt coh coh_bridge l in
-  let inner_src,inner_tgt,final_tgt =
-    match intch_src_ty,intch_tgt_ty with
-    | Arr(_,_,s), Arr(_,t,t') -> s,t,t'
-    | _,_ -> assert false
-  in
-  let src_sub_ps,tgt_sub_ps =
-    match inner_src,inner_tgt with
-    | Coh(_,s), Coh(_,s') -> s,s'
-    | _,_ -> assert false in
-  let bridge_tmp = depth1_bridge_sub_tmp ps_inter l_inter d in
-  Io.debug "wrong bridge before renaming: %s" (Unchecked.sub_ps_to_string bridge_tmp);
-  Io.debug "renaming_base: %s" (Unchecked.sub_to_string names);
-  Io.debug "list: %s" (print l_inter);
-  Io.debug "renaming: %s" (Unchecked.sub_to_string (F.sub names l_inter));
-  let bridge_tmp = Unchecked.sub_ps_apply_sub bridge_tmp (F.sub names l_inter) in
-  Io.debug "wrong bridge: %s" (Unchecked.sub_ps_to_string bridge_tmp);
-  let bridge = depth1_bridge_sub src_sub_ps tgt_sub_ps l l_bridge in
-  Io.debug "bridge: %s" (Unchecked.sub_ps_to_string bridge);
+  let bridge = depth1_bridge_sub ps_inter l_inter d in
+  let bridge = Unchecked.sub_ps_apply_sub bridge (F.sub names l_inter) in
   let coh_bridge_f = F.coh_depth0 coh_bridge l_bridge in
-  (* let middle = Coh(coh_bridge_f, bridge) in *)
-  let middle = Coh(coh_bridge_f, bridge_tmp) in
-  (* Combine *)
+  let middle = Coh(coh_bridge_f, bridge) in
+  let inner_tgt,final_tgt =
+    match intch_tgt_ty with
+    |  Arr(_,t,t') -> t,t'
+    | _ -> assert false
+  in
   let comp_sub_ps =
     List.append
       [intch_tgt,true;final_tgt,false;middle,true;inner_tgt,false;intch_src,true]

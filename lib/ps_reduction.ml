@@ -19,7 +19,7 @@ let reduction_sub ps =
       let k = List.length l in
       [Coh(Builtin.comp_n k,(Unchecked.(identity_ps (Br l)))), true ;
         tdb (2*k-1), false;
-        tdb 0, true]
+        tdb 0, false]
     | i, Br l -> Unchecked.suspwedge_subs_ps (List.map (aux (i-1)) l) l
   in
   aux (Unchecked.dim_ps ps - 1) ps
