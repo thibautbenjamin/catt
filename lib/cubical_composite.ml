@@ -145,6 +145,24 @@ let rec build_ccomp_n arity =
 and ccomp_n arity =
   Memo.find_ccomp arity build_ccomp_n
 
+let src_ccomp arity =
+  let comp = Builtin.comp_n arity in
+  let rec sub i =
+    if i <= 0 then [sqtl 0, false]
+    else (sqtm (i-1), true)::(sqtl i, false)::(sub (i-1))
+  in
+  let line = Coh(comp, (sub arity)) in
+  Coh(Builtin.comp_n 2, [sqmr (arity - 1), true; sqbr (arity - 1), false; line, true; sqtr (arity - 1), false; sqtl 0, false])
+
+let tgt_ccomp arity =
+  let comp = Builtin.comp_n arity in
+  let rec sub i =
+    if i <= 0 then [sqbl 0, false]
+    else (sqbm (i-1), true)::(sqbl i, false)::(sub (i-1))
+  in
+  let line = Coh(comp, (sub arity)) in
+  Coh(Builtin.comp_n 2, [line, true; sqbr (arity - 1), false; sqml 0, true; sqbl 0, false; sqtl 0, false])
+
 (* source and source inclusion of a functorialised ps *)
 let ctx_src ps l =
   let d = Unchecked.dim_ps ps in
@@ -241,27 +259,37 @@ let depth1_interchanger_tgt coh coh_bridge l =
   and fill gaps between matching but different terms with
   the correct cubical composite
  *)
-(* let depth1_bridge_sub ps src_sub tgt_sub l l_bridge = *)
-  (* let rec aux sub = *)
-  (*   match sub with *)
-  (*   | [] ->  [] *)
-  (*   | (bridgev,_)::(plusv,_)::(v,tm)::sub when (List.mem v l_bridge) -> *)
-  (*     let comp,s = *)
-  (*       match tm with *)
-  (*       | Coh(c,s) ->c,s *)
-  (*       | _ -> assert false *)
-  (*     in *)
-  (*     let ps_comp,_,_ = Coh.forget comp in *)
-  (*     let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l in *)
-  (*     let ccomp,src,tgt = cubical comp l in *)
-  (*     let s = F.sub s l in *)
-  (*     let ccomp = Unchecked.tm_apply_sub ccomp s in *)
-  (*     let src = Unchecked.tm_apply_sub src s in *)
-  (*     let tgt = Unchecked.tm_apply_sub tgt s in *)
-  (*     (bridgev,ccomp)::(plusv,tgt)::(v,src)::(aux sub) *)
-  (*   | (v,tm)::tl when not (List.mem v l_bridge) -> (v,tm)::(aux tl) *)
-  (* in *)
-  (* aux Unchecked.(sub_ps_to_sub (identity_ps ps)) *)
+let rec print = function
+  |[] -> ""
+  |v::l -> Printf.sprintf "%s %s" (print l) (Var.to_string v)
+
+let depth1_bridge_sub_tmp ps_inter l_inter d =
+  let rec aux red =
+    (* Io.debug "aux on %s" (Unchecked.sub_ps_to_string red); *)
+    match red with
+    | [] -> []
+    | ((Coh(comp,s),true) as t)::(w,_)::red ->
+      let ps_comp,_,_ = Coh.forget comp in
+      let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
+      if l <> [] then
+        (* let _ = Io.debug "cubical comp of %s \n list: %s" (Unchecked.tm_to_string (Coh(comp,s))) (print l_inter) in *)
+        let arity = (List.length l - 1)/2 in
+        (* let _ = Io.debug "arity: %i" arity in *)
+        let ccomp = Suspension.tm (Some (d-1)) (ccomp_n arity) in
+        let s = F.sub_ps s l_inter in
+        let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
+        let src = Suspension.tm (Some (d-1)) (src_ccomp arity) in
+        let tgt = Suspension.tm (Some (d-1)) (tgt_ccomp arity) in
+        (* let _ = Io.debug "ccomp: %s" (Unchecked.tm_to_string ccomp) in *)
+        (* let _ = Io.debug "sub: %s" (Unchecked.sub_ps_to_string s) in *)
+        List.append
+          (List.map (fun (x,t) -> Unchecked.tm_apply_sub_ps x s,t) [ccomp,true; tgt, false; src, false])
+          ((w_plus,false)::(aux red))
+      else
+        t::(w,false)::(aux red)
+    | t::red -> t::(aux red)
+  in aux (Ps_reduction.reduction_sub ps_inter)
+
 let depth1_bridge_sub src_sub tgt_sub l l_bridge =
   let rec aux src src_sub tgt_sub =
     match src,src_sub,tgt_sub with
@@ -281,7 +309,7 @@ let depth1_bridge_sub src_sub tgt_sub l l_bridge =
             | Coh(_,s) -> s,((List.length s)-(2*d))/2+1
             | _ -> assert false in
           let ccomp = Suspension.tm (Some(d-1)) (ccomp_n arity) in
-          let inner_subf = F.sub inner_sub l in
+          let inner_subf = F.sub_ps inner_sub l in
           let inner_subf_norm = Unchecked.list_to_db_level_sub (List.map fst inner_subf) in
           let bridge = Unchecked.tm_apply_sub ccomp inner_subf_norm in
           (bridge,true)::(tgt,false)::(src,false)::rest
@@ -289,37 +317,29 @@ let depth1_bridge_sub src_sub tgt_sub l l_bridge =
     | _,_,_ -> assert false
   in aux (Unchecked.sub_ps_to_sub src_sub) src_sub tgt_sub
 
-let rec keep_closed l ctx =
-  match l with
-  | [] -> []
-  | v::l ->
-    let
-      closure =
-      List.filter
-        (fun (_,(ty,_)) -> Unchecked.ty_contains_var ty v)
-        ctx
-    in
-    if List.for_all (fun (x,_) -> List.mem x l) closure
-    then v::(keep_closed l ctx)
-    else keep_closed l ctx
-
 let loc_max_dim d ps x =
   let ctx = Unchecked.ps_to_ctx ps in
   let ty,expl = List.assoc x ctx in
   expl &&  (Unchecked.dim_ty ty = d)
 
-let bridge_ps ps l =
-  let d = Unchecked.dim_ps ps in
-  let l_filtered = List.filter (loc_max_dim (d-1) ps) l in
-  let ps_f_c = F.ctx (Unchecked.ps_to_ctx ps) l_filtered in
+let intermediate_ps ps l d =
+  let l_d0,l_d1 = List.partition (loc_max_dim (d-1) ps) l in
+  if l_d0 = [] then
+    ps,l,Unchecked.(sub_ps_to_sub (identity_ps ps))
+  else
+  let ps_f_c = F.ctx (Unchecked.ps_to_ctx ps) l_d0 in
   let _,names,_ = Unchecked.db_levels ps_f_c in
   let ps_f = PS.(forget (mk (Ctx.check ps_f_c))) in
-  let red_sub = Ps_reduction.reduction_sub ps_f in
-  let ps_red = Ps_reduction.reduce (d-1) ps_f in
+  let l_psf = (List.map (fun x -> Var.Db (List.assoc x names)) l_d1) in
+  let names = List.map (fun (x,n) -> (Var.Db n, Var x)) names in
+  ps_f, l_psf, names
+
+let bridge_ps ps_inter l_inter d =
+  let red_sub = Ps_reduction.reduction_sub ps_inter in
+  let ps_red = Ps_reduction.reduce (d-1) ps_inter in
   let ps_red_c = Unchecked.ps_to_ctx ps_red in
-  let l_psf = (List.map (fun x -> Var.Db (List.assoc x names)) l) in
-  let l_psf = keep_closed l_psf ps_f_c in
-  let coh_l = F.preimage ps_red_c red_sub l_psf in
+  let coh_l = F.preimage ps_red_c red_sub l_inter in
+  let coh_l = List.filter (loc_max_dim d ps_red) coh_l in
   ps_red, coh_l
 
 let bridge_coh coh ps_bridge =
@@ -332,7 +352,10 @@ let bridge_coh coh ps_bridge =
 let coh_depth1 coh l =
   let ps,_,_ = Coh.forget coh in
   let d = Unchecked.dim_ps ps in
-  let ps_bridge, l_bridge = bridge_ps ps l in
+  Io.debug "ps: %s, list: %s" (Unchecked.ps_to_string ps) (print l);
+  let ps_inter, l_inter, names = intermediate_ps ps l d in
+  Io.debug "ps_inter: %s, l_inter: %s" (Unchecked.ps_to_string ps_inter) (print l_inter);
+  let ps_bridge, l_bridge = bridge_ps ps_inter l_inter d in
   let coh_bridge = bridge_coh coh ps_bridge in
   let intch_src,intch_src_ty = depth1_interchanger_src coh coh_bridge l in
   let intch_tgt,intch_tgt_ty = depth1_interchanger_tgt coh coh_bridge l in
@@ -345,14 +368,18 @@ let coh_depth1 coh l =
     match inner_src,inner_tgt with
     | Coh(_,s), Coh(_,s') -> s,s'
     | _,_ -> assert false in
-  let l_tmp = List.filter (loc_max_dim d ps_bridge) l_tmp in
+  let bridge_tmp = depth1_bridge_sub_tmp ps_inter l_inter d in
+  Io.debug "wrong bridge before renaming: %s" (Unchecked.sub_ps_to_string bridge_tmp);
+  Io.debug "renaming_base: %s" (Unchecked.sub_to_string names);
+  Io.debug "list: %s" (print l_inter);
+  Io.debug "renaming: %s" (Unchecked.sub_to_string (F.sub names l_inter));
+  let bridge_tmp = Unchecked.sub_ps_apply_sub bridge_tmp (F.sub names l_inter) in
+  Io.debug "wrong bridge: %s" (Unchecked.sub_ps_to_string bridge_tmp);
   let bridge = depth1_bridge_sub src_sub_ps tgt_sub_ps l l_bridge in
-  let coh_bridge_f =
-    F.coh_depth0
-      coh_bridge
-      (List.filter (loc_max_dim d ps_bridge) l_bridge)
-  in
-  let middle = Coh(coh_bridge_f, bridge) in
+  Io.debug "bridge: %s" (Unchecked.sub_ps_to_string bridge);
+  let coh_bridge_f = F.coh_depth0 coh_bridge l_bridge in
+  (* let middle = Coh(coh_bridge_f, bridge) in *)
+  let middle = Coh(coh_bridge_f, bridge_tmp) in
   (* Combine *)
   let comp_sub_ps =
     List.append
