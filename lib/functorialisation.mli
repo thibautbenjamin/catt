@@ -14,9 +14,10 @@ val coh_all : Coh.t -> Coh.t
 val tm_one_step_tm : tm -> Var.t list -> tm
 val ty : ty -> Var.t list -> tm -> ty
 val ctx : ctx -> Var.t list -> ctx
-val sub : sub_ps -> Var.t list -> sub_ps
+val sub_ps : sub_ps -> Var.t list -> sub_ps
 val tm : ctx -> tm -> (Var.t * int) list -> tm * ctx
 val ps : ps -> Var.t list ->  ps * (Var.t * int) list
+val sub : sub -> Var.t list -> sub
 val sub_w_tgt : ps -> sub_ps -> Var.t list -> sub_ps * ps * (Var.t * int) list * Var.t list
 
 val whisk : int -> int -> int -> Coh.t

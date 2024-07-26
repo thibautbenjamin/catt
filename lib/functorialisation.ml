@@ -168,7 +168,7 @@ and coh coh l =
   in
   let cohf = if depth0 then
        let id = Unchecked.identity_ps ps in
-       let sf = sub id l in
+       let sf = sub_ps id l in
        let pscf = ctx (Unchecked.ps_to_ctx ps) l in
        let cohf = coh_depth0 coh l in
        Coh(cohf,sf), pscf
@@ -192,31 +192,31 @@ and coh_successively c l  =
    target and its source.
  *)
 and tm_one_step t l expl =
-  if (not (Unchecked.tm_contains_vars t l)) then [t,expl]
-  else
-    match t with
-    | Var v -> [Var (Var.Bridge v), expl; Var (Var.Plus v), false; Var v, false]
-    | Coh(c,s) ->
-      begin
-        let t' = Unchecked.tm_apply_sub t (tgt_subst l) in
-        let sf = sub s l in
-        let ps,_,_ = Coh.forget c in
-        let psc = Unchecked.ps_to_ctx ps in
-        let places = preimage psc s l in
-        let cohf,pscf = coh c places in
-        let subf = Unchecked.list_to_sub (List.map fst sf) pscf in
-        let tm = Unchecked.tm_apply_sub cohf subf in
-        [tm, expl; t', false; t, false]
-      end
-    | Meta_tm _ -> (raise FunctorialiseMeta)
+  match t with
+  | Var v -> [Var (Var.Bridge v), expl; Var (Var.Plus v), false; Var v, false]
+  | Coh(c,s) ->
+    begin
+      let t' = Unchecked.tm_apply_sub t (tgt_subst l) in
+      let sf = sub_ps s l in
+      let ps,_,_ = Coh.forget c in
+      let psc = Unchecked.ps_to_ctx ps in
+      let places = preimage psc s l in
+      let cohf,pscf = coh c places in
+      let subf = Unchecked.list_to_sub (List.map fst sf) pscf in
+      let tm = Unchecked.tm_apply_sub cohf subf in
+      [tm, expl; t', false; t, false]
+    end
+  | Meta_tm _ -> (raise FunctorialiseMeta)
 and tm_one_step_tm t l = fst (List.hd (tm_one_step t l true))
-and sub s l =
+and sub_ps s l =
   match s with
   | [] -> []
   | (t, expl)::s ->
+    if (not (Unchecked.tm_contains_vars t l)) then (t,expl)::(sub_ps s l)
+    else
     List.append
       (tm_one_step t l expl)
-      (sub s l)
+      (sub_ps s l)
 
 and tm c t s  =
   let l, next = next_round s in
@@ -251,6 +251,19 @@ let coh_successively c l =
       ("coherence: " ^ Coh.to_string c)
       (Printf.sprintf "cannot functorialise meta-variables")
 
+let rec sub s l =
+  match s with
+  | [] -> []
+  | (x,t)::s when not (List.mem x l) -> (x,t)::(sub s l)
+  | (x,t)::s ->
+    match tm_one_step t l true with
+    | [(tm_f,_); (tgt_t,_); (src_t,_)] ->
+      (Var.Bridge x, tm_f)::(Var.Plus x, tgt_t)::(x,src_t)::(sub s l)
+    | [(t,_)] ->
+      Io.debug "no functorialisation needed for %s" (Var.to_string x);
+      (x,t)::(sub s l)
+    | _ -> assert false
+
 (* Functorialisation once with respect to every maximal argument *)
 let coh_all c =
   let ps,_,_ = Coh.forget c in
@@ -278,7 +291,7 @@ let ps p l =
   PS.(forget (mk (Ctx.check c))), names
 
 let sub_w_tgt p s l =
-  let s_f = sub s l in
+  let s_f = sub_ps s l in
   let l = preimage (Unchecked.ps_to_ctx p) s l in
   let p_f, names = ps p l in
   s_f,p_f,names,l
