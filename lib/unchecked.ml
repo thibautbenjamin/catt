@@ -84,8 +84,12 @@ struct
           Printf.sprintf "%s %s"
             str
             (bracket i (tm_to_string t)),x+1
-        | (_,false)::s ->
+        | (t,false)::s ->
           let str,x = print s in
+          let str = if !Settings.print_explicit_substitutions then
+              Printf.sprintf "%s %s" str (tm_to_string t)
+            else str
+          in
           str,x+1
         | [] -> "",0
       in fst(print s)
@@ -232,10 +236,14 @@ struct
       ty_do_on_variables ty (fun v -> var_sub_preimage v s)
 
     (* rename is applying a variable to de Bruijn levels substitutions *)
-    let rename_ty ty l = ty_do_on_variables ty
-        (fun v -> Var (Db (List.assoc v l)))
-    let rename_tm tm l = tm_do_on_variables tm
-        (fun v -> Var (Db (List.assoc v l)))
+    let rename_var v l = try
+        Var (Db (List.assoc v l))
+      with Not_found ->
+        Error.fatal (Printf.sprintf
+                       "variable %s not found in context"
+                       (Var.to_string v))
+    let rename_ty ty l = ty_do_on_variables ty (fun v -> rename_var v l)
+    let rename_tm tm l = tm_do_on_variables tm (fun v -> rename_var v l)
 
     let rec db_levels c =
       match c with

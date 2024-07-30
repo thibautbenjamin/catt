@@ -34,7 +34,6 @@ module rec Sub
     List.concat (List.map Tm.free_vars s.list)
 
   let check src s tgt =
-
     Io.info ~v:5
       (lazy
         (Printf.sprintf
