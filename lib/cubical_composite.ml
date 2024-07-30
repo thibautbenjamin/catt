@@ -4,18 +4,18 @@ open Unchecked_types.Unchecked_types(Coh)
 
 module F = Functorialisation
 
-(* module Memo = struct *)
-(*   let tbl_ccomp = Hashtbl.create 24 *)
-
-(*   let find_ccomp i f = *)
-(*     try Hashtbl.find tbl_ccomp i with *)
-(*     | Not_found -> *)
-(*       let res = f i in *)
-(*       Hashtbl.add tbl_ccomp i res; *)
-(*       res *)
-(* end *)
-
 module LinearComp = struct
+    module Memo = struct
+    let tbl = Hashtbl.create 24
+
+    let find arity list f =
+      try Hashtbl.find tbl (arity,list) with
+      | Not_found ->
+        let res = f arity list in
+        Hashtbl.add tbl (arity, list) res;
+        res
+  end
+
   let tdb i = Var (Db i)
 
   let src_i_f i active =
@@ -159,7 +159,8 @@ module LinearComp = struct
     | Arr(_,s,t) -> mv,s,t
     | _ -> assert false
 
-  let cubical arity list =
+  let build_cubical_long arity list =
+    let append_onto_if cond l1 l2 = if cond then List.append l1 l2 else l2 in
     let rec sub ctx ?(add_src=false) onto =
       match ctx with
       | [] -> onto
@@ -169,20 +170,34 @@ module LinearComp = struct
           (mv,true)::(tgtv, false)::onto
         else onto
       | (v,_)::(tv,_)::ctx ->
+        let mv,srcv,tgtv = move_at v list arity in
+        let mtv,srctv,tgttv = move_at tv list arity in
+        let src = if List.mem tv list then srctv else srcv in
         let onto =
-          if List.mem v list then
-            let mv,src,tgt = move_at v list arity in
-            if List.mem tv list then
-              let mtv,srctv,tgttv = move_at tv list arity in
-              (mv,true)::(tgt, false)::(mtv,true)::(tgttv, false)::(if add_src then (srctv,false)::onto else onto)
-            else (mv,true)::(tgt, false)::(if add_src then (src,false)::onto else onto)
-          else onto
-        in sub ctx onto
+          append_onto_if
+             (List.mem v list)
+             [mv,true; tgtv, false]
+             (append_onto_if
+                (List.mem tv list)
+                [mtv,true; tgttv, false]
+                (append_onto_if add_src [src, false] onto))
+        in
+        sub ctx onto
     in
     if arity = 1 then Var (Bridge (Db 2)) else
       let comp = Suspension.coh (Some 1) (Builtin.comp_n (List.length list)) in
-      let s = sub (Unchecked.ps_to_ctx (Builtin.ps_comp arity)) ~add_src:true [plus (2*arity-1) list, false; tdb 0, false] in
+      let base = [plus (2*arity-1) list, false; tdb 0, false] in
+      let ctx_comp = Unchecked.ps_to_ctx (Builtin.ps_comp arity) in
+      let s = sub ctx_comp ~add_src:true base in
       Coh (comp, s)
+
+  let build_cubical arity list =
+    match arity with
+    | 1 -> Var (Bridge (Db 2))
+    | arity -> build_cubical_long arity list
+
+  let cubical arity list =
+    Memo.find arity list build_cubical
 end
 
 let tdb i = Var (Db i)
