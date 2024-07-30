@@ -5,7 +5,7 @@ open Unchecked_types.Unchecked_types(Coh)
 module F = Functorialisation
 
 module LinearComp = struct
-    module Memo = struct
+  module Memo = struct
     let tbl = Hashtbl.create 24
 
     let find arity list f =
@@ -17,128 +17,107 @@ module LinearComp = struct
   end
 
   let tdb i = Var (Db i)
+  let tpl i = Var (Plus (Db i))
+  let tbr i = Var (Bridge (Db i))
+
+  let bcomp x y f z g =
+    let comp = Builtin.comp_n 2 in
+    let sub = [g, true; z, false; f, true; y, false; x, false] in
+    Coh(comp, sub)
+
+  let idx_src i =
+    if i = 2 then 0 else i-3
 
   let src_i_f i active =
     if active
-    then
-      let idx_src = if i = 2 then 0 else i-3 in
-      let comp = Builtin.comp_n 2 in
-      let sub =
-        [Var (Bridge (Db (i-1))), true;
-         Var (Plus (Db (i-1))), false;
-         tdb i, true;
-         tdb (i-1), false;
-         tdb idx_src, false]
-      in
-      Coh(comp, sub)
+    then bcomp (tdb (idx_src i)) (tdb (i-1)) (tdb i) (tpl (i-1)) (tbr (i-1))
     else tdb i
 
   let tgt_i_f i active =
     if active
     then
-      let idx_src = if i = 2 then 0 else i-3 in
-      let comp = Builtin.comp_n 2 in
-      let sub =
-        [Var (Plus (Db i)), true;
-         Var (Plus (Db (i-1))), false;
-         Var (Bridge (Db idx_src)), true;
-         Var (Plus (Db idx_src)), false;
-         tdb idx_src, false]
-      in
-      Coh(comp, sub)
+      let isrc = idx_src i in
+      bcomp (tdb isrc) (tpl isrc) (tbr isrc) (tpl (i-1)) (tpl i)
     else Var (Plus (Db i))
+
+  let comp_biased_start arity =
+    let lin_incl =
+      let rec sub k =
+        match k with
+        | 0 -> [tdb 1, false]
+        | k -> (tdb (k+2), k mod 2 == 0)::(sub(k-1))
+      in sub (2*arity)
+    in
+    let lin_comp = Coh(Builtin.comp_n arity, lin_incl) in
+    bcomp (tdb 0) (tdb 1) (tdb 2) (tdb (2*arity + 1)) lin_comp
+
+  let comp_biased_end arity =
+    let lin_incl = Unchecked.identity_ps (Builtin.ps_comp arity) in
+    let lin_comp = Coh(Builtin.comp_n arity, lin_incl) in
+    bcomp (tdb 0) (tdb (2*arity-1)) lin_comp (tdb (2*arity+1)) (tdb (2*arity+2))
+
+  let comp_biased_middle arity pos =
+    let comp = Builtin.comp_n arity in
+    let rec sub k =
+      match k with
+      | _ when k = 0 -> [tdb 0, false]
+      | _ when k < pos -> (tdb k, true)::(tdb (k-1), false)::(sub (k-2))
+      | _ when k = pos+1 ->
+        let bcomp =
+          bcomp (tdb (idx_src k)) (tdb (k-1)) (tdb k) (tdb (k+1)) (tdb (k+2))
+        in
+        (bcomp, true)::(tdb (k+1), false)::sub(k-2)
+      | _ when k > pos+1 ->
+        (tdb (k+2), true)::(tdb (k+1), false)::(sub (k-2))
+      |_ -> assert false
+    in
+    Coh (comp, sub (2*arity))
 
   let comp_biased arity pos =
     match pos with
-    | _ when pos = 0 ->
-      let comp = Builtin.comp_n 2 in
-      let lin_incl =
-        let rec sub k =
-          match k with
-          | 0 -> [tdb 1, false]
-          | k -> (tdb (k+2), k mod 2 == 0)::(sub(k-1))
-        in sub (2*arity)
-      in
-      let sub =
-        [Coh(Builtin.comp_n arity, lin_incl), true;
-         tdb (2*arity+1), false;
-         tdb 2, true;
-         tdb 1, false;
-         tdb 0, false]
-        in Coh (comp, sub)
-    | _ when pos = 2 * arity + 1 ->
-      let comp = Builtin.comp_n 2 in
-      let lin_incl = Unchecked.identity_ps (Builtin.ps_comp arity) in
-      let sub =
-        [tdb (2*arity+2), true;
-         tdb (2*arity+1), false;
-         Coh(Builtin.comp_n arity, lin_incl), true;
-         tdb (2*arity-1), false;
-         tdb 0, false]
-        in Coh (comp, sub)
-    | _ ->
-      let comp = Builtin.comp_n arity in
-      let rec sub k =
-        match k with
-        | _ when k = 0 -> [tdb 0, false]
-        | _ when k < pos -> (tdb k, true)::(tdb (k-1), false)::(sub (k-2))
-        | _ when k = pos+1 ->
-          let bc = Builtin.comp_n 2 in
-          let
-            bcs =
-            [tdb (k+2), true;
-             tdb (k+1), false;
-             tdb k, true;
-             tdb (k-1), false;
-             tdb (if k = 2 then 0 else k-3), false]
-          in
-          let bincomp = Coh(bc, bcs) in
-          (bincomp, true)::(tdb (k+1), false)::sub(k-2)
-        | _ when k > pos+1 ->
-          (tdb (k+2), true)::(tdb (k+1), false)::(sub (k-2))
-        |_ -> assert false
-      in
-      Coh (comp, sub (2*arity))
+    | _ when pos = 0 -> comp_biased_start arity
+    | _ when pos = 2 * arity + 1 -> comp_biased_end arity
+    | _ -> comp_biased_middle arity pos
 
-  let plus i l =
-    if List.mem (Var.Db i) l then Var (Plus (Db i)) else tdb i
+  let plus i l = if List.mem (Var.Db i) l then tpl i else tdb i
 
   let sub_whisk_i i arity l src tgt =
-    let rec until k =
+    let rec sub k =
       match k with
       | k when k = 0 -> [tdb 0, false]
-      | k when k < i -> (tdb k, true)::(tdb (k-1), false)::(until (k-2))
+      | k when k < i -> (tdb k, true)::(tdb (k-1), false)::(sub (k-2))
       | k when k = i ->
         List.append
-          [Var (Bridge (Db i)), true; tgt, false; src, false; Var (Plus (Db (i-1))), false]
-          (until (i-2))
-      | k when k > i -> (plus k l, true)::(plus (k-1) l, false)::(until (k-2))
+          [tbr i, true; tgt, false; src, false; tpl (i-1), false]
+          (sub (i-2))
+      | k when k > i -> (plus k l, true)::(plus (k-1) l, false)::(sub (k-2))
       | _ -> assert false
-    in until (2*arity)
+    in sub (2*arity)
 
   let sub_assc_i i arity l =
-    let rec until k =
+    let rec sub k =
       match k with
-      | k when k = 0 && i = 0 -> [Var (Bridge (Db 0)), true ;Var (Plus (Db 0)), false ;tdb 0, false]
+      | k when k = 0 && i = 0 -> [tbr 0, true ;tpl 0, false ;tdb 0, false]
       | k when k = 0 -> [tdb 0, false]
-      | k when k < i+1 -> (tdb k, true)::(tdb (k-1), false)::(until (k-2))
+      | k when k < i+1 -> (tdb k, true)::(tdb (k-1), false)::(sub (k-2))
       | k when k = i+1 ->
         List.append
-          [Var (Bridge (Db i)), true; Var (Plus (Db i)), false ;tdb k, true; tdb i, false]
-          (until (k-2))
-      | k when k > i+1 -> (plus k l, true)::(plus (k-1) l, false)::(until (k-2))
+          [tbr i, true; tpl i, false ;tdb k, true; tdb i, false]
+          (sub (k-2))
+      | k when k > i+1 -> (plus k l, true)::(plus (k-1) l, false)::(sub (k-2))
       | _ -> assert false
-    in until (2*arity)
+    in sub (2*arity)
 
   let assc i arity l =
     let src = comp_biased arity (if i = 0 then 1 else i+2) in
     let tgt = comp_biased arity i in
-    let assc = Coh.check_inv (Builtin.ps_comp (arity+1)) src tgt ("builtin_assc",0,[])in
+    let ps = Builtin.ps_comp (arity + 1) in
+    let assc = Coh.check_inv ps src tgt ("builtin_assc",0,[])in
     let sub = sub_assc_i i arity l in
     let _,ty,_ = Coh.forget assc in
     Coh (assc, sub), Unchecked.ty_apply_sub_ps ty sub
 
-  let fun_at_i i arity l =
+  let whsk i arity l =
     let src = src_i_f i (List.mem (Var.Db i) l) in
     let tgt = tgt_i_f i (List.mem (Var.Db i) l) in
     let sub = sub_whisk_i i arity l src tgt in
@@ -151,9 +130,11 @@ module LinearComp = struct
     let mv,ty =
       match v with
       | Var.Db i when i  = 0 -> assc 0 arity l
-      | Var.Db i when i mod 2 = 0 -> fun_at_i i arity l
+      | Var.Db i when i mod 2 = 0 -> whsk i arity l
       | Var.Db i -> assc i arity l
-      | _ -> Error.fatal "cubical composite can only compute on De Bruijn variables"
+      | _ ->
+        Error.fatal
+          "cubical composite can only compute on De Bruijn variables"
     in
     match ty with
     | Arr(_,s,t) -> mv,s,t
@@ -184,69 +165,24 @@ module LinearComp = struct
         in
         sub ctx onto
     in
-    if arity = 1 then Var (Bridge (Db 2)) else
-      let comp = Suspension.coh (Some 1) (Builtin.comp_n (List.length list)) in
-      let base = [plus (2*arity-1) list, false; tdb 0, false] in
-      let ctx_comp = Unchecked.ps_to_ctx (Builtin.ps_comp arity) in
-      let s = sub ctx_comp ~add_src:true base in
-      Coh (comp, s)
+    let comp = Suspension.coh (Some 1) (Builtin.comp_n (List.length list)) in
+    let base = [plus (2*arity-1) list, false; tdb 0, false] in
+    let ctx_comp = Unchecked.ps_to_ctx (Builtin.ps_comp arity) in
+    let s = sub ctx_comp ~add_src:true base in
+    let _,ty,_ = Coh.forget comp in
+    Coh (comp, s), (Unchecked.ty_apply_sub_ps ty s)
 
   let build_cubical arity list =
     match arity with
-    | 1 -> Var (Bridge (Db 2))
+    | 1 ->
+      let src_on = List.mem (Var.Db 0) list in
+      let tgt_on = List.mem (Var.Db 1) list in
+      tbr 2, Arr(Obj, src_i_f 2 src_on, tgt_i_f 2 tgt_on)
     | arity -> build_cubical_long arity list
 
   let cubical arity list =
     Memo.find arity list build_cubical
 end
-
-let tdb i = Var (Db i)
-let comp_n_l n = if n = 0 then tdb 0 else tdb ((2*n)-1)
-let comp_n_r n = tdb ((2*n)+1)
-let comp_n_m n = tdb ((2*n)+2)
-let rec comp_kn_sub_ps k n = if n = 0 then [(comp_n_m k,true);(comp_n_r k,false);(comp_n_l k,false)] else (comp_n_m (k+n),true)::(comp_n_r (k+n),false)::(comp_kn_sub_ps k (n-1))
-let comp_kn_tm k n = Coh(Builtin.comp_n n, comp_kn_sub_ps k (n-1))
-let comp_n_tm n = comp_kn_tm 0 n
-
-
-let sqtl_db n = if n = 0 then 0 else ((n*6)-3)
-let sqtl n = tdb (sqtl_db n)
-let sqbl n = tdb ((sqtl_db n)+1)
-let sqml n = tdb ((sqtl_db n)+2)
-let sqtr n = tdb (sqtl_db (n+1))
-let sqbr n = tdb ((sqtl_db (n+1))+1)
-let sqmr n = tdb ((sqtl_db (n+1))+2)
-let sqtm n = tdb ((sqtl_db (n+1))+3)
-let sqbm n = tdb ((sqtl_db (n+1))+4)
-
-(* let rec build_ccomp_n arity = *)
-(* and ccomp_n arity = *)
-(*   Memo.find_ccomp arity build_ccomp_n *)
-
-let src_ccomp arity =
-  let line = if arity = 1 then
-      sqtm 0
-    else
-      let comp = Builtin.comp_n arity in
-      let rec sub i =
-        if i <= 0 then [sqtl 0, false]
-        else (sqtm (i-1), true)::(sqtl i, false)::(sub (i-1))
-      in
-      Coh(comp, (sub arity))
-  in
-  Coh(Builtin.comp_n 2, [sqmr (arity - 1), true; sqbr (arity - 1), false; line, true; sqtr (arity - 1), false; sqtl 0, false])
-
-let tgt_ccomp arity =
-  let line = if arity = 1 then
-      sqbm 0
-    else
-      let comp = Builtin.comp_n arity in
-      let rec sub i =
-        if i <= 0 then [sqbl 0, false]
-        else (sqbm (i-1), true)::(sqbl i, false)::(sub (i-1))
-      in  Coh(comp, (sub arity))
-  in
-  Coh(Builtin.comp_n 2, [line, true; sqbr (arity - 1), false; sqml 0, true; sqbl 0, false; sqtl 0, false])
 
 (* source and source inclusion of a functorialised ps *)
 let ctx_src ps l =
@@ -278,7 +214,8 @@ let naturality_src coh ty tgt ty_base dim l i1 i2 names =
   let tgt_f = Unchecked.rename_tm (F.tm_one_step_tm tgt l) names in
   let tgt_f = Unchecked.tm_apply_sub_ps tgt_f i2 in
   let coh_src_sub_ps = F.whisk_sub_ps 0 t (Unchecked.ty_apply_sub_ps ty i1) tgt_f tgt_f_ty in
-  Coh(F.whisk (dim-1) 0 0,coh_src_sub_ps)
+  let comp = Suspension.coh (Some (dim-1)) (Builtin.comp_n 2) in
+  Coh(comp,coh_src_sub_ps)
 
 (* Construct target (src_f[i1]) * (t[i2]) *)
 let naturality_tgt coh ty src ty_base dim l i1 i2 names =
@@ -288,7 +225,8 @@ let naturality_tgt coh ty src ty_base dim l i1 i2 names =
   let src_f = Unchecked.rename_tm (F.tm_one_step_tm src l) names in
   let src_f = Unchecked.tm_apply_sub_ps src_f i1 in
   let coh_tgt_sub_ps = F.whisk_sub_ps 0 src_f src_f_ty t (Unchecked.ty_apply_sub_ps ty i2) in
-  Coh(F.whisk (dim-1) 0 0,coh_tgt_sub_ps)
+  let comp = Suspension.coh (Some (dim-1)) (Builtin.comp_n 2) in
+  Coh(comp,coh_tgt_sub_ps)
 
 let biasor_sub_intch_src ps bdry_f i1 i2 d =
   let ps_red = Ps_reduction.reduce (d-1) ps in
@@ -319,7 +257,6 @@ let depth1_interchanger_src coh coh_bridge l =
   let src_ctx, src_incl, i1, i2, bdry_f, l_tgt, names = ctx_src gamma l in
   let coh_src = naturality_src coh coh_ty tgt ty_base d l_tgt i1 i2 names in
   let coh_tgt = Coh(coh_bridge, biasor_sub_intch_src gamma bdry_f i1 i2 d) in
-  (* Construct final coherence *)
   let intch_coh = Coh.check_inv src_ctx coh_src coh_tgt ("intch_src",0,[]) in
   let _,ty,_ = Coh.forget intch_coh in
   let intch = Coh(intch_coh,src_incl) in
@@ -365,19 +302,21 @@ let depth1_bridge_sub ps_inter l_inter d =
       if l <> [] then
         let arity = (List.length l - 1)/2 in
         let s_tmp = F.sub (Unchecked.sub_ps_to_sub s) l in
-        let s = F.sub_ps s l_inter in
         let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
-        let src = Suspension.tm (Some (d-1)) (src_ccomp arity) in
-        let tgt = Suspension.tm (Some (d-1)) (tgt_ccomp arity) in
-        (* --------------------------------------------------------- *)
-        let cubical_comp = LinearComp.cubical arity (List.init (2*arity+1) (fun i -> Var.Db i)) in
-        let ccomp_tmp = Suspension.tm (Some (d-1)) (cubical_comp) in
-        let ccomp_tmp = Unchecked.tm_apply_sub ccomp_tmp s_tmp in
-        (ccomp_tmp, true)::
-        (Unchecked.tm_apply_sub_ps tgt s, false)::
-        (Unchecked.tm_apply_sub_ps src s, false)::
+        let ccomp,ty = LinearComp.cubical arity (List.init (2*arity+1) (fun i -> Var.Db i)) in
+        let ccomp = Suspension.tm (Some (d-1)) ccomp in
+        let ccomp = Unchecked.tm_apply_sub ccomp s_tmp in
+        let ty = Suspension.ty (Some (d-1)) ty in
+        let ty = Unchecked.ty_apply_sub ty s_tmp in
+        let src,tgt =
+          match ty with
+          | Arr(_,s,t) -> s,t
+          | _ -> assert false
+        in
+        (ccomp, true)::
+        (tgt, false)::
+        (src, false)::
         (w_plus,false)::(aux red)
-        (* --------------------------------------------------------- *)
       else
         (t,true)::(w,false)::(aux red)
     | (t,e)::red -> (t,e)::(aux red)
