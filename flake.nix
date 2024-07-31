@@ -16,6 +16,7 @@
         # via nix develop.
         packages = rec {
           default = self.packages.${system}.catt;
+
           catt = pkgs.callPackage
             ({ stdenv, dune_3, ocaml, opam, ocamlPackages, ... }:
               stdenv.mkDerivation {
@@ -41,6 +42,18 @@
                   #install -Dm644 _build/default/web/*.js $out/web
                 '';
               }) { };
+
+          catt-dev = catt.overrideAttrs (old: {
+              buildInputs =
+                catt.buildInputs ++
+                (with pkgs.ocamlPackages; [
+                  ocamlformat
+                  ocaml-lsp
+                  ocp-indent
+                ]);
+            });
         };
+
+        devShells.default = self.packages.${system}.catt-dev;
       });
 }
