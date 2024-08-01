@@ -45,13 +45,15 @@ let rec tm t =
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
   | Sub(Op _,_,_) | Sub (Inverse _,_,_) | Sub(Unit _,_,_)
   | Sub(Builtin _, _,_) | Letin_tm _ -> Error.fatal("ill-formed term")
-and sub s tgt  =
+and sub s tgt =
   match s,tgt with
   | [],[] -> [],[]
-  | (t,_)::s, (x,(_, e))::tgt when e || !Settings.explicit_substitutions ->
+  | (t,i)::s, (x,(_, e))::tgt when e || !Settings.explicit_substitutions ->
     let t, meta_types_t = tm t in
+    let fmetas, meta_types_f,tgt = meta_functed_arg i tgt in
     let s, meta_types_s = sub s tgt in
-    (x,t)::s, List.append meta_types_t meta_types_s
+    let meta_types = List.concat [meta_types_t; meta_types_f; meta_types_s] in
+    (x,t)::(List.append fmetas s), meta_types
   | (_::_) as s , (x,(_,_))::tgt ->
     let t, meta_type = Meta.new_tm() in
     let s, meta_types_s = sub s tgt in
@@ -69,6 +71,15 @@ and find_functorialisation s tgt =
   | (_::_) as s , (_,(_,_))::tgt -> find_functorialisation s tgt
   | [], (_,(_,false))::_ -> []
   | _::_, [] |[],_::_ -> raise WrongNumberOfArguments
+and meta_functed_arg i ctx =
+  match i,ctx with
+  | 0,tgt -> [],[],tgt
+  | _,(y,_)::(x,_)::ctx ->
+    let src, meta_types_src = Meta.new_tm () in
+    let tgt, meta_types_tgt = Meta.new_tm () in
+    let fmetas, meta_types,_ = meta_functed_arg (i-1) ctx in
+    (y,tgt)::(x,src)::fmetas, meta_types_tgt::meta_types_src::meta_types, ctx
+  | _,_ -> raise WrongNumberOfArguments
 
 let tm t =
   try tm t with
