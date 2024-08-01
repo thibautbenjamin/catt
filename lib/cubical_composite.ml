@@ -16,6 +16,15 @@ module LinearComp = struct
         res
   end
 
+  let arity ps =
+    let d = Unchecked.dim_ps ps in
+    let rec aux ps i =
+      match i,ps with
+      | 0, Br l -> List.length l
+      | i, Br [ps] -> aux ps (i-1)
+      | _, _ -> Error.fatal "cubical composite must be on suspended linear composite";
+    in aux ps (d-1)
+
   let tdb i = Var (Db i)
   let tpl i = Var (Plus (Db i))
   let tbr i = Var (Bridge (Db i))
@@ -184,6 +193,11 @@ module LinearComp = struct
     Memo.find arity list build_cubical
 end
 
+let desuspend_db v d =
+  match v with
+  | Var.Db i -> Var.Db (i-2*d)
+  | _ -> Error.fatal "only de Bruijn levels expected in coherences"
+
 (* source and source inclusion of a functorialised ps *)
 let ctx_src ps l =
   let d = Unchecked.dim_ps ps in
@@ -213,7 +227,8 @@ let naturality_src coh ty tgt ty_base dim l i1 i2 names =
   let tgt_f_ty = Unchecked.ty_apply_sub_ps tgt_f_ty i2 in
   let tgt_f = Unchecked.rename_tm (F.tm_one_step_tm tgt l) names in
   let tgt_f = Unchecked.tm_apply_sub_ps tgt_f i2 in
-  let coh_src_sub_ps = F.whisk_sub_ps 0 t (Unchecked.ty_apply_sub_ps ty i1) tgt_f tgt_f_ty in
+  let ty = Unchecked.ty_apply_sub_ps ty i1 in
+  let coh_src_sub_ps = F.whisk_sub_ps 0 t ty tgt_f tgt_f_ty in
   let comp = Suspension.coh (Some (dim-1)) (Builtin.comp_n 2) in
   Coh(comp,coh_src_sub_ps)
 
@@ -224,7 +239,8 @@ let naturality_tgt coh ty src ty_base dim l i1 i2 names =
   let src_f_ty = Unchecked.ty_apply_sub_ps src_f_ty i1 in
   let src_f = Unchecked.rename_tm (F.tm_one_step_tm src l) names in
   let src_f = Unchecked.tm_apply_sub_ps src_f i1 in
-  let coh_tgt_sub_ps = F.whisk_sub_ps 0 src_f src_f_ty t (Unchecked.ty_apply_sub_ps ty i2) in
+  let ty = Unchecked.ty_apply_sub_ps ty i2 in
+  let coh_tgt_sub_ps = F.whisk_sub_ps 0 src_f src_f_ty t ty in
   let comp = Suspension.coh (Some (dim-1)) (Builtin.comp_n 2) in
   Coh(comp,coh_tgt_sub_ps)
 
@@ -300,14 +316,15 @@ let depth1_bridge_sub ps_inter l_inter d =
       in
       let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
       if l <> [] then
-        let arity = (List.length l - 1)/2 in
-        let s_tmp = F.sub (Unchecked.sub_ps_to_sub s) l in
+        let arity = LinearComp.arity ps_comp in
+        let s = F.sub (Unchecked.sub_ps_to_sub s) l in
         let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
-        let ccomp,ty = LinearComp.cubical arity (List.init (2*arity+1) (fun i -> Var.Db i)) in
+        let list = List.map (fun v -> desuspend_db v (d-1)) l in
+        let ccomp,ty = LinearComp.cubical arity list in
         let ccomp = Suspension.tm (Some (d-1)) ccomp in
-        let ccomp = Unchecked.tm_apply_sub ccomp s_tmp in
+        let ccomp = Unchecked.tm_apply_sub ccomp s in
         let ty = Suspension.ty (Some (d-1)) ty in
-        let ty = Unchecked.ty_apply_sub ty s_tmp in
+        let ty = Unchecked.ty_apply_sub ty s in
         let src,tgt =
           match ty with
           | Arr(_,s,t) -> s,t
