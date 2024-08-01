@@ -184,8 +184,8 @@ module LinearComp = struct
   let build_cubical arity list =
     match arity with
     | 1 ->
-      let src_on = List.mem (Var.Db 0) list in
-      let tgt_on = List.mem (Var.Db 1) list in
+      let src_on = List.mem (Var.Db 1) list in
+      let tgt_on = List.mem (Var.Db 0) list in
       tbr 2, Arr(Obj, src_i_f 2 src_on, tgt_i_f 2 tgt_on list)
     | arity -> build_cubical_long arity list
 

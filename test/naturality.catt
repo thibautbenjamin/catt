@@ -78,3 +78,35 @@ let triangle2_bis (x : *) (x' : *) (xm : x -> x') (y : *) (z : *) (z' : *) (zm :
               (f : x -> y) (f' : x' -> y) (fm : f -> comp xm f' )
               (g : y -> z) (g' : y -> z') (gm : comp g zm -> g')
               = @comp [_] _ [fm] [_] [gm]
+
+coh example (x(f(a)g(b)h)y(k(c)l)z) : comp f k (id z) -> comp h l
+let ex1 (x : *) (y : *) (z : *) (f : x -> y)
+       (g : x -> y) (g+ : x -> y) (gm : g -> g+)
+       (h : x -> y) (h+ : x -> y) (hm : h -> h+)
+       (a : f -> g) (a+ : f -> g+) (am : comp a gm -> a+)
+       (b : g -> h) (b+ : g+ -> h+) (bm : comp b hm -> comp gm b+)
+       (k : y -> z)
+       (l : y -> z) (l+ : y -> z) (lm : l -> l+)
+       (c : k -> l) (c+ : k -> l+) (cm : comp c lm -> c+)
+       = @example _ _ _ [_] [am] [_] [bm] _ _ [_] [cm]
+
+let ex2 (x : *) (y : *) (z : *) (f : x -> y)
+        (g : x -> y) (g+ : x -> y) (gm : g -> g+)
+        (h : x -> y) (h+ : x -> y) (hm : h -> h+)
+        (a : f -> g) (a+ : f -> g+) (am : comp a gm -> a+)
+        (b : g -> h) (b+ : g+ -> h+) (bm : comp b hm -> comp gm b+)
+        (k : y -> z) (k+ : y -> z) (km : k -> k+)
+        (l : y -> z)
+        (c : k -> l) (c+ : k+ -> l) (cm : c -> comp km c+)
+        = @example _ _ _ [_] [am] [_] [bm] _ [_] _ [cm]
+
+
+let ex3 (x : *) (y : *) (z : *) (f : x -> y)
+        (g : x -> y) (g+ : x -> y) (gm : g -> g+)
+        (h : x -> y) (h+ : x -> y) (hm : h -> h+)
+        (a : f -> g) (a+ : f -> g+) (am : comp a gm -> a+)
+        (b : g -> h) (b+ : g+ -> h+) (bm : comp b hm -> comp gm b+)
+        (k : y -> z) (k+ : y -> z) (km : k -> k+)
+        (l : y -> z) (l+ : y -> z) (lm : l -> l+)
+        (c : k -> l) (c+ : k+ -> l+) (cm : comp c lm -> comp km c+)
+         = @example _ _ _ [_] [am] [_] [bm] _ [_] [_] [cm]
