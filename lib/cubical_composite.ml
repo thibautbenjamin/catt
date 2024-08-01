@@ -37,16 +37,18 @@ module LinearComp = struct
   let idx_src i =
     if i = 2 then 0 else i-3
 
+  let plus i l = if List.mem (Var.Db i) l then tpl i else tdb i
+
   let src_i_f i active =
     if active
     then bcomp (tdb (idx_src i)) (tdb (i-1)) (tdb i) (tpl (i-1)) (tbr (i-1))
     else tdb i
 
-  let tgt_i_f i active =
+  let tgt_i_f i active l =
     if active
     then
       let isrc = idx_src i in
-      bcomp (tdb isrc) (tpl isrc) (tbr isrc) (tpl (i-1)) (tpl i)
+      bcomp (tdb isrc) (tpl isrc) (tbr isrc) (plus (i-1) l) (tpl i)
     else Var (Plus (Db i))
 
   let comp_biased_start arity =
@@ -88,8 +90,6 @@ module LinearComp = struct
     | _ when pos = 2 * arity + 1 -> comp_biased_end arity
     | _ -> comp_biased_middle arity pos
 
-  let plus i l = if List.mem (Var.Db i) l then tpl i else tdb i
-
   let sub_whisk_i i arity l src tgt =
     let rec sub k =
       match k with
@@ -97,7 +97,7 @@ module LinearComp = struct
       | k when k < i -> (tdb k, true)::(tdb (k-1), false)::(sub (k-2))
       | k when k = i ->
         List.append
-          [tbr i, true; tgt, false; src, false; tpl (i-1), false]
+          [tbr i, true; tgt, false; src, false; plus (i-1) l, false]
           (sub (i-2))
       | k when k > i -> (plus k l, true)::(plus (k-1) l, false)::(sub (k-2))
       | _ -> assert false
@@ -127,8 +127,8 @@ module LinearComp = struct
     Coh (assc, sub), Unchecked.ty_apply_sub_ps ty sub
 
   let whsk i arity l =
-    let src = src_i_f i (List.mem (Var.Db i) l) in
-    let tgt = tgt_i_f i (List.mem (Var.Db i) l) in
+    let src = src_i_f i (List.mem (Var.Db (i-1)) l) in
+    let tgt = tgt_i_f i (List.mem (Var.Db (idx_src i)) l) l in
     let sub = sub_whisk_i i arity l src tgt in
     let comp = Builtin.comp_n arity in
     let whsk  = F.coh_depth0 comp [Db i] in
@@ -186,7 +186,7 @@ module LinearComp = struct
     | 1 ->
       let src_on = List.mem (Var.Db 0) list in
       let tgt_on = List.mem (Var.Db 1) list in
-      tbr 2, Arr(Obj, src_i_f 2 src_on, tgt_i_f 2 tgt_on)
+      tbr 2, Arr(Obj, src_i_f 2 src_on, tgt_i_f 2 tgt_on list)
     | arity -> build_cubical_long arity list
 
   let cubical arity list =
@@ -223,26 +223,30 @@ let ctx_tgt ps l =
 (* Construct source (t[i1]) * (tgt_f[i2]) *)
 let naturality_src coh ty tgt ty_base dim l i1 i2 names =
   let t = Coh(coh, i1) in
-  let tgt_f_ty = Unchecked.rename_ty (F.ty ty_base l tgt) names in
-  let tgt_f_ty = Unchecked.ty_apply_sub_ps tgt_f_ty i2 in
-  let tgt_f = Unchecked.rename_tm (F.tm_one_step_tm tgt l) names in
-  let tgt_f = Unchecked.tm_apply_sub_ps tgt_f i2 in
-  let ty = Unchecked.ty_apply_sub_ps ty i1 in
-  let coh_src_sub_ps = F.whisk_sub_ps 0 t ty tgt_f tgt_f_ty in
-  let comp = Suspension.coh (Some (dim-1)) (Builtin.comp_n 2) in
-  Coh(comp,coh_src_sub_ps)
+  if l = [] then t
+  else
+    let tgt_f_ty = Unchecked.rename_ty (F.ty ty_base l tgt) names in
+    let tgt_f_ty = Unchecked.ty_apply_sub_ps tgt_f_ty i2 in
+    let tgt_f = Unchecked.rename_tm (F.tm_one_step_tm tgt l) names in
+    let tgt_f = Unchecked.tm_apply_sub_ps tgt_f i2 in
+    let ty = Unchecked.ty_apply_sub_ps ty i1 in
+    let coh_src_sub_ps = F.whisk_sub_ps 0 t ty tgt_f tgt_f_ty in
+    let comp = Suspension.coh (Some (dim-1)) (Builtin.comp_n 2) in
+    Coh(comp,coh_src_sub_ps)
 
 (* Construct target (src_f[i1]) * (t[i2]) *)
 let naturality_tgt coh ty src ty_base dim l i1 i2 names =
   let t = Coh(coh, i2) in
-  let src_f_ty = Unchecked.rename_ty (F.ty ty_base l src) names in
-  let src_f_ty = Unchecked.ty_apply_sub_ps src_f_ty i1 in
-  let src_f = Unchecked.rename_tm (F.tm_one_step_tm src l) names in
-  let src_f = Unchecked.tm_apply_sub_ps src_f i1 in
-  let ty = Unchecked.ty_apply_sub_ps ty i2 in
-  let coh_tgt_sub_ps = F.whisk_sub_ps 0 src_f src_f_ty t ty in
-  let comp = Suspension.coh (Some (dim-1)) (Builtin.comp_n 2) in
-  Coh(comp,coh_tgt_sub_ps)
+  if l = [] then t
+  else
+    let src_f_ty = Unchecked.rename_ty (F.ty ty_base l src) names in
+    let src_f_ty = Unchecked.ty_apply_sub_ps src_f_ty i1 in
+    let src_f = Unchecked.rename_tm (F.tm_one_step_tm src l) names in
+    let src_f = Unchecked.tm_apply_sub_ps src_f i1 in
+    let ty = Unchecked.ty_apply_sub_ps ty i2 in
+    let coh_tgt_sub_ps = F.whisk_sub_ps 0 src_f src_f_ty t ty in
+    let comp = Suspension.coh (Some (dim-1)) (Builtin.comp_n 2) in
+    Coh(comp,coh_tgt_sub_ps)
 
 let biasor_sub_intch_src ps bdry_f i1 i2 d =
   let ps_red = Ps_reduction.reduce (d-1) ps in

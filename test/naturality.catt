@@ -1,5 +1,3 @@
-
-# set explicit_substitutions = t
 # set verbosity = 5
 # set unroll_coherences = t
 
@@ -59,3 +57,14 @@ let nat_vcompwhisk (x : *) (y : *) (z : *)
 		  (a : f -> f') (b : f -> f') (c : g -> g') (d : g -> g')
 		  = vcompwhisk2 [a] [c]
 
+set explicit_substitutions = t
+set print_explicit_substitutions = t
+let triangle1 (x : *) (y : *) (y' : *) (ym : y -> y') (z : *)
+              (f : x -> y) (f' : x -> y') (fm : comp x y f y' ym -> f')
+              (g : y -> z) (g' : y' -> z) (gm : g -> comp y y' ym z g')
+              = comp x [ym] [fm] z [gm]
+
+let triangle2 (x : *) (x' : *) (xm : x -> x') (y : *) (z : *) (z' : *) (zm : z -> z')
+              (f : x -> y) (f' : x' -> y) (fm : f -> comp x x' xm y f' )
+              (g : y -> z) (g' : y -> z') (gm : comp y z g z' zm -> g')
+              = comp [xm] y [fm] [zm] [gm]
