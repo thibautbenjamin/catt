@@ -60,7 +60,6 @@ and string_of_functed_tm t n =
   else
     Printf.sprintf "[%s]" (string_of_functed_tm t (n-1))
 
-
 (** remove the let in in a term *)
 let rec replace_tm l e =
   match e with
@@ -116,7 +115,11 @@ let rec dim_ty ctx = function
   | ArrR(u,_) -> 1 + dim_tm ctx u
   | Letin_ty _ -> Error.fatal("letin_ty constructors cannot appear here")
 and dim_tm ctx = function
-  | VarR v -> dim_ty ctx (List.assoc v ctx)
+  | VarR v ->
+    begin
+      try dim_ty ctx (List.assoc v ctx)
+      with Not_found -> Error.unknown_id(Var.to_string v)
+    end
   | (Sub(VarR _,s,i) | Builtin(_,s,i)) as t ->
     let func = List.fold_left (fun i (_,j) -> max i j) 0 s in
     let d = match t with

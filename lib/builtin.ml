@@ -27,7 +27,8 @@ let rec ps_comp i =
 let comp_n arity =
   let build_comp i =
     let ps = ps_comp i in
-    Coh.check_noninv ps (Var (Db 0)) (Var(Db 0)) ((Printf.sprintf "builtin_comp%i" arity), 0, [])
+    let pp_data = (Printf.sprintf "builtin_comp%i" arity), 0, [] in
+    Coh.check_noninv ps (Var (Db 0)) (Var(Db 0)) pp_data
   in
   Memo.find arity build_comp
 
