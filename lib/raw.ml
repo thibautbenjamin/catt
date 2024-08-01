@@ -23,12 +23,14 @@ and string_of_tm e =
       (string_of_tm e)
       (string_of_tm tm)
   | VarR x -> Var.to_string x
-  | Sub (t,s,None) ->
-    Printf.sprintf "(%s %s)"
+  | Sub (t,s,None,b) ->
+    Printf.sprintf "(%s%s %s)"
+      (if b then "@" else "")
       (string_of_tm t)
       (string_of_sub s)
-  | Sub (t,s,Some susp) ->
-    Printf.sprintf "(!%i %s %s)"
+  | Sub (t,s,Some susp,b) ->
+    Printf.sprintf "(%s!%i %s %s)"
+      (if b then "@" else "")
       susp
       (string_of_tm t)
       (string_of_sub s)
@@ -63,8 +65,8 @@ let rec replace_tm l e =
       with
         Not_found -> VarR a
     end
-  | Sub (e,s,susp) ->
-    Sub(replace_tm l e, replace_sub l s,susp)
+  | Sub (e,s,susp,b) ->
+    Sub(replace_tm l e, replace_sub l s,susp,b)
   | BuiltinR _ -> e
   | Op(op_data,t) -> Op(op_data, replace_tm l t)
   | Inverse(t) -> Inverse (replace_tm l t)
@@ -96,7 +98,7 @@ let rec var_in_ty x ty =
 and var_in_tm x tm =
   match tm with
   | VarR v -> x = v
-  | Sub(_,s,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
+  | Sub(_,s,_,_) -> List.exists (fun (t,_) -> var_in_tm x t) s
   | BuiltinR _ -> false
   | Inverse t -> var_in_tm x t
   | Unit t -> var_in_tm x t
@@ -114,7 +116,7 @@ and dim_tm ctx = function
       try dim_ty ctx (List.assoc v ctx)
       with Not_found -> Error.unknown_id(Var.to_string v)
     end
-  | Sub(tmR,s,i) ->
+  | Sub(tmR,s,i,_) ->
     let func = List.fold_left (fun i (_,j) -> max i j) 0 s in
     let d = match tmR with
       | VarR v -> Environment.dim_output v
@@ -146,7 +148,7 @@ let rec dim_sub ctx = function
 
 let rec infer_susp_tm ctx = function
   | VarR v -> VarR v
-  | Sub(tmR,s,i)  ->
+  | Sub(tmR,s,i,b)  ->
     let s = infer_susp_sub ctx s in
     begin
       match i with
@@ -164,8 +166,8 @@ let rec infer_susp_tm ctx = function
         in
         let d,func = dim_sub ctx s in
         let newsusp = Some (d - inp - func) in
-        Sub(tmR, s, newsusp)
-      | Some _ -> Sub(tmR,s,i)
+        Sub(tmR, s, newsusp,b)
+      | Some _ -> Sub(tmR,s,i,b)
     end
   | BuiltinR b -> BuiltinR b
   | Op(l,tm) -> Op(l,infer_susp_tm ctx tm)

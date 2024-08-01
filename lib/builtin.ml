@@ -32,14 +32,14 @@ let comp_n arity =
   in
   Memo.find arity build_comp
 
-let arity_comp s =
+let arity_comp s expl =
   let n = List.length s in
-  if !Settings.explicit_substitutions then
+  if expl || !Settings.explicit_substitutions then
     (n-1)/2
   else n
 
-let comp s =
-  let arity = arity_comp s in
+let comp s expl =
+  let arity = arity_comp s expl in
   comp_n arity
 
 let id = Memo.id
