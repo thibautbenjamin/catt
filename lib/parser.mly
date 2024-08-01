@@ -9,9 +9,7 @@
     let add_suspension = function
       | Sub (x,s,None) -> Sub (x,s,Some 1)
       | Sub (x,s,Some n) -> Sub (x,s,Some (n+1))
-      | Builtin (name,s,None) -> Builtin (name,s,Some 1)
-      | Builtin (name,s,Some n) -> Builtin (name,s,Some (n+1))
-      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
         -> Error.fatal "trying to generate an invalid suspension"
 
     let context_of_annotated_ps ps =
@@ -82,12 +80,23 @@ sub:
   | nonempty_sub { $1 }
   | { [] }
 
+builtin:
+  | BUILTIN {
+    if !Settings.use_builtins
+    then
+    match $1 with
+    | s when String.equal s "comp" ->  BuiltinR Comp
+    | s when String.equal s "id" ->  BuiltinR Id
+    | _ -> assert false
+    else VarR (Var.make_var $1) }
+
 simple_tmexpr:
   | LPAR tmexpr RPAR { $2 }
   | WILD { Meta }
   | INV LPAR tmexpr RPAR { Inverse $3 }
   | UNIT LPAR tmexpr RPAR { Unit $3 }
   | IDENT { VarR (Var.make_var $1) }
+  | builtin { $1 }
 
 functed_tmexpr:
   | LBRA maybe_functed_tmexpr RBRA { let t,n = $2 in t,n+1 }
@@ -103,14 +112,6 @@ simple_tyexpr:
 subst_tmexpr:
   | simple_tmexpr { $1 }
   | simple_tmexpr nonempty_sub {  Sub ($1,$2,None) }
-  | BUILTIN nonempty_sub {
-              if !Settings.use_builtins
-              then
-                match $1 with
-                | s when String.equal s "comp" ->  Builtin (Comp,$2,None)
-                | s when String.equal s "id" ->  Builtin (Id,$2,None)
-                | _ -> assert false
-              else Sub (VarR (Var.make_var $1), $2, None) }
   | BANG subst_tmexpr { add_suspension $2 }
 
 tmexpr:

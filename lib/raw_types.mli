@@ -11,7 +11,7 @@ type tyR =
 and tmR =
   | Letin_tm of Var.t * tmR * tmR
   | VarR of Var.t
-  | Builtin of builtin * subR * int option
+  | BuiltinR of builtin
   | Sub of tmR * subR * int option
   | Meta
   | Op of int list * tmR

@@ -28,9 +28,9 @@ let rec tm t =
         let s, meta_types = sub s c in
         Unchecked.tm_apply_sub t s, meta_types
     end;
-  | Builtin(name,s,susp) ->
+  | Sub (BuiltinR b,s,susp) ->
     let builtin_coh =
-      match name with
+      match b with
       | Comp -> Builtin.comp s
       | Id -> Builtin.id
     in make_coh builtin_coh s susp
@@ -44,7 +44,7 @@ let rec tm t =
   | Meta -> let m,meta_type = Meta.new_tm() in (m,[meta_type])
   | Sub (Letin_tm _,_,_) | Sub(Sub _,_,_) | Sub(Meta,_,_)
   | Sub(Op _,_,_) | Sub (Inverse _,_,_) | Sub(Unit _,_,_)
-  | Sub(Builtin _, _,_) | Letin_tm _ -> Error.fatal("ill-formed term")
+  | BuiltinR _ | Letin_tm _ -> Error.fatal("ill-formed term")
 and sub s tgt =
   match s,tgt with
   | [],[] -> [],[]
