@@ -158,7 +158,7 @@ and compute_witness t  =
 and compute_witness_coh_inv c s ~ps ~pp_data ~d ~sub_base ~u ~v =
   let name,susp,func = pp_data in
   let src_wit =
-    let id_ps = Unchecked.(identity_ps ps) in
+    let id_ps = Unchecked.identity_ps ps in
     let c_inv = coh c in
     let comp = Suspension.coh (Some (d - 1)) (Builtin.comp_n 2) in
     let c_c_inv =
@@ -204,7 +204,7 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
   let ps_reduced =
     Ps_reduction.reduce (Unchecked.dim_ps ps_doubled - 1) ps_doubled
   in
-  let src_c,_ = Coh.noninv_srctgt c in
+  let src_c,_,_ = Coh.noninv_srctgt c in
   let sub,cps = Unchecked.sub_ps_to_sub s ps in
   let m1,src_m1,tgt_m1 =
     let coh = group_vertically ps_doubled t src_c src_c in
@@ -217,7 +217,7 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
       sinv =
       (Unchecked.sub_ps_apply_sub
          (Opposite.equiv_op_ps ps [d])
-         (sub_inv sub cps (d)))
+         (sub_inv sub cps d))
     in
     let ssinv = Unchecked.pullback_up (d-1) ps ps s sinv in
     let subsinv,_ = Unchecked.sub_ps_to_sub ssinv ps_doubled in

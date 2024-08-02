@@ -6,3 +6,4 @@ let implicit_suspension = ref true
 let debug = ref false
 let print_explicit_substitutions = ref false
 let unroll_coherences = ref false
+let postprocess = ref false

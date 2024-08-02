@@ -17,6 +17,14 @@ let builtin_whisk_sub_ps :
   (int -> tm -> ty -> tm -> ty -> sub_ps) ref =
   ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
+let ps_reduce :
+  (int -> ps -> ps) ref =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference")
+
+let ps_reduction_sub :
+  (ps -> sub_ps) ref =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference")
+
 (*
    Takes a functorialisation data with a context and produces 2 pieces
    of data :
@@ -47,17 +55,16 @@ let list_functorialised c l =
 let add_functorialisation c func l =
   let rec add c func =
     match c,func with
-    | [],func -> func
-    | (x,(_,true))::c,i::func when List.mem x l -> (i+1)::(add c func)
-    | (_,(_,true))::c,i::func -> i::(add c func)
-    | (_,_)::c,func -> (add c func)
+    | [],[] -> []
+    | (x,_)::c,i::func when List.mem x l -> (i+1)::0::0::(add c func)
+    | (_,_)::c,i::func -> i::(add c func)
+    | _,_ -> assert false
   in
   let rec make c =
     match c with
     | [] -> []
-    | (x,(_,true))::c when List.mem x l -> +1::(make c)
-    | (_,(_,true))::c -> 0::(make c)
-    | (_,_)::c -> (make c)
+    | (x,_)::c when List.mem x l -> 1::0::0::(make c)
+    | (_,_)::c -> 0::(make c)
   in
   match func with
   | None -> make c
@@ -76,59 +83,59 @@ let rec find_places ctx s l =
   | _::c, _::s -> find_places c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
+let rec tgt_subst l =
+    match l with
+    | [] -> []
+    | v::tl -> (v,Var(Var.Plus v))::(tgt_subst tl)
+
 (* Invariant maintained:
     src_prod returns a term of same dimension as tm
 *)
-let rec src_prod t l tgt_subst f_vars tm tm_t d n cc =
+let rec src_prod t l tm tm_t d n cc =
     match t with
     | Arr(ty',src,_tgt) when Unchecked.tm_contains_vars src l ->
         let whisk = !builtin_whisk n 0 (d-n-1) in
         let ps,whisk_ty,_ = (Coh.forget whisk) in
-        let prod, prod_ty = src_prod ty' l tgt_subst f_vars tm tm_t d (n-1) cc in
-        let ty_f = (ty ty' l tgt_subst f_vars src cc) in
-        let src_f = fst (List.hd (tm_one_step src l tgt_subst f_vars true cc)) in
+        let prod, prod_ty = src_prod ty' l tm tm_t d (n-1) cc in
+        let ty_f = (ty ty' l src cc) in
+        let src_f = fst (List.hd (tm_one_step src l true cc)) in
         let sub_ps = !builtin_whisk_sub_ps (d-n-1) src_f ty_f prod prod_ty in
         let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
         let _ = check_term cc (Coh(whisk, sub_ps)) in
         (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
     | Arr(_,_,_) | Obj -> (tm, tm_t)
     | _ -> raise FunctorialiseMeta
-and tgt_prod t l tgt_subst f_vars tm tm_t d n cc =
+and tgt_prod t l tm tm_t d n cc =
     match t with
     | Arr(ty',_src,tgt) when Unchecked.tm_contains_vars tgt l ->
         let whisk = !builtin_whisk n (d-n-1) 0 in
         let ps,whisk_ty,_ = (Coh.forget whisk) in
-        let prod, prod_ty = tgt_prod ty' l tgt_subst f_vars tm tm_t d (n-1) cc in
-        let ty_f = (ty ty' l tgt_subst f_vars tgt cc) in
-        let tgt_f = fst (List.hd (tm_one_step tgt l tgt_subst f_vars true cc)) in
+        let prod, prod_ty = tgt_prod ty' l tm tm_t d (n-1) cc in
+        let ty_f = (ty ty' l tgt cc) in
+        let tgt_f = fst (List.hd (tm_one_step tgt l true cc)) in
         let sub_ps = !builtin_whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
         let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
         let _ = check_term cc (Coh(whisk, sub_ps)) in
         (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
     | Arr(_,_,_) | Obj -> (tm, tm_t)
     | _ -> raise FunctorialiseMeta
-and ty t l tgt_subst f_vars tm cc =
+and ty t l tm cc =
   let d = Unchecked.dim_ty t in
-  let tm_incl = Unchecked.tm_apply_sub tm tgt_subst in
-  let t_incl = Unchecked.ty_apply_sub t tgt_subst in
-  let src, src_t = tgt_prod t l tgt_subst f_vars tm t d (d-1) cc in
-  let tgt, _tgt_t = src_prod t l tgt_subst f_vars tm_incl t_incl d (d-1) cc in
+  let tgt_incl = tgt_subst l in
+  let tm_incl = Unchecked.tm_apply_sub tm tgt_incl in
+  let t_incl = Unchecked.ty_apply_sub t tgt_incl in
+  let src, src_t = tgt_prod t l tm t d (d-1) cc in
+  let tgt, _tgt_t = src_prod t l tm_incl t_incl d (d-1) cc in
   Arr (src_t, src, tgt)
 
 and ctx c l =
   match c with
-  | [] -> [],[],[]
+  | [] -> []
   | (x,(t,expl))::c when List.mem x l ->
-     let c,tgt_subst,f_vars = ctx c l in
-     let x' = Var.fresh() in
-     let xf = Var.fresh() in
-     let c_ext = (x',((Unchecked.ty_apply_sub t tgt_subst),false))::(x,(t,false))::c in
-     let tgt_subst = (x,Var x')::tgt_subst in
-     let tf = ty t l tgt_subst f_vars (Var x) (Ctx.check c_ext) in
-     (xf,(tf,expl))::c_ext,
-     tgt_subst,
-     (x, (Var x',Var xf))::f_vars
-  | (x,a)::c -> let c,tgt_subst,f_terms = ctx c l in (x,a)::c, tgt_subst,f_terms
+     let c_ext = (Var.Plus(x),(Unchecked.ty_apply_sub t (tgt_subst l),false))::(x,(t,false))::(ctx c l) in
+     let tf = ty t l (Var x) (Ctx.check c_ext) in
+     (Var.Bridge(x),(tf,expl))::c_ext
+  | (x,a)::c -> (x,a)::(ctx c l)
 
 (*
    Functorialisation of a coherence once with respect to a list of
@@ -137,10 +144,10 @@ and ctx c l =
 and coh_one_step coh l =
   let ps,t,(name,susp,func) = Coh.forget coh in
   let c = Unchecked.ps_to_ctx ps in
-  let ctxf,tgt_subst,f_vars = ctx c l in
+  let ctxf = ctx c l in
   let _,names,_ = Unchecked.db_levels ctxf in
   let psf = PS.forget (PS.mk (Ctx.check ctxf)) in
-  let ty = ty t l tgt_subst f_vars (Coh(coh,Unchecked.identity_ps ps)) (Ctx.check ctxf) in
+  let ty = ty t l (Coh(coh,Unchecked.identity_ps ps)) (Ctx.check ctxf) in
   let ty = Unchecked.rename_ty ty names in
   let pp_data = (name,susp,Some(add_functorialisation c func l)) in
   check_coh psf ty pp_data
@@ -150,38 +157,31 @@ and coh_one_step coh l =
    Returns a list containing the functorialise term followed by its
    target and its source.
  *)
-and tm_one_step t l tgt_subst f_vars expl cc =
+and tm_one_step t l expl cc =
   if (not (Unchecked.tm_contains_vars t l)) then [t,expl]
   else
   match t with
-  | Var v ->
-    begin
-      match List.assoc_opt v f_vars with
-      | Some (v',vf) -> [vf, true; v', false; Var v, false]
-      | None -> [Var v, expl]
-    end
+  | Var v -> [Var(Var.Bridge(v)), true; Var(Var.Plus(v)), false; Var v, false]
   | Coh(c,s) ->
     begin
-      match f_vars with
-      | _::_ ->
         let ps,_,_ = Coh.forget c in
         let cohf =
-          let places = find_places (Unchecked.ps_to_ctx ps) s (List.map fst f_vars) in
+          let places = find_places (Unchecked.ps_to_ctx ps) s l in
           coh_one_step c places
         in
-        let sf = sub s l tgt_subst f_vars cc in
-        let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t tgt_subst ,expl) s in
+        let sf = sub s l cc in
+        let tgt_incl = tgt_subst l in
+        let s' = List.map (fun (t,expl) -> Unchecked.tm_apply_sub t tgt_incl,expl) s in
         [Coh(cohf,sf), true; Coh(c,s'), false; Coh(c,s), false]
-      | [] -> [Coh(c,s), expl]
     end
   | Meta_tm _ -> (raise FunctorialiseMeta)
-and sub s l tgt_subst f_vars cc =
+and sub s l cc =
   match s with
   | [] -> []
   | (t, expl)::s ->
     List.append
-      (tm_one_step t l tgt_subst f_vars expl cc)
-      (sub s l tgt_subst f_vars cc)
+      (tm_one_step t l expl cc)
+      (sub s l cc)
 
 (*
    Functorialisation a term possibly multiple times with respect to a
@@ -190,8 +190,8 @@ and sub s l tgt_subst f_vars cc =
 let rec tm c t s =
   let l, next = list_functorialised c s in
   if l <> [] then
-    let c,tgt_subst,f_vars = ctx c l in
-    let t = fst (List.hd (tm_one_step t l tgt_subst f_vars true (Ctx.check c))) in
+    let c = ctx c l in
+    let t = fst (List.hd (tm_one_step t l true (Ctx.check c))) in
     tm c t next
   else c,t
 

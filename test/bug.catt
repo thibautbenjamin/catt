@@ -1,4 +1,3 @@
-coh id (x : *) : x -> x
 
 let id2 (x : *) = id (id x)
 
