@@ -1,3 +1,4 @@
+open Common
 open Kernel
 open Raw_types
 open Unchecked_types.Unchecked_types(Coh)
@@ -119,7 +120,10 @@ let show_menu () =
        decision ())
   in decision ()
 
+let initialise () = Cubical_composite.init()
+
 let exec ~loop_fn prog =
+  initialise ();
   let rec aux = function
     | [] -> ()
     | (t::l)  ->

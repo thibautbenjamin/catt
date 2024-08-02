@@ -1,5 +1,74 @@
+open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
+
+(* returns the associator pairing up the middle two cells of a composite of
+    (2*k) 1-cells. The argument is the integer k *)
+let middle_associator k =
+  let ps = Builtin.ps_comp (2*k) in
+  let src = Coh(Builtin.comp_n (2*k), Unchecked.(identity_ps ps)) in
+  let tgt =
+    let sub_assoc_middle =
+      let rec compute_sub i =
+        match i with
+        | i when i <= 0 -> [Var(Db 0), false]
+        | i when i < k ->
+            (Var (Db (2*i)), true)::
+            (Var (Db (2*i-1)), false)::
+            (compute_sub (i-1))
+        | i when i = k ->
+            let sub_comp =
+              [ Var (Db (2*k+2)),true;
+                Var (Db (2*k+1)), false;
+                Var (Db (2*k)), true;
+                Var (Db (2*k-1)), false;
+                Var (Db (2*k-3)), false]
+            in
+            let comp = (Coh(Builtin.comp_n 2, sub_comp)) in
+            (comp, true)::(Var (Db (2*k+1)), false)::(compute_sub (k-1))
+        | i -> (Var (Db (2*i+2)), true)::
+               (Var (Db (2*i+1)), false)::
+               (compute_sub (i-1))
+      in
+      compute_sub (2*k-1)
+    in
+    Coh(Builtin.comp_n (2*k-1), sub_assoc_middle)
+  in
+  Coh.check_inv ps src tgt ("focus", 0, [])
+
+(* returns the unitor cancelling the identity in the middle of a composite of
+(2*k+1) 1-cells. The argument is the integer k *)
+let middle_unitor k =
+  let ps = Builtin.ps_comp (2*k) in
+  let src =
+    let sub_id_middle =
+      let rec compute_sub i =
+        match i with
+        | i when i <= 0 -> [Var (Db  0), false]
+        | i when i <= k ->
+          (Var (Db (2*i)), true)::
+          (Var (Db (2*i-1)), false)::
+          (compute_sub (i-1))
+        | i when i = k+1 ->
+          let id = (Coh(Builtin.id, [Var (Db (2*k-1)), false])) in
+            (id, true)::(Var (Db (2*k-1)), false)::(compute_sub (k))
+        | i -> (Var (Db (2*i-2)), true)::
+               (Var (Db (2*i-3)), false)::
+               (compute_sub (i-1))
+      in
+      compute_sub (2*k+1)
+    in
+    Coh(Builtin.comp_n (2*k+1), sub_id_middle) in
+  let tgt = Coh(Builtin.comp_n (2*k), Unchecked.(identity_ps ps)) in
+  Coh.check_inv ps src tgt ("unit", 0, [])
+
+
+(* returns the whiskering rewriting the middle term of a composite of (2*k+1)
+    1-cells. The argument is the integer k *)
+let middle_rewrite k =
+  let comp = Builtin.comp_n (2*k+1) in
+  let func_data = [Var.Db (2*k+2)] in
+  Functorialisation.coh_depth0 comp func_data
 
 let tdb i = Var (Db i)
 
@@ -71,8 +140,8 @@ let rec telescope k =
     let comp = Suspension.coh (Some 1) (Builtin.comp_n 4) in
     let tm_src_tgt coh sub_ps =
       match Coh.forget coh with
-      | ps,Arr(_,t,u),_ ->
-        let sub = fst (Unchecked.sub_ps_to_sub sub_ps ps) in
+      | _,Arr(_,t,u),_ ->
+        let sub = Unchecked.sub_ps_to_sub sub_ps in
         Coh(coh,sub_ps),
         Unchecked.tm_apply_sub t sub,
         Unchecked.tm_apply_sub u sub
@@ -80,14 +149,14 @@ let rec telescope k =
     in
     let
       m3,src_m3, tgt_m3 =
-      tm_src_tgt (Builtin.middle_unitor (k-1)) (sub_ps_telescope_bdry (k-1))
+      tm_src_tgt (middle_unitor (k-1)) (sub_ps_telescope_bdry (k-1))
     in
     let
-      m2 = Coh(Builtin.middle_rewrite (k-1), sub_ps_telescope_bdry ~whisk:true k)
+      m2 = Coh(middle_rewrite (k-1), sub_ps_telescope_bdry ~whisk:true k)
     in
     let
       m1,src_m1, tgt_m1 =
-      tm_src_tgt (Builtin.middle_associator k) (sub_ps_telescope_bdry k)
+      tm_src_tgt (middle_associator k) (sub_ps_telescope_bdry k)
     in
     let sub_telescope =
       [telescope (k-1), true;
@@ -101,6 +170,7 @@ let rec telescope k =
        src_m1, false;
        tdb 0, false;
        tdb 0, false]
-    in Coh (comp, sub_telescope)
+    in
+    Coh (comp, sub_telescope)
 
 let checked k = check_term (Ctx.check (ctx k)) (telescope k)

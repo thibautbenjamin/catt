@@ -18,9 +18,4 @@ let coh i coh =
   | None | Some 0 -> coh
   | Some n ->
     let p,t,(name,susp,f) = Coh.forget coh in
-    let f = match f with
-    | None -> f
-    | Some(l) ->
-        let pad = List.init (2*n) (fun _ -> 0) in
-        Some(List.concat [l;pad])
-    in check_coh (ps i p) (ty i t) (name,susp+n,f)
+    check_coh (ps i p) (ty i t) (name,susp+n,f)

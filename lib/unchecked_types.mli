@@ -1,3 +1,5 @@
+open Common
+
 module type Unchecked_types_sig = functor (Coh : sig type t end) ->
 sig
   type ty =

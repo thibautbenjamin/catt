@@ -1,4 +1,5 @@
 %{
+    open Common
     open Command
     open Raw_types
 
@@ -6,12 +7,16 @@
       | Br of (Var.t * annotated_ps) list * Var.t
 
     let add_suspension = function
-      | Sub (x,s,None) -> Sub (x,s,Some 1)
-      | Sub (x,s,Some n) -> Sub (x,s,Some (n+1))
-      | Builtin (name,s,None) -> Builtin (name,s,Some 1)
-      | Builtin (name,s,Some n) -> Builtin (name,s,Some (n+1))
-      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _
+      | Sub (x,s,None,b) -> Sub (x,s,Some 1,b)
+      | Sub (x,s,Some n,b) -> Sub (x,s,Some (n+1),b)
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
         -> Error.fatal "trying to generate an invalid suspension"
+
+    let mark_explicit = function
+      | Sub(x,s,i,_) -> Sub(x,s,i,true)
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
+        -> Error.fatal "only substitution can be marked explicit"
+
 
     let context_of_annotated_ps ps =
       let rec context_ending_to x ty l =
@@ -29,7 +34,7 @@
       %}
 
 %token COH OBJ MOR WILD COMA
-%token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP
+%token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP AT
 %token <string> BUILTIN
 %token <string> IDENT
 %token <string> INT
@@ -81,12 +86,23 @@ sub:
   | nonempty_sub { $1 }
   | { [] }
 
+builtin:
+  | BUILTIN {
+    if !Settings.use_builtins
+    then
+    match $1 with
+    | s when String.equal s "comp" ->  BuiltinR Comp
+    | s when String.equal s "id" ->  BuiltinR Id
+    | _ -> assert false
+    else VarR (Var.make_var $1) }
+
 simple_tmexpr:
   | LPAR tmexpr RPAR { $2 }
   | WILD { Meta }
   | INV LPAR tmexpr RPAR { Inverse $3 }
   | UNIT LPAR tmexpr RPAR { Unit $3 }
   | IDENT { VarR (Var.make_var $1) }
+  | builtin { $1 }
 
 functed_tmexpr:
   | LBRA maybe_functed_tmexpr RBRA { let t,n = $2 in t,n+1 }
@@ -99,18 +115,14 @@ simple_tyexpr:
   | LPAR tyexpr RPAR { $2 }
   | OBJ { ObjR }
 
-subst_tmexpr:
+susp_tmexpr:
   | simple_tmexpr { $1 }
-  | simple_tmexpr nonempty_sub {  Sub ($1,$2,None) }
-  | BUILTIN nonempty_sub {
-              if !Settings.use_builtins
-              then
-                match $1 with
-                | s when String.equal s "comp" ->  Builtin (Comp,$2,None)
-                | s when String.equal s "id" ->  Builtin (Id,$2,None)
-                | _ -> assert false
-              else Sub (VarR (Var.make_var $1), $2, None) }
-  | BANG subst_tmexpr { add_suspension $2 }
+  | simple_tmexpr nonempty_sub {  Sub ($1,$2,None,false) }
+  | BANG susp_tmexpr { add_suspension $2 }
+
+subst_tmexpr:
+  | susp_tmexpr { $1 }
+  | AT susp_tmexpr { mark_explicit $2 }
 
 tmexpr:
   | LET IDENT EQUAL tmexpr IN tmexpr { Letin_tm (Var.make_var $2, $4, $6) }

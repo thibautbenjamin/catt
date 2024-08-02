@@ -25,7 +25,8 @@ let rec compute_inverse t =
     with CohNonInv ->
       let ps,_,_ = Coh.forget c in
       let d = Unchecked.dim_ps ps in
-      let sub, pctx = Unchecked.sub_ps_to_sub sub ps in
+      let pctx = Unchecked.ps_to_ctx ps in
+      let sub = Unchecked.sub_ps_to_sub sub in
       let sub_inv = sub_inv sub pctx d in
       let equiv = Opposite.equiv_op_ps ps [d] in
       let coh = Opposite.coh c [d] in
@@ -47,11 +48,11 @@ let compute_inverse t =
         (Printf.sprintf "term %s is not invertible" s)
 
 let group_vertically ps t src_t tgt_t =
-  let coh_unbiased = Coh.check_noninv ps src_t tgt_t ("unbiased_comp",0,None) in
+  let coh_unbiased = Coh.check_noninv ps src_t tgt_t ("unbiased_comp",0,[]) in
   let coh_vertically_grouped = Ps_reduction.coh coh_unbiased in
   let reduce = Ps_reduction.reduction_sub ps in
   let t_vertically_grouped = Coh(coh_vertically_grouped, reduce) in
-  Coh.check_inv ps t t_vertically_grouped ("vertical_grouping",0,None)
+  Coh.check_inv ps t t_vertically_grouped ("vertical_grouping",0,[])
 
 type lin_comp = {arity: int; dim: int;  sub_ps: sub_ps}
 
@@ -120,7 +121,7 @@ and cancel_all_linear_comp t =
       sub
     | Br l, sub ->
       let incls = Unchecked.canonical_inclusions l in
-      let sub,_ = Unchecked.sub_ps_to_sub sub (Br l) in
+      let sub = Unchecked.sub_ps_to_sub sub in
       let lsubs =
         (List.map2
            (fun p incl ->
@@ -187,8 +188,8 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
     let tm1 = Coh(c,inl) in
     let c_op = Opposite.coh c [d] in
     let tm2 = Coh(c_op, inr) in
-    let sub_inr,_ = Unchecked.sub_ps_to_sub inr ps in
-    let sub_inl,_ = Unchecked.sub_ps_to_sub inl ps in
+    let sub_inr = Unchecked.sub_ps_to_sub inr in
+    let sub_inl = Unchecked.sub_ps_to_sub inl in
     let w = match Coh.forget c_op with
       | _,Arr(_,_,v),_ ->
         Unchecked.tm_apply_sub v sub_inr
@@ -205,7 +206,8 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
     Ps_reduction.reduce (Unchecked.dim_ps ps_doubled - 1) ps_doubled
   in
   let src_c,_,_ = Coh.noninv_srctgt c in
-  let sub,cps = Unchecked.sub_ps_to_sub s ps in
+  let cps = Unchecked.ps_to_ctx ps in
+  let sub = Unchecked.sub_ps_to_sub s in
   let m1,src_m1,tgt_m1 =
     let coh = group_vertically ps_doubled t src_c src_c in
     let src,tgt =
@@ -220,7 +222,7 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
          (sub_inv sub cps d))
     in
     let ssinv = Unchecked.pullback_up (d-1) ps ps s sinv in
-    let subsinv,_ = Unchecked.sub_ps_to_sub ssinv ps_doubled in
+    let subsinv = Unchecked.sub_ps_to_sub ssinv in
     Coh(coh,ssinv),
     Unchecked.tm_apply_sub src subsinv,
     Unchecked.tm_apply_sub tgt subsinv
@@ -234,7 +236,7 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
       | _ -> Error.fatal "coherence must be of arrow type"
     in
     let s = Unchecked.sub_ps_apply_sub (Unchecked.ps_src ps) sub in
-    let sub,_ = Unchecked.sub_ps_to_sub s (Unchecked.ps_bdry ps) in
+    let sub = Unchecked.sub_ps_to_sub s in
     Coh(coh,s),
     Unchecked.tm_apply_sub src sub,
     Unchecked.tm_apply_sub tgt sub

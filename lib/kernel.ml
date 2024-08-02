@@ -34,7 +34,6 @@ module rec Sub
     List.concat (List.map Tm.free_vars s.list)
 
   let check src s tgt =
-
     Io.info ~v:5
       (lazy
         (Printf.sprintf
@@ -469,9 +468,8 @@ and Coh : sig
   val to_string : t -> string
   val is_inv : t -> bool
   val noninv_srctgt : t -> Unchecked_types(Coh).tm * Unchecked_types(Coh).tm * Unchecked_types(Coh).ty
-  (* val data : t -> PS.t * Ty.t * Unchecked_types.coh_pp_data *)
   val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
-  val func_data : t -> functorialisation_data option
+  val func_data : t ->  (Var.t * int) list
   val check_equal : t -> t -> unit
   val dim : t -> int
 end = struct

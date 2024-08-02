@@ -52,7 +52,7 @@ and tm t op_data =
     let p,_,_ = Coh.forget c in
     let equiv = equiv_op_ps p op_data in
     let c = coh c op_data equiv in
-    let op_s = sub (fst (Unchecked.sub_ps_to_sub s p)) op_data in
+    let op_s = sub (Unchecked.sub_ps_to_sub s) op_data in
     let s' = Unchecked.sub_ps_apply_sub equiv op_s in
     Coh(c, s')
   | Meta_tm m -> Meta_tm m
@@ -68,10 +68,10 @@ and coh c op_data equiv =
   let
     t' = Unchecked.ty_sub_preimage
            op_t
-           (fst (Unchecked.sub_ps_to_sub equiv p))
+           (Unchecked.sub_ps_to_sub equiv)
   in
   let name = Printf.sprintf "%s_op{%s}" name (op_data_to_string op_data) in
-  check_coh op_p t' (name,0,None)
+  check_coh op_p t' (name,0,[])
 
 let coh c op_data =
   let ps,_,_ = Coh.forget c in
