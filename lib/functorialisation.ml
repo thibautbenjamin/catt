@@ -63,7 +63,7 @@ let rec preimage ctx s l =
 let rec tgt_subst l =
   match l with [] -> [] | v :: tl -> (v, Var (Var.Plus v)) :: tgt_subst tl
 
-(* returns the n-composite of a (n+j)-cell with a (n+k)-cell *)
+(* returns the n-composite of a (n+j+1)-cell with a (n+k+1)-cell *)
 let rec whisk n j k =
   let build_whisk t =
     let n, j, k = t in
