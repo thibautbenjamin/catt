@@ -3,6 +3,7 @@
 TESTS=(
 "test/bug.catt"
 "test/builtin-comp.catt"
+"test/cones.catt"
 "test/functorialisation.catt"
 "test/functoriality.catt"
 "test/implicit_subs.catt"
