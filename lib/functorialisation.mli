@@ -20,4 +20,5 @@ val sub : sub -> Var.t list -> sub
 val sub_w_tgt :
   ps -> sub_ps -> Var.t list -> sub_ps * ps * (Var.t * int) list * Var.t list
 
+val whisk : int -> int -> int -> Coh.t
 val whisk_sub_ps : int -> tm -> ty -> tm -> ty -> sub_ps
