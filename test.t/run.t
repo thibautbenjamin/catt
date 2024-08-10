@@ -278,6 +278,8 @@
   [=^.^=] let ex3 = (@example  _ _ _ [_] [am] [_] [bm] _ [_] [_] [cm])
   [=I.I=] successfully defined term (!2builtin_comp3 (intch_src a b hm c lm) (example_red [(!2builtin_comp4 (!1builtin_assc a b hm) (!1builtin_comp2 a bm) (!1builtin_assc a gm b+) (!1builtin_comp2 am b+))] [cm]) (intch_tgt f a+ b+ km c+)) of type (!1builtin_comp2 (example a b c) (builtin_comp2 [hm] [lm])) -> (!1builtin_comp2 (builtin_comp3 f [km] (builtin_id z)) (example a+ b+ c+)).
 
+  $ catt features/cones.catt
+
   $ catt --keep-going fails/notps.catt
   [=^.^=] coh fail1 = x -> x
   [=X.X=] The following context is not a pasting scheme:

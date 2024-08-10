@@ -16,7 +16,9 @@ type cmd =
 
 type prog = cmd list
 
-let postprocess_fn : (ctx -> tm -> ctx * tm) ref = ref (fun c e -> (c, e))
+let postprocess_fn : (ctx -> tm -> ctx * tm) ref =
+  (* ref (fun c e -> c,e) *)
+  ref Cones.cones_postprocess_fn
 
 let exec_coh v ps ty =
   let ps, ty = Elaborate.ty_in_ps ps ty in
