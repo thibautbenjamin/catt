@@ -2,6 +2,21 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
+let rec primary_seq n i =
+  match n, i mod 2 with
+  | 0, _ -> 1
+  | _, 0 -> n+1
+  | _, _ -> primary_seq (n-1) (i/2)
+
+let secondary_seq n i =
+  match n, i mod 2 with
+  | 0, _ -> 1
+  | _, 0 -> (i/2)+1
+  | _, _ -> primary_seq (n-1) (i/2)
+
+let primary_list n = List.init ((1 lsl (n+1))-1) (primary_seq n)
+let secondary_list n = List.init ((1 lsl (n+1))-1) (secondary_seq n)
+
 let rec cone_src t ty ty' l p =
   let d = Unchecked.dim_ty ty in
   match ty' with
@@ -62,6 +77,8 @@ let cone_sub s l p1 p2 =
   in List.concat [aux s;(p1,Var(p2))::s]
 
 let cones_postprocess_fn c t =
+  let _ = Printf.printf "Primary sequence %s\n%!" (String.concat ";" (List.map Int.to_string  (primary_list 3))) in
+  let _ = Printf.printf "Secondary sequence %s\n%!" (String.concat ";" (List.map Int.to_string  (secondary_list 3))) in
   let tm = check_term (Ctx.check c) t in
   let ty = Ty.forget (Tm.typ tm) in
   let cctx,(pairs,p) = cone_ctx c in
