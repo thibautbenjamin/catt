@@ -1,6 +1,7 @@
 
 set verbosity = 3
 set postprocess = t
+#set print_explicit_substitutions = t
 let point (x : *) = x
 
 let arrow (x : *) (y : *) (f : x -> y) = f
@@ -9,7 +10,7 @@ let disk (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) = a
 
 let cell3 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (b : f -> g) (m : a -> b) = m
 
-#let comp1d (x : *)  (y : *) (f : x -> y) (z : *) (g : y -> z) = comp f g
+let comp1d (x : *)  (y : *) (f : x -> y) (z : *) (g : y -> z) = comp f g
 
 set postprocess = f
 
