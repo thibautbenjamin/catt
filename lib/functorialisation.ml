@@ -102,13 +102,11 @@ and src_prod t l tm tm_t d n =
   match t with
   | Arr (ty', src, _tgt) when Unchecked.tm_contains_vars src l ->
       let whisk = whisk n 0 (d - n - 1) in
-      let _, whisk_ty, _ = Coh.forget whisk in
       let prod, prod_ty = src_prod ty' l tm tm_t d (n - 1) in
       let ty_f = ty ty' l src in
       let src_f = tm_one_step_tm src l in
       let sub_ps = whisk_sub_ps (d - n - 1) src_f ty_f prod prod_ty in
-      let sub = Unchecked.sub_ps_to_sub sub_ps in
-      (Coh (whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
+      Unchecked.coh_ty whisk sub_ps
   | Arr (_, _, _) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 
@@ -116,13 +114,11 @@ and tgt_prod t l tm tm_t d n =
   match t with
   | Arr (ty', _src, tgt) when Unchecked.tm_contains_vars tgt l ->
       let whisk = whisk n (d - n - 1) 0 in
-      let _, whisk_ty, _ = Coh.forget whisk in
       let prod, prod_ty = tgt_prod ty' l tm tm_t d (n - 1) in
       let ty_f = ty ty' l tgt in
       let tgt_f = tm_one_step_tm tgt l in
       let sub_ps = whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
-      let sub = Unchecked.sub_ps_to_sub sub_ps in
-      (Coh (whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
+      Unchecked.coh_ty whisk sub_ps
   | Arr (_, _, _) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 

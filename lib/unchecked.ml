@@ -244,6 +244,11 @@ struct
     let ty_sub_preimage ty s =
       ty_do_on_variables ty (fun v -> var_sub_preimage v s)
 
+    let coh_ty c s =
+      let _, ty, _ = Coh.forget c in
+      let sub = sub_ps_to_sub s in
+      (Coh (c, s), ty_apply_sub ty sub)
+
     (* rename is applying a variable to de Bruijn levels substitutions *)
     let rename_var v l =
       try Var (Db (List.assoc v l))
