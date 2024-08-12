@@ -29,11 +29,6 @@ module LinearComp = struct
   let tpl i = Var (Plus (Db i))
   let tbr i = Var (Bridge (Db i))
 
-  let bcomp x y f z g =
-    let comp = Builtin.comp_n 2 in
-    let sub = [g, true; z, false; f, true; y, false; x, false] in
-    Coh(comp, sub)
-
   let idx_src i =
     if i = 2 then 0 else i-3
 
@@ -41,14 +36,14 @@ module LinearComp = struct
 
   let src_i_f i active =
     if active
-    then bcomp (tdb (idx_src i)) (tdb (i-1)) (tdb i) (tpl (i-1)) (tbr (i-1))
+    then Builtin.bcomp (tdb (idx_src i)) (tdb (i-1)) (tdb i) (tpl (i-1)) (tbr (i-1))
     else tdb i
 
   let tgt_i_f i active l =
     if active
     then
       let isrc = idx_src i in
-      bcomp (tdb isrc) (tpl isrc) (tbr isrc) (plus (i-1) l) (tpl i)
+      Builtin.bcomp (tdb isrc) (tpl isrc) (tbr isrc) (plus (i-1) l) (tpl i)
     else Var (Plus (Db i))
 
   let comp_biased_start arity =
@@ -60,12 +55,12 @@ module LinearComp = struct
       in sub (2*arity)
     in
     let lin_comp = Coh(Builtin.comp_n arity, lin_incl) in
-    bcomp (tdb 0) (tdb 1) (tdb 2) (tdb (2*arity + 1)) lin_comp
+    Builtin.bcomp (tdb 0) (tdb 1) (tdb 2) (tdb (2*arity + 1)) lin_comp
 
   let comp_biased_end arity =
     let lin_incl = Unchecked.identity_ps (Builtin.ps_comp arity) in
     let lin_comp = Coh(Builtin.comp_n arity, lin_incl) in
-    bcomp (tdb 0) (tdb (2*arity-1)) lin_comp (tdb (2*arity+1)) (tdb (2*arity+2))
+    Builtin.bcomp (tdb 0) (tdb (2*arity-1)) lin_comp (tdb (2*arity+1)) (tdb (2*arity+2))
 
   let comp_biased_middle arity pos =
     let comp = Builtin.comp_n arity in
@@ -75,7 +70,7 @@ module LinearComp = struct
       | _ when k < pos -> (tdb k, true)::(tdb (k-1), false)::(sub (k-2))
       | _ when k = pos+1 ->
         let bcomp =
-          bcomp (tdb (idx_src k)) (tdb (k-1)) (tdb k) (tdb (k+1)) (tdb (k+2))
+          Builtin.bcomp (tdb (idx_src k)) (tdb (k-1)) (tdb k) (tdb (k+1)) (tdb (k+2))
         in
         (bcomp, true)::(tdb (k+1), false)::sub(k-2)
       | _ when k > pos+1 ->
