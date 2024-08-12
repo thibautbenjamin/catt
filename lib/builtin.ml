@@ -38,6 +38,11 @@ let comp s expl =
   let arity = arity_comp s expl in
   comp_n arity
 
+let bcomp x y f z g =
+  let comp = comp_n 2 in
+  let sub = [ (g, true); (z, false); (f, true); (y, false); (x, false) ] in
+  Coh (comp, sub)
+
 let id = Memo.id
 
 let id_all_max ps =
@@ -59,6 +64,19 @@ let id_all_max ps =
           (List.map Unchecked.ps_bdry l)
   in
   aux (d - 1) ps
+
+let assoc =
+  let tdb i = Var (Db i) in
+  let src =
+    bcomp (tdb 0) (tdb 3)
+      (bcomp (tdb 0) (tdb 1) (tdb 2) (tdb 3) (tdb 4))
+      (tdb 5) (tdb 6)
+  in
+  let tgt =
+    bcomp (tdb 0) (tdb 1) (tdb 2) (tdb 5)
+      (bcomp (tdb 1) (tdb 3) (tdb 4) (tdb 5) (tdb 6))
+  in
+  Coh.check_inv (ps_comp 3) src tgt ("assoc", 0, [])
 
 let unbiased_unitor ps t =
   let bdry = Unchecked.ps_bdry ps in
