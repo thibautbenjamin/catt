@@ -2,6 +2,8 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
+let phase = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+
 let rec primary_seq n i =
   match n, i mod 2 with
   | 0, _ -> 1
@@ -19,39 +21,6 @@ let primary_list n = List.init ((1 lsl (n+1))-1) (primary_seq n)
 let secondary_list n = List.init ((1 lsl (n+1))-1) (secondary_seq n)
 *)
 
-let phase_01 f fty g gty l p =
-  let v,y,z = match fty,gty with
-  | Arr(_,Var(v),_),Arr(_,y,z) -> v,y,z
-  | _,_ -> assert false in
-  let assoc = Builtin.assoc in
-  (* This inlines coning of variable to avoid mutual deps *)
-  let sub_ps = [g,true;z,false;f,true;y,false;Var(List.assoc v l),true;Var(v),false;Var(p),false] in
-  Unchecked.coh_ty assoc sub_ps
-
-let rec phase_n0 f fty g gty l p =
-  let d = Unchecked.dim_ty fty in
-  let fc = cone_tm f l p in
-  let fcty = cone_ty f fty l p in
-  let gc = cone_tm g l p in
-  let gcty = cone_ty g gty l p in
-  let inner = Functorialisation.whisk (d-1) 1 0 in
-  let inner_sub_ps = Functorialisation.whisk_sub_ps 0 fc fcty g gty in
-  let inner, inner_ty = Unchecked.coh_ty inner inner_sub_ps in 
-  let outer = Functorialisation.whisk d 0 0 in
-  let outer_sub_ps = Functorialisation.whisk_sub_ps 0 gc gcty inner inner_ty in
-  Unchecked.coh_ty outer outer_sub_ps
-
-and phase n i f fty g gty l p =
-  let _ = Printf.printf "Constructing phase %d/%d of %s : %s and %s : %s\n%!" n i
-    (Unchecked.tm_to_string f)
-    (Unchecked.ty_to_string fty)
-    (Unchecked.tm_to_string g)
-    (Unchecked.ty_to_string gty) in
-  match n, i with
-  | _, 0 -> phase_n0 f fty g gty l p
-  | 0, 1 -> phase_01 f fty g gty l p
-  | _, _ -> assert false
-
 (*
   \t{a\s_{0} b} = (\ldots(((\phi^{n}_{1}(\t a, \t b) \s_{k^{(n)}_{1}} \phi
   ^{k^{(n)}_{1}}_{m^{(n)}_{1}+1}(\tgt{k^{(n)}_{1}}(a),\tgt{k^{(n)}_{1}}(b))) \s_{k^{(n)}_{2}} \phi
@@ -59,18 +28,18 @@ and phase n i f fty g gty l p =
   ^{k^{(n)}_{3}}_{m^{(n)}_{3}+1}(\tgt{k^{(n)}_{3}}(a),\tgt{k^{(n)}_{3}}(b)))\ldots) \s_{k^{(n)}_{2^{n}}} \phi
   ^{k^{(n)}_{2^{n}}}_{m^{(n)}_{2^{n}}+1}(\tgt{k^{(n)}_{2^{n}}}(a),\tgt{k^{(n)}_{2^{n}}}(b))
 *)
-and cone_comp_n0n n f fty g gty l p =
+let cone_comp_n0n n f fty g gty l p =
   let rec aux k =
     match k with
     | 0 ->
       begin
-        phase n 0 f fty g gty l p
+        !phase n 0 f fty g gty l p
       end
     | _ ->
       begin
         let d = primary_seq n (k-1) in
         let left, left_ty = aux (k-1) in
-        let right, right_ty = phase (d-1) (secondary_seq n (k-1)) f fty g gty l p in
+        let right, right_ty = !phase (d-1) (secondary_seq n (k-1)) f fty g gty l p in
         let ld = Unchecked.dim_ty left_ty in
         let rd = Unchecked.dim_ty right_ty in
         let whisk = Functorialisation.whisk d (ld-d-1) (rd-d-1) in
@@ -78,7 +47,7 @@ and cone_comp_n0n n f fty g gty l p =
         Unchecked.coh_ty whisk whisk_sub_ps
       end
   in aux ((1 lsl (n+1))-1)
-and cone_coh c l p =
+let cone_coh c l p =
   (* Sanity check: c is non-inv *)
   assert (not (Coh.is_inv c));
   let ps,_,_ = Coh.forget c in
@@ -94,7 +63,7 @@ and cone_coh c l p =
   let res,_ = cone_comp_n0n (d-1) (Var(f)) fty (Var(g)) gty l p in
   res
 
-and cone_src t ty ty' l p =
+let rec cone_src t ty ty' l p =
   let d = Unchecked.dim_ty ty in
   match ty' with
   | Meta_ty(_) -> assert false

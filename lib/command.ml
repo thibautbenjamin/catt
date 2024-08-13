@@ -130,7 +130,9 @@ let show_menu () =
   in
   decision ()
 
-let initialise () = Cubical_composite.init ()
+let initialise () =
+  Cubical_composite.init ();
+  Cone_phases.init ()
 
 let exec ~loop_fn prog =
   initialise ();
