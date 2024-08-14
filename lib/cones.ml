@@ -52,7 +52,7 @@ let cone_coh c l p =
   assert (not (Coh.is_inv c));
   let ps,_,_ = Coh.forget c in
   let d = Unchecked.dim_ps ps in
-  let test = Functorialisation.whisk (d-1) 0 0 in
+  let test = Functorialisation.whisk 0 (d-1) (d-1) in
   let testps,_,_ = Coh.forget test in
   (* Sanity check: c is an d0d composite *)
   let _ = Unchecked.check_equal_ps ps testps in
@@ -138,5 +138,6 @@ let cones_postprocess_fn c t =
     (Unchecked.tm_to_string ct)
     (Unchecked.ty_to_string cty)
     (Unchecked.ctx_to_string cctx) in
+  let _ = check_term (Ctx.check cctx) ct in
   let _ = check_term (Ctx.check cctx) ~ty:cty ct in
   cctx, ct
