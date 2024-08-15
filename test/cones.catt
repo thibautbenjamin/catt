@@ -12,7 +12,7 @@ let cell3 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (b : f -> g) (m
 
 let comp1d (x : *)  (y : *) (f : x -> y) (z : *) (g : y -> z) = comp f g
 
-#let comp2d (x : *)  (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') = comp [a] [b]
+let comp2d (x : *)  (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') = comp [a] [b]
 
 #let comp3d (x : *)  (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (a' : f -> f') (m : a -> a') (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') (b' : g -> g') (n : b -> b') = comp [[m]] [[n]]
 
