@@ -246,8 +246,7 @@ struct
 
     let coh_ty c s =
       let _,ty,_ = Coh.forget c in
-      let sub = sub_ps_to_sub s in
-      Coh(c,s), ty_apply_sub ty sub
+      Coh(c,s), ty_apply_sub_ps ty s
 
     (* rename is applying a variable to de Bruijn levels substitutions *)
     let rename_var v l = try
