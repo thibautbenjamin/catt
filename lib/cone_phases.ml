@@ -43,32 +43,16 @@ let intch_11 a aty b bty c cty =
   let iaty = Arr(ifty,tdb 2,tdb 3) in
   let ibty = Arr(ifty,tdb 3,tdb 5) in
   let icty = Arr(igty,tdb 8,tdb 9) in
-  let s,_ =
-  begin
-    let left = Functorialisation.whisk 0 0 1 in
-    let left_sub = Functorialisation.whisk_sub_ps 1 (tdb 2) ifty (tdb 10) icty in
-    let l, lty = Unchecked.coh_ty left left_sub in
-    let inner = Functorialisation.whisk 1 0 0 in
-    let inner_sub = Functorialisation.whisk_sub_ps 0 (tdb 4) iaty (tdb 6) ibty in
-    let i, ity = Unchecked.coh_ty inner inner_sub in
-    let right = Functorialisation.whisk 0 1 0 in
-    let right_sub = Functorialisation.whisk_sub_ps 0 i ity (tdb 9) igty in
-    let r, rty = Unchecked.coh_ty right right_sub in
-    let src = Functorialisation.whisk 1 0 0 in
-    let src_sub = Functorialisation.whisk_sub_ps 0 l lty r rty in
-    Unchecked.coh_ty src src_sub
+  let s,_ = begin
+    let l, lty = whisk 0 0 1 (tdb 2) ifty (tdb 10) icty in
+    let i, ity = whisk 1 0 0 (tdb 4) iaty (tdb 6) ibty in
+    let r, rty = whisk 0 1 0 i ity (tdb 9) igty in
+    whisk 1 0 0 l lty r rty
   end in
-  let t,_ =
-  begin
-    let left = Functorialisation.whisk 0 1 0 in
-    let left_sub = Functorialisation.whisk_sub_ps 0 (tdb 4) iaty (tdb 8) igty in
-    let l, lty = Unchecked.coh_ty left left_sub in
-    let right = Functorialisation.whisk 0 1 1 in
-    let right_sub = Functorialisation.whisk_sub_ps 1 (tdb 6) ibty (tdb 10) icty in
-    let r, rty = Unchecked.coh_ty right right_sub in
-    let tgt = Functorialisation.whisk 1 0 0 in
-    let tgt_sub = Functorialisation.whisk_sub_ps 0 l lty r rty in
-    Unchecked.coh_ty tgt tgt_sub
+  let t,_ = begin
+    let l, lty = whisk 0 1 0 (tdb 4) iaty (tdb 8) igty in
+    let r, rty = whisk 0 1 1 (tdb 6) ibty (tdb 10) icty in
+    whisk 1 0 0 l lty r rty
   end in
   let intch = Coh.check_inv ps s t ("phase_11_intch",0,[]) in
   let c_sub = Unchecked.ty_to_sub_ps cty in
@@ -136,12 +120,8 @@ let phase_n0 f fty g gty l p =
   let gc = Cones.cone_tm g l p in
   let gcty = Cones.cone_ty g gty l p in
   let h, hty = if d<2 then g, gty else tgt (d-2) gty in
-  let inner = Functorialisation.whisk 0 d 0 in
-  let inner_sub_ps = Functorialisation.whisk_sub_ps 0 fc fcty h hty in
-  let inner, inner_ty = Unchecked.coh_ty inner inner_sub_ps in 
-  let outer = Functorialisation.whisk 1 (d-1) (d-1) in
-  let outer_sub_ps = Functorialisation.whisk_sub_ps (d-1) gc gcty inner inner_ty in
-  Unchecked.coh_ty outer outer_sub_ps
+  let inner, inner_ty = whisk 0 d 0 fc fcty h hty in
+  whisk 1 (d-1) (d-1) gc gcty inner inner_ty
 
 let phase n i f fty g gty l p =
   let _ = Printf.printf "Constructing phase %d/%d of %s : %s and %s : %s\n%!" n i
