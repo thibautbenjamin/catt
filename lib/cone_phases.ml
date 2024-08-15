@@ -124,6 +124,35 @@ let phase_11 a aty b bty l p =
   let sub = (part3,true)::(part3t,false)::(part2,true)::(part2t,false)::(part1,true)::(Unchecked.ty_to_sub_ps part1ty) in
   Unchecked.coh_ty comp sub
 
+let phase_12 a aty b bty l p =
+  (* Setup *)
+  let fty,fs,ft = bdry 0 aty in
+  let gty,gs,gt = bdry 0 bty in
+  let r, _ = phase_01 fs fty gs gty l p in
+  let l, lt = phase_n0 fs fty gs gty l p in
+  let v1,v2 = match fs,gs with
+  | Var(v1),Var(v2) -> v1,v2
+  | _, _ -> assert false in
+  (* Part 2 *)
+  let nat = Inverse.compute_inverse (Functorialisation.tm_one_step_tm r [v2;v1]) in
+  let nat_sub = [Var.Bridge(v2),b;Var.Plus(v2),gt;Bridge(v1),a;Plus(v1),ft] in
+  let nat = Unchecked.tm_apply_sub nat nat_sub in
+  let nat,natty = match nat with
+  | Coh(c,s) -> Unchecked.coh_ty c s
+  | _ -> assert false in
+  let part2, part2ty = whisk 1 0 1 l lt nat natty in
+  let part2b,part2s,part2t = bdry 0 part2ty in
+  (* Part 1 *)
+  let part1, part1ty = reassoc_forward part2s part2b in
+  (* Part 3 *)
+  let part3, part3ty = reassoc_backward part2t part2b in
+  let part3t,_ = tgt 0 part3ty in
+  (* Collate *)
+  let comp = Suspension.coh (Some(2)) (Builtin.comp_n 3) in
+  let sub = (part3,true)::(part3t,false)::(part2,true)::(part2t,false)::(part1,true)::(Unchecked.ty_to_sub_ps part1ty) in
+  Unchecked.coh_ty comp sub
+
+
 let phase n i f fty g gty l p =
   let _ = Printf.printf "Constructing phase p^{%d}_{%d} of %s : %s and %s : %s\n%!" n i
     (Unchecked.tm_to_string f)
@@ -134,6 +163,7 @@ let phase n i f fty g gty l p =
   | _, 0 -> phase_n0 f fty g gty l p
   | 0, 1 -> phase_01 f fty g gty l p
   | 1, 1 -> phase_11 f fty g gty l p
+  | 1, 2 -> phase_12 f fty g gty l p
   | _, _ -> assert false
 
 let init () =
