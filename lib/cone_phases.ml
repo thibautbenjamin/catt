@@ -78,6 +78,40 @@ let phase_01 f fty g gty l p =
   let sub_ps = [g,true;z,false;f,true;y,false;xc,true;x,false;Var(p),false] in
   Unchecked.coh_ty Builtin.assoc sub_ps
 
+let assoc_conj m mty =
+  (* Part 2 *)
+  let part2b,part2s,part2t = bdry 0 mty in
+  (* Part 1 *)
+  let part1, part1ty = reassoc_forward part2s part2b in
+  (* Part 3 *)
+  let part3, part3ty = reassoc_backward part2t part2b in
+  let part3t,_ = tgt 0 part3ty in
+  (* Collate *)
+  let comp = Suspension.coh (Some(2)) (Builtin.comp_n 3) in
+  let sub = (part3,true)::(part3t,false)::(m,true)::(part2t,false)::(part1,true)::(Unchecked.ty_to_sub_ps part1ty) in
+  Unchecked.coh_ty comp sub
+
+let nat_of_phase a aty b bty l p ph =
+  (* Setup *)
+  let fty,fs,ft = bdry 0 aty in
+  let gty,gs,gt = bdry 0 bty in
+  let r, _ = ph fs fty gs gty l p in
+  let v1,v2 = match fs,gs with
+  | Var(v1),Var(v2) -> v1,v2
+  | _, _ -> assert false in
+  (* Compute nat *)
+  let nat = Inverse.compute_inverse (Functorialisation.tm_one_step_tm r [v2;v1]) in
+  let nat_sub = [Var.Bridge(v2),b;Var.Plus(v2),gt;Bridge(v1),a;Plus(v1),ft] in
+  match nat with
+  | Coh(c,s) -> Unchecked.coh_ty c (Unchecked.sub_ps_apply_sub s nat_sub)
+  | _ -> assert false
+
+let phase_of_nat a aty b bty c cty l p ph =
+  let d = Unchecked.dim_ty cty in
+  let nat, natty = nat_of_phase a aty b bty l p ph in
+  let middle, middlety = whisk (d-1) 0 1 c cty nat natty in
+  assoc_conj middle middlety
+
 (*
 https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjYiXSxbMCwxLCIzIiwxXSxbMCwxLCI1IiwyLHsiY3VydmUiOjR9XSxbMSwyLCI3IiwwLHsiY3VydmUiOi0yfV0sWzEsMiwiOCIsMix7ImN1cnZlIjoyfV0sWzAsMSwiMiIsMCx7ImN1cnZlIjotNH1dLFszLDQsIjYiLDAseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9fV0sWzUsNiwiOSIsMCx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbNywzLCI0IiwwLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
 *)
@@ -106,52 +140,23 @@ let intch_11 a aty b bty c cty =
   Unchecked.coh_ty intch sub
 
 let phase_11 a aty b bty l p =
+  (* Setup *)
   let xc, xcty = src_cone 1 aty l p in
   let fc, fcty = src_cone 0 aty l p in
   let gc, gcty = src_cone 0 bty l p in
   let c, cty = whisk 0 0 1 xc xcty a aty in
-  (* Part 2 *)
+  (* Core of the phase *)
   let intch, intchty = intch_11 fc fcty c cty b bty in
-  let part2, part2ty = whisk 1 0 1 gc gcty intch intchty in
-  let part2b,part2s,part2t = bdry 0 part2ty in
-  (* Part 1 *)
-  let part1, part1ty = reassoc_forward part2s part2b in
-  (* Part 3 *)
-  let part3, part3ty = reassoc_backward part2t part2b in
-  let part3t,_ = tgt 0 part3ty in
-  (* Collate *)
-  let comp = Suspension.coh (Some(2)) (Builtin.comp_n 3) in
-  let sub = (part3,true)::(part3t,false)::(part2,true)::(part2t,false)::(part1,true)::(Unchecked.ty_to_sub_ps part1ty) in
-  Unchecked.coh_ty comp sub
+  let middle, middlety = whisk 1 0 1 gc gcty intch intchty in
+  (* Conjugate by assoc *)
+  assoc_conj middle middlety
 
 let phase_12 a aty b bty l p =
   (* Setup *)
-  let fty,fs,ft = bdry 0 aty in
-  let gty,gs,gt = bdry 0 bty in
-  let r, _ = phase_01 fs fty gs gty l p in
-  let l, lt = phase_n0 fs fty gs gty l p in
-  let v1,v2 = match fs,gs with
-  | Var(v1),Var(v2) -> v1,v2
-  | _, _ -> assert false in
-  (* Part 2 *)
-  let nat = Inverse.compute_inverse (Functorialisation.tm_one_step_tm r [v2;v1]) in
-  let nat_sub = [Var.Bridge(v2),b;Var.Plus(v2),gt;Bridge(v1),a;Plus(v1),ft] in
-  let nat = Unchecked.tm_apply_sub nat nat_sub in
-  let nat,natty = match nat with
-  | Coh(c,s) -> Unchecked.coh_ty c s
-  | _ -> assert false in
-  let part2, part2ty = whisk 1 0 1 l lt nat natty in
-  let part2b,part2s,part2t = bdry 0 part2ty in
-  (* Part 1 *)
-  let part1, part1ty = reassoc_forward part2s part2b in
-  (* Part 3 *)
-  let part3, part3ty = reassoc_backward part2t part2b in
-  let part3t,_ = tgt 0 part3ty in
-  (* Collate *)
-  let comp = Suspension.coh (Some(2)) (Builtin.comp_n 3) in
-  let sub = (part3,true)::(part3t,false)::(part2,true)::(part2t,false)::(part1,true)::(Unchecked.ty_to_sub_ps part1ty) in
-  Unchecked.coh_ty comp sub
-
+  let fs,fty = src 0 aty in
+  let gs,gty = src 0 bty in
+  let c, cty = phase_n0 fs fty gs gty l p in
+  phase_of_nat a aty b bty c cty l p phase_01
 
 let phase n i f fty g gty l p =
   let _ = Printf.printf "Constructing phase p^{%d}_{%d} of %s : %s and %s : %s\n%!" n i
