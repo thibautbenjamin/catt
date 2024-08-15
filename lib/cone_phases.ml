@@ -25,40 +25,7 @@ let src_cone n ty l p =
   let s, b = src n ty in
   cone_tmty s b l p
 
-let phase_01 f fty g gty l p =
-  let x,_ = src 0 fty in
-  let _,y,z = bdry 0 gty in
-  let xc = Cones.cone_tm x l p in
-  let sub_ps = [g,true;z,false;f,true;y,false;xc,true;x,false;Var(p),false] in
-  Unchecked.coh_ty Builtin.assoc sub_ps
-
-(*
-https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjYiXSxbMCwxLCIzIiwxXSxbMCwxLCI1IiwyLHsiY3VydmUiOjR9XSxbMSwyLCI3IiwwLHsiY3VydmUiOi0yfV0sWzEsMiwiOCIsMix7ImN1cnZlIjoyfV0sWzAsMSwiMiIsMCx7ImN1cnZlIjotNH1dLFszLDQsIjYiLDAseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9fV0sWzUsNiwiOSIsMCx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbNywzLCI0IiwwLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
-*)
-let intch_11 a aty b bty c cty =
-  let tdb i = Var(Db i) in
-  let ps = Br[Br[Br[]];Br[Br[];Br[]]] in
-  let ifty = Arr(Obj,tdb 0,tdb 1) in
-  let igty = Arr(Obj,tdb 1,tdb 7) in
-  let iaty = Arr(ifty,tdb 2,tdb 3) in
-  let ibty = Arr(ifty,tdb 3,tdb 5) in
-  let icty = Arr(igty,tdb 8,tdb 9) in
-  let s,_ = begin
-    let l, lty = whisk 0 0 1 (tdb 2) ifty (tdb 10) icty in
-    let i, ity = whisk 1 0 0 (tdb 4) iaty (tdb 6) ibty in
-    let r, rty = whisk 0 1 0 i ity (tdb 9) igty in
-    whisk 1 0 0 l lty r rty
-  end in
-  let t,_ = begin
-    let l, lty = whisk 0 1 0 (tdb 4) iaty (tdb 8) igty in
-    let r, rty = whisk 0 1 1 (tdb 6) ibty (tdb 10) icty in
-    whisk 1 0 0 l lty r rty
-  end in
-  let intch = Coh.check_inv ps s t ("phase_11_intch",0,[]) in
-  let c_sub = Unchecked.ty_to_sub_ps cty in
-  let sub = (c,true)::(List.hd c_sub)::(List.nth c_sub 1)::(List.nth c_sub 2)::(b,true)::(fst (tgt 0 bty),false)::(a,true)::(Unchecked.ty_to_sub_ps aty) in
-  Unchecked.coh_ty intch sub
-
+(* Unchecked method to unwrap n(n-1)n composites *)
 let unwrap_composite_lr t ty =
   let (ps,_,_),s = match t with
   | Coh(c,s) -> Coh.forget c,s
@@ -94,6 +61,50 @@ let reassoc_backward t ty =
   let sub = assoc_right_sub t ty in
   Unchecked.coh_ty assoc sub
 
+let phase_n0 f fty g gty l p =
+  let d = Unchecked.dim_ty fty in
+  let fc = Cones.cone_tm f l p in
+  let fcty = Cones.cone_ty f fty l p in
+  let gc = Cones.cone_tm g l p in
+  let gcty = Cones.cone_ty g gty l p in
+  let h, hty = if d<2 then g, gty else tgt (d-2) gty in
+  let inner, inner_ty = whisk 0 d 0 fc fcty h hty in
+  whisk 1 (d-1) (d-1) gc gcty inner inner_ty
+
+let phase_01 f fty g gty l p =
+  let x,_ = src 0 fty in
+  let _,y,z = bdry 0 gty in
+  let xc = Cones.cone_tm x l p in
+  let sub_ps = [g,true;z,false;f,true;y,false;xc,true;x,false;Var(p),false] in
+  Unchecked.coh_ty Builtin.assoc sub_ps
+
+(*
+https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjYiXSxbMCwxLCIzIiwxXSxbMCwxLCI1IiwyLHsiY3VydmUiOjR9XSxbMSwyLCI3IiwwLHsiY3VydmUiOi0yfV0sWzEsMiwiOCIsMix7ImN1cnZlIjoyfV0sWzAsMSwiMiIsMCx7ImN1cnZlIjotNH1dLFszLDQsIjYiLDAseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9fV0sWzUsNiwiOSIsMCx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbNywzLCI0IiwwLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
+*)
+let intch_11 a aty b bty c cty =
+  let tdb i = Var(Db i) in
+  let ps = Br[Br[Br[]];Br[Br[];Br[]]] in
+  let ifty = Arr(Obj,tdb 0,tdb 1) in
+  let igty = Arr(Obj,tdb 1,tdb 7) in
+  let iaty = Arr(ifty,tdb 2,tdb 3) in
+  let ibty = Arr(ifty,tdb 3,tdb 5) in
+  let icty = Arr(igty,tdb 8,tdb 9) in
+  let s,_ = begin
+    let l, lty = whisk 0 0 1 (tdb 2) ifty (tdb 10) icty in
+    let i, ity = whisk 1 0 0 (tdb 4) iaty (tdb 6) ibty in
+    let r, rty = whisk 0 1 0 i ity (tdb 9) igty in
+    whisk 1 0 0 l lty r rty
+  end in
+  let t,_ = begin
+    let l, lty = whisk 0 1 0 (tdb 4) iaty (tdb 8) igty in
+    let r, rty = whisk 0 1 1 (tdb 6) ibty (tdb 10) icty in
+    whisk 1 0 0 l lty r rty
+  end in
+  let intch = Coh.check_inv ps s t ("phase_11_intch",0,[]) in
+  let c_sub = Unchecked.ty_to_sub_ps cty in
+  let sub = (c,true)::(List.hd c_sub)::(List.nth c_sub 1)::(List.nth c_sub 2)::(b,true)::(fst (tgt 0 bty),false)::(a,true)::(Unchecked.ty_to_sub_ps aty) in
+  Unchecked.coh_ty intch sub
+
 let phase_11 a aty b bty l p =
   let xc, xcty = src_cone 1 aty l p in
   let fc, fcty = src_cone 0 aty l p in
@@ -113,18 +124,8 @@ let phase_11 a aty b bty l p =
   let sub = (part3,true)::(part3t,false)::(part2,true)::(part2t,false)::(part1,true)::(Unchecked.ty_to_sub_ps part1ty) in
   Unchecked.coh_ty comp sub
 
-let phase_n0 f fty g gty l p =
-  let d = Unchecked.dim_ty fty in
-  let fc = Cones.cone_tm f l p in
-  let fcty = Cones.cone_ty f fty l p in
-  let gc = Cones.cone_tm g l p in
-  let gcty = Cones.cone_ty g gty l p in
-  let h, hty = if d<2 then g, gty else tgt (d-2) gty in
-  let inner, inner_ty = whisk 0 d 0 fc fcty h hty in
-  whisk 1 (d-1) (d-1) gc gcty inner inner_ty
-
 let phase n i f fty g gty l p =
-  let _ = Printf.printf "Constructing phase %d/%d of %s : %s and %s : %s\n%!" n i
+  let _ = Printf.printf "Constructing phase p^{%d}_{%d} of %s : %s and %s : %s\n%!" n i
     (Unchecked.tm_to_string f)
     (Unchecked.ty_to_string fty)
     (Unchecked.tm_to_string g)
