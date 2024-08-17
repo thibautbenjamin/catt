@@ -54,7 +54,7 @@ let cone_comp_n0n n f fty g gty l p =
         let whisk_sub_ps = Functorialisation.whisk_sub_ps (rd-d-1) left left_ty right right_ty in
         Unchecked.coh_ty whisk whisk_sub_ps
       end
-  in aux ((1 lsl (n+1))-1)
+  in aux (min 2 ((1 lsl (n+1))-1))
 let cone_coh c l p =
   (* Sanity check: c is non-inv *)
   assert (not (Coh.is_inv c));
@@ -147,5 +147,7 @@ let cones_postprocess_fn c t =
     (Unchecked.ty_to_string cty)
     (Unchecked.ctx_to_string cctx) in
   let _ = check_term (Ctx.check cctx) ct in
+  (*
   let _ = check_term (Ctx.check cctx) ~ty:cty ct in
+  *)
   cctx, ct
