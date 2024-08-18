@@ -3,6 +3,10 @@ open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
 val phase : (int -> int -> (tm*ty) -> (tm*ty) -> (Var.t*Var.t) list -> Var.t -> tm*ty) ref
+val cone_comp_n0n : (int -> (tm*ty) -> (tm*ty) -> (Var.t*Var.t) list -> Var.t -> tm*ty) ref
+
+val primary_seq : int -> int -> int
+val secondary_seq : int -> int -> int
 
 val cone_ty : tm -> ty -> (Var.t*Var.t) list -> Var.t -> ty
 val cone_tm : tm -> (Var.t*Var.t) list -> Var.t -> tm

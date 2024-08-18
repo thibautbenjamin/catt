@@ -3,6 +3,7 @@ open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
 let phase = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let cone_comp_n0n = ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
 let rec primary_seq n i =
   match n, i mod 2 with
@@ -21,36 +22,6 @@ let primary_list n = List.init ((1 lsl (n+1))-1) (primary_seq n)
 let secondary_list n = List.init ((1 lsl (n+1))-1) (secondary_seq n)
 *)
 
-let rec tgt n (t,ty) = match n, ty with
-  | 0, _ -> t, ty
-  | _, Arr(b,_,t) -> tgt (n-1) (t,b)
-  | _, _ -> assert false
-
-(*
-  \t{a\s_{0} b} = (\ldots(((\phi^{n}_{1}(\t a, \t b) \s_{k^{(n)}_{1}} \phi
-  ^{k^{(n)}_{1}}_{m^{(n)}_{1}+1}(\tgt{k^{(n)}_{1}}(a),\tgt{k^{(n)}_{1}}(b))) \s_{k^{(n)}_{2}} \phi
-  ^{k^{(n)}_{2}}_{m^{(n)}_{2}+1}(\tgt{k^{(n)}_{2}}(a),\tgt{k^{(n)}_{2}}(b))) \s_{k^{(n)}_{3}} \phi
-  ^{k^{(n)}_{3}}_{m^{(n)}_{3}+1}(\tgt{k^{(n)}_{3}}(a),\tgt{k^{(n)}_{3}}(b)))\ldots) \s_{k^{(n)}_{2^{n}}} \phi
-  ^{k^{(n)}_{2^{n}}}_{m^{(n)}_{2^{n}}+1}(\tgt{k^{(n)}_{2^{n}}}(a),\tgt{k^{(n)}_{2^{n}}}(b))
-*)
-let cone_comp_n0n n f g l p =
-  let d' = Unchecked.dim_ty (snd f) in
-  let rec aux k =
-    match k with
-    | 0 ->
-      begin
-        !phase n 0 f g l p
-      end
-    | _ ->
-      begin
-        let d = primary_seq n (k-1) in
-        let left = aux (k-1) in
-        let innerf = tgt (d'-d) f in
-        let innerg = tgt (d'-d) g in
-        let right = !phase (d-1) (secondary_seq n (k-1)) innerf innerg l p in
-        Functorialisation.wcomp left d right
-      end
-  in aux (min 2 ((1 lsl (n+1))-1))
 let cone_coh c l p =
   (* Sanity check: c is non-inv *)
   assert (not (Coh.is_inv c));
@@ -64,7 +35,7 @@ let cone_coh c l p =
   let maxvars = List.filter (fun v -> snd (snd v)) ctx in
   let f,(fty,_) = List.hd (List.tl maxvars) in
   let g,(gty,_) = List.hd maxvars in
-  let res,_ = cone_comp_n0n (d-1) ((Var(f)),fty) ((Var(g)),gty) l p in
+  let res,_ = !cone_comp_n0n (d-1) ((Var(f)),fty) ((Var(g)),gty) l p in
   res
 
 let rec cone_src t ty ty' l p =
