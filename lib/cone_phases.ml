@@ -262,5 +262,28 @@ let phase n i f g l p =
   | 2, 4 -> phase_24 f g l p
   | _, _ -> assert false
 
+(*
+  \t{a\s_{0} b} = (\ldots(((\phi^{n}_{1}(\t a, \t b) \s_{k^{(n)}_{1}} \phi
+  ^{k^{(n)}_{1}}_{m^{(n)}_{1}+1}(\tgt{k^{(n)}_{1}}(a),\tgt{k^{(n)}_{1}}(b))) \s_{k^{(n)}_{2}} \phi
+  ^{k^{(n)}_{2}}_{m^{(n)}_{2}+1}(\tgt{k^{(n)}_{2}}(a),\tgt{k^{(n)}_{2}}(b))) \s_{k^{(n)}_{3}} \phi
+  ^{k^{(n)}_{3}}_{m^{(n)}_{3}+1}(\tgt{k^{(n)}_{3}}(a),\tgt{k^{(n)}_{3}}(b)))\ldots) \s_{k^{(n)}_{2^{n}}} \phi
+  ^{k^{(n)}_{2^{n}}}_{m^{(n)}_{2^{n}}+1}(\tgt{k^{(n)}_{2^{n}}}(a),\tgt{k^{(n)}_{2^{n}}}(b))
+*)
+let phase_seq_len n = min 2 ((1 lsl (n+1))-1)
+
+let phase_seq n len f g l p =
+  let primary = List.init len (Cones.primary_seq n) in
+  let secondary = List.init len (Cones.secondary_seq n) in
+  let d' = Unchecked.dim_ty (snd f) in
+  let ph j k = j, phase (j-1) (Cones.secondary_seq n k) (tgt (d'-j) f) (tgt (d'-j) g) l p in
+  List.map2 ph primary secondary
+
+let cone_comp_n0n n f g l p =
+  let init = phase n 0 f g l p in
+  let list = phase_seq n (phase_seq_len n) f g l p in
+  let merge l r = wcomp l (fst r) (snd r) in
+  List.fold_left merge init list
+
 let init () =
-  Cones.phase := phase
+  Cones.phase := phase;
+  Cones.cone_comp_n0n := cone_comp_n0n
