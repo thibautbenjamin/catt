@@ -21,9 +21,9 @@ let primary_list n = List.init ((1 lsl (n+1))-1) (primary_seq n)
 let secondary_list n = List.init ((1 lsl (n+1))-1) (secondary_seq n)
 *)
 
-let rec tgt n t ty = match n, ty with
+let rec tgt n (t,ty) = match n, ty with
   | 0, _ -> t, ty
-  | _, Arr(b,_,t) -> tgt (n-1) t b 
+  | _, Arr(b,_,t) -> tgt (n-1) (t,b)
   | _, _ -> assert false
 
 (*
@@ -33,26 +33,22 @@ let rec tgt n t ty = match n, ty with
   ^{k^{(n)}_{3}}_{m^{(n)}_{3}+1}(\tgt{k^{(n)}_{3}}(a),\tgt{k^{(n)}_{3}}(b)))\ldots) \s_{k^{(n)}_{2^{n}}} \phi
   ^{k^{(n)}_{2^{n}}}_{m^{(n)}_{2^{n}}+1}(\tgt{k^{(n)}_{2^{n}}}(a),\tgt{k^{(n)}_{2^{n}}}(b))
 *)
-let cone_comp_n0n n f fty g gty l p =
-  let d' = Unchecked.dim_ty fty in
+let cone_comp_n0n n f g l p =
+  let d' = Unchecked.dim_ty (snd f) in
   let rec aux k =
     match k with
     | 0 ->
       begin
-        !phase n 0 f fty g gty l p
+        !phase n 0 f g l p
       end
     | _ ->
       begin
         let d = primary_seq n (k-1) in
-        let left, left_ty = aux (k-1) in
-        let innerf,innerf_ty = tgt (d'-d) f fty in
-        let innerg,innerg_ty = tgt (d'-d) g gty in
-        let right, right_ty = !phase (d-1) (secondary_seq n (k-1)) innerf innerf_ty innerg innerg_ty l p in
-        let ld = Unchecked.dim_ty left_ty in
-        let rd = Unchecked.dim_ty right_ty in
-        let whisk = Functorialisation.whisk d (ld-d-1) (rd-d-1) in
-        let whisk_sub_ps = Functorialisation.whisk_sub_ps (rd-d-1) left left_ty right right_ty in
-        Unchecked.coh_ty whisk whisk_sub_ps
+        let left = aux (k-1) in
+        let innerf = tgt (d'-d) f in
+        let innerg = tgt (d'-d) g in
+        let right = !phase (d-1) (secondary_seq n (k-1)) innerf innerg l p in
+        Functorialisation.wcomp left d right
       end
   in aux (min 2 ((1 lsl (n+1))-1))
 let cone_coh c l p =
@@ -68,23 +64,20 @@ let cone_coh c l p =
   let maxvars = List.filter (fun v -> snd (snd v)) ctx in
   let f,(fty,_) = List.hd (List.tl maxvars) in
   let g,(gty,_) = List.hd maxvars in
-  let res,_ = cone_comp_n0n (d-1) (Var(f)) fty (Var(g)) gty l p in
+  let res,_ = cone_comp_n0n (d-1) ((Var(f)),fty) ((Var(g)),gty) l p in
   res
 
 let rec cone_src t ty ty' l p =
-  let d = Unchecked.dim_ty ty in
   match ty' with
   | Meta_ty(_) -> assert false
   | Obj -> t,ty
   | Arr(b,u,_) ->
     begin
-      let inner, inner_ty = cone_src t ty b l p in
+      let inner = cone_src t ty b l p in
       let ucone_ty = cone_ty u b l p in
       let ucone = cone_tm u l p in
-      let d' = Unchecked.dim_ty ucone_ty in
-      let whisk = Functorialisation.whisk (d'-1) 0 (d-d') in
-      let whisk_sub_ps = Functorialisation.whisk_sub_ps (d-d') ucone ucone_ty inner inner_ty in
-      Unchecked.coh_ty whisk whisk_sub_ps
+      let d' = Unchecked.dim_ty (ucone_ty) in
+      Functorialisation.wcomp (ucone,ucone_ty) (d'-1) inner
     end
 and cone_ty t ty l p =
   match ty with
@@ -135,6 +128,11 @@ and cone_sub s l1 l2 p1 p2 =
       let tcone = cone_tm t l2 p2 in
       (List.assoc v l1, tcone)::(aux tl)
   in List.append (aux s) ((p1,Var(p2))::s)
+
+let cone_tmty (t,ty) l p =
+  let tc = cone_tm t l p in
+  let tcty = cone_ty t ty l p in
+  (tc,tcty)
 
 let cones_postprocess_fn c t =
   let tm = check_term (Ctx.check c) t in
