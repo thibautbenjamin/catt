@@ -3,6 +3,7 @@ open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
 let tdb i = Var(Db i)
+let wcomp = Functorialisation.wcomp
 
 let rec bdry n ty =
   match ty, n with
@@ -12,11 +13,6 @@ let rec bdry n ty =
 
 let src n ty = let b,s,_ = bdry n ty in s,b
 let tgt n ty = let b,_,t = bdry n ty in t,b
-
-let whisk n j k f fty g gty =
-  let whisk = Functorialisation.whisk n j k in
-  let whisk_sub_ps = Functorialisation.whisk_sub_ps k f fty g gty in
-  Unchecked.coh_ty whisk whisk_sub_ps
 
 let cone_tmty f fty l p =
   let fcty = Cones.cone_ty f fty l p in
@@ -65,13 +61,10 @@ let reassoc_backward t ty =
 
 let phase_n0 f fty g gty l p =
   let d = Unchecked.dim_ty fty in
-  let fc = Cones.cone_tm f l p in
-  let fcty = Cones.cone_ty f fty l p in
-  let gc = Cones.cone_tm g l p in
-  let gcty = Cones.cone_ty g gty l p in
-  let h, hty = if d<2 then g, gty else tgt (d-2) gty in
-  let inner, inner_ty = whisk 0 d 0 fc fcty h hty in
-  whisk 1 (d-1) (d-1) gc gcty inner inner_ty
+  let fc = (Cones.cone_tm f l p,Cones.cone_ty f fty l p) in
+  let gc = (Cones.cone_tm g l p,Cones.cone_ty g gty l p) in
+  let h = if d<2 then g, gty else tgt (d-2) gty in
+  wcomp gc 1 (wcomp fc 0 h)
 
 let phase_01 f fty g gty l p =
   let x,_ = src 0 fty in
@@ -110,8 +103,8 @@ let nat_of_phase a aty b bty l p ph =
 
 let phase_of_nat a aty b bty c cty l p ph =
   let d = Unchecked.dim_ty cty in
-  let nat, natty = nat_of_phase a aty b bty l p ph in
-  let middle, middlety = whisk (d-1) 0 1 c cty nat natty in
+  let nat = nat_of_phase a aty b bty l p ph in
+  let middle, middlety = wcomp (c,cty) (d-1) nat in
   assoc_conj middle middlety
 
 (*
@@ -121,20 +114,12 @@ let intch_comp_1001_coh =
   let ps = Br[Br[Br[];Br[]];Br[Br[];Br[]]] in
   let fty = Arr(Obj,tdb 0,tdb 1) in
   let gty = Arr(Obj,tdb 1,tdb 7) in
-  let a,aty = tdb 4,Arr(fty,tdb 2,tdb 3) in
-  let b,bty = tdb 6,Arr(fty,tdb 3,tdb 5) in
-  let c,cty = tdb 10,Arr(gty,tdb 8,tdb 9) in
-  let d,dty = tdb 12,Arr(gty,tdb 9,tdb 11) in
-  let s,_ = begin
-    let l, lty = whisk 1 0 0 a aty b bty in
-    let r, rty = whisk 1 0 0 c cty d dty in
-    whisk 0 1 1 l lty r rty
-  end in
-  let t,_ = begin
-    let l, lty = whisk 0 1 1 a aty c cty in
-    let r, rty = whisk 0 1 1 b bty d dty in
-    whisk 1 0 0 l lty r rty
-  end in
+  let a = tdb 4,Arr(fty,tdb 2,tdb 3) in
+  let b = tdb 6,Arr(fty,tdb 3,tdb 5) in
+  let c = tdb 10,Arr(gty,tdb 8,tdb 9) in
+  let d = tdb 12,Arr(gty,tdb 9,tdb 11) in
+  let s,_ = wcomp (wcomp a 1 b) 0 (wcomp c 1 d) in
+  let t,_ = wcomp (wcomp a 0 c) 1 (wcomp b 0 d) in
   Coh.check_inv ps s t ("comp_1001_intch",0,[])
 
 let intch_comp_2112_coh = Suspension.coh (Some(1)) (intch_comp_1001_coh)
@@ -151,18 +136,11 @@ let intch_comp_2112 m mty n nty p pty q qty =
 let intch_comp_10_coh =
   let ps = Br[Br[];Br[Br[];Br[]]] in
   let fty = Arr(Obj,tdb 0,tdb 1) in
-  let g,gty = tdb 8,Arr(Obj,tdb 1,tdb 7) in
-  let a,aty = tdb 4,Arr(fty,tdb 2,tdb 3) in
-  let b,bty = tdb 6,Arr(fty,tdb 3,tdb 5) in
-  let s,_ = begin
-    let i, ity = whisk 1 0 0 a aty b bty in
-    whisk 0 1 0 i ity g gty
-  end in
-  let t,_ = begin
-    let l, lty = whisk 0 1 0 a aty g gty in
-    let r, rty = whisk 0 1 0 b bty g gty in
-    whisk 1 0 0 l lty r rty
-  end in
+  let g = tdb 8,Arr(Obj,tdb 1,tdb 7) in
+  let a = tdb 4,Arr(fty,tdb 2,tdb 3) in
+  let b = tdb 6,Arr(fty,tdb 3,tdb 5) in
+  let s,_ = wcomp (wcomp a 1 b) 0 g in
+  let t,_ = wcomp (wcomp a 0 g) 1 (wcomp b 0 g) in
   Coh.check_inv ps s t ("comp_10_intch",0,[])
 
 let intch_comp_21_coh = Suspension.coh (Some(1)) (intch_comp_10_coh)
@@ -177,20 +155,13 @@ let _intch_comp_21 m mty n nty c cty =
 *)
 let intch_comp_20_coh =
   let ps = Br[Br[];Br[Br[Br[];Br[]]]] in
-  let f,fty = tdb 2,Arr(Obj,tdb 0,tdb 1) in
-  let g,gty = tdb 10,Arr(Obj,tdb 1,tdb 9) in
-  let a,b,c,aty = tdb 4,tdb 5,tdb 7,Arr(fty,f,tdb 3) in
-  let m,mty = tdb 6,Arr(aty,a,b) in
-  let n,nty = tdb 8,Arr(aty,b,c) in
-  let s,_ = begin
-    let i, ity = whisk 2 0 0 m mty n nty in
-    whisk 0 2 0 i ity g gty
-  end in
-  let t,_ = begin
-    let l, lty = whisk 0 2 0 m mty g gty in
-    let r, rty = whisk 0 2 0 n nty g gty in
-    whisk 2 0 0 l lty r rty
-  end in
+  let f = tdb 2,Arr(Obj,tdb 0,tdb 1) in
+  let g = tdb 10,Arr(Obj,tdb 1,tdb 9) in
+  let a,b,c,aty = tdb 4,tdb 5,tdb 7,Arr(snd f,fst f,tdb 3) in
+  let m = tdb 6,Arr(aty,a,b) in
+  let n = tdb 8,Arr(aty,b,c) in
+  let s,_ = wcomp (wcomp m 2 n) 0 g in
+  let t,_ = wcomp (wcomp m 0 g) 2 (wcomp n 0 g) in
   Coh.check_inv ps s t ("comp_20_intch",0,[])
 
 let intch_comp_20 m mty n nty g gty =
@@ -202,22 +173,14 @@ https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjYiXSxbMCwxLCIzI
 *)
 let intch_phase_11_coh =
   let ps = Br[Br[Br[]];Br[Br[];Br[]]] in
-  let fty = Arr(Obj,tdb 0,tdb 1) in
-  let gty = Arr(Obj,tdb 1,tdb 7) in
-  let aty = Arr(fty,tdb 2,tdb 3) in
-  let bty = Arr(fty,tdb 3,tdb 5) in
-  let cty = Arr(gty,tdb 8,tdb 9) in
-  let s,_ = begin
-    let l, lty = whisk 0 0 1 (tdb 2) fty (tdb 10) cty in
-    let i, ity = whisk 1 0 0 (tdb 4) aty (tdb 6) bty in
-    let r, rty = whisk 0 1 0 i ity (tdb 9) gty in
-    whisk 1 0 0 l lty r rty
-  end in
-  let t,_ = begin
-    let l, lty = whisk 0 1 0 (tdb 4) aty (tdb 8) gty in
-    let r, rty = whisk 0 1 1 (tdb 6) bty (tdb 10) cty in
-    whisk 1 0 0 l lty r rty
-  end in
+  let f = tdb 2,Arr(Obj,tdb 0,tdb 1) in
+  let g = tdb 8,Arr(Obj,tdb 1,tdb 7) in
+  let g' = tdb 9,snd g in
+  let a = tdb 4,Arr(snd f,tdb 2,tdb 3) in
+  let b = tdb 6,Arr(snd f,tdb 3,tdb 5) in
+  let c = tdb 10,Arr(snd g,tdb 8,tdb 9) in
+  let s,_ = wcomp (wcomp f 0 c) 1 (wcomp (wcomp a 1 b) 0 g') in
+  let t,_ = wcomp (wcomp a 0 g) 1 (wcomp b 0 c) in
   Coh.check_inv ps s t ("phase_11_intch",0,[])
 
 let intch_phase_11 a aty b bty c cty =
@@ -227,43 +190,40 @@ let intch_phase_11 a aty b bty c cty =
 
 let phase_11 a aty b bty l p =
   (* Setup *)
-  let xc, xcty = src_cone 1 aty l p in
-  let fc, fcty = src_cone 0 aty l p in
-  let gc, gcty = src_cone 0 bty l p in
-  let c, cty = whisk 0 0 1 xc xcty a aty in
+  let xc = src_cone 1 aty l p in
+  let fc = src_cone 0 aty l p in
+  let gc = src_cone 0 bty l p in
+  let c = wcomp xc 0 (a,aty) in
   (* Core of the phase *)
-  let intch, intchty = intch_phase_11 fc fcty c cty b bty in
-  let middle, middlety = whisk 1 0 1 gc gcty intch intchty in
+  let intch = intch_phase_11 (fst fc) (snd fc) (fst c) (snd c) b bty in
+  let middle, middlety = wcomp gc 1 intch in
   (* Conjugate by assoc *)
   assoc_conj middle middlety
 
 let phase_21 m mty n nty l p =
-  let g',gty = tgt 1 nty in
-  let xc,xcty = src_cone 2 mty l p in
-  let yc,ycty = src_cone 2 nty l p in
-  let fc,fcty = src_cone 1 mty l p in
-  let gc,gcty = src_cone 1 nty l p in
-  let ac,acty = src_cone 0 mty l p in
-  let bc,bcty = src_cone 0 nty l p in
-  let t0,t0ty = begin
-    let i, ity = whisk 0 0 2 yc ycty n nty in
-    let q1, q1ty = whisk 1 0 1 gc gcty i ity in
-    let l, lty = whisk 2 0 0 bc bcty q1 q1ty in
-    let i, ity = whisk 0 0 2 xc xcty m mty in
-    let p, pty = whisk 1 0 1 fc fcty i ity in
-    let intch,intchty = intch_comp_20 ac acty p pty g' gty in
-    whisk 1 1 2 l lty intch intchty
+  let g' = tgt 1 nty in
+  let xc = src_cone 2 mty l p in
+  let yc = src_cone 2 nty l p in
+  let fc = src_cone 1 mty l p in
+  let gc = src_cone 1 nty l p in
+  let ac = src_cone 0 mty l p in
+  let bc = src_cone 0 nty l p in
+  (* Part 0 *)
+  let t0 = begin
+    let l = wcomp bc 2 (wcomp gc 1 (wcomp yc 0 (n,nty))) in
+    let p, pty = wcomp fc 1 (wcomp xc 0 (m,mty)) in
+    let intch = intch_comp_20 (fst ac) (snd ac) p pty (fst g') (snd g') in
+    wcomp l 1 intch
   end in
-  let t1,t1ty = begin
-    let i, ity = whisk 0 0 2 yc ycty n nty in
-    let q1, q1ty = whisk 1 0 1 gc gcty i ity in
-    let q2, q2ty = whisk 0 2 0 ac acty g' gty in
-    let i, ity = whisk 0 0 2 xc xcty m mty in
-    let i, ity = whisk 1 0 1 fc fcty i ity in
-    let q3, q3ty = whisk 0 2 0 i ity g' gty in
-    intch_comp_2112 bc bcty q1 q1ty q2 q2ty q3 q3ty
+  (* Part 1 *)
+  let t1 = begin
+    let q1 = wcomp gc 1 (wcomp yc 0 (n,nty)) in
+    let q2 = wcomp ac 0 g' in
+    let q3 = wcomp (wcomp fc 1 (wcomp xc 0 (m,mty))) 0 g' in
+    intch_comp_2112 (fst bc) (snd bc) (fst q1) (snd q1) (fst q2) (snd q2) (fst q3) (snd q3)
   end in
-  whisk 3 0 0 t0 t0ty t1 t1ty
+  (* Collate *)
+  wcomp t0 3 t1
 
 let phase_12 a aty b bty l p =
   let fs,fty = src 0 aty in
@@ -279,18 +239,17 @@ let phase_22 a aty b bty l p =
 
 let phase_24 m mty n nty l p =
   (* Setup *)
-  let a, aty = src 0 mty in
-  let b, bty = src 0 nty in
-  let ft, fty = tgt 0 aty in
-  let gt, gty = tgt 0 bty in
+  let a = src 0 mty in
+  let b = src 0 nty in
+  let ft = tgt 0 (snd a) in
+  let gt = tgt 0 (snd b) in
   (* Construct c *)
-  let comp, compty = whisk 1 0 0 a aty b bty in
-  let innerty = Cones.cone_ty comp compty l p in
-  let inner = Cones.cone_tm comp l p in
-  let p01, p01ty = phase_01 ft fty gt gty l p in
-  let c, cty = whisk 1 1 0 inner innerty p01 p01ty in
+  let comp = wcomp a 1 b in
+  let inner = (Cones.cone_tm (fst comp) l p,Cones.cone_ty (fst comp) (snd comp) l p) in
+  let p01 = phase_01 (fst ft) (snd ft) (fst gt) (snd gt) l p in
+  let c = wcomp inner 1 p01 in
   (* Produce phase *)
-  phase_of_nat m mty n nty c cty l p phase_12
+  phase_of_nat m mty n nty (fst c) (snd c) l p phase_12
 
 let phase n i f fty g gty l p =
   let _ = Printf.printf "Constructing phase p^{%d}_{%d} of %s : %s and %s : %s\n%!" n i

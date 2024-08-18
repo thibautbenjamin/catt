@@ -99,6 +99,21 @@ and whisk_sub_ps k t1 ty1 t2 ty2 =
   let sub_ext = take (2*k+1) (Unchecked.ty_to_sub_ps ty2) in
   List.concat [[(t2,true)];sub_ext;[(t1,true)];sub_base]
 
+(*
+  wcomp is the whiskered binary composite
+  wcomp (f,fty) n (g,gty) means f *_n g
+
+  Since it has access to both fty and gty it can automatically infer j and k
+  Therefore the only dimension parameter it needs is n
+  This API takes and returns pairs (tm*ty) meaning it can be easily nested
+  (wcomp f 0 (wcomp g 0 h)) = f *_0 (g *_0 h)
+*)
+and wcomp (f,fty) n (g,gty) =
+  let j = (Unchecked.dim_ty fty)-n-1 in
+  let k = (Unchecked.dim_ty gty)-n-1 in
+  let whisk = whisk n j k in
+  let whisk_sub_ps = whisk_sub_ps k f fty g gty in
+  Unchecked.coh_ty whisk whisk_sub_ps
 
 (* Invariant maintained:
     src_prod returns a term of same dimension as tm
@@ -106,23 +121,19 @@ and whisk_sub_ps k t1 ty1 t2 ty2 =
 and src_prod t l tm tm_t d n =
   match t with
   | Arr(ty',src,_tgt) when Unchecked.tm_contains_vars src l ->
-    let whisk = whisk n 0 (d-n-1) in
-    let prod, prod_ty = src_prod ty' l tm tm_t d (n-1) in
+    let prod = src_prod ty' l tm tm_t d (n-1) in
     let ty_f = ty ty' l src in
     let src_f = tm_one_step_tm src l in
-    let sub_ps = whisk_sub_ps (d-n-1) src_f ty_f prod prod_ty in
-    Unchecked.coh_ty whisk sub_ps
+    wcomp (src_f,ty_f) n prod
   | Arr(_,_,_) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 and tgt_prod t l tm tm_t d n =
   match t with
   | Arr(ty',_src,tgt) when Unchecked.tm_contains_vars tgt l ->
-    let whisk = whisk n (d-n-1) 0 in
-    let prod, prod_ty = tgt_prod ty' l tm tm_t d (n-1) in
+    let prod = tgt_prod ty' l tm tm_t d (n-1) in
     let ty_f = ty ty' l tgt in
     let tgt_f = tm_one_step_tm tgt l in
-    let sub_ps = whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
-    Unchecked.coh_ty whisk sub_ps
+    wcomp prod n (tgt_f,ty_f)
   | Arr(_,_,_) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 and ty t l tm =
