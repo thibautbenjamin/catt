@@ -77,7 +77,8 @@ let assoc_conj m =
   let part3 = reassoc_backward part2t in
   let part3t,_ = tgt 1 part3 in
   (* Collate *)
-  let comp = Suspension.coh (Some(2)) (Builtin.comp_n 3) in
+  let d = Unchecked.dim_ty (snd m) in
+  let comp = Suspension.coh (Some(d-1)) (Builtin.comp_n 3) in
   let sub = (fst part3,true)::(part3t,false)::(fst m,true)::(fst part2t,false)::(fst part1,true)::(Unchecked.ty_to_sub_ps (snd part1)) in
   Unchecked.coh_ty comp sub
 
@@ -226,11 +227,11 @@ let phase_12 a b l p =
   let c = phase_n0 fs gs l p in
   phase_of_nat a b c l p phase_01
 
-let phase_22 a b l p =
-  let fs = src 1 a in
-  let gs = src 1 b in
-  let c = phase_n0 fs gs l p in
-  phase_of_nat a b c l p phase_11
+let phase_22 m n l p =
+  let a = src 1 m in
+  let b = src 1 n in
+  let c = phase_n0 a b l p in
+  phase_of_nat m n c l p phase_11
 
 let phase_24 m n l p =
   (* Setup *)
@@ -269,7 +270,7 @@ let phase n i f g l p =
   ^{k^{(n)}_{3}}_{m^{(n)}_{3}+1}(\tgt{k^{(n)}_{3}}(a),\tgt{k^{(n)}_{3}}(b)))\ldots) \s_{k^{(n)}_{2^{n}}} \phi
   ^{k^{(n)}_{2^{n}}}_{m^{(n)}_{2^{n}}+1}(\tgt{k^{(n)}_{2^{n}}}(a),\tgt{k^{(n)}_{2^{n}}}(b))
 *)
-let phase_seq_len n = min 2 ((1 lsl (n+1))-1)
+let phase_seq_len n = min 3 ((1 lsl (n+1))-1)
 
 let phase_seq n len f g l p =
   let primary = List.init len (Cones.primary_seq n) in
