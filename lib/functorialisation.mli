@@ -22,3 +22,4 @@ val sub_w_tgt :
 
 val whisk : int -> int -> int -> Coh.t
 val whisk_sub_ps : int -> tm -> ty -> tm -> ty -> sub_ps
+val wcomp : tm * ty -> int -> tm * ty -> tm * ty
