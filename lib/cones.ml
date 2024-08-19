@@ -68,9 +68,8 @@ and cone_tm t l p =
     begin
       let ps,_,_ = Coh.forget c in
       let ctx = Unchecked.ps_to_ctx ps in
-      let ctx_coned,(l',p') = cone_ctx ctx in
+      let _,(l',p') = cone_ctx ctx in
       let c_coned = cone_coh c l' p' in
-      let _ = check_term (Ctx.check ctx_coned) c_coned in
       let s = Unchecked.sub_ps_to_sub s_ps in
       let s_coned = cone_sub s l' l p' p in
       Unchecked.tm_apply_sub c_coned s_coned
