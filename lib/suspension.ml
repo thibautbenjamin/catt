@@ -1,3 +1,4 @@
+open Common
 open Kernel
 
 let rec iter_n_times n f base =
@@ -6,6 +7,7 @@ let rec iter_n_times n f base =
 let iter_option f n base =
   match n with None -> base | Some n -> iter_n_times n f base
 
+let func_data n l = List.map (fun (v, k) -> (Var.suspend_n v n, k)) l
 let ps = iter_option Unchecked.suspend_ps
 let ty = iter_option Unchecked.suspend_ty
 let tm = iter_option Unchecked.suspend_tm
@@ -17,4 +19,4 @@ let coh i coh =
   | None | Some 0 -> coh
   | Some n ->
       let p, t, (name, susp, f) = Coh.forget coh in
-      check_coh (ps i p) (ty i t) (name, susp + n, f)
+      check_coh (ps i p) (ty i t) (name, susp + n, func_data n f)
