@@ -141,7 +141,7 @@ let intch_comp_10_coh =
 
 let intch_comp_21_coh = Suspension.coh (Some(1)) (intch_comp_10_coh)
 
-let _intch_comp_21 m n c =
+let intch_comp_21 m n c =
   let sub = (fst c,true)::(fst (tgt 1 c),false)::(fst n,true)::(fst (tgt 1 n),false)::(fst m,true)::(Unchecked.ty_to_sub_ps (snd m)) in
   Unchecked.coh_ty (intch_comp_21_coh) sub
 
@@ -225,13 +225,13 @@ let phase_12 a b l p =
   let fs = src 1 a in
   let gs = src 1 b in
   let c = phase_n0 fs gs l p in
-  phase_of_nat a b c l p phase_01
+  phase_of_nat a b c l p (!Cones.phase 0 1)
 
 let phase_22 m n l p =
   let a = src 1 m in
   let b = src 1 n in
   let c = phase_n0 a b l p in
-  phase_of_nat m n c l p phase_11
+  phase_of_nat m n c l p (!Cones.phase 1 1)
 
 let phase_24 m n l p =
   (* Setup *)
@@ -240,12 +240,23 @@ let phase_24 m n l p =
   let ft = tgt 1 a in
   let gt = tgt 1 b in
   (* Construct c *)
-  let comp = wcomp a 1 b in
-  let inner = Cones.cone_tmty comp l p in
-  let p01 = phase_01 ft gt l p in
-  let c = wcomp inner 1 p01 in
+  let p10 = (!Cones.phase 1 0) a b l p in
+  let p11 = (!Cones.phase 1 1) a b l p in
+  let p01 = (!Cones.phase 0 1) ft gt l p in
+  let c = wcomp (wcomp p10 2 p11) 1 p01 in
   (* Produce phase *)
-  phase_of_nat m n c l p phase_12
+  phase_of_nat m n c l p (!Cones.phase 1 2)
+
+let phase_23 m n l p =
+  let a = src 1 m in
+  let b = src 1 n in
+  let f = src 1 a in
+  let g = src 1 b in
+  let xc = src_cone 1 f l p in
+  let t0 = wcomp (phase_n0 a b l p) 2 ((!Cones.phase 1 1) a b l p) in
+  let t1 = wcomp (phase_n0 f g l p) 1 (wcomp (wcomp xc 0 m) 0 n) in
+  let t2 = (!Cones.phase 0 1) (tgt 2 m) (tgt 2 n) l p in
+  intch_comp_21 t0 t1 t2
 
 let phase n i f g l p =
   let _ = Printf.printf "Constructing phase p^{%d}_{%d} of %s : %s and %s : %s\n%!" n i
@@ -260,6 +271,7 @@ let phase n i f g l p =
   | 1, 2 -> phase_12 f g l p
   | 2, 1 -> phase_21 f g l p
   | 2, 2 -> phase_22 f g l p
+  | 2, 3 -> phase_23 f g l p
   | 2, 4 -> phase_24 f g l p
   | _, _ -> assert false
 
