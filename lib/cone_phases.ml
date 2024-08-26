@@ -104,65 +104,64 @@ let phase_of_nat a b c l p ph =
   assoc_conj middle
 
 (*
-  (a *_1 b) *_0 (c *_1 d) -> (a *_0 c) *_1 (b *_0 d)
+  (a *_n b) *_0 (c *_n d) -> (a *_0 c) *_n (b *_0 d)
 *)
-let intch_comp_1001_coh =
-  let ps = Br[Br[Br[];Br[]];Br[Br[];Br[]]] in
-  let fty = Arr(Obj,tdb 0,tdb 1) in
-  let gty = Arr(Obj,tdb 1,tdb 7) in
-  let a = tdb 4,Arr(fty,tdb 2,tdb 3) in
-  let b = tdb 6,Arr(fty,tdb 3,tdb 5) in
-  let c = tdb 10,Arr(gty,tdb 8,tdb 9) in
-  let d = tdb 12,Arr(gty,tdb 9,tdb 11) in
-  let s,_ = wcomp (wcomp a 1 b) 0 (wcomp c 1 d) in
-  let t,_ = wcomp (wcomp a 0 c) 1 (wcomp b 0 d) in
-  Coh.check_inv ps s t ("comp_1001_intch",0,[])
+let intch_comp_n0n_coh n =
+  let rec ty n j k = match n with
+  | 1 -> Arr(Obj,tdb j,tdb ((2*n-1)+k))
+  | _ -> Arr(ty (n-1) j k,tdb ((2*n-2)+k),tdb ((2*n-1)+k)) in
+  let fty = ty n 0 0 in
+  let gty = ty n 1 (2*n+4) in
+  let a = tdb (2*n+2),Arr(fty,tdb (2*n),tdb (2*n+1)) in
+  let b = tdb (2*n+4),Arr(fty,tdb (2*n+1),tdb (2*n+3)) in
+  let c = tdb (4*n+6),Arr(gty,tdb (4*n+4),tdb (4*n+5)) in
+  let d = tdb (4*n+8),Arr(gty,tdb (4*n+5),tdb (4*n+7)) in
+  let s,_ = wcomp (wcomp a n b) 0 (wcomp c n d) in
+  let t,_ = wcomp (wcomp a 0 c) n (wcomp b 0 d) in
+  let inner_ps = Suspension.ps (Some(n-1)) (Br[Br[];Br[]]) in
+  let ps = Br[inner_ps;inner_ps] in
+  Coh.check_inv ps s t (Printf.sprintf "comp_%d_0_%d_intch" n n,0,[])
 
-let intch_comp_2112_coh = Suspension.coh (Some(1)) (intch_comp_1001_coh)
+let intch_comp_n1n_coh n = Suspension.coh (Some(1)) (intch_comp_n0n_coh (n-1))
 
-let intch_comp_2112 (m,mty) n (p,pty) q =
-  let p_sub = Unchecked.ty_to_sub_ps pty in
-  let sub = (fst q,true)::(fst (tgt 1 q),false)::(p,true)::(List.hd p_sub)::(List.nth p_sub 1)::(List.nth p_sub 2)::(fst n,true)::(fst (tgt 1 n),false)::(m,true)::(Unchecked.ty_to_sub_ps mty) in
-  Unchecked.coh_ty (intch_comp_2112_coh) sub
+let intch_comp_n1n (a,aty) b (c,cty) d =
+  let n = Unchecked.dim_ty aty in
+  let rec aux s = match s with
+  | [] | _::_::_::[] -> []
+  | h::tl -> h::(aux tl) in
+  let c_sub = aux (Unchecked.ty_to_sub_ps cty) in
+  let sub = ((fst d,true)::(fst (tgt 1 d),false)::(c,true)::c_sub) @ ((fst b,true)::(fst (tgt 1 b),false)::(a,true)::(Unchecked.ty_to_sub_ps aty)) in
+  Unchecked.coh_ty (intch_comp_n1n_coh (n-1)) sub
 
 (*
-  (a *_1 b) *_0 g -> (a *_0 g) *_1 (b *_0 g)
+  (a *_n b) *_0 g -> (a *_0 g) *_n (b *_0 g)
   https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjciXSxbMCwxLCIyIiwwLHsiY3VydmUiOi01fV0sWzAsMSwiNSIsMix7ImN1cnZlIjo1fV0sWzAsMSwiMyIsMV0sWzEsMiwiOCIsMV0sWzMsNSwiNCIsMix7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbNSw0LCI2IiwyLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
 *)
-let intch_comp_10_coh =
-  let ps = Br[Br[];Br[Br[];Br[]]] in
-  let fty = Arr(Obj,tdb 0,tdb 1) in
-  let g = tdb 8,Arr(Obj,tdb 1,tdb 7) in
-  let a = tdb 4,Arr(fty,tdb 2,tdb 3) in
-  let b = tdb 6,Arr(fty,tdb 3,tdb 5) in
-  let s,_ = wcomp (wcomp a 1 b) 0 g in
-  let t,_ = wcomp (wcomp a 0 g) 1 (wcomp b 0 g) in
-  Coh.check_inv ps s t ("comp_10_intch",0,[])
+let intch_comp_n0_coh n =
+  let rec ty n = match n with
+  | 0 -> Obj
+  | _ -> Arr(ty (n-1),tdb (2*n-2),tdb (2*n-1)) in
+  let fty = ty n in
+  let a = tdb (2*n+2),Arr(fty,tdb (2*n),tdb (2*n+1)) in
+  let b = tdb (2*n+4),Arr(fty,tdb (2*n+1),tdb (2*n+3)) in
+  let g = tdb (2*n+6),Arr(Obj,tdb 1,tdb (2*n+5)) in
+  let s,_ = wcomp (wcomp a n b) 0 g in
+  let t,_ = wcomp (wcomp a 0 g) n (wcomp b 0 g) in
+  let ps = Br[Br[];(Suspension.ps (Some(n-1)) (Br[Br[];Br[]]))] in
+  Coh.check_inv ps s t (Printf.sprintf "comp_%d_0_intch" n,0,[])
 
-let intch_comp_21_coh = Suspension.coh (Some(1)) (intch_comp_10_coh)
+let intch_comp_n1_coh n = Suspension.coh (Some(1)) (intch_comp_n0_coh (n-1))
 
-let intch_comp_21 m n c =
+let intch_comp_n1 m n c =
+  let d = (Unchecked.dim_ty (snd m))-1 in
   let sub = (fst c,true)::(fst (tgt 1 c),false)::(fst n,true)::(fst (tgt 1 n),false)::(fst m,true)::(Unchecked.ty_to_sub_ps (snd m)) in
-  Unchecked.coh_ty (intch_comp_21_coh) sub
+  Unchecked.coh_ty (intch_comp_n1_coh d) sub
 
-(*
-  Interchange (m *_2 n) *_0 g -> (m *_0 g) *_2 (n *_0 g)
-  https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjkiXSxbMCwxLCIyIiwwLHsiY3VydmUiOi00fV0sWzAsMSwiMyIsMix7ImN1cnZlIjo0fV0sWzEsMiwiMTAiLDFdLFszLDQsIjQiLDIseyJvZmZzZXQiOjUsImN1cnZlIjoxLCJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9fV0sWzMsNCwiNyIsMCx7Im9mZnNldCI6LTUsImN1cnZlIjotMSwic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dLFszLDQsIjUiLDEseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9fV0sWzYsOCwiNiIsMCx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbOCw3LCI4IiwwLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
-*)
-let intch_comp_20_coh =
-  let ps = Br[Br[];Br[Br[Br[];Br[]]]] in
-  let f = tdb 2,Arr(Obj,tdb 0,tdb 1) in
-  let g = tdb 10,Arr(Obj,tdb 1,tdb 9) in
-  let a,b,c,aty = tdb 4,tdb 5,tdb 7,Arr(snd f,fst f,tdb 3) in
-  let m = tdb 6,Arr(aty,a,b) in
-  let n = tdb 8,Arr(aty,b,c) in
-  let s,_ = wcomp (wcomp m 2 n) 0 g in
-  let t,_ = wcomp (wcomp m 0 g) 2 (wcomp n 0 g) in
-  Coh.check_inv ps s t ("comp_20_intch",0,[])
 
-let intch_comp_20 m n g =
+let intch_comp_n0 m n g =
+  let d = (Unchecked.dim_ty (snd m))-1 in
   let sub = (fst g,true)::(fst (tgt 1 g),false)::(fst n,true)::(fst (tgt 1 n),false)::(fst m,true)::(Unchecked.ty_to_sub_ps (snd m)) in
-  Unchecked.coh_ty intch_comp_20_coh sub
+  Unchecked.coh_ty (intch_comp_n0_coh d) sub
 
 (*
 https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjYiXSxbMCwxLCIzIiwxXSxbMCwxLCI1IiwyLHsiY3VydmUiOjR9XSxbMSwyLCI3IiwwLHsiY3VydmUiOi0yfV0sWzEsMiwiOCIsMix7ImN1cnZlIjoyfV0sWzAsMSwiMiIsMCx7ImN1cnZlIjotNH1dLFszLDQsIjYiLDAseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9fV0sWzUsNiwiOSIsMCx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbNywzLCI0IiwwLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
@@ -196,41 +195,36 @@ let phase_11 a b l p =
   (* Conjugate by assoc *)
   assoc_conj middle
 
-let phase_21 m n l p =
-  let g' = tgt 2 n in
-  let xc = src_cone 3 m  l p in
-  let yc = src_cone 3 n l p in
-  let fc = src_cone 2 m l p in
-  let gc = src_cone 2 n l p in
-  let ac = src_cone 1 m l p in
-  let bc = src_cone 1 n l p in
-  (* Part 0 *)
-  let t0 = begin
-    let l = wcomp bc 2 (wcomp gc 1 (wcomp yc 0 n)) in
-    let p = wcomp fc 1 (wcomp xc 0 m) in
-    let intch = intch_comp_20 ac p g' in
-    wcomp l 1 intch
-  end in
-  (* Part 1 *)
-  let t1 = begin
-    let q1 = wcomp gc 1 (wcomp yc 0 n) in
-    let q2 = wcomp ac 0 g' in
-    let q3 = wcomp (wcomp fc 1 (wcomp xc 0 m)) 0 g' in
-    intch_comp_2112 bc q1 q2 q3
-  end in
-  (* Collate *)
-  wcomp t0 3 t1
+let phase_n1 m n l p =
+  let d = Unchecked.dim_ty (snd m) in
+  let g' = tgt (d-1) n in
+  let ac,lc = unwrap_composite_lr (tgt 1 (src_cone 0 m l p)) in
+  let bc,rc = unwrap_composite_lr (tgt 1 (src_cone 0 n l p)) in
+  let t0 = wcomp (wcomp bc (d-1) rc) 1 (intch_comp_n0 ac lc g') in
+  let t1 = intch_comp_n1n bc rc (wcomp ac 0 g') (wcomp lc 0 g') in
+  wcomp t0 d t1
+
+let phase_23 m n l p =
+  let a = src 1 m in
+  let b = src 1 n in
+  let f = src 1 a in
+  let g = src 1 b in
+  let xc = src_cone 1 f l p in
+  let t0 = wcomp ((!Cones.phase 1 0) a b l p) 2 ((!Cones.phase 1 1) a b l p) in
+  let t1 = wcomp ((!Cones.phase 0 0) f g l p) 1 (wcomp (wcomp xc 0 m) 0 n) in
+  let t2 = (!Cones.phase 0 1) (tgt 2 m) (tgt 2 n) l p in
+  intch_comp_n1 t0 t1 t2
 
 let phase_12 a b l p =
   let fs = src 1 a in
   let gs = src 1 b in
-  let c = phase_n0 fs gs l p in
+  let c = (!Cones.phase 0 0) fs gs l p in
   phase_of_nat a b c l p (!Cones.phase 0 1)
 
 let phase_22 m n l p =
   let a = src 1 m in
   let b = src 1 n in
-  let c = phase_n0 a b l p in
+  let c = (!Cones.phase 1 0) a b l p in
   phase_of_nat m n c l p (!Cones.phase 1 1)
 
 let phase_24 m n l p =
@@ -247,17 +241,6 @@ let phase_24 m n l p =
   (* Produce phase *)
   phase_of_nat m n c l p (!Cones.phase 1 2)
 
-let phase_23 m n l p =
-  let a = src 1 m in
-  let b = src 1 n in
-  let f = src 1 a in
-  let g = src 1 b in
-  let xc = src_cone 1 f l p in
-  let t0 = wcomp (phase_n0 a b l p) 2 ((!Cones.phase 1 1) a b l p) in
-  let t1 = wcomp (phase_n0 f g l p) 1 (wcomp (wcomp xc 0 m) 0 n) in
-  let t2 = (!Cones.phase 0 1) (tgt 2 m) (tgt 2 n) l p in
-  intch_comp_21 t0 t1 t2
-
 let phase n i f g l p =
   let _ = Printf.printf "Constructing phase p^{%d}_{%d} of %s : %s and %s : %s\n%!" n i
     (Unchecked.tm_to_string (fst f))
@@ -266,10 +249,10 @@ let phase n i f g l p =
     (Unchecked.ty_to_string (snd g)) in
   match n, i with
   | _, 0 -> phase_n0 f g l p
+  | _, 1 when n>1 -> phase_n1 f g l p
   | 0, 1 -> phase_01 f g l p
   | 1, 1 -> phase_11 f g l p
   | 1, 2 -> phase_12 f g l p
-  | 2, 1 -> phase_21 f g l p
   | 2, 2 -> phase_22 f g l p
   | 2, 3 -> phase_23 f g l p
   | 2, 4 -> phase_24 f g l p
@@ -282,7 +265,7 @@ let phase n i f g l p =
   ^{k^{(n)}_{3}}_{m^{(n)}_{3}+1}(\tgt{k^{(n)}_{3}}(a),\tgt{k^{(n)}_{3}}(b)))\ldots) \s_{k^{(n)}_{2^{n}}} \phi
   ^{k^{(n)}_{2^{n}}}_{m^{(n)}_{2^{n}}+1}(\tgt{k^{(n)}_{2^{n}}}(a),\tgt{k^{(n)}_{2^{n}}}(b))
 *)
-let phase_seq_len n = ((1 lsl (n+1))-1)
+let phase_seq_len n = min 2 ((1 lsl (n+1))-1)
 
 let phase_seq n len f g l p =
   let primary = List.init len (Cones.primary_seq n) in

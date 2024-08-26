@@ -16,5 +16,7 @@ let comp2d (x : *)  (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (z : *) (g 
 
 let comp3d (x : *)  (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (a' : f -> f') (m : a -> a') (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') (b' : g -> g') (n : b -> b') = comp [[m]] [[n]]
 
+#let comp4d (x : *)  (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (a' : f -> f') (m : a -> a') (m' : a -> a') (p : m -> m') (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') (b' : g -> g') (n : b -> b') (n' : b -> b') (q : n -> n') = comp [[[p]]] [[[q]]]
+
 set postprocess = f
 
