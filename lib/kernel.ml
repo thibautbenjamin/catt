@@ -111,7 +111,8 @@ end = struct
   let to_string ctx = Unchecked.ctx_to_string (forget ctx)
 
   let check_equal ctx1 ctx2 =
-    Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
+    if ctx1 == ctx2 then ()
+    else Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
 
   let check_notin ctx x =
     try
@@ -274,7 +275,9 @@ end = struct
   let target ps =
     Sub.check_to_ps (to_ctx ps) (Unchecked.ps_tgt ps.tree) (bdry ps)
 
-  let check_equal ps1 ps2 = Unchecked.check_equal_ps ps1.tree ps2.tree
+  let check_equal ps1 ps2 =
+    if ps1.tree == ps2.tree then ()
+    else Unchecked.check_equal_ps ps1.tree ps2.tree
 end
 
 and Ty : sig
