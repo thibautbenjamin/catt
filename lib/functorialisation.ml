@@ -88,12 +88,9 @@ let rec whisk n j k =
   Assuming ty1 has right dimension, we just need to know k
 *)
 and whisk_sub_ps k t1 ty1 t2 ty2 =
-  let rec take n l =
-    match l with h :: t when n > 0 -> h :: take (n - 1) t | _ -> []
-  in
   let sub_base = Unchecked.ty_to_sub_ps ty1 in
-  let sub_ext = take ((2 * k) + 1) (Unchecked.ty_to_sub_ps ty2) in
-  List.concat [ [ (t2, true) ]; sub_ext; [ (t1, true) ]; sub_base ]
+  let sub_ext = Common.take ((2 * k) + 1) (Unchecked.ty_to_sub_ps ty2) in
+  ((t2, true) :: sub_ext) @ ((t1, true) :: sub_base)
 
 (*
   wcomp is the whiskered binary composite

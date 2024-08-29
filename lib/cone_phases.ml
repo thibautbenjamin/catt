@@ -144,18 +144,18 @@ let intch_comp_n0_coh n =
   let ps = Br[Br[];(Suspension.ps (Some(n-1)) (Br[Br[];Br[]]))] in
   Coh.check_inv ps s t (Printf.sprintf "comp_%d_0_intch" n,0,[])
 
-let intch_comp_n1_coh n = Suspension.coh (Some(1)) (intch_comp_n0_coh (n-1))
+(*
+  For n>m
+  (a *_n b) *_m c -> (a *_m c) *_n (b *_m c)
+*)
+let intch_comp_nm_coh n m = Suspension.coh (Some(m-1)) (intch_comp_n0_coh (n-m))
 
-let intch_comp_n1 m n c =
-  let d = (Unchecked.dim_ty (snd m))-1 in
-  let sub = (fst c,true)::(fst (tgt 1 c),false)::(fst n,true)::(fst (tgt 1 n),false)::(fst m,true)::(Unchecked.ty_to_sub_ps (snd m)) in
-  Unchecked.coh_ty (intch_comp_n1_coh d) sub
-
-
-let intch_comp_n0 m n g =
-  let d = (Unchecked.dim_ty (snd m))-1 in
-  let sub = (fst g,true)::(fst (tgt 1 g),false)::(fst n,true)::(fst (tgt 1 n),false)::(fst m,true)::(Unchecked.ty_to_sub_ps (snd m)) in
-  Unchecked.coh_ty (intch_comp_n0_coh d) sub
+let intch_comp_nm a b c =
+  let n = Unchecked.dim_ty (snd a) in
+  let m = Unchecked.dim_ty (snd c) in
+  let sub_left = (fst b,true)::(fst (tgt 1 b),false)::(fst a,true)::(Unchecked.ty_to_sub_ps (snd a)) in
+  let sub_right = (fst c,true)::(Common.take (m) (Unchecked.ty_to_sub_ps (snd c))) in
+  Unchecked.coh_ty (intch_comp_nm_coh n m) (sub_right @ sub_left)
 
 (*
 https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjYiXSxbMCwxLCIzIiwxXSxbMCwxLCI1IiwyLHsiY3VydmUiOjR9XSxbMSwyLCI3IiwwLHsiY3VydmUiOi0yfV0sWzEsMiwiOCIsMix7ImN1cnZlIjoyfV0sWzAsMSwiMiIsMCx7ImN1cnZlIjotNH1dLFszLDQsIjYiLDAseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9fV0sWzUsNiwiOSIsMCx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbNywzLCI0IiwwLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
@@ -194,7 +194,7 @@ let phase_n1 m n l p =
   let g' = tgt (d-1) n in
   let ac,lc = unwrap_composite_lr (tgt 1 (src_cone 0 m l p)) in
   let bc,rc = unwrap_composite_lr (tgt 1 (src_cone 0 n l p)) in
-  let t0 = wcomp (wcomp bc (d-1) rc) 1 (intch_comp_n0 ac lc g') in
+  let t0 = wcomp (wcomp bc (d-1) rc) 1 (intch_comp_nm ac lc g') in
   let t1 = intch_comp_n1n bc rc (wcomp ac 0 g') (wcomp lc 0 g') in
   wcomp t0 d t1
 
@@ -207,7 +207,7 @@ let phase_23 m n l p =
   let t0 = wcomp ((!Cones.phase 1 0) a b l p) 2 ((!Cones.phase 1 1) a b l p) in
   let t1 = wcomp ((!Cones.phase 0 0) f g l p) 1 (wcomp (wcomp xc 0 m) 0 n) in
   let t2 = (!Cones.phase 0 1) (tgt 2 m) (tgt 2 n) l p in
-  intch_comp_n1 t0 t1 t2
+  intch_comp_nm t0 t1 t2
 
 (*
   \t{a\s_{0} b} = (\ldots(((\phi^{n}_{1}(\t a, \t b) \s_{k^{(n)}_{1}} \phi
