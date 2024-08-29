@@ -23,7 +23,6 @@ coh unfocus (x(f)y(g)z(h)w(k)u) : comp f (comp g h) k -> comp (comp f g) (comp h
 let step21 (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) =
   comp (sandwich [m]) [toaster _] (op { 1 } (sandwich [n]))
 
-
 let step23 (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) =
   comp [sandwisk [Ilsimp x] (comp [id (id x)] [[m]]) [lsimp x]]
   [I (sandwisk [I (op { 1 } (Ilsimp x))] (comp [[n]] [id (id x)]) [I (op { 1 } (lsimp x))])]
