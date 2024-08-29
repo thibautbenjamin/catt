@@ -338,15 +338,15 @@
   [=X.X=] The constraints generated for the term: (whisk f b) could not be solved for the following reason:
   could not unify * and _tm13 -> _tm12
   [=^.^=] let fail3 = (_builtin_comp  [f] b)
-  [=X.X=] The constraints generated for the term: (builtin_comp2 [f] b) could not be solved for the following reason:
+  [=X.X=] The constraints generated for the term: (!1builtin_comp2 [f] b) could not be solved for the following reason:
   could not unify * and _tm18 -> _tm17
   [=^.^=] let fail4 = (_builtin_comp  [f] g)
   [=X.X=] The constraints generated for the term: (builtin_comp2 [f] g) could not be solved for the following reason:
-  could not unify * and _tm23 -> _tm22
+  could not unify * and _tm25 -> _tm24
 
   $ catt --keep-going fails/invalidnaturality.catt
   [=^.^=] let fail1 = (@_builtin_comp  x [f] f x f)
-  [=X.X=] The constraints generated for the term: (!1builtin_comp3 (intch_src f f) (!-1builtin_comp2_red [(!1builtin_comp1 (builtin_assc f f f))]) (intch_tgt x f f)) could not be solved for the following reason:
+  [=X.X=] The constraints generated for the term: (!1builtin_comp3 (intch_src f f) (builtin_comp2_red [(!1builtin_comp1 (builtin_assc f f f))]) (intch_tgt x f f)) could not be solved for the following reason:
   could not unify (builtin_comp2 f f) and f
   [=^.^=] coh whisk = (_builtin_comp  [a] h) -> (_builtin_comp  [b] h)
   [=I.I=] successfully defined whisk.

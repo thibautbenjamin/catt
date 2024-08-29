@@ -117,11 +117,11 @@ and dim_tm ctx = function
 and dim_builtin = function Comp -> 1 | Id -> 1
 
 let rec dim_sub ctx = function
-  | [] -> (0, 0)
+  | [] -> 0
   | (t, f) :: s ->
-      let d1, f1 = dim_sub ctx s in
-      let d2 = dim_tm ctx t in
-      (max d1 d2, max f f1)
+      let d1 = dim_sub ctx s in
+      let d2 = dim_tm ctx t - f in
+      max d1 d2
 
 let rec infer_susp_tm ctx = function
   | VarR v -> VarR v
@@ -135,8 +135,8 @@ let rec infer_susp_tm ctx = function
             | BuiltinR b -> ( match b with Comp -> 1 | Id -> 0)
             | _ -> assert false
           in
-          let d, func = dim_sub ctx s in
-          let newsusp = Some (d - inp - func) in
+          let d = dim_sub ctx s in
+          let newsusp = Some (d - inp) in
           Sub (tmR, s, newsusp, b)
       | Some _ -> Sub (tmR, s, i, b))
   | BuiltinR b -> BuiltinR b
