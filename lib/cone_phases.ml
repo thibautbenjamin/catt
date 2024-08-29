@@ -97,12 +97,6 @@ let nat_of_phase a b l p ph =
   | Coh(c,s) -> Unchecked.coh_ty c (Unchecked.sub_ps_apply_sub s nat_sub)
   | _ -> assert false
 
-let phase_of_nat a b c l p ph =
-  let d = Unchecked.dim_ty (snd c) in
-  let nat = nat_of_phase a b l p ph in
-  let middle = wcomp c (d-1) nat in
-  assoc_conj middle
-
 (*
   (a *_n b) *_0 (c *_n d) -> (a *_0 c) *_n (b *_0 d)
 *)
@@ -215,49 +209,6 @@ let phase_23 m n l p =
   let t2 = (!Cones.phase 0 1) (tgt 2 m) (tgt 2 n) l p in
   intch_comp_n1 t0 t1 t2
 
-let phase_12 a b l p =
-  let fs = src 1 a in
-  let gs = src 1 b in
-  let c = (!Cones.phase 0 0) fs gs l p in
-  phase_of_nat a b c l p (!Cones.phase 0 1)
-
-let phase_22 m n l p =
-  let a = src 1 m in
-  let b = src 1 n in
-  let c = (!Cones.phase 1 0) a b l p in
-  phase_of_nat m n c l p (!Cones.phase 1 1)
-
-let phase_24 m n l p =
-  (* Setup *)
-  let a = src 1 m in
-  let b = src 1 n in
-  let ft = tgt 1 a in
-  let gt = tgt 1 b in
-  (* Construct c *)
-  let p10 = (!Cones.phase 1 0) a b l p in
-  let p11 = (!Cones.phase 1 1) a b l p in
-  let p01 = (!Cones.phase 0 1) ft gt l p in
-  let c = wcomp (wcomp p10 2 p11) 1 p01 in
-  (* Produce phase *)
-  phase_of_nat m n c l p (!Cones.phase 1 2)
-
-let phase n i f g l p =
-  let _ = Printf.printf "Constructing phase p^{%d}_{%d} of %s : %s and %s : %s\n%!" n i
-    (Unchecked.tm_to_string (fst f))
-    (Unchecked.ty_to_string (snd f))
-    (Unchecked.tm_to_string (fst g))
-    (Unchecked.ty_to_string (snd g)) in
-  match n, i with
-  | _, 0 -> phase_n0 f g l p
-  | _, 1 when n>1 -> phase_n1 f g l p
-  | 0, 1 -> phase_01 f g l p
-  | 1, 1 -> phase_11 f g l p
-  | 1, 2 -> phase_12 f g l p
-  | 2, 2 -> phase_22 f g l p
-  | 2, 3 -> phase_23 f g l p
-  | 2, 4 -> phase_24 f g l p
-  | _, _ -> assert false
-
 (*
   \t{a\s_{0} b} = (\ldots(((\phi^{n}_{1}(\t a, \t b) \s_{k^{(n)}_{1}} \phi
   ^{k^{(n)}_{1}}_{m^{(n)}_{1}+1}(\tgt{k^{(n)}_{1}}(a),\tgt{k^{(n)}_{1}}(b))) \s_{k^{(n)}_{2}} \phi
@@ -265,20 +216,42 @@ let phase n i f g l p =
   ^{k^{(n)}_{3}}_{m^{(n)}_{3}+1}(\tgt{k^{(n)}_{3}}(a),\tgt{k^{(n)}_{3}}(b)))\ldots) \s_{k^{(n)}_{2^{n}}} \phi
   ^{k^{(n)}_{2^{n}}}_{m^{(n)}_{2^{n}}+1}(\tgt{k^{(n)}_{2^{n}}}(a),\tgt{k^{(n)}_{2^{n}}}(b))
 *)
-let phase_seq_len n = min 2 ((1 lsl (n+1))-1)
+let phase_seq_len n = min 4 ((1 lsl (n+1))-1)
 
-let phase_seq n len f g l p =
+let rec phase_of_nat n i a b l p =
+  let nat = nat_of_phase a b l p (phase (n-1) (i/2)) in
+  let left = phase_merge (n-1) (i/2-1) (src 1 a) (src 1 b) l p in
+  assoc_conj (wcomp left (n) nat)
+
+and phase n i f g l p =
+  let _ = Printf.printf "Constructing phase p^{%d}_{%d} of %s : %s and %s : %s\n%!" n i
+    (Unchecked.tm_to_string (fst f))
+    (Unchecked.ty_to_string (snd f))
+    (Unchecked.tm_to_string (fst g))
+    (Unchecked.ty_to_string (snd g)) in
+  match n, i, i mod 2 with
+  | _,0,_ -> phase_n0 f g l p
+  | 0,1,_ -> phase_01 f g l p
+  | 1,1,_ -> phase_11 f g l p
+  | _,1,_ -> phase_n1 f g l p
+  | 2,3,_ -> phase_23 f g l p
+  | _,_,0 -> phase_of_nat n i f g l p
+  | _,_,_ -> assert false
+
+and phase_seq n len f g l p =
   let primary = List.init len (Cones.primary_seq n) in
   let secondary = List.init len (Cones.secondary_seq n) in
   let d' = Unchecked.dim_ty (snd f) in
   let ph j k = phase (j-1) k (tgt (d'-j) f) (tgt (d'-j) g) l p in
   List.map2 ph primary secondary
 
-let cone_comp_n0n n f g l p =
+and phase_merge n len f g l p =
   let init = phase n 0 f g l p in
-  let list = phase_seq n (phase_seq_len n) f g l p in
+  let list = phase_seq n len f g l p in
   let merge l r = wcomp l ((Unchecked.dim_ty (snd r))-1) r in
   List.fold_left merge init list
+
+let cone_comp_n0n n f g l p = phase_merge n (phase_seq_len n) f g l p
 
 let init () =
   Cones.phase := phase;
