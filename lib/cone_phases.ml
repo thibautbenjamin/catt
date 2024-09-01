@@ -153,9 +153,8 @@ let intch_comp_nm_coh n m = Suspension.coh (Some(m-1)) (intch_comp_n0_coh (n-m))
 let intch_comp_nm a b c =
   let n = Unchecked.dim_ty (snd a) in
   let m = Unchecked.dim_ty (snd c) in
-  let sub_left = (fst b,true)::(fst (tgt 1 b),false)::(fst a,true)::(Unchecked.ty_to_sub_ps (snd a)) in
-  let sub_right = (fst c,true)::(Common.take (m) (Unchecked.ty_to_sub_ps (snd c))) in
-  Unchecked.coh_ty (intch_comp_nm_coh n m) (sub_right @ sub_left)
+  let sub = (fst c,true)::(fst (tgt 1 c),false)::(fst b,true)::(fst (tgt 1 b),false)::(fst a,true)::(Unchecked.ty_to_sub_ps (snd a)) in
+  Unchecked.coh_ty (intch_comp_nm_coh n m) sub
 
 (*
 https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjYiXSxbMCwxLCIzIiwxXSxbMCwxLCI1IiwyLHsiY3VydmUiOjR9XSxbMSwyLCI3IiwwLHsiY3VydmUiOi0yfV0sWzEsMiwiOCIsMix7ImN1cnZlIjoyfV0sWzAsMSwiMiIsMCx7ImN1cnZlIjotNH1dLFszLDQsIjYiLDAseyJzaG9ydGVuIjp7InNvdXJjZSI6MjAsInRhcmdldCI6MjB9fV0sWzUsNiwiOSIsMCx7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbNywzLCI0IiwwLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
@@ -198,17 +197,6 @@ let phase_n1 m n l p =
   let t1 = intch_comp_n1n bc rc (wcomp ac 0 g') (wcomp lc 0 g') in
   wcomp t0 d t1
 
-let phase_23 m n l p =
-  let a = src 1 m in
-  let b = src 1 n in
-  let f = src 1 a in
-  let g = src 1 b in
-  let xc = src_cone 1 f l p in
-  let t0 = wcomp ((!Cones.phase 1 0) a b l p) 2 ((!Cones.phase 1 1) a b l p) in
-  let t1 = wcomp ((!Cones.phase 0 0) f g l p) 1 (wcomp (wcomp xc 0 m) 0 n) in
-  let t2 = (!Cones.phase 0 1) (tgt 2 m) (tgt 2 n) l p in
-  intch_comp_nm t0 t1 t2
-
 (*
   \t{a\s_{0} b} = (\ldots(((\phi^{n}_{1}(\t a, \t b) \s_{k^{(n)}_{1}} \phi
   ^{k^{(n)}_{1}}_{m^{(n)}_{1}+1}(\tgt{k^{(n)}_{1}}(a),\tgt{k^{(n)}_{1}}(b))) \s_{k^{(n)}_{2}} \phi
@@ -216,12 +204,21 @@ let phase_23 m n l p =
   ^{k^{(n)}_{3}}_{m^{(n)}_{3}+1}(\tgt{k^{(n)}_{3}}(a),\tgt{k^{(n)}_{3}}(b)))\ldots) \s_{k^{(n)}_{2^{n}}} \phi
   ^{k^{(n)}_{2^{n}}}_{m^{(n)}_{2^{n}}+1}(\tgt{k^{(n)}_{2^{n}}}(a),\tgt{k^{(n)}_{2^{n}}}(b))
 *)
-let phase_seq_len n = min 4 ((1 lsl (n+1))-1)
+let phase_seq_len n = ((1 lsl (n+1))-1)
 
 let rec phase_of_nat n i a b l p =
-  let nat = nat_of_phase a b l p (phase (n-1) (i/2)) in
-  let left = phase_merge (n-1) (i/2-1) (src 1 a) (src 1 b) l p in
-  assoc_conj (wcomp left (n) nat)
+  let m, j = (Cones.primary_seq (n-1) (i-2))-1, Cones.secondary_seq (n-1) (i-2) in
+  Printf.printf "Naturality phase, translating p^{%d}_{%d} by p^{%d}_{%d}\n%!" n i m j;
+  let nat = nat_of_phase a b l p (phase m j) in
+  let left = phase_merge (n-1) (i-2) (src 1 a) (src 1 b) l p in
+  assoc_conj (wcomp left n nat)
+
+and phase_of_intch n i a b l p =
+  let m, j = (Cones.primary_seq (n-1) (i-2))-1, Cones.secondary_seq (n-1) (i-2) in
+  Printf.printf "Interchange phase, translating p^{%d}_{%d} by p^{%d}_{%d}\n%!" n i m j;
+  let c = phase m j (tgt (n-m) a) (tgt (n-m) b) l p in
+  let a,b = unwrap_composite_lr (tgt 1 (phase n (i-1) a b l p)) in
+  intch_comp_nm a b c
 
 and phase n i f g l p =
   let _ = Printf.printf "Constructing phase p^{%d}_{%d} of %s : %s and %s : %s\n%!" n i
@@ -234,24 +231,29 @@ and phase n i f g l p =
   | 0,1,_ -> phase_01 f g l p
   | 1,1,_ -> phase_11 f g l p
   | _,1,_ -> phase_n1 f g l p
-  | 2,3,_ -> phase_23 f g l p
   | _,_,0 -> phase_of_nat n i f g l p
+  | _,_,1 -> phase_of_intch n i f g l p
   | _,_,_ -> assert false
 
 and phase_seq n len f g l p =
   let primary = List.init len (Cones.primary_seq n) in
   let secondary = List.init len (Cones.secondary_seq n) in
   let d' = Unchecked.dim_ty (snd f) in
-  let ph j k = phase (j-1) k (tgt (d'-j) f) (tgt (d'-j) g) l p in
+  let ph j k = j, phase (j-1) k (tgt (d'-j) f) (tgt (d'-j) g) l p in
   List.map2 ph primary secondary
 
 and phase_merge n len f g l p =
   let init = phase n 0 f g l p in
   let list = phase_seq n len f g l p in
-  let merge l r = wcomp l ((Unchecked.dim_ty (snd r))-1) r in
+  let merge l (k,r) = wcomp l k r in
   List.fold_left merge init list
 
-let cone_comp_n0n n f g l p = phase_merge n (phase_seq_len n) f g l p
+let cone_comp_n0n n f g l p =
+  (*
+  let k = (phase_seq_len n)-1 in
+  phase ((Cones.primary_seq n k)-1) (Cones.secondary_seq n k) f g l p
+  *)
+  phase_merge n (phase_seq_len n) f g l p
 
 let init () =
   Cones.phase := phase;
