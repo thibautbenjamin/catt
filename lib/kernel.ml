@@ -94,7 +94,7 @@ and Ctx
     val forget : t -> Unchecked_types(Coh).ctx
     val check : Unchecked_types(Coh).ctx -> t
     val check_notin : t -> Var.t -> unit
-    val check_equal : t -> t -> unit
+    val _check_equal : t -> t -> unit
   end = struct
   type t = {c : (Var.t * Ty.t) list;
             unchecked : Unchecked_types(Coh).ctx}
@@ -121,7 +121,7 @@ and Ctx
   let value ctx = ctx.c
   let forget c = c.unchecked
   let to_string ctx = Unchecked.ctx_to_string (forget ctx)
-  let check_equal ctx1 ctx2 = if ctx1 == ctx2 then () else
+  let _check_equal ctx1 ctx2 = if ctx1 == ctx2 then () else
     Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
 
   let check_notin ctx x =
@@ -298,7 +298,7 @@ and Ty : sig
   type t
   val to_string : t -> string
   val free_vars : t -> Var.t list
-  val is_full : t -> bool
+  val is_full : Ctx.t -> t -> bool
   val is_obj : t -> bool
   val check_equal : t -> t -> unit
   val morphism : Tm.t -> Tm.t -> Ty.t
@@ -308,7 +308,6 @@ and Ty : sig
   val retrieve_arrow : t -> (t * Tm.t * Tm.t)
   val under_type : t -> t
   val target : t -> Tm.t
-  val ctx : t -> Ctx.t
   val dim : t -> int
 
 end
@@ -318,7 +317,7 @@ struct
   type expr =
     | Obj
     | Arr of t * Tm.t * Tm.t
-  and t = {c : Ctx.t; e : expr; unchecked : Unchecked_types(Coh).ty}
+  and t = {e : expr; unchecked : Unchecked_types(Coh).ty}
 
   open Unchecked(Coh)
   module Unchecked = Make(Coh)
@@ -364,7 +363,7 @@ struct
           Arr(a,u,v)
         | Meta_ty _ -> raise MetaVariable
       in
-      let ty = {c; e; unchecked = t} in
+      let ty = {e; unchecked = t} in
       Hashtbl.add tbl (c,t) ty; ty
 
   (** Free variables of a type. *)
@@ -373,7 +372,7 @@ struct
     | Obj -> []
     | Arr (t,u,v) -> List.unions [free_vars t; Tm.free_vars u; Tm.free_vars v]
 
-  let is_full t = List.included (Ctx.domain t.c) (free_vars t)
+  let is_full c t = List.included (Ctx.domain c) (free_vars t)
 
   let forget t = t.unchecked
 
@@ -381,21 +380,17 @@ struct
 
   (** Test for equality. *)
   let check_equal ty1 ty2 =
-    Ctx.check_equal ty1.c ty2.c;
     Unchecked.check_equal_ty (forget ty1) (forget ty2)
 
   let morphism t1 t2 =
     let a1 = Tm.ty t1 in
     let a2 = Tm.ty t2 in
     check_equal a1 a2;
-    {c=a1.c; e=Arr(a1,t1,t2);
+    {e=Arr(a1,t1,t2);
       unchecked = Arr(forget a1, Tm.forget t1, Tm.forget t2)}
 
   let apply_sub t s =
-    Ctx.check_equal t.c (Sub.tgt s);
     check (Sub.src s) (Unchecked.ty_apply_sub (forget t) (Sub.forget s))
-
-  let ctx t = t.c
 
   let rec dim t =
     match t.e with
@@ -409,7 +404,7 @@ and Tm : sig
   val to_var : t -> Var.t
   val typ : t -> Ty.t
   val free_vars : t -> Var.t list
-  val is_full : t -> bool
+  val is_full : Ctx.t -> t -> bool
   val forget : t -> Unchecked_types(Coh).tm
   val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types(Coh).tm -> t
   val apply_sub : t -> Sub.t -> t
@@ -443,8 +438,8 @@ struct
     | Var x -> x::fvty
     | Coh (_,sub) -> Sub.free_vars sub
 
-  let is_full tm =
-    List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
+  let is_full c tm =
+    List.included (Ctx.domain c) (free_vars tm)
 
   let forget tm = tm.unchecked
 
@@ -461,7 +456,7 @@ struct
       | None ->
         match t with
         | Var x ->
-          let e, ty  = Var x, Ty.check c (Ty.forget (Ctx.ty_var c x)) in
+          let e, ty  = Var x, Ctx.ty_var c x in
           ({ty; e; unchecked = t})
         | Meta_tm _ -> raise MetaVariable
         | Coh (coh,s) ->
@@ -474,14 +469,12 @@ struct
     | Some ty -> Ty.check_equal ty tm.ty; tm
 
   let apply_sub t sub =
-    Ctx.check_equal (Sub.tgt sub) (Ty.ctx t.ty);
     let c = Sub.src sub in
     let ty = Ty.apply_sub t.ty sub in
     let t = Unchecked.tm_apply_sub (forget t) (Sub.forget sub) in
     check c ~ty t
 
   let preimage t sub =
-    Ctx.check_equal (Sub.src sub) (Ty.ctx t.ty);
     let c = Sub.tgt sub in
     let t = Unchecked.tm_sub_preimage (forget t) (Sub.forget sub) in
     check c t
@@ -545,21 +538,21 @@ end = struct
     | NonInv(_,_) -> false
 
   let algebraic ps ty name =
-    if Ty.is_full ty then
-      (Ctx.check_equal (PS.to_ctx ps) (Ty.ctx ty);
-       Inv({ps; ty}, name))
+    let ctx = PS.to_ctx ps in
+    if Ty.is_full ctx ty then
+       Inv({ps; ty}, name)
     else
       let _,src,tgt =
         try Ty.retrieve_arrow ty with IsObj -> raise NotAlgebraic
       in
       let src_inclusion = PS.source ps in
       let src = Tm.preimage src src_inclusion in
-      if not (Tm.is_full src) then
+      if not (Tm.is_full (Sub.tgt src_inclusion) src) then
         raise NotAlgebraic
       else
       let tgt_inclusion = PS.target ps in
       let tgt = Tm.preimage tgt tgt_inclusion in
-      if not (Tm.is_full tgt) then
+      if not (Tm.is_full (Sub.tgt tgt_inclusion) tgt) then
         raise NotAlgebraic
       else
         NonInv ({ps; src; tgt; total_ty=ty}, name)
@@ -599,10 +592,10 @@ end = struct
       let bdry = PS.bdry ps in
       let cbdry = PS.to_ctx bdry in
       let src = Tm.check cbdry src_unchkd in
-      if not(Tm.is_full src) then raise NotAlgebraic
+      if not(Tm.is_full cbdry src) then raise NotAlgebraic
       else
         let tgt = Tm.check cbdry tgt_unchkd in
-        if not(Tm.is_full tgt)
+        if not(Tm.is_full cbdry tgt)
         then raise NotAlgebraic
         else
           let total_ty =
@@ -621,7 +614,7 @@ end = struct
       let src = Tm.check ctx src_unchkd in
       let tgt = Tm.check ctx tgt_unchkd in
       let ty = Ty.morphism src tgt in
-      if Ty.is_full ty then
+      if Ty.is_full ctx ty then
         let coh = Inv({ps; ty}, name) in
         Hashtbl.add tbl_inv (ps_unchkd,src_unchkd,tgt_unchkd) coh; coh
       else raise NotAlgebraic
