@@ -1,0 +1,108 @@
+coh unitl (x(f)y) : comp (id _) f -> f
+coh unit (x) : comp (id x) (id x) -> id x
+coh lsimp (x) : (unitl (id x)) -> unit x
+coh Ilsimp (x) : I (unitl (id x)) -> I (unit x)
+
+coh sandwisk (x(f)y(g(a)h)z(k)w) : comp f g k -> comp f h k
+
+let sandwich (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) = comp (I (unitl f)) (comp [id (id x)] [a]) (unitl g)
+coh uunitl (x(f(a)g)y) : a -> sandwich a
+
+let ssandwich (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (b : f -> g) (m : a -> b) = comp (uunitl a) (comp (I (unitl f)) [comp [[id (id (id x))]] [[m]]] (unitl g)) (I (uunitl b))
+coh uuunitl (x(f(a(m)b)g)y) : m -> ssandwich m
+
+coh step1 (x(f(a(m(p)n(q)o)b)g)y) : comp p q ->
+  comp (uuunitl m) (comp (ssandwich [p]) (comp (I (uuunitl n)) (op { 1 } (uuunitl n))) (op { 1 } (ssandwich [q]))) (op { 1 } (I (uuunitl o)))
+
+let usandwich (x : *) (a : id x -> id x) = comp (I (unit _)) (comp [id (id x)] [a]) (unit _)
+coh uunit (x : *) : id (id x) -> usandwich (id (id x))
+let ussandwich (x : *) (m : id (id x) -> id (id x)) = comp (uunit _) (comp (I (unit _)) [comp [[id (id (id x))]] [[m]]] (unit _)) (I (uunit _))
+
+coh assoc (x(f)y(g)z(h)w(k)v) : comp f (comp g h) k -> comp (comp f g) h k
+coh assoc2 (x(f)y(g)z(h)w(k)v) : comp f g (comp h k) -> comp f (comp g h) k
+coh sandsimp (x) : comp (uunitl _) (comp [(Ilsimp x)] (comp [(id (id x))] [(id (id x))]) [(lsimp x)]) -> uunit x
+coh Isandsimpl (x) : comp (comp [(Ilsimp x)] (comp [(id (id x))] [(id (id x))]) [(lsimp x)]) (I (uunit _)) -> I (uunitl (id (id x)))
+
+let test (x : *) =
+comp (comp (uunitl _) (comp (I (unitl (id x))) [comp [[id (id (id x))]] [[id (id (id x))]]] (unitl (id x))) [I (Isandsimpl x)])
+     (assoc2 (uunitl _) (comp (I (unitl (id x))) [comp [[id (id (id x))]] [[id (id (id x))]]] (unitl (id x))) _ _)
+     (comp (uunitl _) [sandwisk [Ilsimp x] (comp [[id (id (id x))]] [[id (id (id x))]]) [lsimp x]] (I (uunit _)))
+     (assoc (uunitl _) (comp [(Ilsimp x)] (comp [(id (id x))] [(id (id x))]) [(lsimp x)]) _ _)
+     (comp [sandsimp x] _ _)
+
+coh toaster (x) : comp (I (uuunitl (id (id (id x))))) (op { 1 } (uuunitl (id (id (id x))))) ->
+  comp
+  (test x)
+  (I (op { 1 } (test x)))
+
+# coh unfocus (x(f)y(g)z(h)w(k)u) : comp f (comp g h) k -> comp (comp f g) (comp h k)
+
+# let step21 (x : *) (p : id (id (id x)) -> id (id (id x))) (q : id (id (id x)) -> id (id (id x))) =
+#   comp (ssandwich [p]) [toaster x] (op { 1 } (ssandwich [q]))
+
+# let aaa (x : *) (p : id (id (id x)) -> id (id (id x))) (q : id (id (id x)) -> id (id (id x))) =
+#   comp (step21 p q) (unfocus (ssandwich [p]) _ _ (op { 1 } (ssandwich [q])))
+
+let step31 (x : *) (p : id (id (id x)) -> id (id (id x))) =
+  sandwisk (uunitl (id (id x))) (comp (I (unitl (id x))) [[comp [[id (id (id x))]] [[[p]]]]] (unitl (id x))) [I (Isandsimpl x)]
+
+let step32 (x : *) (p : id (id (id x)) -> id (id (id x))) =
+  assoc2 (uunitl _) [comp (I (unitl (id x))) [[comp [[id (id (id x))]] [[[p]]]]] (unitl (id x))] (comp [(Ilsimp x)] (comp [(id (id x))] [(id (id x))]) [(lsimp x)]) (I (uunit _))
+
+let sandwisknat (x : *) (y : *) (z : *) (w : *) (f : x -> y) (f' : x -> y) (a : f -> f') (g : y -> z) (g' : y -> z) (b : g -> g') (h : z -> w) (h' : z -> w) (c : h -> h') = sandwisk [a] b [c]
+let step33 (x : *) (p : id (id (id x)) -> id (id (id x))) =
+comp (uunitl _) [[sandwisknat (Ilsimp x) [comp [[id (id (id x))]] [[[p]]]] (lsimp x)]] (I (uunit _))
+
+let step34 (x : *) (p : id (id (id x)) -> id (id (id x))) =
+  assoc (uunitl _) (comp [(Ilsimp x)] (comp [(id (id x))] [(id (id x))]) [(lsimp x)]) [comp (I (unit x)) [[comp [[id (id (id x))]] [[[p]]]]] (unit x)] (I (uunit _))
+
+let step35 (x : *) (p : id (id (id x)) -> id (id (id x))) =
+  sandwisk [sandsimp x] (comp (I (unit x)) [[comp [[id (id (id x))]] [[[p]]]]] (unit x)) (I (uunit _))
+
+coh assoc31 (x(f)y(g)z(h)w(i)a(j)b(k)c) : comp f (comp g h i j k) -> comp (comp f g) h i j k
+coh assoc32 (x(f)y(g)z(h)w(i)a(j)b(k)c) : comp (comp f g) h i j k -> comp f (comp g h) i j k
+coh assoc33 (x(f)y(g)z(h)w(i)a(j)b(k)c) : comp f (comp g h) i j k -> comp f g (comp h i) j k
+coh assoc34 (x(f)y(g)z(h)w(i)a(j)b(k)c) : comp f g (comp h i) j k -> comp f g h (comp i j) k
+coh assoc35 (x(f)y(g)z(h)w(i)a(j)b(k)c) : comp f g h (comp i j) k -> comp f g h i (comp j k)
+coh assoc35 (x(f)y(g)z(h)w(i)a(j)b(k)c) : comp f g h i (comp j k) -> comp (comp f g h i j) k
+let step3a (x : *) (p : id (id (id x)) -> id (id (id x))) =
+    comp (assoc31 _ _ _ _ _ (comp [sandsimp x] _ _))
+         (comp [step31 p] _ (comp (uunitl _) [sandwisk [Ilsimp x] (comp [[id (id (id x))]] [[id (id (id x))]]) [lsimp x]] (I (uunit _))) (assoc (uunitl _) (comp [(Ilsimp x)] (comp [(id (id x))] [(id (id x))]) [(lsimp x)]) _ _) _)
+         (assoc32 _ _ _ _ _ (comp [sandsimp x] _ _))
+         (comp _ [I (step32 p)] _ _ _)
+         (assoc33 _ _ _ _ _ (comp [sandsimp x] _ _))
+         # (comp _ _ [step33 p] _ _)
+         # (assoc34  _ _ _ _ _ (comp [sandsimp x] _ _))
+         # (comp _ _ _ [I (step34 p)] _)
+         # (assoc35 _ _ _ _ _ (comp [sandsimp x] _ _))
+         # (comp _ _ _ _ [step35 p])
+         # (assoc36 ((comp (uunitl _) (comp (I (unitl (id x))) [comp [[id (id (id x))]] [[id (id (id x))]]] (unitl (id x))) [I (Isandsimpl x)])) _ _ _ _ _)
+
+
+# let step3a (x : *) (p : id (id (id x)) -> id (id (id x))) =
+#   @comp [_] [_] [step35 p] [_] [step34 p] [_] [step33 p] [_] [step32 p] [_] [step31 p]
+
+
+# let step23 (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) =
+#   comp [sandwisk [Ilsimp x] (comp [id (id x)] [[m]]) [lsimp x]]
+#   [I (sandwisk [I (op { 1 } (Ilsimp x))] (comp [[n]] [id (id x)]) [I (op { 1 } (lsimp x))])]
+
+# let usandwich_eliminator (x : *) = comp [Ilsimp x] (comp [id (id x)] [id (id x)]) [lsimp x]
+
+# coh sandswitch (x(f(a)g(b(m)c(n)d)h(e)k)y) : comp (sandwisk a m e) (sandwisk a n e) -> sandwisk a (comp m n) e
+
+# let step24 (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) =
+#   sandswitch (I (unit x)) (comp [id (id x)] [[m]]) (comp [[n]] [id (id x)]) (unit x)
+
+# coh intch20 (x(f(a(n)b)g)y(h(c(m)d)k)z) : comp (comp [a] [[m]]) (comp [[n]] [d]) -> comp [[n]] [[m]]
+
+# let step25 (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) =
+#   sandwisk (I (unit x)) [intch20 n m] (unit x)
+
+# let step2inner (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) =
+#   comp (step21 m n) (unfocus (sandwich [m]) _ _ _ ) (step23 m n) (I (unfocus (comp [Ilsimp x] _ [lsimp x]) _ _ _)) (comp _ [comp (step24 m n) (step25 m n)] _)
+
+# let step2 (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) =
+#   comp (uunitl (id (id x))) [step2inner m n] (op { 1 } (I (uunitl (id (id x)))))
+
+# let final (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) = comp (step1 m n) (step2 m n)
