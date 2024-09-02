@@ -629,15 +629,17 @@ end = struct
     (PS.forget ps, Ty.forget ty, pp_data)
 
   let check_equal coh1 coh2 =
-    match (coh1, coh2) with
-    | Inv (d1, _), Inv (d2, _) ->
-        PS.check_equal d1.ps d2.ps;
-        Ty.check_equal d1.ty d2.ty
-    | NonInv (d1, _), NonInv (d2, _) ->
-        PS.check_equal d1.ps d2.ps;
-        Ty.check_equal d1.total_ty d2.total_ty
-    | Inv _, NonInv _ | NonInv _, Inv _ ->
-        raise (NotEqual (to_string coh1, to_string coh2))
+    if coh1 == coh2 then ()
+    else
+      match (coh1, coh2) with
+      | Inv (d1, _), Inv (d2, _) ->
+          PS.check_equal d1.ps d2.ps;
+          Ty.check_equal d1.ty d2.ty
+      | NonInv (d1, _), NonInv (d2, _) ->
+          PS.check_equal d1.ps d2.ps;
+          Ty.check_equal d1.total_ty d2.total_ty
+      | Inv _, NonInv _ | NonInv _, Inv _ ->
+          raise (NotEqual (to_string coh1, to_string coh2))
 end
 
 module U = Unchecked (Coh)
