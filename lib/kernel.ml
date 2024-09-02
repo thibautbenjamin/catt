@@ -30,7 +30,9 @@ end = struct
 
   open Unchecked (Coh)
   module Unchecked = Make (Coh)
+  module Types = Unchecked_types (Coh)
 
+  let tbl : (Ctx.t * PS.t * Types.sub_ps, Sub.t) Hashtbl.t = Hashtbl.create 7829
   let free_vars s = List.concat (List.map Tm.free_vars s.list)
 
   let check src s tgt =
@@ -61,14 +63,19 @@ end = struct
     in
     aux src s tgt
 
-  let check_to_ps src s tgt =
-    let tgt = PS.to_ctx tgt in
-    let s =
-      try List.map2 (fun (x, _) (t, _) -> (x, t)) (Ctx.value tgt) s
-      with Invalid_argument _ ->
-        Error.fatal "uncaught wrong number of arguments"
-    in
-    check src s tgt
+  let check_to_ps src s tgt_ps =
+    match Hashtbl.find_opt tbl (src, tgt_ps, s) with
+    | Some sub -> sub
+    | None ->
+        let tgt = PS.to_ctx tgt_ps in
+        let s_assoc =
+          try List.map2 (fun (x, _) (t, _) -> (x, t)) (Ctx.value tgt) s
+          with Invalid_argument _ ->
+            Error.fatal "uncaught wrong number of arguments"
+        in
+        let sub = check src s_assoc tgt in
+        Hashtbl.add tbl (src, tgt_ps, s) sub;
+        sub
 
   let forget s = s.unchecked
 end
@@ -93,6 +100,8 @@ end = struct
 
   open Unchecked (Coh)
   module Unchecked = Make (Coh)
+
+  let tbl : (Unchecked_types(Coh).ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
 
   let tail ctx =
     match (ctx.c, ctx.unchecked) with
@@ -129,9 +138,16 @@ end = struct
     }
 
   let check c =
-    List.fold_right
-      (fun (x, (t, expl)) c -> Ctx.extend ~expl c x t)
-      c (Ctx.empty ())
+    match Hashtbl.find_opt tbl c with
+    | Some ctx -> ctx
+    | None ->
+        let ctx =
+          List.fold_right
+            (fun (x, (t, expl)) c -> Ctx.extend ~expl c x t)
+            c (Ctx.empty ())
+        in
+        Hashtbl.add tbl c ctx;
+        ctx
 end
 
 (** Operations on pasting schemes. *)
@@ -305,7 +321,9 @@ end = struct
 
   open Unchecked (Coh)
   module Unchecked = Make (Coh)
+  module Types = Unchecked_types (Coh)
 
+  let tbl : (Ctx.t * Types.ty, Ty.t) Hashtbl.t = Hashtbl.create 7829
   let is_obj t = t.e = Obj
 
   let retrieve_arrow ty =
@@ -319,17 +337,22 @@ end = struct
       (lazy
         (Printf.sprintf "building kernel type %s in context %s"
            (Unchecked.ty_to_string t) (Ctx.to_string c)));
-    let e =
-      match t with
-      | Obj -> Obj
-      | Arr (a, u, v) ->
-          let a = check c a in
-          let u = Tm.check c ~ty:a u in
-          let v = Tm.check c ~ty:a v in
-          Arr (a, u, v)
-      | Meta_ty _ -> raise MetaVariable
-    in
-    { c; e; unchecked = t }
+    match Hashtbl.find_opt tbl (c, t) with
+    | Some ty -> ty
+    | None ->
+        let e =
+          match t with
+          | Obj -> Obj
+          | Arr (a, u, v) ->
+              let a = check c a in
+              let u = Tm.check c ~ty:a u in
+              let v = Tm.check c ~ty:a v in
+              Arr (a, u, v)
+          | Meta_ty _ -> raise MetaVariable
+        in
+        let ty = { c; e; unchecked = t } in
+        Hashtbl.add tbl (c, t) ty;
+        ty
 
   (** Free variables of a type. *)
   let rec free_vars ty =
@@ -386,7 +409,9 @@ end = struct
 
   open Unchecked (Coh)
   module Unchecked = Make (Coh)
+  module Types = Unchecked_types (Coh)
 
+  let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
   let to_var tm = match tm.e with Var v -> v | Coh _ -> raise IsCoh
 
   let free_vars tm =
@@ -402,15 +427,20 @@ end = struct
         (Printf.sprintf "building kernel term %s in context %s"
            (Unchecked.tm_to_string t) (Ctx.to_string c)));
     let tm =
-      match t with
-      | Var x ->
-          let e, ty = (Var x, Ty.check c (Ty.forget (Ctx.ty_var c x))) in
-          { ty; e; unchecked = t }
-      | Meta_tm _ -> raise MetaVariable
-      | Coh (coh, s) ->
-          let sub = Sub.check_to_ps c s (Coh.ps coh) in
-          let e, ty = (Coh (coh, sub), Ty.apply_sub (Coh.ty coh) sub) in
-          { ty; e; unchecked = t }
+      match Hashtbl.find_opt tbl (c, t) with
+      | Some tm -> tm
+      | None -> (
+          match t with
+          | Var x ->
+              let e, ty = (Var x, Ty.check c (Ty.forget (Ctx.ty_var c x))) in
+              { ty; e; unchecked = t }
+          | Meta_tm _ -> raise MetaVariable
+          | Coh (coh, s) ->
+              let sub = Sub.check_to_ps c s (Coh.ps coh) in
+              let e, ty = (Coh (coh, sub), Ty.apply_sub (Coh.ty coh) sub) in
+              let tm = { ty; e; unchecked = t } in
+              Hashtbl.add tbl (c, t) tm;
+              tm)
     in
     match ty with
     | None -> tm
@@ -464,6 +494,16 @@ end = struct
   type cohNonInv = { ps : PS.t; src : Tm.t; tgt : Tm.t; total_ty : Ty.t }
   type t = Inv of cohInv * coh_pp_data | NonInv of cohNonInv * coh_pp_data
 
+  module Types = Unchecked_types (Coh)
+
+  let tbl : (ps * Types.ty, Coh.t) Hashtbl.t = Hashtbl.create 7829
+
+  let tbl_inv : (ps * Types.tm * Types.tm, Coh.t) Hashtbl.t =
+    Hashtbl.create 7829
+
+  let tbl_noninv : (ps * Types.tm * Types.tm, Coh.t) Hashtbl.t =
+    Hashtbl.create 7829
+
   exception NotAlgebraic
 
   open Unchecked (Coh)
@@ -496,53 +536,70 @@ end = struct
           else NonInv ({ ps; src; tgt; total_ty = ty }, name)
       with NotInImage -> raise NotAlgebraic
 
-  let check ps t ((name, _, _) as pp_data) =
+  let check ps_unchkd t_unchkd ((name, _, _) as pp_data) =
     Io.info ~v:5
       (lazy
         (Printf.sprintf "checking coherence (%s,%s)"
-           (Unchecked.ps_to_string ps)
-           (Unchecked.ty_to_string t)));
-    try
-      let cps = Ctx.check (Unchecked.ps_to_ctx ps) in
-      let ps = PS.mk cps in
-      let t = Ty.check cps t in
-      algebraic ps t pp_data
-    with
-    | NotAlgebraic ->
-        Error.not_valid_coherence name
-          (Printf.sprintf "type %s not full in pasting scheme %s"
-             (Unchecked.ty_to_string t)
-             Unchecked.(ctx_to_string (ps_to_ctx ps)))
-    | DoubledVar s ->
-        Error.not_valid_coherence name
-          (Printf.sprintf "variable %s appears twice in the context" s)
+           (Unchecked.ps_to_string ps_unchkd)
+           (Unchecked.ty_to_string t_unchkd)));
+    match Hashtbl.find_opt tbl (ps_unchkd, t_unchkd) with
+    | Some coh -> coh
+    | None -> (
+        try
+          let cps = Ctx.check (Unchecked.ps_to_ctx ps_unchkd) in
+          let ps = PS.mk cps in
+          let t = Ty.check cps t_unchkd in
+          let coh = algebraic ps t pp_data in
+          Hashtbl.add tbl (ps_unchkd, t_unchkd) coh;
+          coh
+        with
+        | NotAlgebraic ->
+            Error.not_valid_coherence name
+              (Printf.sprintf "type %s not algebraic in pasting scheme %s"
+                 (Unchecked.ty_to_string t_unchkd)
+                 Unchecked.(ctx_to_string (ps_to_ctx ps_unchkd)))
+        | DoubledVar s ->
+            Error.not_valid_coherence name
+              (Printf.sprintf "variable %s appears twice in the context" s))
 
-  let check_noninv ps src tgt name =
-    let ps = PS.mk (Ctx.check (Unchecked.ps_to_ctx ps)) in
-    let src_inclusion = PS.source ps in
-    let tgt_inclusion = PS.target ps in
-    let bdry = PS.bdry ps in
-    let cbdry = PS.to_ctx bdry in
-    let src = Tm.check cbdry src in
-    if not (Tm.is_full src) then raise NotAlgebraic
-    else
-      let tgt = Tm.check cbdry tgt in
-      if not (Tm.is_full tgt) then raise NotAlgebraic
-      else
-        let total_ty =
-          Ty.morphism
-            (Tm.apply_sub src src_inclusion)
-            (Tm.apply_sub tgt tgt_inclusion)
-        in
-        NonInv ({ ps; src; tgt; total_ty }, name)
+  let check_noninv ps_unchkd src_unchkd tgt_unchkd name =
+    match Hashtbl.find_opt tbl_noninv (ps_unchkd, src_unchkd, tgt_unchkd) with
+    | Some coh -> coh
+    | None ->
+        let ps = PS.mk (Ctx.check (Unchecked.ps_to_ctx ps_unchkd)) in
+        let src_inclusion = PS.source ps in
+        let tgt_inclusion = PS.target ps in
+        let bdry = PS.bdry ps in
+        let cbdry = PS.to_ctx bdry in
+        let src = Tm.check cbdry src_unchkd in
+        if not (Tm.is_full src) then raise NotAlgebraic
+        else
+          let tgt = Tm.check cbdry tgt_unchkd in
+          if not (Tm.is_full tgt) then raise NotAlgebraic
+          else
+            let total_ty =
+              Ty.morphism
+                (Tm.apply_sub src src_inclusion)
+                (Tm.apply_sub tgt tgt_inclusion)
+            in
+            let coh = NonInv ({ ps; src; tgt; total_ty }, name) in
+            Hashtbl.add tbl_noninv (ps_unchkd, src_unchkd, tgt_unchkd) coh;
+            coh
 
-  let check_inv ps src tgt name =
-    let ctx = Ctx.check (Unchecked.ps_to_ctx ps) in
-    let ps = PS.mk ctx in
-    let src = Tm.check ctx src in
-    let tgt = Tm.check ctx tgt in
-    let ty = Ty.morphism src tgt in
-    if Ty.is_full ty then Inv ({ ps; ty }, name) else raise NotAlgebraic
+  let check_inv ps_unchkd src_unchkd tgt_unchkd name =
+    match Hashtbl.find_opt tbl_inv (ps_unchkd, src_unchkd, tgt_unchkd) with
+    | Some coh -> coh
+    | None ->
+        let ctx = Ctx.check (Unchecked.ps_to_ctx ps_unchkd) in
+        let ps = PS.mk ctx in
+        let src = Tm.check ctx src_unchkd in
+        let tgt = Tm.check ctx tgt_unchkd in
+        let ty = Ty.morphism src tgt in
+        if Ty.is_full ty then (
+          let coh = Inv ({ ps; ty }, name) in
+          Hashtbl.add tbl_inv (ps_unchkd, src_unchkd, tgt_unchkd) coh;
+          coh)
+        else raise NotAlgebraic
 
   let data c =
     match c with
