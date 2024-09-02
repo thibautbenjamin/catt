@@ -9,7 +9,8 @@
 
 (authors "Thibaut Benjamin")
 
-(maintainers "Thibaut Benjamin")
+(maintainers "Thibaut Benjamin"
+             "Chiara Sarti")
 
 (license MIT)
 
