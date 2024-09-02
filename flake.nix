@@ -169,6 +169,8 @@
               ocamlformat
               ocp-indent
               ocamlformat-rpc-lib
+              landmarks
+              landmarks-ppx
               utop
             ]);
 
