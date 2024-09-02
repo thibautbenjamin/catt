@@ -174,6 +174,9 @@ struct
 
   type t = { tree : ps; ctx : Ctx.t}
 
+  let tbl : (Ctx.t, PS.t) Hashtbl.t =
+    Hashtbl.create 7829
+
   (** Create a context from a pasting scheme. *)
   (* TODO:fix level of explicitness here *)
   let old_rep_to_ctx ps =
@@ -271,8 +274,12 @@ struct
     Br (fst (build_till_previous ps))
 
   let mk (l : Ctx.t) =
-    let oldrep = make_old l in
-    {tree = make_tree oldrep; ctx = l}
+    match Hashtbl.find_opt tbl l with
+    | Some ps -> ps
+    | None ->
+      let oldrep = make_old l in
+      let ps = {tree = make_tree oldrep; ctx = l} in
+      Hashtbl.add tbl l ps; ps
 
   let forget ps = ps.tree
 
@@ -282,7 +289,7 @@ struct
   let to_ctx ps =
     ps.ctx
 
-    let bdry ps =
+  let bdry ps =
     (mk (Ctx.check (Unchecked.ps_to_ctx (Unchecked.ps_bdry ps.tree))))
 
   let source ps =

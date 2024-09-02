@@ -383,7 +383,14 @@ struct
         {sub_ps = t::s.sub_ps; l = s.l; r = s.r}
 
     let canonical_inclusions l = let incls,_ = canonical_inclusions l in incls
-    let ps_to_ctx ps = (ps_to_ctx_rp ps).ctx
+
+    let tbl_ps_to_ctx : (ps,ctx) Hashtbl.t = Hashtbl.create 7829
+    let ps_to_ctx ps =
+      match Hashtbl.find_opt tbl_ps_to_ctx ps with
+      | Some ctx -> ctx
+      | None ->
+        let ctx = (ps_to_ctx_rp ps).ctx in
+        Hashtbl.add tbl_ps_to_ctx ps ctx; ctx
 
     let suspwedge_subs_ps list_subs list_ps =
       let incls = canonical_inclusions list_ps in
