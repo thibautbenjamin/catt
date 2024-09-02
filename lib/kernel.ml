@@ -180,6 +180,8 @@ end = struct
 
   (* TODO:fix level of explicitness here *)
 
+  let tbl : (Ctx.t, PS.t) Hashtbl.t = Hashtbl.create 7829
+
   (** Create a context from a pasting scheme. *)
   let old_rep_to_ctx ps =
     let rec list ps =
@@ -274,8 +276,13 @@ end = struct
     Br (fst (build_till_previous ps))
 
   let mk (l : Ctx.t) =
-    let oldrep = make_old l in
-    { tree = make_tree oldrep; ctx = l }
+    match Hashtbl.find_opt tbl l with
+    | Some ps -> ps
+    | None ->
+        let oldrep = make_old l in
+        let ps = { tree = make_tree oldrep; ctx = l } in
+        Hashtbl.add tbl l ps;
+        ps
 
   let forget ps = ps.tree
   let to_string ps = Unchecked.ps_to_string (forget ps)
