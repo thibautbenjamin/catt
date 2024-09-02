@@ -11,8 +11,6 @@ coh uunitl (x(f(a)g)y) : a -> sandwich a
 coh step1 (x(f(a(m)b(n)c)g)y) : comp m n ->
   comp (uunitl a) (comp (sandwich [m]) (comp (I (uunitl b)) (op { 1 } (uunitl b))) (op { 1 } (sandwich [n]))) (op { 1 } (I (uunitl c)))
 
-let usandwich (x : *) (a : id x -> id x) = comp (I (unit _)) (comp [id (id x)] [a]) (unit _)
-
 coh toaster (x) : comp (I (uunitl (id (id x)))) (op { 1 } (uunitl (id (id x)))) ->
   comp
   (comp [Ilsimp _] (comp [id (id x)] [id (id x)]) [lsimp _])
@@ -27,9 +25,7 @@ let step23 (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) =
   comp [sandwisk [Ilsimp x] (comp [id (id x)] [[m]]) [lsimp x]]
   [I (sandwisk [I (op { 1 } (Ilsimp x))] (comp [[n]] [id (id x)]) [I (op { 1 } (lsimp x))])]
 
-let usandwich_eliminator (x : *) = comp [Ilsimp x] (comp [id (id x)] [id (id x)]) [lsimp x]
-
-coh sandswitch (x(f(a)g(b(m)c(n)d)h(e)k)y) : comp (sandwisk a m e) (sandwisk a n e) -> sandwisk a (comp m n) e
+coh sandswitch (x(f)y(g(a)h(b)k)z(l)w) : comp (sandwisk f a l) (sandwisk f b l) -> sandwisk f (comp a b) l
 
 let step24 (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) =
   sandswitch (I (unit x)) (comp [id (id x)] [[m]]) (comp [[n]] [id (id x)]) (unit x)
