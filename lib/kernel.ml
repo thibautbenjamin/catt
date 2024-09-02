@@ -657,6 +657,7 @@ end = struct
     PS.forget ps, Ty.forget ty, pp_data
 
   let check_equal coh1 coh2 =
+    if coh1 == coh2 then () else
     match coh1, coh2 with
     | Inv(d1,_) , Inv(d2,_) ->
       PS.check_equal d1.ps d2.ps;
