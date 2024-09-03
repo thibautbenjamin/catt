@@ -10,7 +10,7 @@ module type Unchecked_types_sig = functor
   and sub_ps = (tm * bool) list
 
   type ctx = (Var.t * (ty * bool)) list
-  type sub = (Var.t * tm) list
+  type sub = { vars : Var.t list; tbl : (Var.t, tm) Hashtbl.t }
   type meta_ctx = (int * ty) list
 end
 
@@ -23,6 +23,6 @@ struct
   and sub_ps = (tm * bool) list
 
   type ctx = (Var.t * (ty * bool)) list
-  type sub = (Var.t * tm) list
+  type sub = { vars : Var.t list; tbl : (Var.t, tm) Hashtbl.t }
   type meta_ctx = (int * ty) list
 end

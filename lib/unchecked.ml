@@ -17,14 +17,20 @@ struct
   end) =
   struct
     let sub_ps_to_sub s =
+      let tbl = Hashtbl.create 97 in
       let rec aux s =
         match s with
         | [] -> ([], 0)
         | (t, _) :: s ->
             let s, i = aux s in
-            ((Var.Db i, t) :: s, i + 1)
+            Hashtbl.add tbl (Var.Db i) t;
+            (Var.Db i :: s, i + 1)
       in
-      fst (aux s)
+      let vars = fst (aux s) in
+      { vars; tbl }
+
+    let alist_to_sub alist =
+      { vars = List.map fst alist; tbl = Hashtbl.of_seq (List.to_seq alist) }
 
     let rec func_to_string = function
       | [] -> ""
@@ -105,11 +111,14 @@ struct
           Printf.sprintf "%s {%s: %s}" (ctx_to_string c) (Var.to_string x)
             (ty_to_string t)
 
-    let rec sub_to_string = function
-      | [] -> ""
-      | (x, t) :: s ->
-          Printf.sprintf "%s (%s: %s)" (sub_to_string s) (Var.to_string x)
-            (tm_to_string t)
+    let sub_to_string s =
+      let rec print_list = function
+        | [] -> ""
+        | x :: l ->
+            Printf.sprintf "%s (%s: %s)" (print_list l) (Var.to_string x)
+              (tm_to_string (Hashtbl.find s.tbl x))
+      in
+      print_list s.vars
 
     let rec meta_ctx_to_string = function
       | [] -> ""
@@ -217,7 +226,7 @@ struct
               tm_do_on_variables v f )
 
     let var_apply_sub v s =
-      match List.assoc_opt v s with Some t -> t | None -> Var v
+      match Hashtbl.find_opt s.tbl v with Some t -> t | None -> Var v
 
     let tm_apply_sub tm s = tm_do_on_variables tm (fun v -> var_apply_sub v s)
     let ty_apply_sub ty s = ty_do_on_variables ty (fun v -> var_apply_sub v s)
@@ -239,9 +248,11 @@ struct
       | _ :: s -> var_sub_preimage v s
 
     let tm_sub_preimage tm s =
+      let s = List.of_seq (Hashtbl.to_seq s.tbl) in
       tm_do_on_variables tm (fun v -> var_sub_preimage v s)
 
     let ty_sub_preimage ty s =
+      let s = List.of_seq (Hashtbl.to_seq s.tbl) in
       ty_do_on_variables ty (fun v -> var_sub_preimage v s)
 
     let coh_ty c s =
@@ -270,11 +281,13 @@ struct
 
     let db_level_sub c =
       let _, names, _ = db_levels c in
-      List.map (fun (t, n) -> (Var.Db n, Var t)) names
+      let alist = List.map (fun (t, n) -> (Var.Db n, Var t)) names in
+      alist_to_sub alist
 
     let db_level_sub_inv c =
       let _, names, _ = db_levels c in
-      List.map (fun (t, n) -> (t, Var (Var.Db n))) names
+      let alist = List.map (fun (t, n) -> (t, Var (Var.Db n))) names in
+      alist_to_sub alist
 
     let suspend_ps ps = Br [ ps ]
 
@@ -537,21 +550,28 @@ struct
 
     let tm_contains_vars t l = List.exists (tm_contains_var t) l
 
-    let rec list_to_sub s ctx =
-      match (s, ctx) with
-      | t :: s, (x, _) :: ctx -> (x, t) :: list_to_sub s ctx
-      | [], [] -> []
-      | _ -> raise WrongNumberOfArguments
+    let list_to_sub s ctx =
+      let rec alist s ctx =
+        match (s, ctx) with
+        | t :: s, (x, _) :: ctx -> (x, t) :: alist s ctx
+        | [], [] -> []
+        | _ -> raise WrongNumberOfArguments
+      in
+      let alist = alist s ctx in
+      alist_to_sub alist
 
     let list_to_db_level_sub l =
-      let rec aux l =
-        match l with
-        | [] -> ([], 0)
-        | t :: l ->
-            let s, n = aux l in
-            ((Var.Db n, t) :: s, n + 1)
+      let alist =
+        let rec aux l =
+          match l with
+          | [] -> ([], 0)
+          | t :: l ->
+              let s, n = aux l in
+              ((Var.Db n, t) :: s, n + 1)
+        in
+        fst (aux l)
       in
-      fst (aux l)
+      alist_to_sub alist
 
     let rec dim_ty = function
       | Obj -> 0

@@ -91,13 +91,14 @@ and cone_ctx c =
   let res = List.append tctx ((point,(Obj,false))::c) in
   res,(pairs,point)
 and cone_sub s l1 l2 p1 p2 =
+  let s = List.map (fun x -> (x,Hashtbl.find s.tbl x)) s.vars in
   let rec aux s =
     match s with
     | [] -> []
     | (v,t)::tl ->
       let tcone = cone_tm t l2 p2 in
       (List.assoc v l1, tcone)::(aux tl)
-  in List.append (aux s) ((p1,Var(p2))::s)
+  in Unchecked.alist_to_sub (List.append (aux s) ((p1,Var(p2))::s))
 
 let cone_tmty (t,ty) l p =
   let tc = cone_tm t l p in

@@ -186,8 +186,10 @@ module Constraints_typing = struct
         let tgt = Unchecked.ps_to_ctx ps in
         let s1 = Unchecked.sub_ps_to_sub s in
         let s1 = sub ctx meta_ctx s1 tgt cst in
-        ( Coh (c, List.map2 (fun (_, t) (_, expl) -> (t, expl)) s1 s),
-          Unchecked.ty_apply_sub ty s1 )
+        let sub_ps =
+          List.map2 (fun x (_, expl) -> (Hashtbl.find s1.tbl x, expl)) s1.vars s
+        in
+        (Coh (c, sub_ps), Unchecked.ty_apply_sub ty s1)
 
   and sub src meta_ctx s tgt cst =
     Io.info ~v:5
@@ -198,14 +200,19 @@ module Constraints_typing = struct
            (Unchecked.ctx_to_string src)
            (Unchecked.ctx_to_string tgt)
            (Unchecked.meta_ctx_to_string meta_ctx)));
-    match (s, tgt) with
-    | [], [] -> []
-    | (x, u) :: s, (_, (t, _)) :: c ->
-        let u, ty = tm src meta_ctx u cst in
-        let s = sub src meta_ctx s c cst in
-        Constraints.unify_ty cst ty (Unchecked.ty_apply_sub t s);
-        (x, u) :: s
-    | [], _ :: _ | _ :: _, [] -> Error.fatal "wrong number of arguments"
+    let rec list l tgt =
+      match (l, tgt) with
+      | [], [] -> ()
+      | x :: l, (_, (t, _)) :: c ->
+          let u = Hashtbl.find s.tbl x in
+          let u, ty = tm src meta_ctx u cst in
+          list l c;
+          Hashtbl.replace s.tbl x u;
+          Constraints.unify_ty cst ty (Unchecked.ty_apply_sub t s)
+      | [], _ :: _ | _ :: _, [] -> Error.fatal "wrong number of arguments"
+    in
+    list s.vars tgt;
+    s
 
   and ty ctx meta_ctx t cst =
     Io.info ~v:5

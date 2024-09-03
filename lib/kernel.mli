@@ -55,6 +55,7 @@ end
 module Unchecked : sig
   type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
+  val alist_to_sub : (Var.t * tm) list -> sub
   val ps_to_string : ps -> string
   val ty_to_string : ty -> string
   val tm_to_string : tm -> string

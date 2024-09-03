@@ -93,6 +93,7 @@ let nat_of_phase a b l p ph =
   (* Compute nat *)
   let nat = Inverse.compute_inverse (Functorialisation.tm_one_step_tm r [v2;v1]) in
   let nat_sub = [Var.Bridge(v2),fst b;Var.Plus(v2),gt;Bridge(v1),fst a;Plus(v1),ft] in
+  let nat_sub = Unchecked.alist_to_sub nat_sub in
   match nat with
   | Coh(c,s) -> Unchecked.coh_ty c (Unchecked.sub_ps_apply_sub s nat_sub)
   | _ -> assert false

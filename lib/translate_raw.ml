@@ -52,27 +52,31 @@ let rec tm t =
   | BuiltinR _ | Letin_tm _ ->
       Error.fatal "ill-formed term"
 
-and sub s tgt expl =
+and sub_alist s tgt expl =
   match (s, tgt) with
   | [], [] -> ([], [])
   | (t, i) :: s, (x, (_, e)) :: tgt
     when e || expl || !Settings.explicit_substitutions ->
       let t, meta_types_t = tm t in
       let fmetas, meta_types_f, tgt = meta_functed_arg i tgt in
-      let s, meta_types_s = sub s tgt expl in
+      let s, meta_types_s = sub_alist s tgt expl in
       let meta_types =
         List.concat [ meta_types_t; meta_types_f; meta_types_s ]
       in
       ((x, t) :: List.append fmetas s, meta_types)
   | (_ :: _ as s), (x, (_, _)) :: tgt ->
       let t, meta_type = Meta.new_tm () in
-      let s, meta_types_s = sub s tgt expl in
+      let s, meta_types_s = sub_alist s tgt expl in
       ((x, t) :: s, meta_type :: meta_types_s)
   | [], (x, (_, false)) :: tgt ->
       let t, meta_type = Meta.new_tm () in
-      let s, meta_types_s = sub [] tgt expl in
+      let s, meta_types_s = sub_alist [] tgt expl in
       ((x, t) :: s, meta_type :: meta_types_s)
   | _ :: _, [] | [], _ :: _ -> raise WrongNumberOfArguments
+
+and sub s tgt expl =
+  let alist, tgt = sub_alist s tgt expl in
+  (Unchecked.alist_to_sub alist, tgt)
 
 and find_functorialisation s tgt expl =
   match (s, tgt) with
