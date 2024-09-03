@@ -32,13 +32,17 @@ let rec compute_inverse t =
       let coh = Opposite.coh c [d] in
       Coh(coh, Unchecked.sub_ps_apply_sub equiv sub_inv)
 and sub_inv s ps i =
-  match s,ps with
-  | [], [] -> []
-  | (x,t)::sub, (_,(ty,_))::ctx when Unchecked.dim_ty ty = i ->
-    (x,compute_inverse t)::(sub_inv sub ctx i)
-  | (x,t)::sub, _::ctx ->
-    (x,t)::(sub_inv sub ctx i)
-  | _,_ -> assert false
+  let rec compute_on_vars s_vars ps =
+    match s_vars,ps with
+    | [], [] -> []
+    | x::s_vars, (_,(ty,_))::ctx when Unchecked.dim_ty ty = i ->
+      let t = Hashtbl.find s.tbl x in
+      (x,compute_inverse t)::(compute_on_vars s_vars ctx)
+    | x::s_vars, _::ctx ->
+      let t = Hashtbl.find s.tbl x in
+      (x,t)::(compute_on_vars s_vars ctx)
+    | _,_ -> assert false
+  in Unchecked.alist_to_sub (compute_on_vars s.vars ps)
 
 let compute_inverse t =
   try compute_inverse t with

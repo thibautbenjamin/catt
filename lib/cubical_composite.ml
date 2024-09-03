@@ -343,7 +343,7 @@ let intermediate_ps ps l d =
   let _,names,_ = Unchecked.db_levels ps_f_c in
   let ps_f = PS.(forget (mk (Ctx.check ps_f_c))) in
   let l_psf = (List.map (fun x -> Var.Db (List.assoc x names)) l_d1) in
-  let names = List.map (fun (x,n) -> (Var.Db n, Var x)) names in
+  let names = Unchecked.db_level_sub ps_f_c in
   ps_f, l_psf, names
 
 let bridge_ps ps_inter l_inter d =

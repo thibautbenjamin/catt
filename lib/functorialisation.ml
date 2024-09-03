@@ -62,10 +62,14 @@ let rec preimage ctx s l =
   | _::c, _::s -> preimage c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
-let rec tgt_subst l =
+let tgt_subst l =
+  let rec tgt_subst_alist l =
   match l with
   | [] -> []
-  | v::tl -> (v,Var(Var.Plus v))::(tgt_subst tl)
+  | v::tl -> (v,Var(Var.Plus v))::(tgt_subst_alist tl)
+  in
+  let alist = tgt_subst_alist l in
+  Unchecked.alist_to_sub alist
 
 (* returns the n-composite of a (n+j+1)-cell with a (n+k+1)-cell *)
 let rec whisk n j k =
@@ -254,18 +258,25 @@ let coh_successively c l =
       ("coherence: " ^ Coh.to_string c)
       (Printf.sprintf "cannot functorialise meta-variables")
 
-let rec sub s l =
-  match s with
+let sub s l =
+  let rec sub_alist s_list l =
+  match s_list with
   | [] -> []
-  | (x,t)::s when not (List.mem x l) -> (x,t)::(sub s l)
-  | (x,t)::s ->
+  | x::s_list when not (List.mem x l) ->
+    let t = Hashtbl.find s.tbl x in
+    (x,t)::(sub_alist s_list l)
+  | x::s_list ->
+    let t = Hashtbl.find s.tbl x in
     match tm_one_step t l true with
     | [(tm_f,_); (tgt_t,_); (src_t,_)] ->
-      (Var.Bridge x, tm_f)::(Var.Plus x, tgt_t)::(x,src_t)::(sub s l)
+      (Var.Bridge x, tm_f)::(Var.Plus x, tgt_t)::(x,src_t)::(sub_alist s_list l)
     | [(t,_)] ->
       Io.debug "no functorialisation needed for %s" (Var.to_string x);
-      (x,t)::(sub s l)
+      (x,t)::(sub_alist s_list l)
     | _ -> assert false
+  in
+  let alist = sub_alist s.vars l in
+  Unchecked.alist_to_sub alist
 
 (* Functorialisation once with respect to every maximal argument *)
 let coh_all c =

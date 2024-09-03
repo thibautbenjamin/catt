@@ -56,10 +56,14 @@ and tm t op_data =
     let s' = Unchecked.sub_ps_apply_sub equiv op_s in
     Coh(c, s')
   | Meta_tm m -> Meta_tm m
-and sub (s : sub) op_data : sub =
-  match s with
-  | [] -> []
-  | (x,t)::s -> (x,tm t op_data)::(sub s op_data)
+and sub s op_data =
+  let rec op_alist s_vars =
+    match s_vars with
+    | [] -> []
+    | x::s_vars ->
+      let t = Hashtbl.find s.tbl x in
+      (x,tm t op_data)::(op_alist s_vars)
+  in Unchecked.alist_to_sub (op_alist s.vars)
 and coh c op_data equiv =
   let p,t,name = Coh.forget c in
   let name = Unchecked.full_name name in

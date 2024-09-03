@@ -22,7 +22,7 @@ module rec Sub
   type t = {list : Tm.t list;
             src : Ctx.t;
             tgt : Ctx.t;
-            unchecked : Unchecked_types(Coh).sub}
+            unchecked : Unchecked_types(Coh).sub option}
 
   let src s = s.src
   let tgt s = s.tgt
@@ -49,21 +49,24 @@ module rec Sub
     let
       sub_exn = InvalidSubTarget(Unchecked.sub_to_string s, Ctx.to_string tgt)
     in
-    let rec aux src s tgt =
-      let expr s tgt =
-        match s, Ctx.value tgt with
+    let open Unchecked_types(Coh) in
+    let rec aux src s_vars tgt =
+      let expr s_vars tgt =
+        match s_vars, Ctx.value tgt with
         | [], [] -> []
         | (_::_,[] |[],_::_) -> raise sub_exn
-        | (x1,_)::_, (x2,_)::_ when x1 <> x2 -> raise sub_exn
-        | (_,t)::s, (_,a)::_ ->
-          let sub = aux src s (Ctx.tail tgt) in
+        | x1::_, (x2,_)::_ when x1 <> x2 -> raise sub_exn
+        | x::s_vars, (_,a)::_ ->
+          let t = Hashtbl.find s.tbl x in
+          let sub = aux src s_vars (Ctx.tail tgt) in
           let t = Tm.check src t in
           Ty.check_equal (Tm.typ t) (Ty.apply_sub a sub);
           t::sub.list
       in
-      {list = expr s tgt; src; tgt; unchecked = s}
+      {list = expr s_vars tgt; src; tgt; unchecked = None}
     in
-    aux src s tgt
+    let {list; tgt; src; _} = aux src s.vars tgt in
+    {list;tgt;src;unchecked = Some s}
 
   let check_to_ps src s tgt_ps =
     match Hashtbl.find_opt tbl (src,tgt_ps,s) with
@@ -74,10 +77,16 @@ module rec Sub
         try List.map2 (fun (x,_) (t,_) -> (x,t)) (Ctx.value tgt) s
         with Invalid_argument _ -> Error.fatal "uncaught wrong number of arguments"
       in
-      let sub = check src s_assoc tgt in
+      let sub = check src (Unchecked.alist_to_sub s_assoc) tgt in
       Hashtbl.add tbl (src,tgt_ps,s) sub; sub
 
-  let forget s = s.unchecked
+  let forget s =
+    match s.unchecked with
+    | Some s -> s
+    | None ->
+      let tgt = Ctx.forget s.tgt in
+      let alist = List.map2 (fun t (x,_) -> (x,Tm.forget t)) s.list tgt in
+      Unchecked.alist_to_sub alist
 end
 
 (** A context, associating a type to each context variable. *)
