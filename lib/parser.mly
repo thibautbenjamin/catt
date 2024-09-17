@@ -33,7 +33,7 @@
       context_over ObjR ps
       %}
 
-%token COH OBJ MOR WILD COMA
+%token COH OBJ MOR WILD COMA IGNORE
 %token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP AT
 %token <string> BUILTIN
 %token <string> IDENT
@@ -47,6 +47,7 @@
 
 prog:
   | cmd prog { $1::$2 }
+  | IGNORE prog { $2 }
   | EOF { [] }
 
 cmd:
