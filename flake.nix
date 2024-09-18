@@ -10,50 +10,60 @@
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let pkgs = (import nixpkgs { inherit system; });
+          ocamlPackages = pkgs.ocaml-ng.ocamlPackages_4_14;
       in {
-        # Exports a package that can be built with
-        # nix built. The build environment can be accessed
-        # via nix develop.
-        packages = rec {
+        packages = {
           default = self.packages.${system}.catt;
 
-          catt = pkgs.callPackage
-            ({ stdenv, dune_3, ocaml, opam, ocamlPackages, ... }:
-              stdenv.mkDerivation {
-                pname = "catt";
-                version = "0.2.0";
-                src = ./.;
-                buildInputs = [ dune_3 ocaml opam ] ++ (with ocamlPackages; [
-                  fmt
-                  js_of_ocaml
-                  js_of_ocaml-ppx
-                  menhir
-                  sedlex
-                ]);
-                buildPhase = ''
-                  rm -rf result
-                  dune build
-                '';
-                installPhase = ''
-                  mkdir -p $out/bin
-                  install -Dm755 _build/default/bin/catt.exe $out/bin
-                  mkdir -p $out/web
-                  #install -Dm644 _build/default/web/index.html $out/web
-                  #install -Dm644 _build/default/web/*.js $out/web
-                '';
-              }) { };
+          catt = ocamlPackages.buildDunePackage {
+            pname = "catt";
+            version = "1.0";
+            minimalOcamlVersion = "4.08";
 
-          catt-dev = catt.overrideAttrs (old: {
-              buildInputs =
-                catt.buildInputs ++
-                (with pkgs.ocamlPackages; [
-                  ocamlformat
-                  ocaml-lsp
-                  ocp-indent
-                ]);
-            });
+            src = ./.;
+
+            nativeBuildInputs = with ocamlPackages;
+              [ menhir
+                js_of_ocaml
+                js_of_ocaml-ppx ];
+
+            buildInputs = with ocamlPackages;
+              [
+                js_of_ocaml
+                js_of_ocaml-ppx
+                fmt
+                sedlex
+              ];
+
+            propagatedBuildInputs = with ocamlPackages;
+              [ base ];
+
+
+            meta = {
+              description = "A proof assistant for weak omega-categories";
+              homepage = "https://www.github.com/thibautbenjamin/catt";
+              license = nixpkgs.lib.licenses.mit;
+              maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
+              mainProgram = "catt";
+            };
+          };
         };
 
-        devShells.default = self.packages.${system}.catt-dev;
+        devShells.default = pkgs.mkShell {
+          packages =
+            (with pkgs;
+              [  nixpkgs-fmt
+                 fswatch ])
+            ++
+            (with ocamlPackages;
+              [ odoc
+                ocaml-lsp
+                ocamlformat
+                ocp-indent
+                ocamlformat-rpc-lib
+                utop ]);
+
+          inputsFrom = [ self.packages.${system}.catt ];
+        };
       });
 }
