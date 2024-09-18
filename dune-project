@@ -1,18 +1,13 @@
-(lang dune 3.7)
+(lang dune 3.16)
 
 (name catt)
-
 (generate_opam_files true)
-
-(source
-  (github thibautbenjamin/catt))
-
-(authors "Thibaut Benjamin")
-
-(maintainers "Thibaut Benjamin")
-
+(source (github thibautbenjamin/catt))
+(authors "Thibaut Benjamin"
+         "Chiara Sarti")
+(maintainers "Thibaut Benjamin"
+             "Chiara Sarti")
 (license MIT)
-
 (using menhir 2.0)
 
 (package
