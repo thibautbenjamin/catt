@@ -1,7 +1,3 @@
-set explicit_substitutions = f
-# set unroll_coherences = t
-# set print_explicit_substitutions = t
-
 let whiskl (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y -> z) = comp [a] h
 let whiskr (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (a : g -> h) = comp f [a]
 
@@ -11,3 +7,6 @@ let comp302 (x : *) (y : *) (z : *) (f : x -> y) (g : x -> y ) (a : f -> g) (b :
 let comp303 (x : *) (y : *) (z : *) (f : x -> y) (g : x -> y ) (a : f -> g) (b : f -> g) (m : a -> b) (h : y -> z) (k : y -> z) (c : h -> k) (d : h -> k) (n : c -> d) = comp [[m]] [[n]]
 
 let comp504 (x : *) (y : *) (z : *) (f : x -> y) (g : x -> y ) (a : f -> g) (b : f -> g) (m : a -> b) (n : a -> b) (A : m -> n) (B : m -> n) (F : A -> B) (h : y -> z) (k : y -> z) (c : h -> k) (d : h -> k) (p : c -> d) (q : c -> d) (C : p -> q) = comp303 [[F]] [C]
+
+let comp-biased (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) = comp (comp f g) h
+check (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') (w : *) (h : z -> w) = comp-biased f [a] h

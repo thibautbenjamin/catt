@@ -1,4 +1,3 @@
-
 coh unit (x(f)y) : comp f (id _) -> f
 coh unbiase (x(f)y(g)z(h)w) : comp (comp f g) h -> comp f g h
 
