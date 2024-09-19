@@ -9,6 +9,7 @@
              "Chiara Sarti")
 (license MIT)
 (using menhir 2.0)
+(cram enable)
 
 (package
   (name catt)
