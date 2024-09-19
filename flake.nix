@@ -4,11 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz";
     nix-filter.url = "github:numtide/nix-filter";
   };
 
-  outputs = inputs@{ self, nixpkgs, flake-utils, nix-filter,... }:
+  outputs = { self, nixpkgs, flake-utils, nix-filter,... }:
     flake-utils.lib.eachDefaultSystem (system:
       let pkgs = (import nixpkgs { inherit system; });
           ocamlPackages = pkgs.ocaml-ng.ocamlPackages_4_14;
@@ -30,6 +29,8 @@
                 (nix-filter.lib.matchExt "nix")
               ];
             };
+
+            elisp = ./share/site-lisp;
           };
 
       in {
@@ -69,6 +70,19 @@
               mainProgram = "catt";
             };
           };
+
+          catt-mode = pkgs.emacs.pkgs.trivialBuild rec {
+            pname = "catt-mode";
+            version = "v1.0.0";
+            src = sources.elisp;
+
+            meta = {
+              description = "An emacs mode for the catt proof-assistant";
+              homepage = "https://www.github.com/thibautbenjamin/catt";
+              license = pkgs.lib.licenses.mit;
+              maintainers = [ "Thibaut Benjamin" ];
+            };
+          };
         };
 
         checks = {
@@ -82,8 +96,7 @@
 
         devShells.default = pkgs.mkShell {
           packages =
-            (with pkgs; [  nixpkgs-fmt fswatch ])
-            ++
+            (with pkgs; [ nixpkgs-fmt fswatch ]) ++
             (with ocamlPackages;
               [ odoc
                 ocaml-lsp
