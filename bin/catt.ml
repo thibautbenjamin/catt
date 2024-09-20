@@ -30,6 +30,10 @@ let () =
     | [f] ->
       Catt.Settings.use_builtins := not !no_builtins;
       Catt.Settings.debug := !debug;
-      Catt.Command.exec ~loop_fn:Catt.Prover.loop (parse_file f)
+      begin
+        match (parse_file f) with
+        | Ok cmds -> Catt.Command.exec ~loop_fn:Catt.Prover.loop cmds
+        | Error () -> exit 1
+      end
     | _ -> ()
   in if !interactive then Catt.Prover.loop ()

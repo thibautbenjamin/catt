@@ -1,11 +1,11 @@
 (** Interaction with a webpage. *)
-
+open Lwt.Infix
 module Dom = Js_of_ocaml.Dom
+module Sys_js = Js_of_ocaml.Sys_js
 module Html = Js_of_ocaml.Dom_html
 module Js = Js_of_ocaml.Js
+module Events = Js_of_ocaml_lwt.Lwt_js_events
 module Firebug = Js_of_ocaml.Firebug
-
-(* let envs = ref Lang.Envs.empty  *)
 
 let doc = Html.document
 let button txt action =
@@ -19,9 +19,11 @@ let _debug s =
   Firebug.console##debug (Js.string s)
 
 let loop s =
-  Catt.Prover.exec s;
-  (* envs := Prover.exec !envs s; *)
-  Catt.Prover.init ()
+  Printf.printf "\n";
+  Catt.Prover.exec s (fun () -> ());
+  flush stdout;
+  Catt.Prover.init ();
+  flush stdout
 
 let run _ =
   let top =
@@ -29,17 +31,10 @@ let run _ =
       (doc##getElementById (Js.string "toplevel"))
       (fun () -> assert false)
   in
-
-  let output = Html.createDiv doc in
-  output##.id := Js.string "output";
-  output##.style##.whiteSpace := Js.string "pre";
-  Dom.appendChild top output;
-
   let textbox = Html.createTextarea doc in
-  textbox##.id := Js.string "input";
+  textbox##.id := Js.string "cattInput";
   textbox##.cols := 80;
   textbox##.rows := 25;
-  (* textbox##value <- Js.string "# "; *)
   Dom.appendChild top textbox;
   Dom.appendChild top (Html.createBr doc);
   textbox##focus;
@@ -51,8 +46,8 @@ let run _ =
     let s = Js.to_string textbox##.value ^ s in
     tb_off := String.length s;
     textbox##.value := Js.string s;
-    (* Scroll down. *)
-    Js.Unsafe.set textbox (Js.string "scrollTop") (Js.Unsafe.get textbox (Js.string "scrollHeight"))
+    Js.Unsafe.set textbox (Js.string "scrollTop")
+      (Js.Unsafe.get textbox (Js.string "scrollHeight"))
   in
   let read () =
     let s = Js.to_string textbox##.value in
@@ -61,36 +56,43 @@ let run _ =
     cmd
   in
 
-  Catt.Io.print_string_fun := print;
+  Sys_js.set_channel_flusher stdout print;
+  Sys_js.set_channel_flusher stderr print;
   Catt.Prover.init ();
+  flush stdout;
 
   let b =
     button
       "Send"
       (fun () ->
-        let s = read () in
-        let s =
-          let s = ref s in
-          let remove_last () =
-            if !s = "" then false else
-              let c = !s.[String.length !s - 1] in
-              c = '\n' || c = '\r'
-          in
-          while remove_last () do
-            (* remove trailing \n *)
-            s := String.sub !s 0 (String.length !s - 1)
-          done;
-          !s
-        in
-        loop s;
-        textbox##focus;
-        doc##.documentElement##.scrollTop := doc##.body##.scrollHeight)
+         let s = read () in
+         let s =
+           let s = ref s in
+           let remove_last () =
+             if !s = "" then false else
+               let c = !s.[String.length !s - 1] in
+               c = '\n' || c = '\r'
+           in
+           while remove_last () do
+             (* remove trailing \n *)
+             s := String.sub !s 0 (String.length !s - 1)
+           done;
+           !s
+         in
+         loop s;
+         textbox##focus;
+         doc##.documentElement##.scrollTop := doc##.body##.scrollHeight)
   in
   b##.id := Js.string "send";
   Dom.appendChild top b;
 
-  ignore (Js.Unsafe.eval_string "init();");
-
+  let rec key_listener key =
+    Events.keydown key >>= fun event ->
+    if event##.key = Js.Optdef.return (Js.string "Enter") then
+      b##click;
+    key_listener key
+  in
+  Lwt.async (fun () -> key_listener textbox);
   Js._false
 
 let () =

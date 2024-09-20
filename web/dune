@@ -1,9 +1,12 @@
 (install
-   (files index.html catt.css (web.bc.js as catt.js) test.catt)
+   (package catt-web)
+   (files index.html catt.css (web.bc.js as catt.js))
    (section share_root))
 
 (executable
+ (package catt-web)
+ (public_name catt-web)
  (name web)
- (modes js)
- (libraries catt)
+ (modes js exe)
+ (libraries catt lwt js_of_ocaml-lwt)
  (preprocess (pps js_of_ocaml-ppx)))

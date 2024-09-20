@@ -1,4 +1,5 @@
 (executable
+ (package catt)
  (public_name catt)
  (name catt)
  (libraries catt))

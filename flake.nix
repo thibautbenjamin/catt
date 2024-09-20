@@ -23,6 +23,16 @@
               ];
             };
 
+            web = nix-filter.lib {
+              root = ./.;
+              include = [
+                ".ocamlformat"
+                "dune-project"
+                (nix-filter.lib.inDirectory "web")
+                (nix-filter.lib.inDirectory "lib")
+              ];
+            };
+
             nix = nix-filter.lib {
               root = ./.;
               include = [
@@ -38,7 +48,7 @@
           default = self.packages.${system}.catt;
 
           catt = ocamlPackages.buildDunePackage {
-            pname = "catt";
+            pname = "catt-web";
             version = "1.0";
             minimalOcamlVersion = "4.08";
             doCheck = false;
@@ -46,17 +56,10 @@
             src = sources.ocaml;
 
             nativeBuildInputs = with ocamlPackages;
-              [ menhir
-                js_of_ocaml
-                js_of_ocaml-ppx ];
+              [ menhir ];
 
             buildInputs = with ocamlPackages;
-              [
-                js_of_ocaml
-                js_of_ocaml-ppx
-                fmt
-                sedlex
-              ];
+              [ fmt sedlex ];
 
             propagatedBuildInputs = with ocamlPackages;
               [ base ];
@@ -68,6 +71,38 @@
               license = nixpkgs.lib.licenses.mit;
               maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
               mainProgram = "catt";
+            };
+          };
+
+          catt-web = ocamlPackages.buildDunePackage {
+            pname = "catt";
+            version = "1.0";
+            minimalOcamlVersion = "4.08";
+            doCheck = false;
+
+            src = sources.web;
+
+            nativeBuildInputs = with ocamlPackages;
+              [ menhir
+                js_of_ocaml ];
+
+            buildInputs = with ocamlPackages;
+              [ js_of_ocaml
+                js_of_ocaml-ppx
+                js_of_ocaml-lwt
+                lwt
+                fmt
+                sedlex ];
+
+            propagatedBuildInputs = with ocamlPackages;
+              [ base ];
+
+
+            meta = {
+              description = "Browser embedded version of the catt theorem prover";
+              homepage = "https://www.github.com/thibautbenjamin/catt";
+              license = nixpkgs.lib.licenses.mit;
+              maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
             };
           };
 
@@ -105,7 +140,8 @@
                 ocamlformat-rpc-lib
                 utop ]);
 
-          inputsFrom = [ self.packages.${system}.catt ];
+          inputsFrom = [ self.packages.${system}.catt
+                         self.packages.${system}.catt-web ];
         };
       });
 }
