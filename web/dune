@@ -8,5 +8,5 @@
  (public_name catt-web)
  (name web)
  (modes js exe)
- (libraries catt lwt js_of_ocaml-lwt)
+ (libraries catt)
  (preprocess (pps js_of_ocaml-ppx)))

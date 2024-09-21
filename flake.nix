@@ -87,10 +87,7 @@
                 js_of_ocaml ];
 
             buildInputs = with ocamlPackages;
-              [ js_of_ocaml
-                js_of_ocaml-ppx
-                js_of_ocaml-lwt
-                lwt
+              [ js_of_ocaml-ppx
                 fmt
                 sedlex ];
 

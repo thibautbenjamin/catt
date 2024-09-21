@@ -1,29 +1,29 @@
 (** Interaction with a webpage. *)
-open Lwt.Infix
 module Dom = Js_of_ocaml.Dom
 module Sys_js = Js_of_ocaml.Sys_js
 module Html = Js_of_ocaml.Dom_html
 module Js = Js_of_ocaml.Js
-module Events = Js_of_ocaml_lwt.Lwt_js_events
 module Firebug = Js_of_ocaml.Firebug
 
 let doc = Html.document
-let button txt action =
+
+let button ~id txt action =
   let button_type = Js.string "button" in
   let b = Html.createInput ~_type:button_type doc in
   b##.value := Js.string txt;
   b##.onclick := Html.handler (fun _ -> action (); Js._true);
+  b##.id := Js.string id;
   b
 
 let _debug s =
   Firebug.console##debug (Js.string s)
 
-let loop s =
-  Printf.printf "\n";
-  Catt.Prover.exec s (fun () -> ());
-  flush stdout;
-  Catt.Prover.init ();
-  flush stdout
+let run_action s =
+  try
+    match (Catt.Prover.parse s) with
+    | Ok cmds -> Catt.Command.exec ~loop_fn:Catt.Prover.loop cmds
+    | Error () -> ()
+  with | _ -> Catt.Io.error "Uncaught exception"
 
 let run _ =
   let top =
@@ -31,68 +31,55 @@ let run _ =
       (doc##getElementById (Js.string "toplevel"))
       (fun () -> assert false)
   in
-  let textbox = Html.createTextarea doc in
-  textbox##.id := Js.string "cattInput";
-  textbox##.cols := 80;
-  textbox##.rows := 25;
-  Dom.appendChild top textbox;
-  Dom.appendChild top (Html.createBr doc);
-  textbox##focus;
-  textbox##select;
 
-  (* Current offset in textbox. *)
-  let tb_off = ref 0 in
+  let button_bar = Html.createDiv doc in
+  button_bar##.id := Js.string "buttonBar";
+  let left_bar = Html.createDiv doc in
+  left_bar##.id := Js.string "leftBar";
+  let right_bar = Html.createDiv doc in
+  right_bar##.id := Js.string "rightBar";
+
+
+  let editor_area = Html.createDiv doc in
+  editor_area##.id := Js.string "editorArea";
+
+  let input_area = Html.createTextarea doc in
+  input_area##.id := Js.string "inputArea";
+  input_area##.placeholder := Js.string "Input CaTT code here";
+
+  let output_area = Html.createTextarea doc in
+  output_area##.id := Js.string "outputArea";
+  output_area##.placeholder := Js.string "Output...";
+  output_area##.readOnly := Js.bool true;
+
   let print s =
-    let s = Js.to_string textbox##.value ^ s in
-    tb_off := String.length s;
-    textbox##.value := Js.string s;
-    Js.Unsafe.set textbox (Js.string "scrollTop")
-      (Js.Unsafe.get textbox (Js.string "scrollHeight"))
+    let text = Js.to_string output_area##.value in
+    output_area##.value := Js.string (text ^ s);
   in
-  let read () =
-    let s = Js.to_string textbox##.value in
-    let cmd = String.sub s !tb_off (String.length s - !tb_off) in
-    tb_off := String.length s;
-    cmd
+  let clear_output () =
+    output_area##.value := Js.string ""
   in
+
+  let run_action () =
+    clear_output();
+    let s = Js.to_string input_area##.value in
+    run_action s
+  in
+  let run_button = button ~id:"runButton" "Run" run_action in
+
+  Dom.appendChild top button_bar;
+  Dom.appendChild button_bar left_bar;
+  Dom.appendChild left_bar run_button;
+  Dom.appendChild button_bar right_bar;
+
+  Dom.appendChild top editor_area;
+  Dom.appendChild editor_area input_area;
+  Dom.appendChild editor_area output_area;
+  input_area##focus;
+  input_area##select;
 
   Sys_js.set_channel_flusher stdout print;
   Sys_js.set_channel_flusher stderr print;
-  Catt.Prover.init ();
-  flush stdout;
-
-  let b =
-    button
-      "Send"
-      (fun () ->
-         let s = read () in
-         let s =
-           let s = ref s in
-           let remove_last () =
-             if !s = "" then false else
-               let c = !s.[String.length !s - 1] in
-               c = '\n' || c = '\r'
-           in
-           while remove_last () do
-             (* remove trailing \n *)
-             s := String.sub !s 0 (String.length !s - 1)
-           done;
-           !s
-         in
-         loop s;
-         textbox##focus;
-         doc##.documentElement##.scrollTop := doc##.body##.scrollHeight)
-  in
-  b##.id := Js.string "send";
-  Dom.appendChild top b;
-
-  let rec key_listener key =
-    Events.keydown key >>= fun event ->
-    if event##.key = Js.Optdef.return (Js.string "Enter") then
-      b##click;
-    key_listener key
-  in
-  Lwt.async (fun () -> key_listener textbox);
   Js._false
 
 let () =
