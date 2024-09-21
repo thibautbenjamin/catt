@@ -7,40 +7,39 @@
     nix-filter.url = "github:numtide/nix-filter";
   };
 
-  outputs = { self, nixpkgs, flake-utils, nix-filter,... }:
+  outputs = { self, nixpkgs, flake-utils, nix-filter, ... }:
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = (import nixpkgs { inherit system; });
-          ocamlPackages = pkgs.ocaml-ng.ocamlPackages_4_14;
-          sources = {
-            ocaml = nix-filter.lib {
-              root = ./.;
-              include = [
-                ".ocamlformat"
-                "dune-project"
-                (nix-filter.lib.inDirectory "bin")
-                (nix-filter.lib.inDirectory "lib")
-                (nix-filter.lib.inDirectory "test.t")
-              ];
-            };
-
-            web = nix-filter.lib {
-              root = ./.;
-              include = [
-                ".ocamlformat"
-                "dune-project"
-                (nix-filter.lib.inDirectory "web")
-              ];
-            };
-
-            nix = nix-filter.lib {
-              root = ./.;
-              include = [
-                (nix-filter.lib.matchExt "nix")
-              ];
-            };
-
-            elisp = ./share/site-lisp;
+      let
+        pkgs = (import nixpkgs { inherit system; });
+        ocamlPackages = pkgs.ocaml-ng.ocamlPackages_4_14;
+        sources = {
+          ocaml = nix-filter.lib {
+            root = ./.;
+            include = [
+              ".ocamlformat"
+              "dune-project"
+              (nix-filter.lib.inDirectory "bin")
+              (nix-filter.lib.inDirectory "lib")
+              (nix-filter.lib.inDirectory "test.t")
+            ];
           };
+
+          web = nix-filter.lib {
+            root = ./.;
+            include = [
+              ".ocamlformat"
+              "dune-project"
+              (nix-filter.lib.inDirectory "web")
+            ];
+          };
+
+          nix = nix-filter.lib {
+            root = ./.;
+            include = [ (nix-filter.lib.matchExt "nix") ];
+          };
+
+          elisp = ./share/site-lisp;
+        };
 
       in {
         packages = {
@@ -54,15 +53,11 @@
 
             src = sources.ocaml;
 
-            nativeBuildInputs = with ocamlPackages;
-              [ menhir ];
+            nativeBuildInputs = with ocamlPackages; [ menhir ];
 
-            buildInputs = with ocamlPackages;
-              [ fmt sedlex ];
+            buildInputs = with ocamlPackages; [ fmt sedlex ];
 
-            propagatedBuildInputs = with ocamlPackages;
-              [ base ];
-
+            propagatedBuildInputs = with ocamlPackages; [ base ];
 
             meta = {
               description = "A proof assistant for weak omega-categories";
@@ -81,18 +76,19 @@
 
             src = sources.web;
 
-            nativeBuildInputs = with ocamlPackages;
-              [ js_of_ocaml ];
+            nativeBuildInputs = with ocamlPackages; [ js_of_ocaml ];
 
-            buildInputs = with ocamlPackages;
-              [ js_of_ocaml
-                self.outputs.packages.${system}.catt
-                js_of_ocaml-ppx
-                fmt
-                sedlex ];
+            buildInputs = with ocamlPackages; [
+              js_of_ocaml
+              self.outputs.packages.${system}.catt
+              js_of_ocaml-ppx
+              fmt
+              sedlex
+            ];
 
             meta = {
-              description = "Browser embedded version of the catt proof-assistant";
+              description =
+                "Browser embedded version of the catt proof-assistant";
               homepage = "https://www.github.com/thibautbenjamin/catt";
               license = nixpkgs.lib.licenses.mit;
               maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
@@ -113,30 +109,39 @@
           };
         };
 
+        formatter = pkgs.nixfmt-classic;
+
         checks = {
-          default = self.packages.${system}.catt.overrideAttrs
-            (oldAttrs: {
-              name = "check-${oldAttrs.name}";
-              dontInstall = true;
-              doCheck = true;
-            });
+          lint-nix = pkgs.runCommand "check-flake-format" {
+            nativeBuildInputs = [ pkgs.nixfmt-classic ];
+          } ''
+            echo "checking nix formatting"
+            nixfmt --check ${sources.nix}
+            touch $out
+          '';
+
+          default = self.packages.${system}.catt.overrideAttrs (oldAttrs: {
+            name = "check-${oldAttrs.name}";
+            dontInstall = true;
+            doCheck = true;
+          });
         };
 
         devShells.default = pkgs.mkShell {
-          packages =
-            (with pkgs; [ nixpkgs-fmt fswatch ]) ++
-            (with ocamlPackages;
-              [ odoc
-                ocaml-lsp
-                ocamlformat
-                ocp-indent
-                ocamlformat-rpc-lib
-                utop ]);
+          packages = (with pkgs; [ nixfmt-classic fswatch ])
+            ++ (with ocamlPackages; [
+              odoc
+              ocaml-lsp
+              ocamlformat
+              ocp-indent
+              ocamlformat-rpc-lib
+              utop
+            ]);
 
-          inputsFrom = [ self.packages.${system}.catt
-                         self.packages.${system}.catt-web ];
+          inputsFrom =
+            [ self.packages.${system}.catt self.packages.${system}.catt-web ];
         };
 
-        devShells.web =  self.packages.${system}.catt-web;
+        devShells.web = self.packages.${system}.catt-web;
       });
 }
