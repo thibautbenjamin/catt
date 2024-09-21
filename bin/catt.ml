@@ -20,20 +20,24 @@ let () =
   let file_in = ref [] in
   Stdlib.Arg.parse
     [
-      "-i", Stdlib.Arg.Set interactive, "Interactive mode.";
-      "--no-builtins", Stdlib.Arg.Set no_builtins, "Prevent using built-in compositions and identities";
-      "--debug", Stdlib.Arg.Set debug, "Debug mode: stop on error and drops a menu"
+      ("-i", Stdlib.Arg.Set interactive, "Interactive mode.");
+      ( "--no-builtins",
+        Stdlib.Arg.Set no_builtins,
+        "Prevent using built-in compositions and identities" );
+      ( "--debug",
+        Stdlib.Arg.Set debug,
+        "Debug mode: stop on error and drops a menu" );
     ]
-    (fun s -> file_in := s::!file_in)
+    (fun s -> file_in := s :: !file_in)
     usage;
-  let _ = match !file_in with
-    | [f] ->
-      Catt.Settings.use_builtins := not !no_builtins;
-      Catt.Settings.debug := !debug;
-      begin
-        match (parse_file f) with
+  let _ =
+    match !file_in with
+    | [ f ] -> (
+        Catt.Settings.use_builtins := not !no_builtins;
+        Catt.Settings.debug := !debug;
+        match parse_file f with
         | Ok cmds -> Catt.Command.exec ~loop_fn:Catt.Prover.loop cmds
-        | Error () -> exit 1
-      end
+        | Error () -> exit 1)
     | _ -> ()
-  in if !interactive then Catt.Prover.loop ()
+  in
+  if !interactive then Catt.Prover.loop ()

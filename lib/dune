@@ -1,4 +1,6 @@
-(menhir (modules parser))
+(menhir
+ (modules parser))
+
 (ocamllex lexer)
 
 (library

@@ -1,5 +1,6 @@
-(** Interaction with a webpage. *)
 module Dom = Js_of_ocaml.Dom
+(** Interaction with a webpage. *)
+
 module Sys_js = Js_of_ocaml.Sys_js
 module Html = Js_of_ocaml.Dom_html
 module Js = Js_of_ocaml.Js
@@ -11,19 +12,21 @@ let button ~id txt action =
   let button_type = Js.string "button" in
   let b = Html.createInput ~_type:button_type doc in
   b##.value := Js.string txt;
-  b##.onclick := Html.handler (fun _ -> action (); Js._true);
+  b##.onclick :=
+    Html.handler (fun _ ->
+        action ();
+        Js._true);
   b##.id := Js.string id;
   b
 
-let _debug s =
-  Firebug.console##debug (Js.string s)
+let _debug s = Firebug.console##debug (Js.string s)
 
 let run_action s =
   try
-    match (Catt.Prover.parse s) with
+    match Catt.Prover.parse s with
     | Ok cmds -> Catt.Command.exec ~loop_fn:Catt.Prover.loop cmds
     | Error () -> ()
-  with | _ -> Catt.Io.error "Uncaught exception"
+  with _ -> Catt.Io.error "Uncaught exception"
 
 let run _ =
   let top =
@@ -39,7 +42,6 @@ let run _ =
   let right_bar = Html.createDiv doc in
   right_bar##.id := Js.string "rightBar";
 
-
   let editor_area = Html.createDiv doc in
   editor_area##.id := Js.string "editorArea";
 
@@ -54,14 +56,12 @@ let run _ =
 
   let print s =
     let text = Js.to_string output_area##.value in
-    output_area##.value := Js.string (text ^ s);
+    output_area##.value := Js.string (text ^ s)
   in
-  let clear_output () =
-    output_area##.value := Js.string ""
-  in
+  let clear_output () = output_area##.value := Js.string "" in
 
   let run_action () =
-    clear_output();
+    clear_output ();
     let s = Js.to_string input_area##.value in
     run_action s
   in
@@ -82,5 +82,4 @@ let run _ =
   Sys_js.set_channel_flusher stderr print;
   Js._false
 
-let () =
-  Html.window##.onload := Html.handler run
+let () = Html.window##.onload := Html.handler run

@@ -120,6 +120,40 @@
             touch $out
           '';
 
+          dune-fmt = pkgs.runCommand "check-ocaml-fmt" {
+            nativeBuildInputs = [
+              ocamlPackages.dune_3
+              ocamlPackages.ocaml
+              ocamlPackages.ocamlformat
+            ];
+          } ''
+            echo "checking dune and ocaml formatting for catt"
+            dune build \
+                  --display=short \
+                  --no-print-directory \
+                  --root="${sources.ocaml}" \
+                  --build-dir="$(pwd)/_build" \
+                  @fmt
+                  touch $out
+          '';
+
+          web-fmt = pkgs.runCommand "check-ocaml-fmt" {
+            nativeBuildInputs = [
+              ocamlPackages.dune_3
+              ocamlPackages.ocaml
+              ocamlPackages.ocamlformat
+            ];
+          } ''
+            echo "checking dune and ocaml formatting for catt-web"
+            dune build \
+                  --display=short \
+                  --no-print-directory \
+                  --root="${sources.web}" \
+                  --build-dir="$(pwd)/_build" \
+                  @fmt
+                  touch $out
+          '';
+
           default = self.packages.${system}.catt.overrideAttrs (oldAttrs: {
             name = "check-${oldAttrs.name}";
             dontInstall = true;
