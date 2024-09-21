@@ -92,7 +92,7 @@
                 sedlex ];
 
             meta = {
-              description = "Browser embedded version of the catt theorem prover";
+              description = "Browser embedded version of the catt proof-assistant";
               homepage = "https://www.github.com/thibautbenjamin/catt";
               license = nixpkgs.lib.licenses.mit;
               maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
