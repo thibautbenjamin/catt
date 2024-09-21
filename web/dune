@@ -1,12 +1,10 @@
-(install
+(executable
+ (name web)
+ (modes js)
+ (libraries catt)
+ (preprocess (pps js_of_ocaml-ppx)))
+
+ (install
    (package catt-web)
    (files index.html catt.css (web.bc.js as catt.js))
    (section share_root))
-
-(executable
- (package catt-web)
- (public_name catt-web)
- (name web)
- (modes js exe)
- (libraries catt)
- (preprocess (pps js_of_ocaml-ppx)))

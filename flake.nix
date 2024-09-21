@@ -29,7 +29,6 @@
                 ".ocamlformat"
                 "dune-project"
                 (nix-filter.lib.inDirectory "web")
-                (nix-filter.lib.inDirectory "lib")
               ];
             };
 
@@ -48,7 +47,7 @@
           default = self.packages.${system}.catt;
 
           catt = ocamlPackages.buildDunePackage {
-            pname = "catt-web";
+            pname = "catt";
             version = "1.0";
             minimalOcamlVersion = "4.08";
             doCheck = false;
@@ -75,7 +74,7 @@
           };
 
           catt-web = ocamlPackages.buildDunePackage {
-            pname = "catt";
+            pname = "catt-web";
             version = "1.0";
             minimalOcamlVersion = "4.08";
             doCheck = false;
@@ -83,17 +82,14 @@
             src = sources.web;
 
             nativeBuildInputs = with ocamlPackages;
-              [ menhir
-                js_of_ocaml ];
+              [ js_of_ocaml ];
 
             buildInputs = with ocamlPackages;
-              [ js_of_ocaml-ppx
+              [ js_of_ocaml
+                self.outputs.packages.${system}.catt
+                js_of_ocaml-ppx
                 fmt
                 sedlex ];
-
-            propagatedBuildInputs = with ocamlPackages;
-              [ base ];
-
 
             meta = {
               description = "Browser embedded version of the catt theorem prover";
@@ -105,7 +101,7 @@
 
           catt-mode = pkgs.emacs.pkgs.trivialBuild rec {
             pname = "catt-mode";
-            version = "v1.0.0";
+            version = "1.0";
             src = sources.elisp;
 
             meta = {
@@ -140,5 +136,7 @@
           inputsFrom = [ self.packages.${system}.catt
                          self.packages.${system}.catt-web ];
         };
+
+        devShells.web =  self.packages.${system}.catt-web;
       });
 }

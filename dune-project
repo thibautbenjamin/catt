@@ -24,5 +24,6 @@
   (synopsis "Browser embedded version of the catt theorem prover")
   (description "Browser embedded version of the catt theorem prover")
   (depends ocaml dune)
+  (allow_empty)
   (tags
     (higher-categories dependent-type-theory)))
