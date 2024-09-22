@@ -44,6 +44,8 @@ module Tm : sig
 end
 
 module PS : sig
+  exception Invalid
+
   type t
 
   val mk : Ctx.t -> t

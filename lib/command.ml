@@ -141,7 +141,8 @@ let exec ~loop_fn prog =
             KeepGoing
           with
           | Error.InvalidEntry ->
-              if !Settings.debug then show_menu ()
+              if !Settings.keep_going then KeepGoing
+              else if !Settings.debug then show_menu ()
               else (
                 Io.printf "Aborting...";
                 Abort)

@@ -135,6 +135,8 @@ end
 
 (** Operations on pasting schemes. *)
 and PS : sig
+  exception Invalid
+
   type t
 
   val to_string : t -> string
@@ -480,14 +482,16 @@ end = struct
       let _, src, tgt =
         try Ty.retrieve_arrow ty with IsObj -> raise NotAlgebraic
       in
-      let src_inclusion = PS.source ps in
-      let src = Tm.preimage src src_inclusion in
-      if not (Tm.is_full src) then raise NotAlgebraic
-      else
-        let tgt_inclusion = PS.target ps in
-        let tgt = Tm.preimage tgt tgt_inclusion in
-        if not (Tm.is_full tgt) then raise NotAlgebraic
-        else NonInv ({ ps; src; tgt; total_ty = ty }, name)
+      try
+        let src_inclusion = PS.source ps in
+        let src = Tm.preimage src src_inclusion in
+        if not (Tm.is_full src) then raise NotAlgebraic
+        else
+          let tgt_inclusion = PS.target ps in
+          let tgt = Tm.preimage tgt tgt_inclusion in
+          if not (Tm.is_full tgt) then raise NotAlgebraic
+          else NonInv ({ ps; src; tgt; total_ty = ty }, name)
+      with NotInImage -> raise NotAlgebraic
 
   let check ps t ((name, _, _) as pp_data) =
     Io.info ~v:5
@@ -503,7 +507,7 @@ end = struct
     with
     | NotAlgebraic ->
         Error.not_valid_coherence name
-          (Printf.sprintf "type %s not algebraic in pasting scheme %s"
+          (Printf.sprintf "type %s not full in pasting scheme %s"
              (Unchecked.ty_to_string t)
              Unchecked.(ctx_to_string (ps_to_ctx ps)))
     | DoubledVar s ->

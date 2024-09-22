@@ -16,8 +16,6 @@ struct
     val check : ps -> ty -> coh_pp_data -> Coh.t
   end) =
   struct
-    exception NotInImage
-
     let sub_ps_to_sub s =
       let rec aux s =
         match s with

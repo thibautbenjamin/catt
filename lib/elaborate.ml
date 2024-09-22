@@ -240,15 +240,6 @@ module Constraints_typing = struct
         ((x, (t, expl)) :: c, Constraints.combine_mgu known_mgu new_mgu)
 end
 
-let ctx c =
-  let c, meta_ctx = Translate_raw.ctx c in
-  Io.info ~v:2
-    (lazy (Printf.sprintf "elaborating context %s" (Unchecked.ctx_to_string c)));
-  let c, _ = Constraints_typing.ctx c meta_ctx in
-  Io.info ~v:4
-    (lazy (Printf.sprintf "elaborated context:%s" (Unchecked.ctx_to_string c)));
-  c
-
 let preprocess_ty ctx ty =
   let ty = Raw.remove_let_ty ty in
   if !Settings.implicit_suspension then Raw.infer_susp_ty ctx ty else ty
@@ -263,21 +254,39 @@ let rec preprocess_ctx = function
       let c = preprocess_ctx c in
       (v, preprocess_ty c t) :: c
 
-let resolve_constraints ~ty_fn ~sub_fn ~print_fn ~kind ctx meta_ctx x =
+let solve_cst ~elab_fn ~print_fn ~kind x =
   let name = kind ^ ": " ^ print_fn x in
   Io.info ~v:2 (lazy (Printf.sprintf "inferring constraints for %s" name));
-  let cst = Constraints.create () in
   try
-    let x = ty_fn ctx meta_ctx x cst in
-    Io.info ~v:4
-      (lazy
-        (Printf.sprintf "inferred constraints:%s" (Constraints._to_string cst)));
-    let x = sub_fn (Constraints.resolve cst) x in
+    let x = elab_fn x in
     Io.info ~v:3 (lazy (Printf.sprintf "%s elaborated to %s" kind (print_fn x)));
-    (ctx, x)
+    x
   with NotUnifiable (a, b) ->
     Error.unsatisfiable_constraints name
       (Printf.sprintf "could not unify %s and %s" a b)
+
+let ctx c =
+  let c, meta_ctx = Translate_raw.ctx c in
+  let elab_fn c = fst (Constraints_typing.ctx c meta_ctx) in
+  solve_cst ~elab_fn ~print_fn:Unchecked.ctx_to_string ~kind:"context" c
+
+let elab_ty ctx meta_ctx ty =
+  let cst = Constraints.create () in
+  let x = Constraints_typing.ty ctx meta_ctx ty cst in
+  Io.info ~v:4
+    (lazy
+      (Printf.sprintf "inferred constraints:%s" (Constraints._to_string cst)));
+  let x = Constraints.substitute_ty (Constraints.resolve cst) x in
+  x
+
+let elab_tm ctx meta_ctx tm =
+  let cst = Constraints.create () in
+  let x = Constraints_typing.tm ctx meta_ctx tm cst in
+  Io.info ~v:4
+    (lazy
+      (Printf.sprintf "inferred constraints:%s" (Constraints._to_string cst)));
+  let x = Constraints.substitute_tm (Constraints.resolve cst) x in
+  x
 
 let ty c ty =
   try
@@ -285,9 +294,9 @@ let ty c ty =
     let ty = preprocess_ty c ty in
     let c = ctx c in
     let ty, meta_ctx = Translate_raw.ty ty in
-    resolve_constraints ~ty_fn:Constraints_typing.ty
-      ~sub_fn:Constraints.substitute_ty ~print_fn:Unchecked.ty_to_string
-      ~kind:"type" c meta_ctx ty
+    let elab_fn ty = elab_ty c meta_ctx ty in
+    let print_fn = Unchecked.ty_to_string in
+    (c, solve_cst ~elab_fn ~print_fn ~kind:"type" ty)
   with Error.UnknownId s -> raise (Error.unknown_id s)
 
 let tm c tm =
@@ -296,9 +305,9 @@ let tm c tm =
     let tm = preprocess_tm c tm in
     let c = ctx c in
     let tm, meta_ctx = Translate_raw.tm tm in
-    resolve_constraints ~ty_fn:Constraints_typing.tm
-      ~sub_fn:Constraints.substitute_tm ~print_fn:Unchecked.tm_to_string
-      ~kind:"term" c meta_ctx tm
+    let elab_fn tm = elab_tm c meta_ctx tm in
+    let print_fn = Unchecked.tm_to_string in
+    (c, solve_cst ~elab_fn ~print_fn ~kind:"term" tm)
   with Error.UnknownId s -> raise (Error.unknown_id s)
 
 let ty_in_ps ps t =
@@ -308,11 +317,14 @@ let ty_in_ps ps t =
     let ps = ctx ps in
     let t, meta_ctx = Translate_raw.ty t in
     let t =
-      resolve_constraints ~ty_fn:Constraints_typing.ty
-        ~sub_fn:Constraints.substitute_ty ~print_fn:Unchecked.ty_to_string
-        ~kind:"type" ps meta_ctx t
+      let elab_fn ty = elab_ty ps meta_ctx ty in
+      solve_cst ~elab_fn ~print_fn:Unchecked.ty_to_string ~kind:"type" t
     in
-    let _, names, _ = Unchecked.db_levels ps in
-    ( Kernel.PS.(forget (mk (Kernel.Ctx.check ps))),
-      Unchecked.rename_ty (snd t) names )
+    try
+      let _, names, _ = Unchecked.db_levels ps in
+      ( Kernel.PS.(forget (mk (Kernel.Ctx.check ps))),
+        Unchecked.rename_ty t names )
+    with
+    | Kernel.PS.Invalid -> raise (Error.invalid_ps (Unchecked.ctx_to_string ps))
+    | DoubledVar x -> raise (Error.doubled_var (Unchecked.ctx_to_string ps) x)
   with Error.UnknownId s -> raise (Error.unknown_id s)

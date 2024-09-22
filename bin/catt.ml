@@ -14,6 +14,7 @@ let usage = "catt [options] [file]"
 let interactive = ref false
 let no_builtins = ref false
 let debug = ref false
+let keep_going = ref false
 
 let () =
   Printexc.record_backtrace true;
@@ -27,6 +28,9 @@ let () =
       ( "--debug",
         Stdlib.Arg.Set debug,
         "Debug mode: stop on error and drops a menu" );
+      ( "--keep-going",
+        Stdlib.Arg.Set keep_going,
+        "Do not exit on terms that don't typecheck." );
     ]
     (fun s -> file_in := s :: !file_in)
     usage;
@@ -34,6 +38,7 @@ let () =
     match !file_in with
     | [ f ] -> (
         Catt.Settings.use_builtins := not !no_builtins;
+        Catt.Settings.keep_going := !keep_going;
         Catt.Settings.debug := !debug;
         match parse_file f with
         | Ok cmds -> Catt.Command.exec ~loop_fn:Catt.Prover.loop cmds

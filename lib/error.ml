@@ -66,3 +66,13 @@ let inversion t s =
 let parsing_error t s =
   Io.error "Could not parse %s for the following reason:\n%s%!" t s;
   raise InvalidEntry
+
+let invalid_ps s =
+  Io.error "The following context is not a pasting scheme:\n%s%!" s;
+  raise InvalidEntry
+
+let doubled_var ctx v =
+  Io.error
+    "The following context is invalid because variable %s is repeated:\n%s%!" v
+    ctx;
+  raise InvalidEntry

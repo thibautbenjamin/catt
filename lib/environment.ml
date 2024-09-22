@@ -9,18 +9,20 @@ type t = (Var.t, v) Hashtbl.t
 let env : t = Hashtbl.create 70
 
 let add_let v c ?ty t =
-  let kc = Kernel.Ctx.check c in
-  let tm = Kernel.check_term kc ?ty t in
-  let ty = Kernel.(Ty.forget (Tm.typ tm)) in
-  let dim_input = Unchecked.dim_ctx c in
-  let dim_output = Unchecked.dim_ty ty in
-  Io.info ~v:4
-    (lazy
-      (Printf.sprintf "term %s of type %s added to environment"
-         (Unchecked.tm_to_string t)
-         (Unchecked.ty_to_string ty)));
-  Hashtbl.add env v { value = Tm (c, t); dim_input; dim_output };
-  (t, ty)
+  try
+    let kc = Kernel.Ctx.check c in
+    let tm = Kernel.check_term kc ?ty t in
+    let ty = Kernel.(Ty.forget (Tm.typ tm)) in
+    let dim_input = Unchecked.dim_ctx c in
+    let dim_output = Unchecked.dim_ty ty in
+    Io.info ~v:4
+      (lazy
+        (Printf.sprintf "term %s of type %s added to environment"
+           (Unchecked.tm_to_string t)
+           (Unchecked.ty_to_string ty)));
+    Hashtbl.add env v { value = Tm (c, t); dim_input; dim_output };
+    (t, ty)
+  with DoubledVar x -> Error.doubled_var (Unchecked.ctx_to_string c) x
 
 let add_coh v ps ty =
   let coh = check_coh ps ty (Var.to_string v, 0, []) in

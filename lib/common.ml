@@ -1,6 +1,7 @@
 exception NotEqual of string * string
 exception DoubledVar of string
 exception WrongNumberOfArguments
+exception NotInImage
 
 type ps = Br of ps list
 
