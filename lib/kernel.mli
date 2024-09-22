@@ -46,6 +46,8 @@ module Unchecked : sig
 
   type sub_ps_bp = {sub_ps : sub_ps; l : tm; r : tm}
 
+  val alist_to_sub : (Var.t * tm) list -> sub
+
   val ps_to_string : ps -> string
   val ty_to_string : ty -> string
   val tm_to_string : tm -> string
@@ -92,6 +94,7 @@ module Unchecked : sig
   val ps_src : ps -> sub_ps
   val ps_tgt : ps -> sub_ps
   val tm_sub_preimage : tm -> sub -> tm
+  val coh_ty : Coh.t -> sub_ps -> tm * ty
   val suspwedge_subs_ps : sub_ps list -> ps list -> sub_ps
   val opsuspwedge_subs_ps : sub_ps list -> ps list -> sub_ps
   val canonical_inclusions : ps list -> sub_ps list

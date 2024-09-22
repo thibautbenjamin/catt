@@ -19,13 +19,19 @@ struct
     exception NotInImage
 
     let sub_ps_to_sub s =
+      let tbl = Hashtbl.create 97 in
       let rec aux s =
         match s with
         | [] -> [],0
         | (t,_)::s ->
           let s,i = aux s in
-          (Var.Db i,t)::s, i+1
-      in fst (aux s)
+          Hashtbl.add tbl (Var.Db i) t;
+          (Var.Db i)::s, i+1
+      in
+      let vars = fst (aux s) in {vars; tbl}
+
+    let alist_to_sub alist =
+      {vars = List.map fst alist; tbl = Hashtbl.of_seq (List.to_seq alist)}
 
     let rec func_to_string = function
       | [] -> ""
@@ -115,13 +121,15 @@ struct
           (ctx_to_string c)
           (Var.to_string x)
           (ty_to_string t)
-    let rec sub_to_string = function
+    let sub_to_string s =
+      let rec print_list = function
       | [] -> ""
-      | (x,t)::s ->
+      | x::l ->
         Printf.sprintf "%s (%s: %s)"
-          (sub_to_string s)
+          (print_list l)
           (Var.to_string x)
-          (tm_to_string t)
+          (tm_to_string (Hashtbl.find s.tbl x))
+      in print_list s.vars
 
     let rec meta_ctx_to_string = function
       | [] -> ""
@@ -197,6 +205,15 @@ struct
       | _::_,[] | [],_::_ ->
         raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
 
+    let check_equal_ty ty1 ty2=
+      if ty1 == ty2 then () else check_equal_ty ty1 ty2
+    let check_equal_tm tm1 tm2=
+      if tm1 == tm2 then () else check_equal_tm tm1 tm2
+    let check_equal_sub_ps s1 s2=
+      if s1 == s2 then () else check_equal_sub_ps s1 s2
+    let check_equal_ctx ctx1 ctx2 =
+      if ctx1 == ctx2 then () else check_equal_ctx ctx1 ctx2
+
     let rec tm_do_on_variables tm f =
       match tm with
       | Var v -> (f v)
@@ -212,7 +229,7 @@ struct
         Arr(ty_do_on_variables a f, tm_do_on_variables u f, tm_do_on_variables v f)
 
     let var_apply_sub v s =
-      match List.assoc_opt v s with
+      match Hashtbl.find_opt s.tbl v with
       | Some t -> t
       | None -> Var v
     let tm_apply_sub tm s = tm_do_on_variables tm (fun v -> var_apply_sub v s)
@@ -231,9 +248,15 @@ struct
       | (w, Var v')::_ when v = v' -> Var w
       | _::s -> var_sub_preimage v s
     let tm_sub_preimage tm s =
+      let s = List.of_seq (Hashtbl.to_seq s.tbl) in
       tm_do_on_variables tm (fun v -> var_sub_preimage v s)
     let ty_sub_preimage ty s =
+      let s = List.of_seq (Hashtbl.to_seq s.tbl) in
       ty_do_on_variables ty (fun v -> var_sub_preimage v s)
+
+    let coh_ty c s =
+      let _,ty,_ = Coh.forget c in
+      Coh(c,s), ty_apply_sub_ps ty s
 
     (* rename is applying a variable to de Bruijn levels substitutions *)
     let rename_var v l = try
@@ -258,11 +281,13 @@ struct
 
     let db_level_sub c =
       let _,names,_ = db_levels c in
-      List.map (fun (t,n) -> (Var.Db n,Var(t))) names
+      let alist = List.map (fun (t,n) -> (Var.Db n,Var(t))) names in
+      alist_to_sub alist
 
     let db_level_sub_inv c =
       let _,names,_ = db_levels c in
-      List.map (fun (t,n) -> (t,Var(Var.Db n))) names
+      let alist = List.map (fun (t,n) -> (t,Var(Var.Db n))) names in
+      alist_to_sub alist
 
     let suspend_ps ps = Br [ps]
 
@@ -383,7 +408,14 @@ struct
         {sub_ps = t::s.sub_ps; l = s.l; r = s.r}
 
     let canonical_inclusions l = let incls,_ = canonical_inclusions l in incls
-    let ps_to_ctx ps = (ps_to_ctx_rp ps).ctx
+
+    let tbl_ps_to_ctx : (ps,ctx) Hashtbl.t = Hashtbl.create 7829
+    let ps_to_ctx ps =
+      match Hashtbl.find_opt tbl_ps_to_ctx ps with
+      | Some ctx -> ctx
+      | None ->
+        let ctx = (ps_to_ctx_rp ps).ctx in
+        Hashtbl.add tbl_ps_to_ctx ps ctx; ctx
 
     let suspwedge_subs_ps list_subs list_ps =
       let incls = canonical_inclusions list_ps in
@@ -497,18 +529,23 @@ struct
     let tm_contains_vars t l =
       List.exists (tm_contains_var t) l
 
-    let rec list_to_sub s ctx =
-      match s,ctx with
-      | t::s, (x,_)::ctx -> (x,t)::(list_to_sub s ctx)
-      | [],[] -> []
-      | _ -> raise WrongNumberOfArguments
+    let list_to_sub s ctx =
+      let rec alist s ctx =
+        match s,ctx with
+        | t::s, (x,_)::ctx -> (x,t)::(alist s ctx)
+        | [],[] -> []
+        | _ -> raise WrongNumberOfArguments
+      in
+      let alist = alist s ctx in alist_to_sub alist
 
     let list_to_db_level_sub l =
-      let rec aux l = match l with
-        | [] -> [],0
-        | t::l ->
-          let s,n = aux l in (Var.Db n,t)::s,n+1
-      in fst (aux l)
+      let alist =
+        let rec aux l = match l with
+          | [] -> [],0
+          | t::l ->
+            let s,n = aux l in (Var.Db n,t)::s,n+1
+        in fst (aux l)
+      in alist_to_sub alist
 
     let rec dim_ty = function
       | Obj -> 0

@@ -29,11 +29,6 @@ module LinearComp = struct
   let tpl i = Var (Plus (Db i))
   let tbr i = Var (Bridge (Db i))
 
-  let bcomp x y f z g =
-    let comp = Builtin.comp_n 2 in
-    let sub = [g, true; z, false; f, true; y, false; x, false] in
-    Coh(comp, sub)
-
   let idx_src i =
     if i = 2 then 0 else i-3
 
@@ -41,14 +36,14 @@ module LinearComp = struct
 
   let src_i_f i active =
     if active
-    then bcomp (tdb (idx_src i)) (tdb (i-1)) (tdb i) (tpl (i-1)) (tbr (i-1))
+    then Builtin.bcomp (tdb (idx_src i)) (tdb (i-1)) (tdb i) (tpl (i-1)) (tbr (i-1))
     else tdb i
 
   let tgt_i_f i active l =
     if active
     then
       let isrc = idx_src i in
-      bcomp (tdb isrc) (tpl isrc) (tbr isrc) (plus (i-1) l) (tpl i)
+      Builtin.bcomp (tdb isrc) (tpl isrc) (tbr isrc) (plus (i-1) l) (tpl i)
     else Var (Plus (Db i))
 
   let comp_biased_start arity =
@@ -60,12 +55,12 @@ module LinearComp = struct
       in sub (2*arity)
     in
     let lin_comp = Coh(Builtin.comp_n arity, lin_incl) in
-    bcomp (tdb 0) (tdb 1) (tdb 2) (tdb (2*arity + 1)) lin_comp
+    Builtin.bcomp (tdb 0) (tdb 1) (tdb 2) (tdb (2*arity + 1)) lin_comp
 
   let comp_biased_end arity =
     let lin_incl = Unchecked.identity_ps (Builtin.ps_comp arity) in
     let lin_comp = Coh(Builtin.comp_n arity, lin_incl) in
-    bcomp (tdb 0) (tdb (2*arity-1)) lin_comp (tdb (2*arity+1)) (tdb (2*arity+2))
+    Builtin.bcomp (tdb 0) (tdb (2*arity-1)) lin_comp (tdb (2*arity+1)) (tdb (2*arity+2))
 
   let comp_biased_middle arity pos =
     let comp = Builtin.comp_n arity in
@@ -75,7 +70,7 @@ module LinearComp = struct
       | _ when k < pos -> (tdb k, true)::(tdb (k-1), false)::(sub (k-2))
       | _ when k = pos+1 ->
         let bcomp =
-          bcomp (tdb (idx_src k)) (tdb (k-1)) (tdb k) (tdb (k+1)) (tdb (k+2))
+          Builtin.bcomp (tdb (idx_src k)) (tdb (k-1)) (tdb k) (tdb (k+1)) (tdb (k+2))
         in
         (bcomp, true)::(tdb (k+1), false)::sub(k-2)
       | _ when k > pos+1 ->
@@ -121,10 +116,9 @@ module LinearComp = struct
     let src = comp_biased arity (if i = 0 then 1 else i+2) in
     let tgt = comp_biased arity i in
     let ps = Builtin.ps_comp (arity + 1) in
-    let assc = Coh.check_inv ps src tgt ("builtin_assc",0,[])in
+    let assc = Coh.check_inv ps src tgt ("builtin_assc",0,[]) in
     let sub = sub_assc_i i arity l in
-    let _,ty,_ = Coh.forget assc in
-    Coh (assc, sub), Unchecked.ty_apply_sub_ps ty sub
+    Unchecked.coh_ty assc sub
 
   let whsk i arity l =
     let src = src_i_f i (List.mem (Var.Db (i-1)) l) in
@@ -132,8 +126,7 @@ module LinearComp = struct
     let sub = sub_whisk_i i arity l src tgt in
     let comp = Builtin.comp_n arity in
     let whsk  = F.coh_depth0 comp [Db i] in
-    let _,ty,_ = Coh.forget whsk in
-    Coh(whsk, sub), Unchecked.ty_apply_sub_ps ty sub
+    Unchecked.coh_ty whsk sub
 
   let move_at v l arity =
     let mv,ty =
@@ -178,8 +171,7 @@ module LinearComp = struct
     let base = [plus (2*arity-1) list, false; tdb 0, false] in
     let ctx_comp = Unchecked.ps_to_ctx (Builtin.ps_comp arity) in
     let s = sub ctx_comp ~add_src:true base in
-    let _,ty,_ = Coh.forget comp in
-    Coh (comp, s), (Unchecked.ty_apply_sub_ps ty s)
+    Unchecked.coh_ty comp s
 
   let build_cubical arity list =
     match arity with
@@ -278,10 +270,7 @@ let depth1_interchanger_src coh coh_bridge l =
   let coh_src = naturality_src coh coh_ty tgt ty_base d l_tgt i1 i2 names in
   let coh_tgt = Coh(coh_bridge, biasor_sub_intch_src gamma bdry_f i1 i2 d) in
   let intch_coh = Coh.check_inv src_ctx coh_src coh_tgt ("intch_src",0,[]) in
-  let _,ty,_ = Coh.forget intch_coh in
-  let intch = Coh(intch_coh,src_incl) in
-  let ty = Unchecked.ty_apply_sub_ps ty src_incl in
-  intch, ty
+  Unchecked.coh_ty intch_coh src_incl
 
 let depth1_interchanger_tgt coh coh_bridge l =
   let gamma,coh_ty,_ = Coh.forget coh in
@@ -291,10 +280,7 @@ let depth1_interchanger_tgt coh coh_bridge l =
   let coh_tgt = naturality_tgt coh coh_ty src ty_base d l_src i1 i2 names in
   let coh_src = Coh(coh_bridge, biasor_sub_intch_tgt gamma bdry_f i1 i2 d) in
   let intch_coh = Coh.check_inv tgt_ctx coh_src coh_tgt ("intch_tgt",0,[]) in
-  let _,ty,_ = Coh.forget intch_coh in
-  let intch = Coh(intch_coh,tgt_incl) in
-  let ty = Unchecked.ty_apply_sub_ps ty tgt_incl in
-  intch, ty
+  Unchecked.coh_ty intch_coh tgt_incl
 
 (*
   Compare substitutions out of the same ps-context
@@ -357,7 +343,7 @@ let intermediate_ps ps l d =
   let _,names,_ = Unchecked.db_levels ps_f_c in
   let ps_f = PS.(forget (mk (Ctx.check ps_f_c))) in
   let l_psf = (List.map (fun x -> Var.Db (List.assoc x names)) l_d1) in
-  let names = List.map (fun (x,n) -> (Var.Db n, Var x)) names in
+  let names = Unchecked.db_level_sub ps_f_c in
   ps_f, l_psf, names
 
 let bridge_ps ps_inter l_inter d =

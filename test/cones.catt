@@ -1,0 +1,22 @@
+
+set verbosity = 3
+set postprocess = t
+#set print_explicit_substitutions = t
+let point (x : *) = x
+
+let arrow (x : *) (y : *) (f : x -> y) = f
+
+let disk (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) = a
+
+let cell3 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (b : f -> g) (m : a -> b) = m
+
+let comp1d (x : *)  (y : *) (f : x -> y) (z : *) (g : y -> z) = comp f g
+
+let comp2d (x : *)  (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') = comp [a] [b]
+
+let comp3d (x : *)  (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (a' : f -> f') (m : a -> a') (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') (b' : g -> g') (n : b -> b') = comp [[m]] [[n]]
+
+#let comp4d (x : *)  (y : *) (f : x -> y) (f' : x -> y) (a : f -> f') (a' : f -> f') (m : a -> a') (m' : a -> a') (p : m -> m') (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') (b' : g -> g') (n : b -> b') (n' : b -> b') (q : n -> n') = comp [[[p]]] [[[q]]]
+
+set postprocess = f
+

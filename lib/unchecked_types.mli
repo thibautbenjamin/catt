@@ -15,7 +15,7 @@ sig
 
   type ctx = (Var.t * (ty * bool)) list
 
-  type sub = (Var.t * tm) list
+  type sub = {vars: Var.t list; tbl: (Var.t, tm) Hashtbl.t}
 
   type meta_ctx = ((int * ty) list)
 end

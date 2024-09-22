@@ -62,12 +62,16 @@ let rec preimage ctx s l =
   | _::c, _::s -> preimage c s l
   | [],_::_ | _::_,[] -> Error.fatal "functorialisation in a non-existant place"
 
-let rec tgt_subst l =
+let tgt_subst l =
+  let rec tgt_subst_alist l =
   match l with
   | [] -> []
-  | v::tl -> (v,Var(Var.Plus v))::(tgt_subst tl)
+  | v::tl -> (v,Var(Var.Plus v))::(tgt_subst_alist tl)
+  in
+  let alist = tgt_subst_alist l in
+  Unchecked.alist_to_sub alist
 
-(* returns the n-composite of a (n+j)-cell with a (n+k)-cell *)
+(* returns the n-composite of a (n+j+1)-cell with a (n+k+1)-cell *)
 let rec whisk n j k =
   let build_whisk t =
     let n,j,k = t in
@@ -91,14 +95,25 @@ let rec whisk n j k =
   Assuming ty1 has right dimension, we just need to know k
 *)
 and whisk_sub_ps k t1 ty1 t2 ty2 =
-  let rec take n l =
-    match l with
-    | h::t when n > 0 -> h::(take (n-1) t)
-    | _ -> [] in
   let sub_base = Unchecked.ty_to_sub_ps ty1 in
-  let sub_ext = take (2*k+1) (Unchecked.ty_to_sub_ps ty2) in
-  List.concat [[(t2,true)];sub_ext;[(t1,true)];sub_base]
+  let sub_ext = Common.take (2*k+1) (Unchecked.ty_to_sub_ps ty2) in
+  (t2,true)::sub_ext @ (t1,true)::sub_base
 
+(*
+  wcomp is the whiskered binary composite
+  wcomp (f,fty) n (g,gty) means f *_n g
+
+  Since it has access to both fty and gty it can automatically infer j and k
+  Therefore the only dimension parameter it needs is n
+  This API takes and returns pairs (tm*ty) meaning it can be easily nested
+  (wcomp f 0 (wcomp g 0 h)) = f *_0 (g *_0 h)
+*)
+and wcomp (f,fty) n (g,gty) =
+  let j = (Unchecked.dim_ty fty)-n-1 in
+  let k = (Unchecked.dim_ty gty)-n-1 in
+  let whisk = whisk n j k in
+  let whisk_sub_ps = whisk_sub_ps k f fty g gty in
+  Unchecked.coh_ty whisk whisk_sub_ps
 
 (* Invariant maintained:
     src_prod returns a term of same dimension as tm
@@ -106,27 +121,19 @@ and whisk_sub_ps k t1 ty1 t2 ty2 =
 and src_prod t l tm tm_t d n =
   match t with
   | Arr(ty',src,_tgt) when Unchecked.tm_contains_vars src l ->
-    let whisk = whisk n 0 (d-n-1) in
-    let _,whisk_ty,_ = Coh.forget whisk in
-    let prod, prod_ty = src_prod ty' l tm tm_t d (n-1) in
+    let prod = src_prod ty' l tm tm_t d (n-1) in
     let ty_f = ty ty' l src in
     let src_f = tm_one_step_tm src l in
-    let sub_ps = whisk_sub_ps (d-n-1) src_f ty_f prod prod_ty in
-    let sub = Unchecked.sub_ps_to_sub sub_ps in
-    (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
+    wcomp (src_f,ty_f) n prod
   | Arr(_,_,_) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 and tgt_prod t l tm tm_t d n =
   match t with
   | Arr(ty',_src,tgt) when Unchecked.tm_contains_vars tgt l ->
-    let whisk = whisk n (d-n-1) 0 in
-    let _,whisk_ty,_ = Coh.forget whisk in
-    let prod, prod_ty = tgt_prod ty' l tm tm_t d (n-1) in
+    let prod = tgt_prod ty' l tm tm_t d (n-1) in
     let ty_f = ty ty' l tgt in
     let tgt_f = tm_one_step_tm tgt l in
-    let sub_ps = whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
-    let sub = Unchecked.sub_ps_to_sub sub_ps in
-    (Coh(whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
+    wcomp prod n (tgt_f,ty_f)
   | Arr(_,_,_) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 and ty t l tm =
@@ -251,18 +258,25 @@ let coh_successively c l =
       ("coherence: " ^ Coh.to_string c)
       (Printf.sprintf "cannot functorialise meta-variables")
 
-let rec sub s l =
-  match s with
+let sub s l =
+  let rec sub_alist s_list l =
+  match s_list with
   | [] -> []
-  | (x,t)::s when not (List.mem x l) -> (x,t)::(sub s l)
-  | (x,t)::s ->
+  | x::s_list when not (List.mem x l) ->
+    let t = Hashtbl.find s.tbl x in
+    (x,t)::(sub_alist s_list l)
+  | x::s_list ->
+    let t = Hashtbl.find s.tbl x in
     match tm_one_step t l true with
     | [(tm_f,_); (tgt_t,_); (src_t,_)] ->
-      (Var.Bridge x, tm_f)::(Var.Plus x, tgt_t)::(x,src_t)::(sub s l)
+      (Var.Bridge x, tm_f)::(Var.Plus x, tgt_t)::(x,src_t)::(sub_alist s_list l)
     | [(t,_)] ->
       Io.debug "no functorialisation needed for %s" (Var.to_string x);
-      (x,t)::(sub s l)
+      (x,t)::(sub_alist s_list l)
     | _ -> assert false
+  in
+  let alist = sub_alist s.vars l in
+  Unchecked.alist_to_sub alist
 
 (* Functorialisation once with respect to every maximal argument *)
 let coh_all c =

@@ -50,6 +50,8 @@
                   ocamlformat
                   ocaml-lsp
                   ocp-indent
+                  landmarks
+                  landmarks-ppx
                 ]);
             });
         };

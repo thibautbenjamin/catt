@@ -17,7 +17,8 @@ type cmd =
 type prog = cmd list
 
 let postprocess_fn : (ctx -> tm -> ctx * tm) ref =
-  ref (fun c e -> c,e)
+  (* ref (fun c e -> c,e) *)
+  ref (Cones.cones_postprocess_fn)
 
 let exec_coh v ps ty =
   let ps,ty = Elaborate.ty_in_ps ps ty in
@@ -120,7 +121,9 @@ let show_menu () =
        decision ())
   in decision ()
 
-let initialise () = Cubical_composite.init()
+let initialise () =
+    Cubical_composite.init();
+    Cone_phases.init()
 
 let exec ~loop_fn prog =
   initialise ();
