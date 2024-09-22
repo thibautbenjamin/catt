@@ -92,35 +92,41 @@
 
   $ catt features/verbosity.catt
   [=^.^=] coh comp3 = x -> w
-  [=I.I=] elaborating context  {x: *} {y: *} (f: _ty0 | x -> y) {z: *} (g: _ty1 | y -> z) {w: *} (h: _ty2 | z -> w).
+  [=I.I=] inferring constraints for context:  {x: *} {y: *} (f: _ty0 | x -> y) {z: *} (g: _ty1 | y -> z) {w: *} (h: _ty2 | z -> w).
+  [=I.I=] context elaborated to  {x: *} {y: *} (f: * | x -> y) {z: *} (g: * | y -> z) {w: *} (h: * | z -> w).
   [=I.I=] inferring constraints for type: _ty3 | x -> w.
   [=I.I=] type elaborated to * | x -> w.
   [=I.I=] checking coherence: comp3.
   [=I.I=] successfully defined comp3.
   [=^.^=] let sq = (_builtin_comp  f f)
-  [=I.I=] elaborating context  {x: *} (f: _ty4 | x -> x).
+  [=I.I=] inferring constraints for context:  {x: *} (f: _ty4 | x -> x).
+  [=I.I=] context elaborated to  {x: *} (f: * | x -> x).
   [=I.I=] inferring constraints for term: (builtin_comp2 f f).
   [=I.I=] term elaborated to (builtin_comp2 f f).
   [=I.I=] checking term: (builtin_comp2 f f).
   [=I.I=] successfully defined term (builtin_comp2 f f) of type * | x -> x.
   [=^.^=] let cbd = (_builtin_comp  f (_builtin_comp  f f))
-  [=I.I=] elaborating context  {x: *} (f: _ty8 | x -> x).
+  [=I.I=] inferring constraints for context:  {x: *} (f: _ty8 | x -> x).
+  [=I.I=] context elaborated to  {x: *} (f: * | x -> x).
   [=I.I=] inferring constraints for term: (builtin_comp2 f (builtin_comp2 f f)).
   [=I.I=] term elaborated to (builtin_comp2 f (builtin_comp2 f f)).
-  [=I.I=] elaborating context  {x: *} (f: _ty15 | x -> x).
+  [=I.I=] inferring constraints for context:  {x: *} (f: _ty15 | x -> x).
+  [=I.I=] context elaborated to  {x: *} (f: * | x -> x).
   [=I.I=] inferring constraints for type: _ty16 | x -> x.
   [=I.I=] type elaborated to * | x -> x.
   [=I.I=] checking type: * | x -> x.
   [=I.I=] checking term: (builtin_comp2 f (builtin_comp2 f f)).
   [=I.I=] successfully defined term (builtin_comp2 f (builtin_comp2 f f)) of type * | x -> x.
   [=^.^=] coh simpl = (sq  (_builtin_id  x)) -> (_builtin_id  x)
-  [=I.I=] elaborating context  (x: *).
+  [=I.I=] inferring constraints for context:  (x: *).
+  [=I.I=] context elaborated to  (x: *).
   [=I.I=] inferring constraints for type: _ty18 | (builtin_comp2 (builtin_id x) (builtin_id x)) -> (builtin_id x).
   [=I.I=] type elaborated to * | x -> x | (builtin_comp2 (builtin_id x) (builtin_id x)) -> (builtin_id x).
   [=I.I=] checking coherence: simpl.
   [=I.I=] successfully defined simpl.
   [=^.^=] check (_builtin_comp  (sq  f) (cbd  f))
-  [=I.I=] elaborating context  {x: *} (f: _ty19 | x -> x).
+  [=I.I=] inferring constraints for context:  {x: *} (f: _ty19 | x -> x).
+  [=I.I=] context elaborated to  {x: *} (f: * | x -> x).
   [=I.I=] inferring constraints for term: (builtin_comp2 (builtin_comp2 f f) (builtin_comp2 f (builtin_comp2 f f))).
   [=I.I=] term elaborated to (builtin_comp2 (builtin_comp2 f f) (builtin_comp2 f (builtin_comp2 f f))).
   [=I.I=] checking term: (builtin_comp2 (builtin_comp2 f f) (builtin_comp2 f (builtin_comp2 f f))).
@@ -271,6 +277,85 @@
   [=I.I=] successfully defined term (!2builtin_comp3 (intch_src a b hm c) (example_red [(!2builtin_comp4 (!1builtin_assc a b hm) (!1builtin_comp2 a bm) (!1builtin_assc a gm b+) (!1builtin_comp2 am b+))] [cm]) (intch_tgt f a+ b+ km c+)) of type (!1builtin_comp2 (example a b c) (builtin_comp2 [hm] l)) -> (!1builtin_comp2 (builtin_comp3 f [km] (builtin_id z)) (example a+ b+ c+)).
   [=^.^=] let ex3 = (@example  _ _ _ [_] [am] [_] [bm] _ [_] [_] [cm])
   [=I.I=] successfully defined term (!2builtin_comp3 (intch_src a b hm c lm) (example_red [(!2builtin_comp4 (!1builtin_assc a b hm) (!1builtin_comp2 a bm) (!1builtin_assc a gm b+) (!1builtin_comp2 am b+))] [cm]) (intch_tgt f a+ b+ km c+)) of type (!1builtin_comp2 (example a b c) (builtin_comp2 [hm] [lm])) -> (!1builtin_comp2 (builtin_comp3 f [km] (builtin_id z)) (example a+ b+ c+)).
+
+  $ catt --keep-going fails/notps.catt
+  [=^.^=] coh fail1 = x -> x
+  [=X.X=] The following context is not a pasting scheme:
+   {x: *} (f: x -> x)
+  [=^.^=] coh fail2 = x -> z
+  [=X.X=] The following context is not a pasting scheme:
+   {x: *} {y: *} (f: x -> y) {z: *} (g: z -> y)
+  [=^.^=] coh fail3 = x -> w
+  [=X.X=] The following context is not a pasting scheme:
+   {x: *} {y: *} (f: x -> y) {z: *} {w: *} (g: z -> w)
+  [=^.^=] coh fail4 = x -> z
+  [=X.X=] The following context is not a pasting scheme:
+   {x: *} {y: *} {z: *} (f: x -> y) (g: y -> z)
+  [=^.^=] coh fail5 = x -> z
+  [=X.X=] The following context is not a pasting scheme:
+   {x: *} {y: *} {f: x -> y} {z: *} {g: y -> z} (a: (builtin_comp2 f g) -> (builtin_comp2 f g))
+
+  $ catt --keep-going fails/doubledvars.catt
+  [=^.^=] let fail1 = (_builtin_id  x)
+  [=X.X=] The following context is invalid because variable x is repeated:
+   (x: *) (x: *)
+  [=^.^=] coh fail2 = x -> x
+  [=X.X=] The following context is invalid because variable x is repeated:
+   {x: *} {x: *} (f: x -> x)
+
+  $ catt --keep-going fails/invalidcoherences.catt
+  [=^.^=] coh fail1 = x -> x
+  [=X.X=] The coherence fail1 is not valid for the following reason:
+  type .0 -> .0 not full in pasting scheme  {.0: *} {.1: *} (.2: .0 -> .1)
+  [=^.^=] coh fail2 = x -> z
+  [=X.X=] The coherence fail2 is not valid for the following reason:
+  type .0 -> .5 not full in pasting scheme  {.0: *} {.1: *} {.2: .0 -> .1} {.3: .0 -> .1} (.4: .2 -> .3) {.5: *} {.6: .1 -> .5} {.7: .1 -> .5} (.8: .6 -> .7)
+  [=^.^=] coh fail3 = f -> g
+  [=X.X=] The coherence fail3 is not valid for the following reason:
+  type .2 -> .3 not full in pasting scheme  {.0: *} {.1: *} {.2: .0 -> .1} {.3: .0 -> .1} (.4: .2 -> .3) {.5: *} {.6: .1 -> .5} {.7: .1 -> .5} (.8: .6 -> .7)
+
+  $ catt --keep-going fails/invalidtypes.catt
+  [=^.^=] coh fail1 = x -> f
+  [=X.X=] The constraints generated for the type: x -> f could not be solved for the following reason:
+  could not unify * and x -> y
+  [=^.^=] let fail2 = (_builtin_id  x)
+  [=X.X=] The constraints generated for the context:  {x: *} {y: *} {f: x -> y} (g: x -> f) could not be solved for the following reason:
+  could not unify * and x -> y
+  [=^.^=] coh fail3 = x -> y
+  [=X.X=] The constraints generated for the context:  {x: *} {y: *} {f: x -> y} (g: x -> f) could not be solved for the following reason:
+  could not unify * and x -> y
+  [=^.^=] let fail4 = (_builtin_comp  f g)
+  [=X.X=] The constraints generated for the type: x -> f could not be solved for the following reason:
+  could not unify * and x -> y
+
+  $ catt --keep-going fails/wrongapplication.catt
+  [=^.^=] let fail1 = (_builtin_comp  f g)
+  [=X.X=] The constraints generated for the term: (builtin_comp2 f g) could not be solved for the following reason:
+  could not unify x and y
+  [=^.^=] coh whisk = (_builtin_comp  f h) -> (_builtin_comp  g h)
+  [=I.I=] successfully defined whisk.
+  [=^.^=] let fail2 = (whisk  f b)
+  [=X.X=] The constraints generated for the term: (whisk f b) could not be solved for the following reason:
+  could not unify * and _tm13 -> _tm12
+  [=^.^=] let fail3 = (_builtin_comp  [f] b)
+  [=X.X=] The constraints generated for the term: (builtin_comp2 [f] b) could not be solved for the following reason:
+  could not unify * and _tm18 -> _tm17
+  [=^.^=] let fail4 = (_builtin_comp  [f] g)
+  [=X.X=] The constraints generated for the term: (builtin_comp2 [f] g) could not be solved for the following reason:
+  could not unify * and _tm23 -> _tm22
+
+  $ catt --keep-going fails/invalidnaturality.catt
+  [=^.^=] let fail1 = (@_builtin_comp  x [f] f x f)
+  [=X.X=] The constraints generated for the term: (!1builtin_comp3 (intch_src f f) (!-1builtin_comp2_red [(!1builtin_comp1 (builtin_assc f f f))]) (intch_tgt x f f)) could not be solved for the following reason:
+  could not unify (builtin_comp2 f f) and f
+  [=^.^=] coh whisk = (_builtin_comp  [a] h) -> (_builtin_comp  [b] h)
+  [=I.I=] successfully defined whisk.
+
+  $ catt --keep-going fails/uninferrable.catt
+  [=^.^=] let fail1 = (_builtin_comp  (_builtin_id  _) (_builtin_id  _))
+  [=X.X=] Incomplete constraints: some of the meta-variable could not be resolved in the following term: (builtin_comp2 (builtin_id _tm1) (builtin_id _tm1))
+  [=^.^=] coh fail2 = (_builtin_comp  (_builtin_id  _) _) -> f
+  [=X.X=] Incomplete constraints: some of the meta-variable could not be resolved in the following coherence: fail2
 
   $ catt coverage/eckmann-hilton-unoptimized.catt
   [=^.^=] coh comp3 = x1 -> x4

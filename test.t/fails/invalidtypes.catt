@@ -1,0 +1,4 @@
+coh fail1 (x(f)y) : x -> f
+let fail2 (x : *) (y : *) (f : x -> y) (g : x -> f) = id x
+coh fail3 (x : *) (y : *) (f : x -> y) (g : x -> f) : x -> y
+let fail4 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> f = comp f g
