@@ -4,56 +4,178 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz";
+    nix-filter.url = "github:numtide/nix-filter";
   };
 
-  outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
+  outputs = { self, nixpkgs, flake-utils, nix-filter, ... }:
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = (import nixpkgs { inherit system; });
-      in {
-        # Exports a package that can be built with
-        # nix built. The build environment can be accessed
-        # via nix develop.
-        packages = rec {
-          default = self.packages.${system}.catt;
+      let
+        pkgs = (import nixpkgs { inherit system; });
+        ocamlPackages = pkgs.ocaml-ng.ocamlPackages_4_14;
+        sources = {
+          ocaml = nix-filter.lib {
+            root = ./.;
+            include = [
+              ".ocamlformat"
+              "dune-project"
+              (nix-filter.lib.inDirectory "bin")
+              (nix-filter.lib.inDirectory "lib")
+              (nix-filter.lib.inDirectory "test.t")
+            ];
+          };
 
-          catt = pkgs.callPackage
-            ({ stdenv, dune_3, ocaml, opam, ocamlPackages, ... }:
-              stdenv.mkDerivation {
-                pname = "catt";
-                version = "0.2.0";
-                src = ./.;
-                buildInputs = [ dune_3 ocaml opam ] ++ (with ocamlPackages; [
-                  fmt
-                  js_of_ocaml
-                  js_of_ocaml-ppx
-                  menhir
-                  sedlex
-                ]);
-                buildPhase = ''
-                  rm -rf result
-                  dune build
-                '';
-                installPhase = ''
-                  mkdir -p $out/bin
-                  install -Dm755 _build/default/bin/catt.exe $out/bin
-                  mkdir -p $out/web
-                  #install -Dm644 _build/default/web/index.html $out/web
-                  #install -Dm644 _build/default/web/*.js $out/web
-                '';
-              }) { };
+          web = nix-filter.lib {
+            root = ./.;
+            include = [
+              ".ocamlformat"
+              "dune-project"
+              (nix-filter.lib.inDirectory "web")
+            ];
+          };
 
-          catt-dev = catt.overrideAttrs (old: {
-              buildInputs =
-                catt.buildInputs ++
-                (with pkgs.ocamlPackages; [
-                  ocamlformat
-                  ocaml-lsp
-                  ocp-indent
-                ]);
-            });
+          nix = nix-filter.lib {
+            root = ./.;
+            include = [ (nix-filter.lib.matchExt "nix") ];
+          };
+
+          elisp = ./share/site-lisp;
         };
 
-        devShells.default = self.packages.${system}.catt-dev;
+      in {
+        packages = {
+          default = self.packages.${system}.catt;
+
+          catt = ocamlPackages.buildDunePackage {
+            pname = "catt";
+            version = "1.0";
+            minimalOcamlVersion = "4.08";
+            doCheck = false;
+
+            src = sources.ocaml;
+
+            nativeBuildInputs = with ocamlPackages; [ menhir ];
+
+            buildInputs = with ocamlPackages; [ fmt sedlex ];
+
+            propagatedBuildInputs = with ocamlPackages; [ base ];
+
+            meta = {
+              description = "A proof assistant for weak omega-categories";
+              homepage = "https://www.github.com/thibautbenjamin/catt";
+              license = nixpkgs.lib.licenses.mit;
+              maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
+              mainProgram = "catt";
+            };
+          };
+
+          catt-web = ocamlPackages.buildDunePackage {
+            pname = "catt-web";
+            version = "1.0";
+            minimalOcamlVersion = "4.08";
+            doCheck = false;
+
+            src = sources.web;
+
+            nativeBuildInputs = with ocamlPackages; [ js_of_ocaml ];
+
+            buildInputs = with ocamlPackages; [
+              js_of_ocaml
+              self.outputs.packages.${system}.catt
+              js_of_ocaml-ppx
+              fmt
+              sedlex
+            ];
+
+            meta = {
+              description =
+                "Browser embedded version of the catt proof-assistant";
+              homepage = "https://www.github.com/thibautbenjamin/catt";
+              license = nixpkgs.lib.licenses.mit;
+              maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
+            };
+          };
+
+          catt-mode = pkgs.emacs.pkgs.trivialBuild rec {
+            pname = "catt-mode";
+            version = "1.0";
+            src = sources.elisp;
+
+            meta = {
+              description = "An emacs mode for the catt proof-assistant";
+              homepage = "https://www.github.com/thibautbenjamin/catt";
+              license = pkgs.lib.licenses.mit;
+              maintainers = [ "Thibaut Benjamin" ];
+            };
+          };
+        };
+
+        formatter = pkgs.nixfmt-classic;
+
+        checks = {
+          lint-nix = pkgs.runCommand "check-flake-format" {
+            nativeBuildInputs = [ pkgs.nixfmt-classic ];
+          } ''
+            echo "checking nix formatting"
+            nixfmt --check ${sources.nix}
+            touch $out
+          '';
+
+          dune-fmt = pkgs.runCommand "check-ocaml-fmt" {
+            nativeBuildInputs = [
+              ocamlPackages.dune_3
+              ocamlPackages.ocaml
+              ocamlPackages.ocamlformat
+            ];
+          } ''
+            echo "checking dune and ocaml formatting for catt"
+            dune build \
+                  --display=short \
+                  --no-print-directory \
+                  --root="${sources.ocaml}" \
+                  --build-dir="$(pwd)/_build" \
+                  @fmt
+                  touch $out
+          '';
+
+          web-fmt = pkgs.runCommand "check-ocaml-fmt" {
+            nativeBuildInputs = [
+              ocamlPackages.dune_3
+              ocamlPackages.ocaml
+              ocamlPackages.ocamlformat
+            ];
+          } ''
+            echo "checking dune and ocaml formatting for catt-web"
+            dune build \
+                  --display=short \
+                  --no-print-directory \
+                  --root="${sources.web}" \
+                  --build-dir="$(pwd)/_build" \
+                  @fmt
+                  touch $out
+          '';
+
+          default = self.packages.${system}.catt.overrideAttrs (oldAttrs: {
+            name = "check-${oldAttrs.name}";
+            dontInstall = true;
+            doCheck = true;
+          });
+        };
+
+        devShells.default = pkgs.mkShell {
+          packages = (with pkgs; [ nixfmt-classic fswatch ])
+            ++ (with ocamlPackages; [
+              odoc
+              ocaml-lsp
+              ocamlformat
+              ocp-indent
+              ocamlformat-rpc-lib
+              utop
+            ]);
+
+          inputsFrom =
+            [ self.packages.${system}.catt self.packages.${system}.catt-web ];
+        };
+
+        devShells.web = self.packages.${system}.catt-web;
       });
 }

@@ -1,0 +1,3 @@
+coh fail1 (x(f)y) : x -> x
+coh fail2 (x(f(a)g)y(h(b)k)z) : x -> z
+coh fail3 (x(f(a)g)y(h(b)k)z) : f -> g

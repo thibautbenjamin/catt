@@ -1,6 +1,3 @@
-# set verbosity = 5
-# set unroll_coherences = t
-
 let idf (x : *) (y : *) (f : x -> y) : (comp (id x) f) -> (comp f (id y)) = id [f]
 
 coh whiskl (x(f)y(g(a)h)z) : comp f g -> comp f h

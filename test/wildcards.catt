@@ -1,2 +1,0 @@
-
-coh unit (x : *) (y : *) (f : x -> y) : comp f (id _) -> f

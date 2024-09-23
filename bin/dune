@@ -1,8 +1,8 @@
 (executable
+ (package catt)
  (public_name catt)
  (name catt)
- (libraries
-        ; landmarks
-        catt)
- ; (preprocess (pps landmarks-ppx --auto))
-)
+ (libraries catt))
+
+(cram
+ (deps %{bin:catt}))
