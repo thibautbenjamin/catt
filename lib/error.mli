@@ -15,3 +15,5 @@ val unknown_id : string -> 'a
 val functorialisation : string -> string -> 'a
 val inversion : string -> string -> 'a
 val parsing_error : string -> string -> 'a
+val invalid_ps : string -> 'a
+val doubled_var : string -> string -> 'a

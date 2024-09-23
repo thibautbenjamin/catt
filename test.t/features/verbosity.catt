@@ -1,0 +1,8 @@
+set verbosity = 3
+coh comp3 (x(f)y(g)z(h)w) : x -> w
+
+let sq (x : *) (f : x -> x) = comp f f
+let cbd (x : *) (f : x -> x) : x -> x = comp f (comp f f)
+
+coh simpl (x : *) : sq (id x) -> id x
+check (x : *) (f : x -> x) = comp (sq f) (cbd f)

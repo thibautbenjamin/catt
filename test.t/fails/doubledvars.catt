@@ -1,0 +1,2 @@
+let fail1 (x : *) (x : *) = id x
+coh fail2 (x(f)x) : x -> x

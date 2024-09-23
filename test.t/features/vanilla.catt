@@ -1,26 +1,24 @@
 set explicit_substitutions = t
+set implicit_suspension = f
+
+coh id (x : *) : x -> x
+
+coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
 
 coh whiskr (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
-                   (z : *) (g : y -> z) : comp x y f z g -> comp x y f' z g
+                   (z : *) (g : y -> z) :
+           comp x y f z g -> comp x y f' z g
 coh whiskl (x : *) (y : *) (f : x -> y)
-                   (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') :  comp x y f z g -> comp x y f z g'
+                   (z : *) (g : y -> z) (g' : y -> z) (a : g -> g') :
+           comp x y f z g -> comp x y f z g'
 coh horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                   (z : *) (g : y -> z) (g' : y -> z) (b : g -> g') :
-		  comp x y f z g -> comp x y f' z g'
+          comp x y f z g -> comp x y f' z g'
 
 let sq (x : *) (f : x -> x) = comp x x f x f
 
 let cbd (x : *) (f : x -> x) : x -> x = comp x x f x (comp x x f x f)
 
-set verbosity = 3
-
 coh simpl (x : *) : sq x (id x) -> id x
 
 check (x : *) (f : x -> x) = comp x x (sq x f) x (cbd x f)
-
-#coh failure (x(f)y(g)z) : x -> y
-
-#set explicit_substitutions = f
-#let failure2 (x : *) (y : *) (f : x -> y) = comp f f
-
-coh test (x(f)y(g)z(h)w) : x -> w

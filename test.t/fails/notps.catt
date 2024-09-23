@@ -1,0 +1,5 @@
+coh fail1 (x : *) (f : x -> x) : x -> x
+coh fail2 (x : *) (y : *) (f : x -> y) (z : *) (g : z -> y) : x -> z
+coh fail3 (x : *) (y : *) (f : x -> y) (z : *) (w : *) (g : z -> w) : x -> w
+coh fail4 (x : *) (y : *) (z : *) (f : x -> y) (g : y -> z) : x -> z
+coh fail5 (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (a : comp f g -> comp f g) : x -> z

@@ -1,6 +1,4 @@
-set explicit_substitutions = f
 set implicit_suspension = f
-
 let comp2 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h) = !comp a b
 let id3 (x : *) = !!id (!id (id x))
 

@@ -1,24 +1,12 @@
 name: Check All
-
 on: [push]
-
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out
-        uses: actions/checkout@v1
-
-      - name: Set-up OCaml
-        uses: ocaml/setup-ocaml@v2
-        with:
-          ocaml-compiler: "5.0"
-
-      - name: Install dependencies
-        run: opam install -y dune base js_of_ocaml-compiler js_of_ocaml-ppx
-
-      - name: Build the type-checker
-        run: opam exec -- dune build
-
-      - name: Run tests
-        run: bash ./check_all.sh
+    - uses: actions/checkout@v4
+    - uses: cachix/install-nix-action@v27
+      with:
+        github_access_token: ${{ secrets.GITHUB_TOKEN }}
+    - run: nix build
+    - run: nix flake check --all-systems

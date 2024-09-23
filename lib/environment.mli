@@ -2,10 +2,7 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)
 
-type value =
-  | Coh of Coh.t
-  | Tm of ctx * tm
-
+type value = Coh of Coh.t | Tm of ctx * tm
 type t
 
 val add_let : Var.t -> ctx -> ?ty:ty -> tm -> tm * ty
