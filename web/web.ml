@@ -56,9 +56,26 @@ let run _ =
 
   let print s =
     let text = Js.to_string output_area##.value in
+    output_area##.style##.color := Js.string "black";
     output_area##.value := Js.string (text ^ s)
   in
   let clear_output () = output_area##.value := Js.string "" in
+
+  let print_error s =
+    let s =
+      if String.starts_with ~prefix:"\027[1;91m" s then
+        String.sub s 7 (String.length s - 7)
+      else s
+    in
+    let s =
+      if String.ends_with ~suffix:"\027[0m" s then
+        String.sub s 0 (String.length s - 4)
+      else s
+    in
+    let text = Js.to_string output_area##.value in
+    output_area##.style##.color := Js.string "red";
+    output_area##.value := Js.string (text ^ s)
+  in
 
   let run_action () =
     clear_output ();
@@ -79,7 +96,7 @@ let run _ =
   input_area##select;
 
   Sys_js.set_channel_flusher stdout print;
-  Sys_js.set_channel_flusher stderr print;
+  Sys_js.set_channel_flusher stderr print_error;
   Js._false
 
 let () = Html.window##.onload := Html.handler run
