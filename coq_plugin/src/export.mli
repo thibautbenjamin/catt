@@ -1,1 +1,1 @@
-val example : unit -> unit
+val catt_tm : unit -> unit
