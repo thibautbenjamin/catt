@@ -1,0 +1,74 @@
+#### Cellule d'Eckmann-Hilton en dimension 2 ####
+
+coh unitl (x(f)y) : comp (id _) f -> f
+coh unit (x) : comp (id x) (id x) -> id x
+coh lsimp (x) : (unitl (id x)) -> unit x
+coh Ilsimp (x) : I (unitl (id x)) -> I (unit x)
+coh exch (x(f(a)g)y(h(b)k)z) : comp (comp _ [b]) (id (comp f k)) (comp [a] _) -> comp [a] [b]
+
+coh eh1 (x(f(a)g(b)h)y) :
+comp a b -> comp (I (unitl f))
+                 (comp (comp _ [a]) (comp (unitl g) (I (op { 1 } (unitl g)))) (comp [b] _))
+                 (op { 1 } (unitl h))
+
+let eh2 (x : *) (a : id x -> id x) (b : id x -> id x) =
+comp [Ilsimp _]
+     [comp (comp _ [comp (comp [lsimp _] [op { 1 } (Ilsimp _)]) (U (unit _))] _)
+           (exch b a)]
+     [op { 1 } (lsimp _)]
+
+let eh-half (x : *) (a : id x -> id x) (b : id x -> id x) =
+comp (eh1 a b) (eh2 a b)
+
+let eh (x : *) (a : id x -> id x) (b : id x -> id x) =
+comp (eh-half a b) (I (op { 1 } (eh-half b a)))
+
+## Inverse et témoins d'inversion
+
+# let eh-inv (x : *) (a : id x -> id x) (b : id x -> id x) =
+# I (eh a b)
+
+# let eh-cancel (x : *) (a : id x -> id x) (b : id x -> id x) :
+# comp (eh a b) (eh-inv a b) -> id (comp a b) =
+# U (eh a b)
+
+# let eh-inv-is-op (x : *) (a : id x -> id x) (b : id x -> id x) :
+# eh-inv a b -> (op { 1 } (eh b a)) =
+# id (eh-inv a b)
+
+
+
+
+
+
+
+
+
+
+
+#### Cellules d'Eckmann-Hilton en dimension 3 ####
+## Par suspension
+# let eh-susp (x : *) (y : *) (f : x -> y) (m : id f -> id f) (n : id f -> id f) =
+# eh m n
+
+# let eh-21 (x : *) (m : id (id x) -> id (id x)) (n: id (id x) -> id (id x)) =
+# eh-susp m n
+
+## Par naturalité
+# let eh-nat (x : *)
+#            (a : id x -> id x) (b : id x -> id x) (c : id x -> id x) (d : id x -> id x)
+#            (m : a -> b) (n : c -> d)
+#   = eh [m] [n]
+
+coh eh-of-id (x) : eh (id (id x)) (id (id x)) -> id (comp (id (id x)) (id (id x)))
+
+# let eh-10 (x : *) (m : id (id x) -> id (id x)) (n : id (id x) -> id (id x)) :
+# comp [n] [m] -> comp [m] [n]
+# =
+# comp (I (unitl (comp [n] [m])))
+#      (comp [I (eh-of-id x)] _)
+#      (eh-nat m n)
+#      (comp _ [eh-of-id x])
+#      (op { 3 } (unitl (comp [m] [n])))
+
+## La dernière cellule d'Eckmann-Hilton... A définir à la main (dur!)
