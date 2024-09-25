@@ -46,12 +46,12 @@ Similarly, the identity cell can be defined as follows:
 ```
 coh identity (x : *) : x -> x
 ```
-Higher dimensional cells witnessing weak laws involving the composites and the identities cells, such as unitors and associators, can then be defined as follows:
+Higher-dimensional cells witnessing weak laws involving the composites and the identities cells, such as unitors and associators, can then be defined as follows:
 ```
 coh unit (x : *) (y : *) (f : x -> y) : binarycomp f (identity y) -> f
 coh assoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : binarycomp (binarycomp f g) h -> binarycomp f (binarycomp g h)
 ```
-More composition operations exist for higher dimensional cells: for instance for 2-cells we can define the vertical composition, the horizontal compositions and the left and right whiskerings:
+More composition operations exist for higher-dimensional cells: for instance for 2-cells we can define the vertical composition, the horizontal compositions and the left and right whiskerings:
 ```
 coh vert (x : *) (y : *) (f : x -> y) (g : x -> y) (h : x -> y) (a : f -> g) (b : g -> h) : f -> h
 coh horiz (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y -> z) (k : y -> z) (b : h -> k) : binarycomp f h -> binarycomp g k
