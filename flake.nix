@@ -13,7 +13,7 @@
         pkgs = (import nixpkgs { inherit system; });
         ocamlPackages = pkgs.ocaml-ng.ocamlPackages_4_14;
         sources = {
-          ocaml = nix-filter.lib {
+          catt = nix-filter.lib {
             root = ./.;
             include = [
               ".ocamlformat"
@@ -30,6 +30,30 @@
               ".ocamlformat"
               "dune-project"
               (nix-filter.lib.inDirectory "web")
+            ];
+          };
+
+          coq-plugin = nix-filter.lib {
+            root = ./.;
+            include = [
+              ".ocamlformat"
+              "dune-project"
+              (nix-filter.lib.inDirectory "coq_plugin")
+              (nix-filter.lib.inDirectory "test.t")
+            ];
+          };
+
+          ocaml = nix-filter.lib {
+            root = ./.;
+            include = [
+              ".ocamlformat"
+              "dune-project"
+              (nix-filter.lib.inDirectory "bin")
+              (nix-filter.lib.inDirectory "lib")
+              (nix-filter.lib.inDirectory "test.t")
+              (nix-filter.lib.inDirectory "web")
+              (nix-filter.lib.inDirectory "coq_plugin/src/")
+              "coq_plugin/theories/dune"
             ];
           };
 
@@ -51,7 +75,7 @@
             minimalOcamlVersion = "4.08";
             doCheck = false;
 
-            src = sources.ocaml;
+            src = sources.catt;
 
             nativeBuildInputs = with ocamlPackages; [ menhir ];
 
@@ -95,6 +119,25 @@
             };
           };
 
+          catt-coq-plugin = pkgs.coqPackages.mkCoqDerivation {
+            pname = "catt-plugin";
+            version = "1.0";
+            src = sources.coq-plugin;
+            nativeBuildInputs = [ ];
+
+            buildInputs =
+              [ self.packages.${system}.catt pkgs.dune_3 pkgs.opam ];
+            mlPlugin = true;
+            useDune = true;
+
+            meta = {
+              description = "Coq plugin for the catt proof-assistant";
+              homepage = "https://www.github.com/thibautbenjamin/catt";
+              license = nixpkgs.lib.licenses.mit;
+              maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
+            };
+          };
+
           catt-mode = pkgs.emacs.pkgs.trivialBuild rec {
             pname = "catt-mode";
             version = "1.0";
@@ -128,29 +171,9 @@
             ];
           } ''
             echo "checking dune and ocaml formatting for catt"
-            dune build \
+            dune fmt \
                   --display=short \
-                  --no-print-directory \
-                  --root="${sources.ocaml}" \
-                  --build-dir="$(pwd)/_build" \
-                  @fmt
-                  touch $out
-          '';
-
-          web-fmt = pkgs.runCommand "check-ocaml-fmt" {
-            nativeBuildInputs = [
-              ocamlPackages.dune_3
-              ocamlPackages.ocaml
-              ocamlPackages.ocamlformat
-            ];
-          } ''
-            echo "checking dune and ocaml formatting for catt-web"
-            dune build \
-                  --display=short \
-                  --no-print-directory \
-                  --root="${sources.web}" \
-                  --build-dir="$(pwd)/_build" \
-                  @fmt
+                  --root=$(pwd)
                   touch $out
           '';
 
@@ -172,8 +195,11 @@
               utop
             ]);
 
-          inputsFrom =
-            [ self.packages.${system}.catt self.packages.${system}.catt-web ];
+          inputsFrom = [
+            self.packages.${system}.catt
+            self.packages.${system}.catt-web
+            self.packages.${system}.catt-coq-plugin
+          ];
         };
 
         devShells.web = self.packages.${system}.catt-web;

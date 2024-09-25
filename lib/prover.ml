@@ -1,4 +1,3 @@
-(** Parse a string. *)
 let parse s =
   let lexbuf = Lexing.from_string s in
   try Ok (Parser.prog Lexer.token lexbuf) with
@@ -22,6 +21,21 @@ let parse s =
             You can change the name of the term or coherence, or add the \
             option '--no-builtins' to deactivate the use of built-ins"
            x)
+
+let parse_file f =
+  let sin =
+    let fi = open_in f in
+    let flen = in_channel_length fi in
+    let buf = Bytes.create flen in
+    really_input fi buf 0 flen;
+    close_in fi;
+    buf
+  in
+  parse (Bytes.to_string sin)
+
+let reset () =
+  Environment.reset ();
+  Settings.reset ()
 
 (** Initialize the prover. *)
 let init () = Printf.printf "=^.^= "

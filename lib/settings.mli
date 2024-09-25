@@ -8,3 +8,4 @@ val implicit_suspension : bool ref
 val keep_going : bool ref
 val debug : bool ref
 val postprocess : bool ref
+val reset : unit -> unit

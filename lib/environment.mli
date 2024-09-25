@@ -10,3 +10,4 @@ val add_coh : Var.t -> ps -> ty -> Coh.t
 val val_var : Var.t -> value
 val dim_output : Var.t -> int
 val dim_input : Var.t -> int
+val reset : unit -> unit

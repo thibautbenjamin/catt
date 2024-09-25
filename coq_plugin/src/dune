@@ -1,0 +1,8 @@
+(library
+ (name coq_plugin)
+ (public_name coq-catt-plugin.lib)
+ (flags :standard -rectypes -w -27)
+ (libraries coq-core.vernac catt))
+
+(coq.pp
+ (modules g_catt))
