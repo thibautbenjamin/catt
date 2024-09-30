@@ -67,6 +67,8 @@
   [=I.I=] successfully defined simpl.
   [=^.^=] check (comp  (sq  f) (cbd  f))
   [=I.I=] valid term (comp (comp f f) (comp f (comp f f))) of type x -> x.
+  [=^.^=] let comp-bis = (comp  f g)
+  [=I.I=] successfully defined term (comp f g) of type x -> z.
 
   $ catt features/builtins.catt
   [=^.^=] coh unit = (_builtin_comp  f (_builtin_id  _)) -> f
