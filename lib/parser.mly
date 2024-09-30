@@ -72,8 +72,12 @@ cmd:
   | SET IDENT EQUAL IDENT { Set ($2,$4) }
   | SET IDENT EQUAL INT { Set ($2,$4) }
 
+args_of_same_ty :
+  | IDENT COL tyexpr { [Var.make_var $1, $3], $3 }
+  | IDENT COMA args_of_same_ty { (Var.make_var $1, snd $3)::(fst $3), snd $3 }
+
 nonempty_args :
-  | LPAR IDENT COL tyexpr RPAR args { (Var.make_var $2, $4)::$6 }
+  | LPAR args_of_same_ty RPAR args { List.append (fst $2) $4 }
 
 args:
   | nonempty_args { $1 }

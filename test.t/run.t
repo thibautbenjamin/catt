@@ -80,6 +80,12 @@
   [=^.^=] coh unbiase = (_builtin_comp  _ _ (_builtin_comp  _ _ f _ g) _ h) -> (_builtin_comp  _ _ f _ g _ h)
   [=I.I=] successfully defined unbiase.
 
+  $ catt features/contexts.catt
+  [=^.^=] coh whisk = (_builtin_comp  f h) -> (_builtin_comp  g h)
+  [=I.I=] successfully defined whisk.
+  [=^.^=] let composition = (whisk  a h)
+  [=I.I=] successfully defined term (whisk a h) of type (builtin_comp2 f h) -> (builtin_comp2 g h).
+
   $ catt features/suspension.catt
   [=^.^=] let comp2 = (!1 _builtin_comp  a b)
   [=I.I=] successfully defined term (!1builtin_comp2 a b) of type f -> h.
@@ -488,14 +494,14 @@
   [=I.I=] successfully defined rrew2idA.
   [=^.^=] coh rrrew2A = (rrew2A  al0 bet0) -> (rrew2A  al1 bet1)
   [=I.I=] successfully defined rrrew2A.
-  [=^.^=] coh id2@/1-,2-/ = (id2@1-  (_builtin_id  x)) -> (id2@2-  (_builtin_id  x))
-  [=I.I=] successfully defined id2@/1-,2-/.
-  [=^.^=] coh id2@/1-,2-/- = (id2@2-  (_builtin_id  x)) -> (id2@1-  (_builtin_id  x))
-  [=I.I=] successfully defined id2@/1-,2-/-.
-  [=^.^=] coh id2@/1,2/ = (id2@1  (_builtin_id  x)) -> (id2@2  (_builtin_id  x))
-  [=I.I=] successfully defined id2@/1,2/.
-  [=^.^=] coh id2@/1,2/- = (id2@2  (_builtin_id  x)) -> (id2@1  (_builtin_id  x))
-  [=I.I=] successfully defined id2@/1,2/-.
+  [=^.^=] coh id2@/1-/2-/ = (id2@1-  (_builtin_id  x)) -> (id2@2-  (_builtin_id  x))
+  [=I.I=] successfully defined id2@/1-/2-/.
+  [=^.^=] coh id2@/1-/2-/- = (id2@2-  (_builtin_id  x)) -> (id2@1-  (_builtin_id  x))
+  [=I.I=] successfully defined id2@/1-/2-/-.
+  [=^.^=] coh id2@/1/2/ = (id2@1  (_builtin_id  x)) -> (id2@2  (_builtin_id  x))
+  [=I.I=] successfully defined id2@/1/2/.
+  [=^.^=] coh id2@/1/2/- = (id2@2  (_builtin_id  x)) -> (id2@1  (_builtin_id  x))
+  [=I.I=] successfully defined id2@/1/2/-.
   [=^.^=] coh id2@2@1U = (_builtin_comp  (id2@2  (_builtin_id  x)) (id2@1-  (_builtin_id  x))) -> (_builtin_id  (_builtin_comp  (_builtin_id  x) (_builtin_id  x)))
   [=I.I=] successfully defined id2@2@1U.
   [=^.^=] coh id2@2@1U- = (_builtin_id  (_builtin_comp  (_builtin_id  x) (_builtin_id  x))) -> (_builtin_comp  (id2@2  (_builtin_id  x)) (id2@1-  (_builtin_id  x)))
@@ -606,8 +612,8 @@
   [=I.I=] successfully defined exch-.
   [=^.^=] coh exchU = (_builtin_comp  (exch  a b) (exch-  a b)) -> (_builtin_id  (_builtin_comp  (rew2@1  a h) (rew2@2  g b)))
   [=I.I=] successfully defined exchU.
-  [=^.^=] let eh = (comp5  (rew2A  (rew2@1id@2-  a) (rew2@2id@1-  b)) (red3F  (id2@2-  (_builtin_id  x)) (rew2@1  a (_builtin_id  x)) (id2@2@1U  x) (rew2@2  (_builtin_id  x) b) (id2@1  (_builtin_id  x))) (rew3A  (id2@/1-,2-/-  x) (exch  a b) (id2@/1,2/  x)) (red3F-  (id2@1-  (_builtin_id  x)) (rew2@2  (_builtin_id  x) b) (id2@1@2U-  x) (rew2@1  a (_builtin_id  x)) (id2@2  (_builtin_id  x))) (rew2A  (rew2@2id@1  b) (rew2@1id@2  a)))
-  [=I.I=] successfully defined term (!2comp5 (!1rew2A (rew2@1id@2- a) (rew2@2id@1- b)) (!2builtin_comp2 (!1focus3 (id2@2- (builtin_id x)) (rew2@1 a (builtin_id x)) (id2@2 (builtin_id x)) (id2@1- (builtin_id x)) (rew2@2 (builtin_id x) b) (id2@1 (builtin_id x))) (!2builtin_comp2 (!1rew5@3 (id2@2- (builtin_id x)) (rew2@1 a (builtin_id x)) (id2@2@1U x) (rew2@2 (builtin_id x) b) (id2@1 (builtin_id x))) (!1id5@3F (id2@2- (builtin_id x)) (rew2@1 a (builtin_id x)) (rew2@2 (builtin_id x) b) (id2@1 (builtin_id x))))) (!1rew3A (id2@/1-,2-/- x) (exch a b) (id2@/1,2/ x)) (!2builtin_comp2 (!2builtin_comp2 (!1id5@3F- (id2@1- (builtin_id x)) (rew2@2 (builtin_id x) b) (rew2@1 a (builtin_id x)) (id2@2 (builtin_id x))) (!1rew5@3 (id2@1- (builtin_id x)) (rew2@2 (builtin_id x) b) (id2@1@2U- x) (rew2@1 a (builtin_id x)) (id2@2 (builtin_id x)))) (!1focus3- (id2@1- (builtin_id x)) (rew2@2 (builtin_id x) b) (id2@1 (builtin_id x)) (id2@2- (builtin_id x)) (rew2@1 a (builtin_id x)) (id2@2 (builtin_id x)))) (!1rew2A (rew2@2id@1 b) (rew2@1id@2 a))) of type (!1builtin_comp2 a b) -> (!1builtin_comp2 b a).
+  [=^.^=] let eh = (comp5  (rew2A  (rew2@1id@2-  a) (rew2@2id@1-  b)) (red3F  (id2@2-  (_builtin_id  x)) (rew2@1  a (_builtin_id  x)) (id2@2@1U  x) (rew2@2  (_builtin_id  x) b) (id2@1  (_builtin_id  x))) (rew3A  (id2@/1-/2-/-  x) (exch  a b) (id2@/1/2/  x)) (red3F-  (id2@1-  (_builtin_id  x)) (rew2@2  (_builtin_id  x) b) (id2@1@2U-  x) (rew2@1  a (_builtin_id  x)) (id2@2  (_builtin_id  x))) (rew2A  (rew2@2id@1  b) (rew2@1id@2  a)))
+  [=I.I=] successfully defined term (!2comp5 (!1rew2A (rew2@1id@2- a) (rew2@2id@1- b)) (!2builtin_comp2 (!1focus3 (id2@2- (builtin_id x)) (rew2@1 a (builtin_id x)) (id2@2 (builtin_id x)) (id2@1- (builtin_id x)) (rew2@2 (builtin_id x) b) (id2@1 (builtin_id x))) (!2builtin_comp2 (!1rew5@3 (id2@2- (builtin_id x)) (rew2@1 a (builtin_id x)) (id2@2@1U x) (rew2@2 (builtin_id x) b) (id2@1 (builtin_id x))) (!1id5@3F (id2@2- (builtin_id x)) (rew2@1 a (builtin_id x)) (rew2@2 (builtin_id x) b) (id2@1 (builtin_id x))))) (!1rew3A (id2@/1-/2-/- x) (exch a b) (id2@/1/2/ x)) (!2builtin_comp2 (!2builtin_comp2 (!1id5@3F- (id2@1- (builtin_id x)) (rew2@2 (builtin_id x) b) (rew2@1 a (builtin_id x)) (id2@2 (builtin_id x))) (!1rew5@3 (id2@1- (builtin_id x)) (rew2@2 (builtin_id x) b) (id2@1@2U- x) (rew2@1 a (builtin_id x)) (id2@2 (builtin_id x)))) (!1focus3- (id2@1- (builtin_id x)) (rew2@2 (builtin_id x) b) (id2@1 (builtin_id x)) (id2@2- (builtin_id x)) (rew2@1 a (builtin_id x)) (id2@2 (builtin_id x)))) (!1rew2A (rew2@2id@1 b) (rew2@1id@2 a))) of type (!1builtin_comp2 a b) -> (!1builtin_comp2 b a).
 
   $ catt coverage/eckmann-hilton-optimized.catt
   [=^.^=] coh unitl = (_builtin_comp  (_builtin_id  _) f) -> f
