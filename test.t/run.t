@@ -74,7 +74,7 @@
   [=^.^=] coh unbiase = (_builtin_comp  (_builtin_comp  f g) h) -> (_builtin_comp  f g h)
   [=I.I=] successfully defined unbiase.
   [=^.^=] coh unit_bis = (_builtin_comp  x y f y (_builtin_id  y)) -> f
-  [=I.I=] successfully defined unit_bis.
+  [=I.I=] successfully defined unit.
   [=^.^=] coh unbiase = (_builtin_comp  _ _ (_builtin_comp  _ _ f _ g) _ h) -> (_builtin_comp  _ _ f _ g _ h)
   [=I.I=] successfully defined unbiase.
 
@@ -120,6 +120,8 @@
   [=^.^=] coh simpl = (sq  (_builtin_id  x)) -> (_builtin_id  x)
   [=I.I=] inferring constraints for context:  (x: *).
   [=I.I=] context elaborated to  (x: *).
+  [=I.I=] checking coherence: builtin_id.
+  [=I.I=] checking coherence: builtin_id.
   [=I.I=] inferring constraints for type: _ty18 | (builtin_comp2 (builtin_id x) (builtin_id x)) -> (builtin_id x).
   [=I.I=] type elaborated to * | x -> x | (builtin_comp2 (builtin_id x) (builtin_id x)) -> (builtin_id x).
   [=I.I=] checking coherence: simpl.
@@ -168,19 +170,19 @@
   [=^.^=] let optest1 = op_{1}((test  c d a b))
   [=I.I=] successfully defined term (test_op{1} x y f f' a f'' b z g g' c g'' d) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
   [=^.^=] let optest2 = op_{2}((test  b a d c))
-  [=I.I=] successfully defined term (test_op{2} x y f f' a f'' b z g g' c g'' d) of type (builtin_comp2_op{2} x y f z g) -> (builtin_comp2_op{2} x y f'' z g'').
+  [=I.I=] successfully defined term (test_op{1} x y f f' a f'' b z g g' c g'' d) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
   [=^.^=] let optest12 = op_{1,2}((test  d c b a))
-  [=I.I=] successfully defined term (test_op{1,2} x y f f' a f'' b z g g' c g'' d) of type (builtin_comp2_op{1,2} x y f z g) -> (builtin_comp2_op{1,2} x y f'' z g'').
+  [=I.I=] successfully defined term (test_op{1} x y f f' a f'' b z g g' c g'' d) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
   [=^.^=] let nested1 = op_{1}((_builtin_comp  [(_builtin_comp  c d)] [(_builtin_comp  a b)]))
-  [=I.I=] successfully defined term (builtin_comp2_func[1 1]_op{1} x y f f'' (!1builtin_comp2_op{1} x y f f' a f'' b) z g g'' (!1builtin_comp2_op{1} y z g g' c g'' d)) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
+  [=I.I=] successfully defined term (builtin_comp2_func[1 1]_op{1} x y f f'' (!1builtin_comp2 x y f f' a f'' b) z g g'' (!1builtin_comp2 y z g g' c g'' d)) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
   [=^.^=] let nested2 = op_{2}((_builtin_comp  [(_builtin_comp  b a)] [(_builtin_comp  d c)]))
-  [=I.I=] successfully defined term (builtin_comp2_func[1 1]_op{2} x y f f'' (!1builtin_comp2_op{2} x y f f' a f'' b) z g g'' (!1builtin_comp2_op{2} y z g g' c g'' d)) of type (builtin_comp2_op{2} x y f z g) -> (builtin_comp2_op{2} x y f'' z g'').
+  [=I.I=] successfully defined term (builtin_comp2_func[1 1]_op{1} x y f f'' (!1builtin_comp2 x y f f' a f'' b) z g g'' (!1builtin_comp2 y z g g' c g'' d)) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
   [=^.^=] let nested12 = op_{1,2}((_builtin_comp  [(_builtin_comp  d c)] [(_builtin_comp  b a)]))
-  [=I.I=] successfully defined term (builtin_comp2_func[1 1]_op{1,2} x y f f'' (!1builtin_comp2_op{1,2} x y f f' a f'' b) z g g'' (!1builtin_comp2_op{1,2} y z g g' c g'' d)) of type (builtin_comp2_op{1,2} x y f z g) -> (builtin_comp2_op{1,2} x y f'' z g'').
+  [=I.I=] successfully defined term (builtin_comp2_func[1 1]_op{1} x y f f'' (!1builtin_comp2 x y f f' a f'' b) z g g'' (!1builtin_comp2 y z g g' c g'' d)) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
 
   $ catt features/inverses.catt
   [=^.^=] let id_inv = I((_builtin_id  x))
-  [=I.I=] successfully defined term (builtin_id^-1 x) of type x -> x.
+  [=I.I=] successfully defined term (builtin_id x) of type x -> x.
   [=^.^=] coh assoc = (_builtin_comp  (_builtin_comp  f g) h) -> (_builtin_comp  f (_builtin_comp  g h))
   [=I.I=] successfully defined assoc.
   [=^.^=] coh unbiase = (_builtin_comp  f (_builtin_comp  g h)) -> (_builtin_comp  f g h)
@@ -198,31 +200,31 @@
   [=^.^=] let unitl_inv = I((unitl  f))
   [=I.I=] successfully defined term (unitl^-1 f) of type f -> (builtin_comp2 (builtin_id x) f).
   [=^.^=] let assoc_unbiase_inv = I((_builtin_comp  (assoc  f f f) (unbiase  f f f)))
-  [=I.I=] successfully defined term (!1builtin_comp2_op{2} (unbiase^-1 f f f) (assoc^-1 f f f)) of type (builtin_comp3 f f f) -> (builtin_comp2 (builtin_comp2 f f) f).
+  [=I.I=] successfully defined term (!1builtin_comp2 (unbiase^-1 f f f) (assoc^-1 f f f)) of type (builtin_comp3 f f f) -> (builtin_comp2 (builtin_comp2 f f) f).
   [=^.^=] let id_id_inv = I((_builtin_comp  (_builtin_id  x) (_builtin_id  x)))
-  [=I.I=] successfully defined term (builtin_comp2_op{1} (builtin_id^-1 x) (builtin_id^-1 x)) of type x -> x.
+  [=I.I=] successfully defined term (builtin_comp2_op{1} (builtin_id x) (builtin_id x)) of type x -> x.
   [=^.^=] check I((_builtin_comp  (_builtin_id  x) [(_builtin_comp  (assoc  f f f) (unbiase  f f f))] (_builtin_id  x)))
-  [=I.I=] valid term (builtin_comp3_func[1]_op{2} (builtin_id x) (!1builtin_comp2_op{2} (unbiase^-1 f f f) (assoc^-1 f f f)) (builtin_id x)) of type (builtin_comp3_op{2} (builtin_id x) (builtin_comp3 f f f) (builtin_id x)) -> (builtin_comp3_op{2} (builtin_id x) (builtin_comp2 (builtin_comp2 f f) f) (builtin_id x)).
+  [=I.I=] valid term (builtin_comp3_func[1]_op{2} (builtin_id x) (!1builtin_comp2 (unbiase^-1 f f f) (assoc^-1 f f f)) (builtin_id x)) of type (builtin_comp3_op{2} (builtin_id x) (builtin_comp3 f f f) (builtin_id x)) -> (builtin_comp3_op{2} (builtin_id x) (builtin_comp2 (builtin_comp2 f f) f) (builtin_id x)).
   [=^.^=] check I((21comp  (assoc  f f f) (unbiase  f f f) (assoc  f f f)))
-  [=I.I=] valid term (21comp_op{2} (unbiase^-1 f f f) (assoc^-1 f f f) (assoc^-1 f f f)) of type (builtin_comp2_op{2} (builtin_comp3 f f f) (builtin_comp2 f (builtin_comp2 f f))) -> (builtin_comp2_op{2} (builtin_comp2 (builtin_comp2 f f) f) (builtin_comp2 (builtin_comp2 f f) f)).
+  [=I.I=] valid term (21comp_op{2} (unbiase^-1 f f f) (assoc^-1 f f f) (assoc^-1 f f f)) of type (builtin_comp2_op{1} (builtin_comp3 f f f) (builtin_comp2 f (builtin_comp2 f f))) -> (builtin_comp2_op{1} (builtin_comp2 (builtin_comp2 f f) f) (builtin_comp2 (builtin_comp2 f f) f)).
   [=^.^=] check I((2whisk  (_builtin_id  f) (_builtin_id  f) f))
-  [=I.I=] valid term (2whisk_op{2} (!1builtin_id^-1 f) (!1builtin_id^-1 f) f) of type (builtin_comp2_op{2} f f) -> (builtin_comp2_op{2} f f).
+  [=I.I=] valid term (2whisk_op{2} (!1builtin_id f) (!1builtin_id f) f) of type (builtin_comp2_op{1} f f) -> (builtin_comp2_op{1} f f).
   [=^.^=] check I((_builtin_comp  [(_builtin_comp  (assoc  (_builtin_id  f) (_builtin_id  f) (_builtin_id  f)) (unbiase  (_builtin_id  f) (_builtin_id  f) (_builtin_id  f)))] (_builtin_id  f)))
-  [=I.I=] valid term (!1builtin_comp2_func[1]_op{3} (!2builtin_comp2_op{3} (!1unbiase^-1 (!1builtin_id f) (!1builtin_id f) (!1builtin_id f)) (!1assoc^-1 (!1builtin_id f) (!1builtin_id f) (!1builtin_id f))) (!1builtin_id f)) of type (!1builtin_comp2_op{3} (!1builtin_comp3 (!1builtin_id f) (!1builtin_id f) (!1builtin_id f)) (!1builtin_id f)) -> (!1builtin_comp2_op{3} (!1builtin_comp2 (!1builtin_comp2 (!1builtin_id f) (!1builtin_id f)) (!1builtin_id f)) (!1builtin_id f)).
+  [=I.I=] valid term (!1builtin_comp2 [(!2builtin_comp2 (!1unbiase^-1 (!1builtin_id f) (!1builtin_id f) (!1builtin_id f)) (!1assoc^-1 (!1builtin_id f) (!1builtin_id f) (!1builtin_id f)))] (!1builtin_id f)) of type (!1builtin_comp2 (!1builtin_comp3 (!1builtin_id f) (!1builtin_id f) (!1builtin_id f)) (!1builtin_id f)) -> (!1builtin_comp2 (!1builtin_comp2 (!1builtin_comp2 (!1builtin_id f) (!1builtin_id f)) (!1builtin_id f)) (!1builtin_id f)).
   [=^.^=] check I((_builtin_comp  [(_builtin_comp  (assoc  f f f) (unbiase  f f f))] (_builtin_comp  (_builtin_id  x) I((_builtin_id  x))) [I((_builtin_comp  (_builtin_id  g) (_builtin_id  g)))] (_builtin_id  y)))
-  [=I.I=] valid term (builtin_comp4_func[1 1]_op{2} (!1builtin_comp2_op{2} (unbiase^-1 f f f) (assoc^-1 f f f)) (builtin_comp2 (builtin_id x) (builtin_id^-1 x)) (!1builtin_comp2_op{2}_op{2} (!1builtin_id^-1^-1 g) (!1builtin_id^-1^-1 g)) (builtin_id y)) of type (builtin_comp4_op{2} (builtin_comp3 f f f) (builtin_comp2 (builtin_id x) (builtin_id^-1 x)) g (builtin_id y)) -> (builtin_comp4_op{2} (builtin_comp2 (builtin_comp2 f f) f) (builtin_comp2 (builtin_id x) (builtin_id^-1 x)) g (builtin_id y)).
+  [=I.I=] valid term (builtin_comp4_func[1 1]_op{2} (!1builtin_comp2 (unbiase^-1 f f f) (assoc^-1 f f f)) (builtin_comp2 (builtin_id x) (builtin_id x)) (!1builtin_comp2 (!1builtin_id g) (!1builtin_id g)) (builtin_id y)) of type (builtin_comp4_op{2} (builtin_comp3 f f f) (builtin_comp2 (builtin_id x) (builtin_id x)) g (builtin_id y)) -> (builtin_comp4_op{2} (builtin_comp2 (builtin_comp2 f f) f) (builtin_comp2 (builtin_id x) (builtin_id x)) g (builtin_id y)).
   [=^.^=] check I((assoc  x y f z g w h))
   [=I.I=] valid term (assoc^-1 f g h) of type (builtin_comp2 f (builtin_comp2 g h)) -> (builtin_comp2 (builtin_comp2 f g) h).
   [=^.^=] check U((assoc  f g h))
   [=I.I=] valid term (assoc_Unit f g h) of type (!1builtin_comp2 (builtin_comp2 (builtin_comp2 f g) h) (builtin_comp2 f (builtin_comp2 g h)) (assoc f g h) (assoc^-1 f g h)) -> (!1builtin_id (builtin_comp2 (builtin_comp2 f g) h)).
   [=^.^=] check U((_builtin_comp  (_builtin_id  f) (_builtin_id  f)))
-  [=I.I=] valid term (!2builtin_comp3 (vertical_grouping (!1builtin_id f) (!1builtin_id f) (!1builtin_id^-1 f) (!1builtin_id^-1 f)) (unbiased_comp_red [(!2builtin_comp4 (!1focus (!1builtin_id f) (!1builtin_id f) (!1builtin_id^-1 f) (!1builtin_id^-1 f)) (!1builtin_comp3 (!1builtin_id f) (!1builtin_id_Unit f) (!1builtin_id^-1 f)) (!1unit (!1builtin_id f) (!1builtin_id^-1 f)) (!1builtin_id_Unit f))]) (unbiased_unitor f)) of type (!1builtin_comp2 (!1builtin_comp2 (!1builtin_id f) (!1builtin_id f)) (!1builtin_comp2_op{2} (!1builtin_id^-1 f) (!1builtin_id^-1 f))) -> (!1builtin_id f).
+  [=I.I=] valid term (!2builtin_comp3 (vertical_grouping (!1builtin_id f) (!1builtin_id f) (!1builtin_id f) (!1builtin_id f)) (unbiased_comp_red [(!2builtin_comp4 (!1focus (!1builtin_id f) (!1builtin_id f) (!1builtin_id f) (!1builtin_id f)) (!1builtin_comp3 (!1builtin_id f) (!1builtin_id_Unit f) (!1builtin_id f)) (!1unit (!1builtin_id f) (!1builtin_id f)) (!1builtin_id_Unit f))]) (unbiased_unitor f)) of type (!1builtin_comp2 (!1builtin_comp2 (!1builtin_id f) (!1builtin_id f)) (!1builtin_comp2 (!1builtin_id f) (!1builtin_id f))) -> (!1builtin_id f).
   [=^.^=] check U((_builtin_comp  [(_builtin_id  f)] [(_builtin_id  g)]))
-  [=I.I=] valid term (!2builtin_comp3 (vertical_grouping (!1builtin_id f) (!1builtin_id^-1 f) (!1builtin_id g) (!1builtin_id^-1 g)) (unbiased_comp_red [(!1builtin_id_Unit f)] [(!1builtin_id_Unit g)]) (unbiased_unitor f g)) of type (!1builtin_comp2 (builtin_comp2 [(!1builtin_id f)] [(!1builtin_id g)]) (builtin_comp2_func[1 1]_op{2} (!1builtin_id^-1 f) (!1builtin_id^-1 g))) -> (!1builtin_id (builtin_comp2 f g)).
+  [=I.I=] valid term (!2builtin_comp3 (vertical_grouping (!1builtin_id f) (!1builtin_id f) (!1builtin_id g) (!1builtin_id g)) (unbiased_comp_red [(!1builtin_id_Unit f)] [(!1builtin_id_Unit g)]) (unbiased_unitor f g)) of type (!1builtin_comp2 (builtin_comp2 [(!1builtin_id f)] [(!1builtin_id g)]) (builtin_comp2_func[1 1]_op{2} (!1builtin_id f) (!1builtin_id g))) -> (!1builtin_id (builtin_comp2 f g)).
   [=^.^=] check U((_builtin_comp  (assoc  f f f) (unbiase  f f f)))
-  [=I.I=] valid term (!2builtin_comp3 (vertical_grouping (assoc f f f) (unbiase f f f) (unbiase^-1 f f f) (assoc^-1 f f f)) (unbiased_comp_red [(!2builtin_comp4 (!1focus (assoc f f f) (unbiase f f f) (unbiase^-1 f f f) (assoc^-1 f f f)) (!1builtin_comp3 (assoc f f f) (unbiase_Unit f f f) (assoc^-1 f f f)) (!1unit (assoc f f f) (assoc^-1 f f f)) (assoc_Unit f f f))]) (unbiased_unitor (builtin_comp2 (builtin_comp2 f f) f))) of type (!1builtin_comp2 (!1builtin_comp2 (assoc f f f) (unbiase f f f)) (!1builtin_comp2_op{2} (unbiase^-1 f f f) (assoc^-1 f f f))) -> (!1builtin_id (builtin_comp2 (builtin_comp2 f f) f)).
+  [=I.I=] valid term (!2builtin_comp3 (vertical_grouping (assoc f f f) (unbiase f f f) (unbiase^-1 f f f) (assoc^-1 f f f)) (unbiased_comp_red [(!2builtin_comp4 (!1focus (assoc f f f) (unbiase f f f) (unbiase^-1 f f f) (assoc^-1 f f f)) (!1builtin_comp3 (assoc f f f) (unbiase_Unit f f f) (assoc^-1 f f f)) (!1unit (assoc f f f) (assoc^-1 f f f)) (assoc_Unit f f f))]) (unbiased_unitor (builtin_comp2 (builtin_comp2 f f) f))) of type (!1builtin_comp2 (!1builtin_comp2 (assoc f f f) (unbiase f f f)) (!1builtin_comp2 (unbiase^-1 f f f) (assoc^-1 f f f))) -> (!1builtin_id (builtin_comp2 (builtin_comp2 f f) f)).
   [=^.^=] check U((_builtin_comp  (assoc  f f g) (_builtin_id  (_builtin_comp  f (_builtin_comp  f g))) (unbiase  f f g) I((unbiase  f f g))))
-  [=I.I=] valid term (!2builtin_comp3 (vertical_grouping (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g) (unbiase^-1^-1 f f g) (unbiase^-1 f f g) (!1builtin_id^-1 (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (unbiased_comp_red [(!2builtin_comp4 (!1focus (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g) (unbiase^-1^-1 f f g) (unbiase^-1 f f g) (!1builtin_id^-1 (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1builtin_comp7 (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1_Unit f f g) (unbiase^-1 f f g) (!1builtin_id^-1 (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1unit (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g) (!1builtin_id^-1 (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!2builtin_comp4 (!1focus (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g) (!1builtin_id^-1 (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1builtin_comp5 (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase_Unit f f g) (!1builtin_id^-1 (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1unit (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (!1builtin_id^-1 (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!2builtin_comp4 (!1focus (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (!1builtin_id^-1 (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1builtin_comp3 (assoc f f g) (!1builtin_id_Unit (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1unit (assoc f f g) (assoc^-1 f f g)) (assoc_Unit f f g))))]) (unbiased_unitor (builtin_comp2 (builtin_comp2 f f) g))) of type (!1builtin_comp2 (!1builtin_comp4 (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g)) (!1builtin_comp4_op{2} (unbiase^-1^-1 f f g) (unbiase^-1 f f g) (!1builtin_id^-1 (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g))) -> (!1builtin_id (builtin_comp2 (builtin_comp2 f f) g)).
+  [=I.I=] valid term (!2builtin_comp3 (vertical_grouping (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g) (unbiase f f g) (unbiase^-1 f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (unbiased_comp_red [(!2builtin_comp4 (!1focus (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g) (unbiase f f g) (unbiase^-1 f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1builtin_comp7 (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1_Unit f f g) (unbiase^-1 f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1unit (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!2builtin_comp4 (!1focus (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1builtin_comp5 (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase_Unit f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1unit (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!2builtin_comp4 (!1focus (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1builtin_comp3 (assoc f f g) (!1builtin_id_Unit (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g)) (!1unit (assoc f f g) (assoc^-1 f f g)) (assoc_Unit f f g))))]) (unbiased_unitor (builtin_comp2 (builtin_comp2 f f) g))) of type (!1builtin_comp2 (!1builtin_comp4 (assoc f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (unbiase f f g) (unbiase^-1 f f g)) (!1builtin_comp4 (unbiase f f g) (unbiase^-1 f f g) (!1builtin_id (builtin_comp2 f (builtin_comp2 f g))) (assoc^-1 f f g))) -> (!1builtin_id (builtin_comp2 (builtin_comp2 f f) g)).
   [=^.^=] check U((21comp  (assoc  f f f) (unbiase  f f f) (assoc  g g g)))
   [=I.I=] valid term (!2builtin_comp3 (vertical_grouping (assoc f f f) (unbiase f f f) (unbiase^-1 f f f) (assoc^-1 f f f) (assoc g g g) (assoc^-1 g g g)) (unbiased_comp_red [(!2builtin_comp4 (!1focus (assoc f f f) (unbiase f f f) (unbiase^-1 f f f) (assoc^-1 f f f)) (!1builtin_comp3 (assoc f f f) (unbiase_Unit f f f) (assoc^-1 f f f)) (!1unit (assoc f f f) (assoc^-1 f f f)) (assoc_Unit f f f))] [(assoc_Unit g g g)]) (unbiased_unitor (builtin_comp2 (builtin_comp2 f f) f) (builtin_comp2 (builtin_comp2 g g) g))) of type (!1builtin_comp2 (21comp (assoc f f f) (unbiase f f f) (assoc g g g)) (21comp_op{2} (unbiase^-1 f f f) (assoc^-1 f f f) (assoc^-1 g g g))) -> (!1builtin_id (builtin_comp2 (builtin_comp2 (builtin_comp2 f f) f) (builtin_comp2 (builtin_comp2 g g) g))).
 
@@ -240,43 +242,43 @@
   [=^.^=] let nat_assoc = (assoc  [a] [b] [c])
   [=I.I=] successfully defined term (assoc [a] [b] [c]) of type (!1builtin_comp2 (assoc f g h) (builtin_comp2 [a] [(builtin_comp2 [b] [c])])) -> (!1builtin_comp2 (builtin_comp2 [(builtin_comp2 [a] [b])] [c]) (assoc f' g' h')).
   [=^.^=] let whiskL = (_builtin_comp  f [a])
-  [=I.I=] successfully defined term (builtin_comp2 f [a]) of type (builtin_comp2 f g) -> (builtin_comp2 f h).
+  [=I.I=] successfully defined term (whiskl f a) of type (builtin_comp2 f g) -> (builtin_comp2 f h).
   [=^.^=] let nat_assoc = (assoc  [a] [[B]] [c])
   [=I.I=] successfully defined term (assoc [a] [[B]] [c]) of type (!2builtin_comp2 (assoc [a] [b] [c]) (!1builtin_comp2 [(builtin_comp2 [[(builtin_comp2 [a] [[B]])]] [c])] (assoc f' g' h'))) -> (!2builtin_comp2 (!1builtin_comp2 (assoc f g h) [(builtin_comp2 [a] [[(builtin_comp2 [[B]] [c])]])]) (assoc [a] [b'] [c])).
   [=^.^=] let exch = (whiskl  [a] b)
   [=I.I=] successfully defined term (whiskl [a] b) of type (!1builtin_comp2 (whiskl f b) (builtin_comp2 [a] g')) -> (!1builtin_comp2 (builtin_comp2 [a] g) (whiskl f' b)).
   [=^.^=] coh whiskl3 = (_builtin_comp  f [a]) -> (_builtin_comp  f [b])
-  [=I.I=] successfully defined whiskl3.
+  [=I.I=] successfully defined whiskl.
   [=^.^=] let nat_whiskl3 = (whiskl3  [c] m)
-  [=I.I=] successfully defined term (whiskl3 [c] m) of type (!2builtin_comp2 (!1builtin_comp2 (whiskl3 f m) (builtin_comp2 [c] h)) (builtin_comp2 [c] [b])) -> (!2builtin_comp2 (builtin_comp2 [c] [a]) (!1builtin_comp2 (builtin_comp2 [c] g) (whiskl3 f' m))).
+  [=I.I=] successfully defined term (whiskl [c] [m]) of type (!2builtin_comp2 (!1builtin_comp2 [(whiskl f [m])] (builtin_comp2 [c] h)) (whiskl [c] b)) -> (!2builtin_comp2 (whiskl [c] a) (!1builtin_comp2 (builtin_comp2 [c] g) [(whiskl f' [m])])).
   [=^.^=] coh whiskl4 = (_builtin_comp  f [[[p]]]) -> (_builtin_comp  f [[[p]]])
   [=I.I=] successfully defined whiskl4.
   [=^.^=] coh id2 = (_builtin_comp  (_builtin_id  x) (_builtin_id  x) (_builtin_id  x)) -> (_builtin_comp  (_builtin_id  x))
   [=I.I=] successfully defined id2.
   [=^.^=] let nat_id2 = (id2  [f])
-  [=I.I=] successfully defined term (id2 [f]) of type (!1builtin_comp2 (builtin_comp2 [(id2 x)] f) (!1builtin_comp3 (intch_src (builtin_id x) f) (builtin_comp1_red [(builtin_id [f])]) (intch_tgt f (builtin_id y)))) -> (!1builtin_comp2 (!1builtin_comp3 (intch_src (builtin_id x) (builtin_id x) (builtin_id x) f) (builtin_comp3_red [(!1builtin_comp7 (builtin_assc (builtin_id x) (builtin_id x) (builtin_id x) f) (builtin_comp3 (builtin_id x) (builtin_id x) [(builtin_id [f])]) (builtin_assc (builtin_id x) (builtin_id x) f (builtin_id y)) (builtin_comp3 (builtin_id x) [(builtin_id [f])] (builtin_id y)) (builtin_assc (builtin_id x) f (builtin_id y) (builtin_id y)) (builtin_comp3 [(builtin_id [f])] (builtin_id y) (builtin_id y)) (builtin_assc f (builtin_id y) (builtin_id y) (builtin_id y)))]) (intch_tgt f (builtin_id y) (builtin_id y) (builtin_id y))) (builtin_comp2 f [(id2 y)])).
+  [=I.I=] successfully defined term (id2 [f]) of type (!1builtin_comp2 (builtin_comp2 [(id2 x)] f) (!1builtin_comp3 (intch_src (builtin_id x) f) (builtin_comp1 [(builtin_id [f])]) (intch_tgt f (builtin_id y)))) -> (!1builtin_comp2 (!1builtin_comp3 (intch_src (builtin_id x) (builtin_id x) (builtin_id x) f) (builtin_comp1 [(!1builtin_comp7 (builtin_assc (builtin_id x) (builtin_id x) (builtin_id x) f) (builtin_comp3 (builtin_id x) (builtin_id x) [(builtin_id [f])]) (builtin_assc (builtin_id x) (builtin_id x) f (builtin_id y)) (builtin_comp3 (builtin_id x) [(builtin_id [f])] (builtin_id y)) (builtin_assc (builtin_id x) f (builtin_id y) (builtin_id y)) (builtin_comp3 [(builtin_id [f])] (builtin_id y) (builtin_id y)) (builtin_assc f (builtin_id y) (builtin_id y) (builtin_id y)))]) (intch_tgt f (builtin_id y) (builtin_id y) (builtin_id y))) (whiskl f (id2 y))).
   [=^.^=] coh vcompwhisk = (_builtin_comp  (_builtin_id  x) f g) -> (_builtin_comp  f (_builtin_id  y) k)
   [=I.I=] successfully defined vcompwhisk.
   [=^.^=] let vcompwhisk2 = (vcompwhisk  f (_builtin_id  g) (_builtin_id  g))
   [=I.I=] successfully defined term (vcompwhisk f (!1builtin_id g) (!1builtin_id g)) of type (builtin_comp3 (builtin_id x) f g) -> (builtin_comp3 f (builtin_id y) g).
   [=^.^=] let nat_vcompwhisk = (vcompwhisk2  [a] [c])
-  [=I.I=] successfully defined term (!2builtin_comp3 (intch_src f a (!1builtin_id g) (!1builtin_id g) c) (vcompwhisk_red a [(!2builtin_comp5 (!1builtin_assc (!1builtin_id g) (!1builtin_id g) c) (!1builtin_comp2 (!1builtin_id g) (!1builtin_id [c])) (!1builtin_assc (!1builtin_id g) c (!1builtin_id g')) (!1builtin_comp2 (!1builtin_id [c]) (!1builtin_id g')) (!1builtin_assc c (!1builtin_id g') (!1builtin_id g')))]) (intch_tgt a c (!1builtin_id g') (!1builtin_id g'))) of type (!1builtin_comp2 (vcompwhisk f (!1builtin_id g) (!1builtin_id g)) (builtin_comp3 [a] (builtin_id y) [c])) -> (!1builtin_comp2 (builtin_comp3 (builtin_id x) [a] [c]) (vcompwhisk f' (!1builtin_id g') (!1builtin_id g'))).
+  [=I.I=] successfully defined term (!2builtin_comp3 (intch_src f a (!1builtin_id g) (!1builtin_id g) c) (vcompwhisk_red a [(!2builtin_comp5 (!1builtin_assc (!1builtin_id g) (!1builtin_id g) c) (!1builtin_comp2 (!1builtin_id g) [(!1builtin_id [c])]) (!1builtin_assc (!1builtin_id g) c (!1builtin_id g')) (!1builtin_comp2 [(!1builtin_id [c])] (!1builtin_id g')) (!1builtin_assc c (!1builtin_id g') (!1builtin_id g')))]) (intch_tgt a c (!1builtin_id g') (!1builtin_id g'))) of type (!1builtin_comp2 (vcompwhisk f (!1builtin_id g) (!1builtin_id g)) (builtin_comp3 [a] (builtin_id y) [c])) -> (!1builtin_comp2 (builtin_comp3 (builtin_id x) [a] [c]) (vcompwhisk f' (!1builtin_id g') (!1builtin_id g'))).
   [=^.^=] let triangle1 = (_builtin_comp  x [ym] [fm] z [gm])
-  [=I.I=] successfully defined term (!1builtin_comp3 (intch_src f g) (builtin_comp2_red [(!1builtin_comp3 (builtin_comp2 f [gm]) (builtin_assc f ym g') (builtin_comp2 [fm] g'))]) (intch_tgt x f' g')) of type (builtin_comp2 f g) -> (builtin_comp2 f' g').
+  [=I.I=] successfully defined term (!1builtin_comp3 (intch_src f g) (builtin_comp1 [(!1builtin_comp3 (whiskl f gm) (builtin_assc f ym g') (builtin_comp2 [fm] g'))]) (intch_tgt x f' g')) of type (builtin_comp2 f g) -> (builtin_comp2 f' g').
   [=^.^=] let triangle2 = (_builtin_comp  [xm] y [fm] [zm] [gm])
-  [=I.I=] successfully defined term (!1builtin_comp3 (intch_src f g zm) (builtin_comp2_red [(!1builtin_comp4 (builtin_assc f g zm) (builtin_comp2 f [gm]) (builtin_comp2 [fm] g') (builtin_assc xm f' g'))]) (intch_tgt xm f' g')) of type (builtin_comp2 (builtin_comp2 f g) zm) -> (builtin_comp2 xm (builtin_comp2 f' g')).
+  [=I.I=] successfully defined term (!1builtin_comp3 (intch_src f g zm) (builtin_comp1 [(!1builtin_comp4 (builtin_assc f g zm) (whiskl f gm) (builtin_comp2 [fm] g') (builtin_assc xm f' g'))]) (intch_tgt xm f' g')) of type (builtin_comp2 (builtin_comp2 f g) zm) -> (builtin_comp2 xm (builtin_comp2 f' g')).
   [=^.^=] let triangle1_bis = (@_builtin_comp  _ [_] [fm] _ [gm])
-  [=I.I=] successfully defined term (!1builtin_comp3 (intch_src f g) (builtin_comp2_red [(!1builtin_comp3 (builtin_comp2 f [gm]) (builtin_assc f ym g') (builtin_comp2 [fm] g'))]) (intch_tgt x f' g')) of type (builtin_comp2 f g) -> (builtin_comp2 f' g').
+  [=I.I=] successfully defined term (!1builtin_comp3 (intch_src f g) (builtin_comp1 [(!1builtin_comp3 (whiskl f gm) (builtin_assc f ym g') (builtin_comp2 [fm] g'))]) (intch_tgt x f' g')) of type (builtin_comp2 f g) -> (builtin_comp2 f' g').
   [=^.^=] let triangle2_bis = (@_builtin_comp  [_] _ [fm] [_] [gm])
-  [=I.I=] successfully defined term (!1builtin_comp3 (intch_src f g zm) (builtin_comp2_red [(!1builtin_comp4 (builtin_assc f g zm) (builtin_comp2 f [gm]) (builtin_comp2 [fm] g') (builtin_assc xm f' g'))]) (intch_tgt xm f' g')) of type (builtin_comp2 (builtin_comp2 f g) zm) -> (builtin_comp2 xm (builtin_comp2 f' g')).
+  [=I.I=] successfully defined term (!1builtin_comp3 (intch_src f g zm) (builtin_comp1 [(!1builtin_comp4 (builtin_assc f g zm) (whiskl f gm) (builtin_comp2 [fm] g') (builtin_assc xm f' g'))]) (intch_tgt xm f' g')) of type (builtin_comp2 (builtin_comp2 f g) zm) -> (builtin_comp2 xm (builtin_comp2 f' g')).
   [=^.^=] coh example = (_builtin_comp  f k (_builtin_id  z)) -> (_builtin_comp  h l)
   [=I.I=] successfully defined example.
   [=^.^=] let ex1 = (@example  _ _ _ [_] [am] [_] [bm] _ _ [_] [cm])
-  [=I.I=] successfully defined term (!2builtin_comp3 (intch_src a b hm c lm) (example_red [(!2builtin_comp4 (!1builtin_assc a b hm) (!1builtin_comp2 a bm) (!1builtin_assc a gm b+) (!1builtin_comp2 am b+))] [cm]) (intch_tgt f a+ b+ k c+)) of type (!1builtin_comp2 (example a b c) (builtin_comp2 [hm] [lm])) -> (example a+ b+ c+).
+  [=I.I=] successfully defined term (!2builtin_comp3 (intch_src a b hm c lm) (example_red [(!2builtin_comp4 (!1builtin_assc a b hm) (!1builtin_comp2 a [bm]) (!1builtin_assc a gm b+) (!1builtin_comp2 [am] b+))] [cm]) (intch_tgt f a+ b+ k c+)) of type (!1builtin_comp2 (example a b c) (builtin_comp2 [hm] [lm])) -> (example a+ b+ c+).
   [=^.^=] let ex2 = (@example  _ _ _ [_] [am] [_] [bm] _ [_] _ [cm])
-  [=I.I=] successfully defined term (!2builtin_comp3 (intch_src a b hm c) (example_red [(!2builtin_comp4 (!1builtin_assc a b hm) (!1builtin_comp2 a bm) (!1builtin_assc a gm b+) (!1builtin_comp2 am b+))] [cm]) (intch_tgt f a+ b+ km c+)) of type (!1builtin_comp2 (example a b c) (builtin_comp2 [hm] l)) -> (!1builtin_comp2 (builtin_comp3 f [km] (builtin_id z)) (example a+ b+ c+)).
+  [=I.I=] successfully defined term (!2builtin_comp3 (intch_src a b hm c) (example_red [(!2builtin_comp4 (!1builtin_assc a b hm) (!1builtin_comp2 a [bm]) (!1builtin_assc a gm b+) (!1builtin_comp2 [am] b+))] [cm]) (intch_tgt f a+ b+ km c+)) of type (!1builtin_comp2 (example a b c) (builtin_comp2 [hm] l)) -> (!1builtin_comp2 (builtin_comp3 f [km] (builtin_id z)) (example a+ b+ c+)).
   [=^.^=] let ex3 = (@example  _ _ _ [_] [am] [_] [bm] _ [_] [_] [cm])
-  [=I.I=] successfully defined term (!2builtin_comp3 (intch_src a b hm c lm) (example_red [(!2builtin_comp4 (!1builtin_assc a b hm) (!1builtin_comp2 a bm) (!1builtin_assc a gm b+) (!1builtin_comp2 am b+))] [cm]) (intch_tgt f a+ b+ km c+)) of type (!1builtin_comp2 (example a b c) (builtin_comp2 [hm] [lm])) -> (!1builtin_comp2 (builtin_comp3 f [km] (builtin_id z)) (example a+ b+ c+)).
+  [=I.I=] successfully defined term (!2builtin_comp3 (intch_src a b hm c lm) (example_red [(!2builtin_comp4 (!1builtin_assc a b hm) (!1builtin_comp2 a [bm]) (!1builtin_assc a gm b+) (!1builtin_comp2 [am] b+))] [cm]) (intch_tgt f a+ b+ km c+)) of type (!1builtin_comp2 (example a b c) (builtin_comp2 [hm] [lm])) -> (!1builtin_comp2 (builtin_comp3 f [km] (builtin_id z)) (example a+ b+ c+)).
 
   $ catt --keep-going fails/notps.catt
   [=^.^=] coh fail1 = x -> x
@@ -306,13 +308,13 @@
   $ catt --keep-going fails/invalidcoherences.catt
   [=^.^=] coh fail1 = x -> x
   [=X.X=] The coherence fail1 is not valid for the following reason:
-  type .0 -> .0 not full in pasting scheme  {.0: *} {.1: *} (.2: .0 -> .1)
+  type .0 -> .0 not algebraic in pasting scheme  {.0: *} {.1: *} (.2: .0 -> .1)
   [=^.^=] coh fail2 = x -> z
   [=X.X=] The coherence fail2 is not valid for the following reason:
-  type .0 -> .5 not full in pasting scheme  {.0: *} {.1: *} {.2: .0 -> .1} {.3: .0 -> .1} (.4: .2 -> .3) {.5: *} {.6: .1 -> .5} {.7: .1 -> .5} (.8: .6 -> .7)
+  type .0 -> .5 not algebraic in pasting scheme  {.0: *} {.1: *} {.2: .0 -> .1} {.3: .0 -> .1} (.4: .2 -> .3) {.5: *} {.6: .1 -> .5} {.7: .1 -> .5} (.8: .6 -> .7)
   [=^.^=] coh fail3 = f -> g
   [=X.X=] The coherence fail3 is not valid for the following reason:
-  type .2 -> .3 not full in pasting scheme  {.0: *} {.1: *} {.2: .0 -> .1} {.3: .0 -> .1} (.4: .2 -> .3) {.5: *} {.6: .1 -> .5} {.7: .1 -> .5} (.8: .6 -> .7)
+  type .2 -> .3 not algebraic in pasting scheme  {.0: *} {.1: *} {.2: .0 -> .1} {.3: .0 -> .1} (.4: .2 -> .3) {.5: *} {.6: .1 -> .5} {.7: .1 -> .5} (.8: .6 -> .7)
 
   $ catt --keep-going fails/invalidtypes.catt
   [=^.^=] coh fail1 = x -> f
@@ -338,7 +340,7 @@
   [=X.X=] The constraints generated for the term: (whisk f b) could not be solved for the following reason:
   could not unify * and _tm13 -> _tm12
   [=^.^=] let fail3 = (_builtin_comp  [f] b)
-  [=X.X=] The constraints generated for the term: (builtin_comp2 [f] b) could not be solved for the following reason:
+  [=X.X=] The constraints generated for the term: (whisk f b) could not be solved for the following reason:
   could not unify * and _tm18 -> _tm17
   [=^.^=] let fail4 = (_builtin_comp  [f] g)
   [=X.X=] The constraints generated for the term: (builtin_comp2 [f] g) could not be solved for the following reason:
@@ -346,7 +348,7 @@
 
   $ catt --keep-going fails/invalidnaturality.catt
   [=^.^=] let fail1 = (@_builtin_comp  x [f] f x f)
-  [=X.X=] The constraints generated for the term: (!1builtin_comp3 (intch_src f f) (!-1builtin_comp2_red [(!1builtin_comp1 (builtin_assc f f f))]) (intch_tgt x f f)) could not be solved for the following reason:
+  [=X.X=] The constraints generated for the term: (!1builtin_comp3 (intch_src f f) (!-1builtin_comp2_red [(!1!-1builtin_comp2_red (builtin_assc f f f))]) (intch_tgt x f f)) could not be solved for the following reason:
   could not unify (builtin_comp2 f f) and f
   [=^.^=] coh whisk = (_builtin_comp  [a] h) -> (_builtin_comp  [b] h)
   [=I.I=] successfully defined whisk.
@@ -621,6 +623,6 @@
   [=^.^=] coh eh1 = (_builtin_comp  a b) -> (_builtin_comp  I((unitl  f)) (_builtin_comp  (_builtin_comp  _ [a]) (_builtin_comp  (unitl  g) I(op_{1}((unitl  g)))) (_builtin_comp  [b] _)) op_{1}((unitl  h)))
   [=I.I=] successfully defined eh1.
   [=^.^=] let eh2 = (_builtin_comp  [(Ilsimp  _)] [(_builtin_comp  (_builtin_comp  _ [(_builtin_comp  (_builtin_comp  [(lsimp  _)] [op_{1}((Ilsimp  _))]) U((unit  _)))] _) (exch  b a))] [op_{1}((lsimp  _))])
-  [=I.I=] successfully defined term (!1builtin_comp3 [(Ilsimp x)] [(!2builtin_comp2 (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) [(!2builtin_comp2 (!1builtin_comp2 [(lsimp x)] [(Ilsimp_op{1} x)]) (unit_Unit x))] (builtin_comp2 [b] (builtin_id x))) (exch b a))] [(lsimp_op{1} x)]) of type (!1builtin_comp3 (unitl^-1 (builtin_id x)) (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) (!1builtin_comp2 (unitl (builtin_id x)) (unitl^-1_op{1} (builtin_id_op{1} x))) (builtin_comp2 [b] (builtin_id x))) (unitl_op{1} (builtin_id_op{1} x))) -> (!1builtin_comp3 (unit^-1 x) (builtin_comp2 [b] [a]) (unit_op{1} x)).
+  [=I.I=] successfully defined term (!1builtin_comp3 [(Ilsimp x)] [(!2builtin_comp2 (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) [(!2builtin_comp2 (!1builtin_comp2 [(lsimp x)] [(Ilsimp_op{1} x)]) (unit_Unit x))] (builtin_comp2 [b] (builtin_id x))) (exch b a))] [(lsimp_op{1} x)]) of type (!1builtin_comp3 (unitl^-1 (builtin_id x)) (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) (!1builtin_comp2 (unitl (builtin_id x)) (unitl_op{1}^-1 (builtin_id x))) (builtin_comp2 [b] (builtin_id x))) (unitl_op{1} (builtin_id x))) -> (!1builtin_comp3 (unit^-1 x) (builtin_comp2 [b] [a]) (unit_op{1} x)).
   [=^.^=] let eh = (_builtin_comp  (eh1  a b) (eh2  a b) I(op_{1}((eh2  b a))) I(op_{1}((eh1  b a))))
-  [=I.I=] successfully defined term (!2builtin_comp4 (eh1 a b) (!1builtin_comp3 [(Ilsimp x)] [(!2builtin_comp2 (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) [(!2builtin_comp2 (!1builtin_comp2 [(lsimp x)] [(Ilsimp_op{1} x)]) (unit_Unit x))] (builtin_comp2 [b] (builtin_id x))) (exch b a))] [(lsimp_op{1} x)]) (!1builtin_comp3_func[1 1 1]_op{1}_op{3} (Ilsimp_op{1}^-1 x) (!2builtin_comp2_op{1}_op{3} (exch_op{1}^-1 b a) (!1builtin_comp3_func[1]_op{1}_op{3} (builtin_comp2_func[1]_op{1} b (builtin_id_op{1} x)) (!2builtin_comp2_op{1}_op{3} (unit_Unit_op{1}^-1 x) (!1builtin_comp2_func[1 1]_op{1}_op{3} (lsimp_op{1}^-1 x) (Ilsimp_op{1}_op{1}^-1 x))) (builtin_comp2_func[1]_op{1} (builtin_id_op{1} x) a))) (lsimp_op{1}_op{1}^-1 x)) (eh1_op{1}^-1 b a)) of type (!1builtin_comp2 a b) -> (!1builtin_comp2_op{1} b a).
+  [=I.I=] successfully defined term (!2builtin_comp4 (eh1 a b) (!1builtin_comp3 [(Ilsimp x)] [(!2builtin_comp2 (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) [(!2builtin_comp2 (!1builtin_comp2 [(lsimp x)] [(Ilsimp_op{1} x)]) (unit_Unit x))] (builtin_comp2 [b] (builtin_id x))) (exch b a))] [(lsimp_op{1} x)]) (!1builtin_comp3 [(Ilsimp_op{1}^-1 x)] [(!2builtin_comp2 (exch_op{1}^-1 b a) (!1builtin_comp3 (builtin_comp2_func[1]_op{1} b (builtin_id x)) [(!2builtin_comp2 (unit_Unit_op{1}^-1 x) (!1builtin_comp2 [(lsimp_op{1}^-1 x)] [(Ilsimp_op{1}_op{1}^-1 x)]))] (builtin_comp2_func[1]_op{1} (builtin_id x) a)))] [(lsimp_op{1}_op{1}^-1 x)]) (eh1_op{1}^-1 b a)) of type (!1builtin_comp2 a b) -> (!1builtin_comp2 b a).
