@@ -55,7 +55,7 @@ let middle_unitor k =
             :: (Var (Db ((2 * i) - 1)), false)
             :: compute_sub (i - 1)
         | i when i = k + 1 ->
-            let id = Coh (Builtin.id, [ (Var (Db ((2 * k) - 1)), false) ]) in
+            let id = Coh (Builtin.id (), [ (Var (Db ((2 * k) - 1)), false) ]) in
             (id, true) :: (Var (Db ((2 * k) - 1)), false) :: compute_sub k
         | i ->
             (Var (Db ((2 * i) - 2)), true)
@@ -96,7 +96,7 @@ let type_cell_max k =
             (Var (obj k), false);
             (Var (obj (k - 1)), false);
           ] ),
-      Coh (Builtin.id, [ (Var (obj (k - 1)), true) ]) )
+      Coh (Builtin.id (), [ (Var (obj (k - 1)), true) ]) )
 
 let rec ctx k =
   match k with
@@ -133,7 +133,7 @@ let rec subs_telescope_bdry ?(whisk = false) k =
           List.append left
             [
               (Var (cell_max k), true);
-              (Coh (Builtin.id, [ (Var (obj (k - 1)), true) ]), false);
+              (Coh (Builtin.id (), [ (Var (obj (k - 1)), true) ]), false);
               (src_max_var, false);
               (Var (obj (k - 1)), false);
             ] )
@@ -173,7 +173,7 @@ let rec telescope k =
       let sub_telescope =
         [
           (telescope (k - 1), true);
-          (Coh (Builtin.id, [ (tdb 0, true) ]), false);
+          (Coh (Builtin.id (), [ (tdb 0, true) ]), false);
           (m3, true);
           (tgt_m3, false);
           (m2, true);

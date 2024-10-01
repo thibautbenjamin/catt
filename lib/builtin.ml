@@ -12,7 +12,7 @@ module Memo = struct
       Hashtbl.add tbl i res;
       res
 
-  let id =
+  let id _ =
     check_coh (Br []) (Arr (Obj, Var (Db 0), Var (Db 0))) ("builtin_id", 0, [])
 end
 
@@ -46,7 +46,7 @@ let id_all_max ps =
     let t = Var (Db 0) in
     match l with
     | [] -> [ (t, false) ]
-    | Br [] :: l -> (Coh (id, [ (t, true) ]), true) :: (t, false) :: id_map l
+    | Br [] :: l -> (Coh (id (), [ (t, true) ]), true) :: (t, false) :: id_map l
     | _ -> Error.fatal "identity must be inserted on maximal argument"
   in
   let rec aux i ps =
@@ -71,5 +71,5 @@ let unbiased_unitor ps t =
   in
   let da = Unchecked.dim_ty a in
   let sub_base = Unchecked.ty_to_sub_ps a in
-  let tgt = Coh (Suspension.coh (Some da) id, (t, true) :: sub_base) in
+  let tgt = Coh (Suspension.coh (Some da) (id ()), (t, true) :: sub_base) in
   Coh.check_inv bdry src tgt ("unbiased_unitor", 0, [])
