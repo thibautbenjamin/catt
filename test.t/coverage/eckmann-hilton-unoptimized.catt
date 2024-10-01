@@ -195,11 +195,11 @@ coh rrrew2A (x(f(a0(al0(c)al1)a1)g)y(h(b0(bet0(d)bet1)b1)k)z) :
             rrew2A al0 bet0 -> rrew2A al1 bet1
 
 ### interchanging left and right unitors when possible
-coh id2@/1-,2-/  (x) :  id2@1- (id x) -> id2@2- (id x)
-coh id2@/1-,2-/- (x) :  id2@2- (id x) -> id2@1- (id x)
+coh id2@/1-/2-/  (x) :  id2@1- (id x) -> id2@2- (id x)
+coh id2@/1-/2-/- (x) :  id2@2- (id x) -> id2@1- (id x)
 
-coh id2@/1,2/  (x) : id2@1 (id x) -> id2@2 (id x)
-coh id2@/1,2/- (x) : id2@2 (id x) -> id2@1 (id x)
+coh id2@/1/2/  (x) : id2@1 (id x) -> id2@2 (id x)
+coh id2@/1/2/- (x) : id2@2 (id x) -> id2@1 (id x)
 
 ### cancelling left and right unitors
 coh id2@2@1U  (x) : comp (id2@2 (id x)) (id2@1- (id x)) -> id (comp (id x) (id x))
@@ -538,6 +538,6 @@ coh exchU (x(f(a)g)y(h(b)k)z) : comp (exch a b) (exch- a b) -> id (comp (rew2@1 
 let eh (x : *) (a : id x -> id x) (b : id x  -> id x) =
     comp5 (rew2A (rew2@1id@2- a) (rew2@2id@1- b))
 	  (red3F (id2@2- (id x)) (rew2@1 a (id x)) (id2@2@1U x) (rew2@2 (id x) b) (id2@1 (id x)))
-	  (rew3A (id2@/1-,2-/- x) (exch a b) (id2@/1,2/ x))
+	  (rew3A (id2@/1-/2-/- x) (exch a b) (id2@/1/2/ x))
 	  (red3F- (id2@1- (id x)) (rew2@2 (id x) b) (id2@1@2U- x) (rew2@1 a (id x)) (id2@2 (id x)))
 	  (rew2A (rew2@2id@1 b) (rew2@1id@2 a))

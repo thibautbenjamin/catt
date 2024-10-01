@@ -51,33 +51,41 @@ prog:
   | EOF { [] }
 
 cmd:
-  | COH IDENT ps COL tyexpr { Coh (Var.make_var $2,$3,$5) }
-  | COH BUILTIN ps COL tyexpr
+  | COH IDENT args_or_ps COL tyexpr { Coh (Var.make_var $2,$3,$5) }
+  | COH BUILTIN args_or_ps COL tyexpr
     { if !Settings.use_builtins then raise (Error.ReservedName $2)
       else Coh (Var.make_var $2,$3,$5) }
-  | CHECK args COL tyexpr EQUAL tmexpr { Check ($2,$6, Some $4) }
-  | CHECK args EQUAL tmexpr { Check ($2,$4,None) }
-  | LET IDENT args COL tyexpr EQUAL tmexpr
+  | CHECK args_or_ps COL tyexpr EQUAL tmexpr { Check ($2,$6, Some $4) }
+  | CHECK args_or_ps EQUAL tmexpr { Check ($2,$4,None) }
+  | LET IDENT args_or_ps COL tyexpr EQUAL tmexpr
     { Decl (Var.make_var $2,$3,$7,Some $5) }
-  | LET IDENT args EQUAL tmexpr
+  | LET IDENT args_or_ps EQUAL tmexpr
     { Decl (Var.make_var $2,$3,$5, None) }
-  | LET BUILTIN args COL tyexpr EQUAL tmexpr
+  | LET BUILTIN args_or_ps COL tyexpr EQUAL tmexpr
     {
       if !Settings.use_builtins then raise (Error.ReservedName $2)
       else Decl (Var.make_var $2,$3,$7,Some $5)
     }
-  | LET BUILTIN args EQUAL tmexpr
+  | LET BUILTIN args_or_ps EQUAL tmexpr
     { if !Settings.use_builtins then raise (Error.ReservedName $2)
       else Decl (Var.make_var $2,$3,$5, None) }
   | SET IDENT EQUAL IDENT { Set ($2,$4) }
   | SET IDENT EQUAL INT { Set ($2,$4) }
 
+args_of_same_ty :
+  | IDENT COL tyexpr { [Var.make_var $1, $3], $3 }
+  | IDENT COMA args_of_same_ty { (Var.make_var $1, snd $3)::(fst $3), snd $3 }
+
 nonempty_args :
-  | args LPAR IDENT COL tyexpr RPAR { (Var.make_var $3, $5)::$1 }
+  | LPAR args_of_same_ty RPAR args { List.append (fst $2) $4 }
 
 args:
   | nonempty_args { $1 }
   | { [] }
+
+args_or_ps :
+  | args { List.rev $1 }
+  | ps { $1 }
 
 nonempty_sub:
   | sub simple_tmexpr { ($2,0)::$1 }
@@ -136,7 +144,6 @@ tyexpr:
   | subst_tmexpr MOR subst_tmexpr { ArrR ($1,$3) }
 
 ps :
-  | LPAR IDENT COL tyexpr RPAR args { List.append $6 [(Var.make_var $2, $4)] }
   | LPAR IDENT RPAR { context_of_annotated_ps (Br ([], Var.make_var $2)) }
   | LPAR IDENT simpl_ps ps_list IDENT RPAR
     {
