@@ -16,7 +16,11 @@
   (name catt)
   (synopsis "An infinity-categorical coherence typechecker")
   (description "An infinity-categorical coherence typechecker")
-  (depends ocaml dune)
+  (depends
+      (ocaml (and (>= 4.14) (< 5.0)))
+      (dune (>= 3.10))
+      (menhir (>= 20240715))
+      (base (>= 0.17.0)))
   (tags
     (higher-categories dependent-type-theory)))
 
@@ -24,7 +28,9 @@
   (name coq-catt-plugin)
   (synopsis "A Coq plugin for the catt proof-assistant")
   (description "A Coq plugin to interpret terms built in the catt proof assistant as functions computing on higher dimensional identity types")
-  (depends ocaml dune coq catt)
+  (depends
+      catt
+      (coq (>= 8.20)))
   (tags
     (higher-categories dependent-type-theory)))
 
@@ -32,7 +38,6 @@
   (name catt-web)
   (synopsis "Browser embedded version of the catt theorem prover")
   (description "Browser embedded version of the catt theorem prover")
-  (depends ocaml dune)
   (allow_empty)
   (tags
     (higher-categories dependent-type-theory)))
