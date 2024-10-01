@@ -105,7 +105,7 @@ and cancel_all_linear_comp t =
         let id_src_t =
           let sub_base = Unchecked.ty_to_sub_ps ty_base in
           let id =
-            Suspension.coh (Some (Unchecked.dim_ty ty_base)) Builtin.id
+            Suspension.coh (Some (Unchecked.dim_ty ty_base)) (Builtin.id ())
           in
           Coh (id, (src_t, true) :: sub_base)
         in
@@ -164,7 +164,7 @@ and compute_witness_coh_inv c s ~ps ~pp_data ~d ~sub_base ~u ~v =
     Coh (comp, c_c_inv)
   in
   let tgt_wit =
-    let id = Suspension.coh (Some (d - 1)) Builtin.id in
+    let id = Suspension.coh (Some (d - 1)) (Builtin.id ()) in
     let sub_id_u = (u, true) :: sub_base in
     Coh (id, sub_id_u)
   in

@@ -28,6 +28,7 @@ end) : sig
     val check_equal_ps : ps -> ps -> unit
     val check_equal_ty : ty -> ty -> unit
     val check_equal_tm : tm -> tm -> unit
+    val check_equal_sub_ps : sub_ps -> sub_ps -> unit
     val dim_ctx : ctx -> int
     val dim_ty : ty -> int
     val dim_ps : ps -> int

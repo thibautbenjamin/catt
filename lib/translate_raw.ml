@@ -28,7 +28,7 @@ let rec tm t =
           (Unchecked.tm_apply_sub t s, meta_types))
   | Sub (BuiltinR b, s, susp, expl) ->
       let builtin_coh =
-        match b with Comp -> Builtin.comp s expl | Id -> Builtin.id
+        match b with Comp -> Builtin.comp s expl | Id -> Builtin.id ()
       in
       make_coh builtin_coh s susp expl
   | Op (l, t) ->

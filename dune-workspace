@@ -1,0 +1,9 @@
+(lang dune 3.7)
+
+(context default)
+(context
+  (default
+     (name profiling)
+     (instrument_with landmarks)
+     (env
+       (_ (env-vars ("OCAML_LANDMARKS" "output=profile.txt"))))))
