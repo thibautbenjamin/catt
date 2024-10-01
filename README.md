@@ -122,6 +122,11 @@ coh binarycomp (x(f)y(g)z) : x -> z
 ```
 Internally, these parenthesised expressions are reduced to contexts and are treated the same way.
 
+This syntax can also be used in let definitions, for instance:
+```
+let comp2-bis (x(f)y(g)z) = comp2 f g
+```
+
 ### Built-in compositions and identities
 Some useful coherences are built-in. This allows for two things: first, it is not necessary as a user to define those coherences that already exist, and, secondly, it allows to have an internal hardcoded mechanism to manage coherence schemes instead of single coherences. The built-ins can be deactivated via the command-line as follows `catt --no-builtins [FILE]` or `dune exec -- catt --no-builtin [FILE]`. When built-ins are activated, the user is prevented from defining terms or operations that have the same name as a built-in.
 
@@ -140,6 +145,12 @@ where here the same name `comp` is used for the binary composition and the terna
 The unitor defined above can be defined directly using the the built-ins, not requiring to introduce coherences for the composition and identity before
 ```
 coh unit (x) : comp f (id _) -> f
+```
+
+### More compact description of contexts
+In a context one can write a comma-separated list of arguments if they share the same type, in order to simplify the notations. For instance:
+```
+let comp-binary (x, y, z : *) (f : x -> y) (g : y -> z) = comp f g
 ```
 
 ### Suspension
