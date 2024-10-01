@@ -185,6 +185,18 @@ struct
       | _ :: _, [] | [], _ :: _ ->
           raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
 
+    let check_equal_ty ty1 ty2 =
+      if ty1 == ty2 then () else check_equal_ty ty1 ty2
+
+    let check_equal_tm tm1 tm2 =
+      if tm1 == tm2 then () else check_equal_tm tm1 tm2
+
+    let check_equal_sub_ps s1 s2 =
+      if s1 == s2 then () else check_equal_sub_ps s1 s2
+
+    let check_equal_ctx ctx1 ctx2 =
+      if ctx1 == ctx2 then () else check_equal_ctx ctx1 ctx2
+
     let rec tm_do_on_variables tm f =
       match tm with
       | Var v -> f v
@@ -401,7 +413,15 @@ struct
       let incls, _ = canonical_inclusions l in
       incls
 
-    let ps_to_ctx ps = (ps_to_ctx_rp ps).ctx
+    let tbl_ps_to_ctx : (ps, ctx) Hashtbl.t = Hashtbl.create 7829
+
+    let ps_to_ctx ps =
+      match Hashtbl.find_opt tbl_ps_to_ctx ps with
+      | Some ctx -> ctx
+      | None ->
+          let ctx = (ps_to_ctx_rp ps).ctx in
+          Hashtbl.add tbl_ps_to_ctx ps ctx;
+          ctx
 
     let suspwedge_subs_ps list_subs list_ps =
       let incls = canonical_inclusions list_ps in
