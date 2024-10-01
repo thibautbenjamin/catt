@@ -12,13 +12,34 @@ There is an [online version](https://thibautbenjamin.github.io/catt/) of this im
 
 Incoming...
 
-### Building from source
+### Installing from source with opam
+Make sure `opam` is installed, clone the project and move to the directory where you cloned it, then run the following to install catt:
+```
+opam install ./catt.opam
+```
+The Coq plugin can be installed with the following command
+```
+opam install ./coq-catt-plugin.opam
+```
 
+### Building from source with dune and opam
+Make sure `opam` is installed, clone the project and move to the directory where you cloned it.
+
+To build `catt` locally, run the following commands:
+```
+opam install --deps-only ./catt.opam
+dune build catt.install
+```
+
+To build the Coq plugin, run the following commands:
+```
+opam install --deps-only ./coq-catt-plugin.opam
+dune build coq-catt-plugin.install
+```
 
 ### Using nix
 
 This repository contains a `flake.nix` file that defines the packages `catt` and `coq-catt-plugin`, as well as `catt-mode`, an editing mode for catt in emacs.
-
 
 ## Syntax
 There are two keywords to define a new operation:
