@@ -72,14 +72,12 @@
           catt = ocamlPackages.buildDunePackage {
             pname = "catt";
             version = "1.0";
-            minimalOcamlVersion = "4.08";
+            minimalOcamlVersion = "4.14";
             doCheck = false;
 
             src = sources.catt;
 
             nativeBuildInputs = with ocamlPackages; [ menhir ];
-
-            buildInputs = with ocamlPackages; [ fmt sedlex ];
 
             propagatedBuildInputs = with ocamlPackages; [ base ];
 
@@ -95,7 +93,7 @@
           catt-web = ocamlPackages.buildDunePackage {
             pname = "catt-web";
             version = "1.0";
-            minimalOcamlVersion = "4.08";
+            minimalOcamlVersion = "4.14";
             doCheck = false;
 
             src = sources.web;
@@ -106,8 +104,6 @@
               js_of_ocaml
               self.outputs.packages.${system}.catt
               js_of_ocaml-ppx
-              fmt
-              sedlex
             ];
 
             meta = {

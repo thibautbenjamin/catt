@@ -14,7 +14,6 @@ catt
 *.pdf
 *.conflicts
 /_build/
-/catt.opam
 /_install/
 test/test.catt
 result*
@@ -35,4 +34,4 @@ result*
 /coq-plugin/theories/Loader.vo
 /coq-plugin/theories/Loader.vok
 /coq-plugin/theories/Loader.vos
-*.opam
+catt-web.opam
