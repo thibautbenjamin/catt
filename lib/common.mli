@@ -21,4 +21,4 @@ module Var : sig
   val fresh : unit -> t
 end
 
-type coh_pp_data = string * int * (Var.t * int) list
+type coh_pp_data = string * int * (Var.t * int) list list

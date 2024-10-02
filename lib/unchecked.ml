@@ -11,7 +11,7 @@ struct
   module Make (Coh : sig
     val forget : Coh.t -> ps * Unchecked_types(Coh).ty * coh_pp_data
     val to_string : Coh.t -> string
-    val func_data : Coh.t -> (Var.t * int) list
+    val func_data : Coh.t -> (Var.t * int) list list
     val check_equal : Coh.t -> Coh.t -> unit
     val check : ps -> ty -> coh_pp_data -> Coh.t
   end) =
@@ -25,177 +25,6 @@ struct
             ((Var.Db i, t) :: s, i + 1)
       in
       fst (aux s)
-
-    let rec func_to_string = function
-      | [] -> ""
-      | (_, i) :: func -> Printf.sprintf "%s%d" (func_to_string func) i
-
-    let rec ps_to_string = function
-      | Br l ->
-          Printf.sprintf "[%s]"
-            (List.fold_left
-               (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s)
-               "" l)
-
-    let rec ty_to_string = function
-      | Meta_ty i -> Printf.sprintf "_ty%i" i
-      | Obj -> "*"
-      | Arr (a, u, v) ->
-          if !Settings.verbosity >= 3 then
-            Printf.sprintf "%s | %s -> %s" (ty_to_string a) (tm_to_string u)
-              (tm_to_string v)
-          else Printf.sprintf "%s -> %s" (tm_to_string u) (tm_to_string v)
-
-    and tm_to_string = function
-      | Var v -> Var.to_string v
-      | Meta_tm i -> Printf.sprintf "_tm%i" i
-      | Coh (c, s) ->
-          if not !Settings.unroll_coherences then
-            let func = Coh.func_data c in
-            Printf.sprintf "(%s%s)" (Coh.to_string c)
-              (sub_ps_to_string_func s func)
-          else Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
-
-    and sub_ps_to_string s =
-      match s with
-      | [] -> ""
-      | (t, expl) :: s ->
-          if expl || !Settings.print_explicit_substitutions then
-            Printf.sprintf "%s %s" (sub_ps_to_string s) (tm_to_string t)
-          else sub_ps_to_string s
-
-    and sub_ps_to_string_func s func =
-      let rec print s =
-        match s with
-        | (t, true) :: s ->
-            let str, x = print s in
-            let i =
-              match List.assoc_opt (Var.Db x) func with
-              | None -> 0
-              | Some i -> i
-            in
-            (Printf.sprintf "%s %s" str (bracket i (tm_to_string t)), x + 1)
-        | (t, false) :: s ->
-            let str, x = print s in
-            let str =
-              if !Settings.print_explicit_substitutions then
-                Printf.sprintf "%s %s" str (tm_to_string t)
-              else str
-            in
-            (str, x + 1)
-        | [] -> ("", 0)
-      in
-      fst (print s)
-
-    and coh_pp_data_to_string ?(print_func = false) (name, susp, func) =
-      let susp_name =
-        if susp > 0 then Printf.sprintf "!%i%s" susp name else name
-      in
-      if print_func then susp_name ^ "/" ^ func_to_string func else susp_name
-
-    and bracket i s =
-      if i <= 0 then s else Printf.sprintf "[%s]" (bracket (i - 1) s)
-
-    let rec ctx_to_string = function
-      | [] -> ""
-      | (x, (t, true)) :: c ->
-          Printf.sprintf "%s (%s: %s)" (ctx_to_string c) (Var.to_string x)
-            (ty_to_string t)
-      | (x, (t, false)) :: c ->
-          Printf.sprintf "%s {%s: %s}" (ctx_to_string c) (Var.to_string x)
-            (ty_to_string t)
-
-    let rec sub_to_string = function
-      | [] -> ""
-      | (x, t) :: s ->
-          Printf.sprintf "%s (%s: %s)" (sub_to_string s) (Var.to_string x)
-            (tm_to_string t)
-
-    let rec meta_ctx_to_string = function
-      | [] -> ""
-      | (i, t) :: c ->
-          Printf.sprintf "%s (_tm%i: %s)" (meta_ctx_to_string c) i
-            (ty_to_string t)
-
-    let full_name name =
-      let print_func_data func =
-        let rec aux = function
-          | [] -> ""
-          | [ (_, i) ] -> Printf.sprintf "%d" i
-          | (_, i) :: l -> Printf.sprintf "%s %d" (aux l) i
-        in
-        match func with [] -> "" | _ -> Printf.sprintf "_func[%s]" (aux func)
-      in
-      let print_susp s = match s with 0 -> "" | k -> Printf.sprintf "!%i" k in
-      let name, susp, func = name in
-      Printf.sprintf "%s%s%s" (print_susp susp) name (print_func_data func)
-
-    let rec check_equal_ps ps1 ps2 =
-      match (ps1, ps2) with
-      | Br [], Br [] -> ()
-      | Br (ps1 :: l1), Br (ps2 :: l2) ->
-          check_equal_ps ps1 ps2;
-          List.iter2 check_equal_ps l1 l2
-      | Br [], Br (_ :: _) | Br (_ :: _), Br [] ->
-          raise (NotEqual (ps_to_string ps1, ps_to_string ps2))
-
-    let rec check_equal_ty ty1 ty2 =
-      match (ty1, ty2) with
-      | Meta_ty i, Meta_ty j ->
-          if i <> j then raise (NotEqual (string_of_int i, string_of_int j))
-      | Obj, Obj -> ()
-      | Arr (ty1, u1, v1), Arr (ty2, u2, v2) ->
-          check_equal_ty ty1 ty2;
-          check_equal_tm u1 u2;
-          check_equal_tm v1 v2
-      | Obj, Arr _
-      | Arr _, Obj
-      | Meta_ty _, Obj
-      | Meta_ty _, Arr _
-      | Obj, Meta_ty _
-      | Arr _, Meta_ty _ ->
-          raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
-
-    and check_equal_tm tm1 tm2 =
-      match (tm1, tm2) with
-      | Var v1, Var v2 -> Var.check_equal v1 v2
-      | Meta_tm i, Meta_tm j ->
-          if i <> j then raise (NotEqual (string_of_int i, string_of_int j))
-      | Coh (coh1, s1), Coh (coh2, s2) ->
-          Coh.check_equal coh1 coh2;
-          check_equal_sub_ps s1 s2
-      | Var _, Coh _
-      | Coh _, Var _
-      | Meta_tm _, Var _
-      | Meta_tm _, Coh _
-      | Var _, Meta_tm _
-      | Coh _, Meta_tm _ ->
-          raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
-
-    and check_equal_sub_ps s1 s2 =
-      List.iter2 (fun (t1, _) (t2, _) -> check_equal_tm t1 t2) s1 s2
-
-    let rec check_equal_ctx ctx1 ctx2 =
-      match (ctx1, ctx2) with
-      | [], [] -> ()
-      | (v1, (t1, _)) :: c1, (v2, (t2, _)) :: c2 ->
-          Var.check_equal v1 v2;
-          check_equal_ty t1 t2;
-          check_equal_ctx c1 c2
-      | _ :: _, [] | [], _ :: _ ->
-          raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
-
-    let check_equal_ty ty1 ty2 =
-      if ty1 == ty2 then () else check_equal_ty ty1 ty2
-
-    let check_equal_tm tm1 tm2 =
-      if tm1 == tm2 then () else check_equal_tm tm1 tm2
-
-    let check_equal_sub_ps s1 s2 =
-      if s1 == s2 then () else check_equal_sub_ps s1 s2
-
-    let check_equal_ctx ctx1 ctx2 =
-      if ctx1 == ctx2 then () else check_equal_ctx ctx1 ctx2
 
     let rec tm_do_on_variables tm f =
       match tm with
@@ -517,6 +346,195 @@ struct
               l1 l2 incls1 incls2
           in
           wedge_sub_ps_bp ls
+
+    module Printing = struct
+      let rec func_to_string func =
+        let rec print_list = function
+          | [] -> ""
+          | [ (_, n) ] -> Printf.sprintf "%d" n
+          | (_, n) :: l -> Printf.sprintf "%s %d" (print_list l) n
+        in
+        match func with
+        | [] -> ""
+        | l :: func ->
+            Printf.sprintf "%s[%s]" (func_to_string func) (print_list l)
+
+      let rec bracket i s =
+        if i <= 0 then s else Printf.sprintf "[%s]" (bracket (i - 1) s)
+
+      let rec ps_to_string = function
+        | Br l ->
+            Printf.sprintf "[%s]"
+              (List.fold_left
+                 (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s)
+                 "" l)
+
+      let rec ty_to_string = function
+        | Meta_ty i -> Printf.sprintf "_ty%i" i
+        | Obj -> "*"
+        | Arr (a, u, v) ->
+            if !Settings.verbosity >= 3 then
+              Printf.sprintf "%s | %s -> %s" (ty_to_string a) (tm_to_string u)
+                (tm_to_string v)
+            else Printf.sprintf "%s -> %s" (tm_to_string u) (tm_to_string v)
+
+      and tm_to_string = function
+        | Var v -> Var.to_string v
+        | Meta_tm i -> Printf.sprintf "_tm%i" i
+        | Coh (c, s) ->
+            if not !Settings.unroll_coherences then
+              let func = Coh.func_data c in
+              Printf.sprintf "(%s%s)" (Coh.to_string c)
+                (sub_ps_to_string ~func s)
+            else Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
+
+      and sub_ps_to_string ?(func = []) s =
+        match func with
+        | [] -> sub_ps_to_string_nofunc s
+        | func :: _ -> sub_ps_to_string_func s func
+
+      and sub_ps_to_string_nofunc s =
+        match s with
+        | [] -> ""
+        | (t, expl) :: s ->
+            if expl || !Settings.print_explicit_substitutions then
+              Printf.sprintf "%s %s" (sub_ps_to_string s) (tm_to_string t)
+            else sub_ps_to_string s
+
+      and sub_ps_to_string_func s func =
+        let rec print s =
+          match s with
+          | (t, true) :: s ->
+              let str, x = print s in
+              let arg =
+                match List.assoc_opt (Var.Db x) func with
+                | None -> tm_to_string t
+                | Some i -> bracket i (tm_to_string t)
+              in
+              (Printf.sprintf "%s %s" str arg, x + 1)
+          | (t, false) :: s ->
+              let str, x = print s in
+              let str =
+                if !Settings.print_explicit_substitutions then
+                  Printf.sprintf "%s %s" str (tm_to_string t)
+                else str
+              in
+              (str, x + 1)
+          | [] -> ("", 0)
+        in
+        fst (print s)
+
+      and coh_pp_data_to_string ?(print_func = false) (name, susp, func) =
+        let susp_name =
+          if susp > 0 then Printf.sprintf "!%i%s" susp name else name
+        in
+        match func with
+        | [] -> susp_name
+        | _ :: [] when not print_func -> susp_name
+        | _ :: func when not print_func ->
+            susp_name ^ "_func" ^ func_to_string func
+        | func -> susp_name ^ "_func" ^ func_to_string func
+
+      let rec ctx_to_string = function
+        | [] -> ""
+        | (x, (t, true)) :: c ->
+            Printf.sprintf "%s (%s: %s)" (ctx_to_string c) (Var.to_string x)
+              (ty_to_string t)
+        | (x, (t, false)) :: c ->
+            Printf.sprintf "%s {%s: %s}" (ctx_to_string c) (Var.to_string x)
+              (ty_to_string t)
+
+      let rec sub_to_string = function
+        | [] -> ""
+        | (x, t) :: s ->
+            Printf.sprintf "%s (%s: %s)" (sub_to_string s) (Var.to_string x)
+              (tm_to_string t)
+
+      let rec meta_ctx_to_string = function
+        | [] -> ""
+        | (i, t) :: c ->
+            Printf.sprintf "%s (_tm%i: %s)" (meta_ctx_to_string c) i
+              (ty_to_string t)
+
+      let full_name name = coh_pp_data_to_string ~print_func:true name
+    end
+
+    let ps_to_string = Printing.ps_to_string
+    let ty_to_string = Printing.ty_to_string
+    let tm_to_string = Printing.tm_to_string
+    let ctx_to_string = Printing.ctx_to_string
+    let sub_ps_to_string = Printing.sub_ps_to_string
+    let sub_to_string = Printing.sub_to_string
+    let meta_ctx_to_string = Printing.meta_ctx_to_string
+    let coh_pp_data_to_string = Printing.coh_pp_data_to_string
+    let full_name = Printing.full_name
+
+    let rec check_equal_ps ps1 ps2 =
+      match (ps1, ps2) with
+      | Br [], Br [] -> ()
+      | Br (ps1 :: l1), Br (ps2 :: l2) ->
+          check_equal_ps ps1 ps2;
+          List.iter2 check_equal_ps l1 l2
+      | Br [], Br (_ :: _) | Br (_ :: _), Br [] ->
+          raise (NotEqual (ps_to_string ps1, ps_to_string ps2))
+
+    let rec check_equal_ty ty1 ty2 =
+      match (ty1, ty2) with
+      | Meta_ty i, Meta_ty j ->
+          if i <> j then raise (NotEqual (string_of_int i, string_of_int j))
+      | Obj, Obj -> ()
+      | Arr (ty1, u1, v1), Arr (ty2, u2, v2) ->
+          check_equal_ty ty1 ty2;
+          check_equal_tm u1 u2;
+          check_equal_tm v1 v2
+      | Obj, Arr _
+      | Arr _, Obj
+      | Meta_ty _, Obj
+      | Meta_ty _, Arr _
+      | Obj, Meta_ty _
+      | Arr _, Meta_ty _ ->
+          raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
+
+    and check_equal_tm tm1 tm2 =
+      match (tm1, tm2) with
+      | Var v1, Var v2 -> Var.check_equal v1 v2
+      | Meta_tm i, Meta_tm j ->
+          if i <> j then raise (NotEqual (string_of_int i, string_of_int j))
+      | Coh (coh1, s1), Coh (coh2, s2) ->
+          Coh.check_equal coh1 coh2;
+          check_equal_sub_ps s1 s2
+      | Var _, Coh _
+      | Coh _, Var _
+      | Meta_tm _, Var _
+      | Meta_tm _, Coh _
+      | Var _, Meta_tm _
+      | Coh _, Meta_tm _ ->
+          raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
+
+    and check_equal_sub_ps s1 s2 =
+      List.iter2 (fun (t1, _) (t2, _) -> check_equal_tm t1 t2) s1 s2
+
+    let rec check_equal_ctx ctx1 ctx2 =
+      match (ctx1, ctx2) with
+      | [], [] -> ()
+      | (v1, (t1, _)) :: c1, (v2, (t2, _)) :: c2 ->
+          Var.check_equal v1 v2;
+          check_equal_ty t1 t2;
+          check_equal_ctx c1 c2
+      | _ :: _, [] | [], _ :: _ ->
+          raise (NotEqual (ctx_to_string ctx1, ctx_to_string ctx2))
+
+    let check_equal_ty ty1 ty2 =
+      if ty1 == ty2 then () else check_equal_ty ty1 ty2
+
+    let check_equal_tm tm1 tm2 =
+      if tm1 == tm2 then () else check_equal_tm tm1 tm2
+
+    let check_equal_sub_ps s1 s2 =
+      if s1 == s2 then () else check_equal_sub_ps s1 s2
+
+    let check_equal_ctx ctx1 ctx2 =
+      if ctx1 == ctx2 then () else check_equal_ctx ctx1 ctx2
 
     let rec tm_contains_var t x =
       match t with

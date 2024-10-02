@@ -20,7 +20,7 @@ module rec Coh : sig
     t ->
     Unchecked_types(Coh).tm * Unchecked_types(Coh).tm * Unchecked_types(Coh).ty
 
-  val func_data : t -> (Var.t * int) list
+  val func_data : t -> (Var.t * int) list list
 end
 
 open Unchecked_types(Coh)
@@ -58,7 +58,7 @@ module Unchecked : sig
   val ps_to_string : ps -> string
   val ty_to_string : ty -> string
   val tm_to_string : tm -> string
-  val sub_ps_to_string : sub_ps -> string
+  val sub_ps_to_string : ?func:(Var.t * int) list list -> sub_ps -> string
   val ctx_to_string : ctx -> string
   val sub_to_string : sub -> string
   val meta_ctx_to_string : meta_ctx -> string
