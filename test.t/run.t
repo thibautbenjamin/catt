@@ -367,6 +367,14 @@
   [=^.^=] coh fail2 = (_builtin_comp  (_builtin_id  _) _) -> f
   [=X.X=] Incomplete constraints: some of the meta-variable could not be resolved in the following coherence: fail2
 
+  $ catt --keep-going fails/invalidinverse.catt
+  [=^.^=] let fail1 = I((_builtin_comp  f g))
+  [=X.X=] Could not compute the inverse of term: (builtin_comp2 f g) for the following reason:
+  term f is not invertible
+  [=^.^=] let fail1 = I((_builtin_comp  [a] [(_builtin_id  g)]))
+  [=X.X=] Could not compute the inverse of term: (builtin_comp2 [a] [(!1builtin_id g)]) for the following reason:
+  term a is not invertible
+
   $ catt coverage/eckmann-hilton-unoptimized.catt
   [=^.^=] coh comp3 = x1 -> x4
   [=I.I=] successfully defined comp3.
