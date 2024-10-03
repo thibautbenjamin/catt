@@ -174,14 +174,20 @@ Semantically, taking the suspension of a term representing an operation of ω-ca
 ### Opposites
 The language of `catt` is invariant under the operation of formally reversing all the directions of the cells in a given dimension. We call this operation an opposite, and it is provided by the following syntax
 ```
-op { [NUMBER] } (TERM)
+op { [NUMBERS] } (TERM)
 ```
-where the number indicates in which direction one is taking the opposite. For instance, consider the folloiwng example:
+where the numbers indicates in which direction one is taking the opposite. For instance, consider the folloiwng example:
 ```
 let opwhiskl (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (a : f -> f') (g : y -> z)
     = op { 1 } (whiskl g a)
 ```
 `whiskl g a` is not well defined in the given context since that would require the target of `g` to be the source of the source of `a` which is not the case. However, taking the 1-opposite formally reverses the direction of the 1-cells, and this typing condition then requires the target of the target of `a` to be the source of `g`, which is the case in the given context (both are `y`). So this definition is valid. The 1-opposite of the right whiskering is the left whiskering and in the above example the term `op { 1 } (whiskl g a)` actually computes to `whiskr a g`.
+
+One can take opposites with respect to several directions at once by inputting a list of numbers as follows:
+```
+let opwhiskl-bis (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (a : f -> f') (g : y -> z)
+    = op { 1 2 } (whiskl g a)
+```
 
 Semantically, taking the opposite of a term representing an operation of ω-categories amounts to considering the same operation for the ω-categorical structure of the opposite globular set. An account of the algorithm used to compute the opposite and its semantical interpretation is given in [this article](https://arxiv.org/abs/2402.01611).
 
