@@ -148,9 +148,9 @@ coh unit (x) : comp f (id _) -> f
 ```
 
 ### More compact description of contexts
-In a context one can write a comma-separated list of arguments if they share the same type, in order to simplify the notations. For instance:
+In a context one can write a list of arguments if they share the same type, in order to simplify the notations. For instance:
 ```
-let comp-binary (x, y, z : *) (f : x -> y) (g : y -> z) = comp f g
+let comp-binary (x y z : *) (f : x -> y) (g : y -> z) = comp f g
 ```
 
 ### Suspension
