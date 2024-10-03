@@ -19,7 +19,7 @@ module Memo = struct
       res
 end
 
-let check_closed ctx l =
+let check_upwards_closed ctx l =
   let closed =
     List.for_all
       (fun x ->
@@ -210,7 +210,7 @@ and coh_depth0 coh l =
 and coh coh l =
   let ps, ty, _ = Coh.forget coh in
   let c = Unchecked.ps_to_ctx ps in
-  check_closed c l;
+  check_upwards_closed c l;
   let depth0 = List.for_all (fun (x, (_, e)) -> e || not (List.mem x l)) c in
   let cohf =
     if depth0 then
@@ -277,22 +277,28 @@ and tm c t s =
 let report_errors f str =
   try f () with
   | FunctorialiseMeta ->
-      Error.functorialisation str "cannot functorialise meta-variables"
+      Error.functorialisation (Lazy.force str)
+        "cannot functorialise meta-variables"
   | NotClosed ->
-      Error.functorialisation str
+      Error.functorialisation (Lazy.force str)
         "list of functorialised arguments is not closed"
   | Unsupported ->
-      Error.functorialisation str
+      Error.functorialisation (Lazy.force str)
         "higher-dimensional transformations in depth >= 0 are not yet supported"
 
 (* Functorialisation of a coherence: exposed function *)
-let coh c l = report_errors (fun _ -> coh c l) ("coherence: " ^ Coh.to_string c)
+let coh c l =
+  report_errors (fun _ -> coh c l) (lazy ("coherence: " ^ Coh.to_string c))
 
 let coh_depth0 c l =
-  report_errors (fun _ -> coh_depth0 c l) ("coherence: " ^ Coh.to_string c)
+  report_errors
+    (fun _ -> coh_depth0 c l)
+    (lazy ("coherence: " ^ Coh.to_string c))
 
 let coh_successively c l =
-  report_errors (fun _ -> coh_successively c l) ("coherence: " ^ Coh.to_string c)
+  report_errors
+    (fun _ -> coh_successively c l)
+    (lazy ("coherence: " ^ Coh.to_string c))
 
 let rec sub s l =
   match s with
@@ -321,7 +327,7 @@ let coh_all c =
 
 (* Functorialisation a term: exposed function *)
 let tm c t s =
-  report_errors (fun _ -> tm c t s) ("term: " ^ Unchecked.tm_to_string t)
+  report_errors (fun _ -> tm c t s) (lazy ("term: " ^ Unchecked.tm_to_string t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in
