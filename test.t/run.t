@@ -187,6 +187,12 @@
   [=I.I=] successfully defined term (builtin_comp2_func[1 1]_op{1} x y f f'' (!1builtin_comp2 x y f f' a f'' b) z g g'' (!1builtin_comp2 y z g g' c g'' d)) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
   [=^.^=] let nested12 = op_{1,2}((_builtin_comp  [(_builtin_comp  d c)] [(_builtin_comp  b a)]))
   [=I.I=] successfully defined term (builtin_comp2_func[1 1]_op{1} x y f f'' (!1builtin_comp2 x y f f' a f'' b) z g g'' (!1builtin_comp2 y z g g' c g'' d)) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
+  [=^.^=] coh assoc = (_builtin_comp  f (_builtin_comp  g h)) -> (_builtin_comp  (_builtin_comp  f g) h)
+  [=I.I=] successfully defined assoc.
+  [=^.^=] coh assoc_susp = (_builtin_comp  f (_builtin_comp  g h)) -> (_builtin_comp  (_builtin_comp  f g) h)
+  [=I.I=] successfully defined assoc_susp.
+  [=^.^=] let test = (_builtin_id  op_{3}((assoc_susp  f g h)))
+  [=I.I=] successfully defined term (!3builtin_id p q x w (!1builtin_comp2 p q x z (!1builtin_comp2 p q x y f z g) w h) (!1builtin_comp2 p q x y f w (!1builtin_comp2 p q y z g w h)) (assoc_susp_op{3} p q x y f z g w h)) of type (assoc_susp_op{3} p q x y f z g w h) -> (assoc_susp_op{3} p q x y f z g w h).
 
   $ catt features/inverses.catt
   [=^.^=] let id_inv = I((_builtin_id  x))

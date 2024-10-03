@@ -45,3 +45,10 @@ let nested12  (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (f'' : x -> y)
                                     (g : y -> z) (g' : y -> z) (g'' : y -> z)
                                     (c : g -> g') (d : g' -> g'')
                                     = op { 1 2 } (comp [comp d c] [comp b a])
+
+##test interaction of opposites and suspension
+coh assoc (x(f)y(g)z(h)w) : comp f (comp g h) -> comp (comp f g) h
+coh assoc_susp (p(x(f)y(g)z(h)w)q) : comp f (comp g h) -> comp (comp f g) h
+let test (p(x(f)y(g)z(h)w)q)
+    : (op { 2 } (assoc f g h)) -> (op { 2 } (assoc f g h))
+    = id (op { 3 } (assoc_susp f g h))

@@ -4,6 +4,13 @@ open Raw_types
 
 exception WrongNumberOfArguments
 
+let rec head_susp = function
+  | VarR _ -> 0
+  | Sub (_, _, None, _) -> 0
+  | Sub (_, _, Some susp, _) -> susp
+  | Op (_, t) | Inverse t | Unit t -> head_susp t
+  | Meta | BuiltinR _ | Letin_tm _ -> Error.fatal "ill-formed term"
+
 (* inductive translation on terms and types without let_in *)
 let rec tm t =
   let make_coh coh s susp expl =
@@ -32,8 +39,9 @@ let rec tm t =
       in
       make_coh builtin_coh s susp expl
   | Op (l, t) ->
+      let offset = head_susp t in
       let t, meta = tm t in
-      (Opposite.tm t l, meta)
+      (Opposite.tm t (List.map (fun x -> x + offset) l), meta)
   | Inverse t ->
       let t, meta_ctx = tm t in
       (Inverse.compute_inverse t, meta_ctx)
