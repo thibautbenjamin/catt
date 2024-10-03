@@ -356,10 +356,13 @@
 
   $ catt --keep-going fails/invalidnaturality.catt
   [=^.^=] let fail1 = (@_builtin_comp  x [f] f x f)
-  [=X.X=] Could not compute the functorialisation of coherence: builtin_comp2 for the following reason:
+  [=X.X=] Could not compute the transformation of coherence: builtin_comp2 for the following reason:
   list of functorialised arguments is not closed
-  [=^.^=] coh whisk = (_builtin_comp  [a] h) -> (_builtin_comp  [b] h)
-  [=I.I=] successfully defined whisk.
+  [=^.^=] let whisk = (_builtin_comp  [a] h)
+  [=I.I=] successfully defined term (builtin_comp2 [a] h) of type (builtin_comp2 f h) -> (builtin_comp2 g h).
+  [=^.^=] let fail2 = (@whisk  [_] [_] [_] [_] [m] _ [h])
+  [=X.X=] Could not compute the transformation of term: (builtin_comp2 [a] h) for the following reason:
+  higher-dimensional transformations in depth >= 0 are not yet supported
 
   $ catt --keep-going fails/uninferrable.catt
   [=^.^=] let fail1 = (_builtin_comp  (_builtin_id  _) (_builtin_id  _))

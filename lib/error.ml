@@ -53,8 +53,7 @@ let unknown_id s =
 
 let functorialisation t s =
   Io.error
-    "Could not compute the functorialisation of %s for the following reason:\n\
-     %s%!"
+    "Could not compute the transformation of %s for the following reason:\n%s%!"
     t s;
   raise InvalidEntry
 
