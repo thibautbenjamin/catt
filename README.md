@@ -189,6 +189,13 @@ let opwhiskl-bis (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (a : f -> f'
     = op { 1 2 } (whiskl g a)
 ```
 
+In the presence of a suspension, the opposite is always computed first, then the term is suspended. For instance, considering the previous example, one can write
+```
+op { 1 } (whiskl g a)
+```
+even when `g` is a 2-cell and `a` is a 3-cell. The result will be a 2-dimensional opposite of the suspended term. This allows to keep the suspension silent, but and is justified by the fact that taking a opposites in any dimension less than k of a k suspended term leaves the suspended term invariant, so there is never a reason to write an opposite after a suspension as opposed to before.
+
+
 Semantically, taking the opposite of a term representing an operation of ω-categories amounts to considering the same operation for the ω-categorical structure of the opposite globular set. An account of the algorithm used to compute the opposite and its semantical interpretation is given in [this article](https://arxiv.org/abs/2402.01611).
 
 ### Inverses and invertibility witnesses
