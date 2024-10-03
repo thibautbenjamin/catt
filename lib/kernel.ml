@@ -493,7 +493,7 @@ and Coh : sig
     Unchecked_types(Coh).tm * Unchecked_types(Coh).tm * Unchecked_types(Coh).ty
 
   val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
-  val func_data : t -> (Var.t * int) list
+  val func_data : t -> (Var.t * int) list list
   val check_equal : t -> t -> unit
   val dim : t -> int
 end = struct

@@ -35,16 +35,40 @@ let compute_func_data l func =
   let incr_db v i =
     match v with Var.Db k -> Var.Db (k + i) | _ -> assert false
   in
-  let rec add_in func v =
+  let is_mergeable =
     match func with
-    | [] -> [ (incr_db v 2, 1) ]
-    | (w, n) :: func when v = w -> (incr_db v 2, n + 1) :: func
-    | (w, n) :: func -> (incr_db w 2, n) :: add_in func v
+    | [] -> false
+    | f :: _ ->
+        List.for_all
+          (fun x ->
+            match List.assoc_opt x f with
+            | None -> false
+            | Some k -> List.for_all (fun (_, n) -> n <= k) f)
+          l
   in
-  let rec add_all func l =
-    match l with [] -> func | v :: l -> add_all (add_in func v) l
-  in
-  add_all func l
+  if is_mergeable then
+    let f, func =
+      match func with [] -> assert false | f :: func -> (f, func)
+    in
+    let rec add_in func v =
+      match func with
+      | [] -> [ (incr_db v 2, 1) ]
+      | (w, n) :: func when v = w -> (incr_db v 2, n + 1) :: func
+      | (w, n) :: func -> (incr_db w 2, n) :: add_in func v
+    in
+    let rec add_all func l =
+      match l with [] -> func | v :: l -> add_all (add_in func v) l
+    in
+    add_all f l :: func
+  else
+    let rec increase_in l =
+      match l with
+      | [] -> ([], 2)
+      | w :: l ->
+          let l, k = increase_in l in
+          ((incr_db w k, 1) :: l, k + 2)
+    in
+    fst (increase_in l) :: func
 
 (*
    Given a context, a ps-substitution and a list of variables, returns

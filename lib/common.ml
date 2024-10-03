@@ -51,4 +51,4 @@ module Var = struct
 end
 
 (* For pretty-printing applied coherences *)
-type coh_pp_data = string * int * (Var.t * int) list
+type coh_pp_data = string * int * (Var.t * int) list list

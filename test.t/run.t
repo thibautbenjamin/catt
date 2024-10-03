@@ -258,7 +258,7 @@
   [=^.^=] coh whiskl3 = (_builtin_comp  f [a]) -> (_builtin_comp  f [b])
   [=I.I=] successfully defined whiskl.
   [=^.^=] let nat_whiskl3 = (whiskl3  [c] m)
-  [=I.I=] successfully defined term (whiskl [c] [m]) of type (!2builtin_comp2 (!1builtin_comp2 [(whiskl f [m])] (builtin_comp2 [c] h)) (whiskl [c] b)) -> (!2builtin_comp2 (whiskl [c] a) (!1builtin_comp2 (builtin_comp2 [c] g) [(whiskl f' [m])])).
+  [=I.I=] successfully defined term (whiskl_func[1] [c] m) of type (!2builtin_comp2 (!1builtin_comp2 [(whiskl f [m])] (builtin_comp2 [c] h)) (whiskl [c] b)) -> (!2builtin_comp2 (whiskl [c] a) (!1builtin_comp2 (builtin_comp2 [c] g) [(whiskl f' [m])])).
   [=^.^=] coh whiskl4 = (_builtin_comp  f [[[p]]]) -> (_builtin_comp  f [[[p]]])
   [=I.I=] successfully defined whiskl4.
   [=^.^=] coh id2 = (_builtin_comp  (_builtin_id  x) (_builtin_id  x) (_builtin_id  x)) -> (_builtin_comp  (_builtin_id  x))
@@ -356,7 +356,7 @@
 
   $ catt --keep-going fails/invalidnaturality.catt
   [=^.^=] let fail1 = (@_builtin_comp  x [f] f x f)
-  [=X.X=] The constraints generated for the term: (!1builtin_comp3 (intch_src f f) (!-1builtin_comp2_red [(!1!-1builtin_comp2_red (builtin_assc f f f))]) (intch_tgt x f f)) could not be solved for the following reason:
+  [=X.X=] The constraints generated for the term: (!1builtin_comp3 (intch_src f f) (builtin_comp2_red [(!1builtin_comp2_red (builtin_assc f f f))]) (intch_tgt x f f)) could not be solved for the following reason:
   could not unify (builtin_comp2 f f) and f
   [=^.^=] coh whisk = (_builtin_comp  [a] h) -> (_builtin_comp  [b] h)
   [=I.I=] successfully defined whisk.
