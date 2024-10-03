@@ -3,6 +3,8 @@ open Kernel
 open Unchecked_types.Unchecked_types (Coh)
 
 exception FunctorialiseMeta
+exception NotClosed
+exception Unsupported
 
 let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
@@ -16,6 +18,28 @@ module Memo = struct
       Hashtbl.add tbl_whisk i res;
       res
 end
+
+let check_upwards_closed ctx l =
+  let closed =
+    List.for_all
+      (fun x ->
+        List.for_all
+          (fun (y, (ty, _)) ->
+            (not (Unchecked.ty_contains_var ty x)) || List.mem y l)
+          ctx)
+      l
+  in
+  if not closed then raise NotClosed
+
+let check_codim1 c n l =
+  let is_comdim1 =
+    List.for_all
+      (fun x ->
+        let ty, _ = List.assoc x c in
+        Unchecked.dim_ty ty >= n - 1)
+      l
+  in
+  if not is_comdim1 then raise Unsupported
 
 let rec next_round l =
   match l with
@@ -184,8 +208,9 @@ and coh_depth0 coh l =
   check_coh psf ty (name, susp, func_data)
 
 and coh coh l =
-  let ps, _, _ = Coh.forget coh in
+  let ps, ty, _ = Coh.forget coh in
   let c = Unchecked.ps_to_ctx ps in
+  check_upwards_closed c l;
   let depth0 = List.for_all (fun (x, (_, e)) -> e || not (List.mem x l)) c in
   let cohf =
     if depth0 then
@@ -194,7 +219,9 @@ and coh coh l =
       let pscf = ctx (Unchecked.ps_to_ctx ps) l in
       let cohf = coh_depth0 coh l in
       (Coh (cohf, sf), pscf)
-    else !coh_depth1 coh l
+    else (
+      check_codim1 c (Unchecked.dim_ty ty) l;
+      !coh_depth1 coh l)
   in
   cohf
 
@@ -246,27 +273,32 @@ and tm c t s =
     tm c t next
   else (t, c)
 
+(* Public API *)
+let report_errors f str =
+  try f () with
+  | FunctorialiseMeta ->
+      Error.functorialisation (Lazy.force str)
+        "cannot functorialise meta-variables"
+  | NotClosed ->
+      Error.functorialisation (Lazy.force str)
+        "list of functorialised arguments is not closed"
+  | Unsupported ->
+      Error.functorialisation (Lazy.force str)
+        "higher-dimensional transformations in depth >= 0 are not yet supported"
+
 (* Functorialisation of a coherence: exposed function *)
 let coh c l =
-  try coh c l
-  with FunctorialiseMeta ->
-    Error.functorialisation
-      ("coherence: " ^ Coh.to_string c)
-      (Printf.sprintf "cannot functorialise meta-variables")
+  report_errors (fun _ -> coh c l) (lazy ("coherence: " ^ Coh.to_string c))
 
 let coh_depth0 c l =
-  try coh_depth0 c l
-  with FunctorialiseMeta ->
-    Error.functorialisation
-      ("coherence: " ^ Coh.to_string c)
-      (Printf.sprintf "cannot functorialise meta-variables")
+  report_errors
+    (fun _ -> coh_depth0 c l)
+    (lazy ("coherence: " ^ Coh.to_string c))
 
 let coh_successively c l =
-  try coh_successively c l
-  with FunctorialiseMeta ->
-    Error.functorialisation
-      ("coherence: " ^ Coh.to_string c)
-      (Printf.sprintf "cannot functorialise meta-variables")
+  report_errors
+    (fun _ -> coh_successively c l)
+    (lazy ("coherence: " ^ Coh.to_string c))
 
 let rec sub s l =
   match s with
@@ -295,11 +327,7 @@ let coh_all c =
 
 (* Functorialisation a term: exposed function *)
 let tm c t s =
-  try tm c t s
-  with FunctorialiseMeta ->
-    Error.functorialisation
-      ("term: " ^ Unchecked.tm_to_string t)
-      (Printf.sprintf "cannot functorialise meta-variables")
+  report_errors (fun _ -> tm c t s) (lazy ("term: " ^ Unchecked.tm_to_string t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in

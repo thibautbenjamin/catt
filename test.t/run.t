@@ -356,16 +356,27 @@
 
   $ catt --keep-going fails/invalidnaturality.catt
   [=^.^=] let fail1 = (@_builtin_comp  x [f] f x f)
-  [=X.X=] The constraints generated for the term: (!1builtin_comp3 (intch_src f f) (builtin_comp2_red [(!1builtin_comp2_red (builtin_assc f f f))]) (intch_tgt x f f)) could not be solved for the following reason:
-  could not unify (builtin_comp2 f f) and f
-  [=^.^=] coh whisk = (_builtin_comp  [a] h) -> (_builtin_comp  [b] h)
-  [=I.I=] successfully defined whisk.
+  [=X.X=] Could not compute the transformation of coherence: builtin_comp2 for the following reason:
+  list of functorialised arguments is not closed
+  [=^.^=] let whisk = (_builtin_comp  [a] h)
+  [=I.I=] successfully defined term (builtin_comp2 [a] h) of type (builtin_comp2 f h) -> (builtin_comp2 g h).
+  [=^.^=] let fail2 = (@whisk  [_] [_] [_] [_] [m] _ [h])
+  [=X.X=] Could not compute the transformation of term: (builtin_comp2 [a] h) for the following reason:
+  higher-dimensional transformations in depth >= 0 are not yet supported
 
   $ catt --keep-going fails/uninferrable.catt
   [=^.^=] let fail1 = (_builtin_comp  (_builtin_id  _) (_builtin_id  _))
   [=X.X=] Incomplete constraints: some of the meta-variable could not be resolved in the following term: (builtin_comp2 (builtin_id _tm1) (builtin_id _tm1))
   [=^.^=] coh fail2 = (_builtin_comp  (_builtin_id  _) _) -> f
   [=X.X=] Incomplete constraints: some of the meta-variable could not be resolved in the following coherence: fail2
+
+  $ catt --keep-going fails/invalidinverse.catt
+  [=^.^=] let fail1 = I((_builtin_comp  f g))
+  [=X.X=] Could not compute the inverse of term: (builtin_comp2 f g) for the following reason:
+  term f is not invertible
+  [=^.^=] let fail1 = I((_builtin_comp  [a] [(_builtin_id  g)]))
+  [=X.X=] Could not compute the inverse of term: (builtin_comp2 [a] [(!1builtin_id g)]) for the following reason:
+  term a is not invertible
 
   $ catt coverage/eckmann-hilton-unoptimized.catt
   [=^.^=] coh comp3 = x1 -> x4

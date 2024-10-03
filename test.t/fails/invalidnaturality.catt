@@ -1,2 +1,3 @@
 let fail1 (x : *) (f : x -> x) = @comp x [f] f x f
-coh whisk (x(f(a(m)b)g)y(h)z) : comp [a] h -> comp [b] h
+let whisk (x(f(a)g)y(h)z) = comp [a] h
+let fail2 (x(f(a(m)b)g)y(h)z) = @whisk [_] [_] [_] [_] [m] _ [h]
