@@ -273,51 +273,26 @@ and tm c t s =
     tm c t next
   else (t, c)
 
-(* Functorialisation of a coherence: exposed function *)
-let coh c l =
-  try coh c l with
+(* Public API *)
+let report_errors f str =
+  try f () with
   | FunctorialiseMeta ->
-      Error.functorialisation
-        ("coherence: " ^ Coh.to_string c)
-        "cannot functorialise meta-variables"
+      Error.functorialisation str "cannot functorialise meta-variables"
   | NotClosed ->
-      Error.functorialisation
-        ("coherence: " ^ Coh.to_string c)
+      Error.functorialisation str
         "list of functorialised arguments is not closed"
   | Unsupported ->
-      Error.functorialisation
-        ("coherence: " ^ Coh.to_string c)
+      Error.functorialisation str
         "higher-dimensional transformations in depth >= 0 are not yet supported"
+
+(* Functorialisation of a coherence: exposed function *)
+let coh c l = report_errors (fun _ -> coh c l) ("coherence: " ^ Coh.to_string c)
 
 let coh_depth0 c l =
-  try coh_depth0 c l with
-  | FunctorialiseMeta ->
-      Error.functorialisation
-        ("coherence: " ^ Coh.to_string c)
-        "cannot functorialise meta-variables"
-  | NotClosed ->
-      Error.functorialisation
-        ("coherence: " ^ Coh.to_string c)
-        "list of functorialised arguments is not closed"
-  | Unsupported ->
-      Error.functorialisation
-        ("coherence: " ^ Coh.to_string c)
-        "higher-dimensional transformations in depth >= 0 are not yet supported"
+  report_errors (fun _ -> coh_depth0 c l) ("coherence: " ^ Coh.to_string c)
 
 let coh_successively c l =
-  try coh_successively c l with
-  | FunctorialiseMeta ->
-      Error.functorialisation
-        ("coherence: " ^ Coh.to_string c)
-        "cannot functorialise meta-variables"
-  | NotClosed ->
-      Error.functorialisation
-        ("coherence: " ^ Coh.to_string c)
-        "list of functorialised arguments is not closed"
-  | Unsupported ->
-      Error.functorialisation
-        ("coherence: " ^ Coh.to_string c)
-        "higher-dimensional transformations in depth >= 0 are not yet supported"
+  report_errors (fun _ -> coh_successively c l) ("coherence: " ^ Coh.to_string c)
 
 let rec sub s l =
   match s with
@@ -346,19 +321,7 @@ let coh_all c =
 
 (* Functorialisation a term: exposed function *)
 let tm c t s =
-  try tm c t s with
-  | FunctorialiseMeta ->
-      Error.functorialisation
-        ("term: " ^ Unchecked.tm_to_string t)
-        "cannot functorialise meta-variables"
-  | NotClosed ->
-      Error.functorialisation
-        ("term: " ^ Unchecked.tm_to_string t)
-        "list of functorialised arguments is not closed"
-  | Unsupported ->
-      Error.functorialisation
-        ("term: " ^ Unchecked.tm_to_string t)
-        "higher-dimensional transformations in depth >= 0 are not yet supported"
+  report_errors (fun _ -> tm c t s) ("term: " ^ Unchecked.tm_to_string t)
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in
