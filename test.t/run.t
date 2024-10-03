@@ -356,8 +356,8 @@
 
   $ catt --keep-going fails/invalidnaturality.catt
   [=^.^=] let fail1 = (@_builtin_comp  x [f] f x f)
-  [=X.X=] The constraints generated for the term: (!1builtin_comp3 (intch_src f f) (builtin_comp2_red [(!1builtin_comp2_red (builtin_assc f f f))]) (intch_tgt x f f)) could not be solved for the following reason:
-  could not unify (builtin_comp2 f f) and f
+  [=X.X=] Could not compute the functorialisation of coherence: builtin_comp2 for the following reason:
+  list of functorialised arguments is not closed
   [=^.^=] coh whisk = (_builtin_comp  [a] h) -> (_builtin_comp  [b] h)
   [=I.I=] successfully defined whisk.
 

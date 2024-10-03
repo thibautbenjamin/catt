@@ -3,6 +3,7 @@ open Kernel
 open Unchecked_types.Unchecked_types (Coh)
 
 exception FunctorialiseMeta
+exception NotClosed
 
 let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
@@ -16,6 +17,18 @@ module Memo = struct
       Hashtbl.add tbl_whisk i res;
       res
 end
+
+let check_closed ctx l =
+  let closed =
+    List.for_all
+      (fun x ->
+         List.for_all
+           (fun (y,(ty,_)) -> not (Unchecked.ty_contains_var ty x) || List.mem y l)
+           ctx)
+      l
+  in
+  if not closed then raise NotClosed
+
 
 let rec next_round l =
   match l with
@@ -186,6 +199,7 @@ and coh_depth0 coh l =
 and coh coh l =
   let ps, _, _ = Coh.forget coh in
   let c = Unchecked.ps_to_ctx ps in
+  check_closed c l;
   let depth0 = List.for_all (fun (x, (_, e)) -> e || not (List.mem x l)) c in
   let cohf =
     if depth0 then
@@ -249,24 +263,39 @@ and tm c t s =
 (* Functorialisation of a coherence: exposed function *)
 let coh c l =
   try coh c l
-  with FunctorialiseMeta ->
+  with
+  | FunctorialiseMeta ->
     Error.functorialisation
       ("coherence: " ^ Coh.to_string c)
-      (Printf.sprintf "cannot functorialise meta-variables")
+      "cannot functorialise meta-variables"
+  | NotClosed ->
+    Error.functorialisation
+      ("coherence: " ^ Coh.to_string c)
+      "list of functorialised arguments is not closed"
 
 let coh_depth0 c l =
   try coh_depth0 c l
-  with FunctorialiseMeta ->
+  with
+  | FunctorialiseMeta ->
     Error.functorialisation
       ("coherence: " ^ Coh.to_string c)
-      (Printf.sprintf "cannot functorialise meta-variables")
+      "cannot functorialise meta-variables"
+  | NotClosed ->
+    Error.functorialisation
+      ("coherence: " ^ Coh.to_string c)
+      "list of functorialised arguments is not closed"
 
 let coh_successively c l =
   try coh_successively c l
-  with FunctorialiseMeta ->
+  with
+  | FunctorialiseMeta ->
     Error.functorialisation
       ("coherence: " ^ Coh.to_string c)
-      (Printf.sprintf "cannot functorialise meta-variables")
+      "cannot functorialise meta-variables"
+  | NotClosed ->
+    Error.functorialisation
+      ("coherence: " ^ Coh.to_string c)
+      "list of functorialised arguments is not closed"
 
 let rec sub s l =
   match s with
@@ -296,10 +325,15 @@ let coh_all c =
 (* Functorialisation a term: exposed function *)
 let tm c t s =
   try tm c t s
-  with FunctorialiseMeta ->
+  with
+  | FunctorialiseMeta ->
     Error.functorialisation
       ("term: " ^ Unchecked.tm_to_string t)
-      (Printf.sprintf "cannot functorialise meta-variables")
+      "cannot functorialise meta-variables"
+  | NotClosed ->
+    Error.functorialisation
+      ("term: " ^ Unchecked.tm_to_string t)
+      "list of functorialised arguments is not closed"
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in
