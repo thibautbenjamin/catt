@@ -33,7 +33,7 @@
       context_over ObjR ps
       %}
 
-%token COH OBJ MOR WILD COMA IGNORE
+%token COH OBJ MOR WILD IGNORE
 %token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP AT
 %token <string> BUILTIN
 %token <string> IDENT
@@ -74,7 +74,7 @@ cmd:
 
 args_of_same_ty :
   | IDENT COL tyexpr { [Var.make_var $1, $3], $3 }
-  | IDENT COMA args_of_same_ty { (Var.make_var $1, snd $3)::(fst $3), snd $3 }
+  | IDENT args_of_same_ty { (Var.make_var $1, snd $2)::(fst $2), snd $2 }
 
 nonempty_args :
   | LPAR args_of_same_ty RPAR args { List.append (fst $2) $4 }
@@ -161,10 +161,6 @@ ps_list :
   | nonempty_ps_list { $1 }
   | { [] }
 
-int :
-  | INT { $1 }
-
 int_list :
-  | int { [int_of_string  $1] }
-  | INT COMA int_list { (int_of_string $1)::$3 }
+  | INT int_list { (int_of_string $1)::$2 }
   | { [] }

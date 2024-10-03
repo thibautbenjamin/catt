@@ -1,2 +1,2 @@
 coh whisk (x(f(a)g)y(h)z) : comp  f h -> comp g h
-let composition (x, y, z : *) (f, g : x -> y) (h : y -> z) (a : f -> g) = whisk a h
+let composition (x y z : *) (f g : x -> y) (h : y -> z) (a : f -> g) = whisk a h

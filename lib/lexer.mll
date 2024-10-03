@@ -26,7 +26,6 @@ rule token = parse
   | "_" { WILD }
   | "set" { SET }
   | "!" { BANG }
-  | "," { COMA }
   | "op" { OP }
   | "@" { AT }
   | "" { IGNORE }
