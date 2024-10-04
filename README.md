@@ -2,7 +2,7 @@
 
 Catt is an implementation of a type system checking coherences in [Grothendieck-Maltsiotis ω-categories](https://arxiv.org/abs/1009.2331). The underlying type theoretical translation is described by [Finster-Mimram](https://arxiv.org/abs/1706.02866).
 
-This is my personnal implementation of this theory. For a more complete implementation, which also accounts for different flavours of semi-strict ω-categories, check out [catt.io](https://github.com/ericfinster/catt.io). Older, and more experimental implementation that should be mentioned for the sake of completeness, but are now superseeded are [Samuel Mimram's OCaml version](https://github.com/smimram/catt), and [Eric Finster's Haskell version](https://github.com/ericfinster/catt).
+This is my personnal implementation of this theory. For a more complete implementation, which also accounts for different flavours of semi-strict ω-categories, check out [catt.io](https://github.com/ericfinster/catt.io). Other implementations that are now superseeded are [Samuel Mimram's OCaml version](https://github.com/smimram/catt), and [Eric Finster's Haskell version](https://github.com/ericfinster/catt).
 
 There is an [online version](https://thibautbenjamin.github.io/catt/) of this implementation.
 
@@ -48,7 +48,7 @@ There are two keywords to define a new operation:
 	```
 	coh name ps : ty
 	```
-	defines a primitive coherence with arguments `ps` forming a pasting scheme and return type `ty`.
+	defines a primitive coherence with arguments `ps` being a context representing a pasting scheme and `ty` being the return type.
 
 * Secondly, the `let` keyword, used as follows:
 	```
@@ -99,7 +99,7 @@ set [SETTING] = [VALUE]
 The simplest setting is `verbosity`, which can be set to a number from `0` to `5`. Boolean settings are set using the values `t` for true and `f` for false.
 
 ### Implicit arguments
-Some arguments to be specified for each operation can always be inferred, and by default these are left implicit. Specifically, all arguments that already appear in the type of another argument, are by default implicit. This can be turned off at any point with the following instruction:
+For each operation, some of its arguments can always be inferred, so by default they are left implicit. Specifically, all arguments that already appear in the type of another argument are by default implicit. This can be turned off at any point with the following instruction:
 ```
 set explicit_substitutions = t
 ```
@@ -109,6 +109,12 @@ set explicit_substitutions = t
 coh unit_explicit (x : *) (y : *) (f : x -> y) : binarycomp x y f y (id y) -> f
 set explicit_substitutions = f
 ```
+
+The notation `@` before the name of an operation is a way to indicate that all arguments are going to be specified for this operation. It provides a local way of turning off the implicit arguments. For instance, one may define the associator as follows:
+```
+coh assoc (x(f)y(g)z(h)w) : @binarycomp x y f w (binarycomp g h) -> binarycomp (binarycomp f g) h
+```
+
 ### Wildcards
 Sometimes, more arguments can be inferred, and these may be replaced by the wildcard symbol `_`. For instance, the unitor can be defined as follows:
 ```
@@ -144,7 +150,7 @@ where here the same name `comp` is used for the binary composition and the terna
 #### Example
 The unitor defined above can be defined directly using the the built-ins, not requiring to introduce coherences for the composition and identity before
 ```
-coh unit (x) : comp f (id _) -> f
+coh unit (x(f)y) : comp f (id _) -> f
 ```
 
 ### More compact description of contexts
@@ -176,7 +182,7 @@ The language of `catt` is invariant under the operation of formally reversing al
 ```
 op { [NUMBERS] } (TERM)
 ```
-where the numbers indicates in which direction one is taking the opposite. For instance, consider the folloiwng example:
+where the numbers indicate in which dimensions one is taking the opposite. For instance, consider the folloiwng example:
 ```
 let opwhiskl (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (a : f -> f') (g : y -> z)
     = op { 1 } (whiskl g a)
@@ -199,7 +205,7 @@ even when `g` is a 2-cell and `a` is a 3-cell. The result will be a 2-dimensiona
 Semantically, taking the opposite of a term representing an operation of ω-categories amounts to considering the same operation for the ω-categorical structure of the opposite globular set. An account of the algorithm used to compute the opposite and its semantical interpretation is given in [this article](https://arxiv.org/abs/2402.01611).
 
 ### Inverses and invertibility witnesses
-Some terms, like the associators or identities, happen to be weakly invertible. It is actually syntactically easy to decide whether a term is invertible. If a term only contains variables of dimension lower than itself, then it is invertible. Otherwise it contains at least one variable of the same dimension as itself and thus is not invertible. `catt` can automatically compute a chosen inverse for those terms which are invertible, as well as a cancellation witness (i.e., a cell going from the composite of the cell with its chosen inverse to an identity). A complete account of the algorithms we use to compute the chosen inverses and cancellation witnesses can be found in [this article](https://arxiv.org/abs/2406.12127).
+Some terms, like the associators or identities, are weakly invertible. It is actually syntactically easy to decide whether a term is invertible. If a term only contains variables of dimension lower than itself, then it is invertible. Conversely, when it contains at least one variable of the same dimension as itself, it is not invertible. `catt` can automatically compute a chosen inverse for the terms which are invertible, as well as a cancellation witness (i.e., a cell going from the composite of the cell with its chosen inverse to an identity). A complete account of the algorithms we use to compute the chosen inverses and cancellation witnesses can be found in [this article](https://arxiv.org/abs/2406.12127).
 
 #### Inverses
 Computing a chosen inverse of an invertible term can be done by the following syntax:
@@ -218,7 +224,7 @@ Not only can `catt` compute some chosen inverses, but it can also compute any pa
 ```
 U [TERM]
 ```
-Given a term `t` of type `u -> v`, the cancellation witness `U t` is a cell of type `comp t (I t) -> id (u)`. For instance, here is the cancellation witness for the associator and its inverse:
+Given an invertible term `t` of type `u -> v`, the cancellation witness `U t` is a cell of type `comp t (I t) -> id (u)`. For instance, here is the cancellation witness for the associator and its inverse:
 ```
 let assocU (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : comp (assoc f g h) (assoc- f g h) -> id (comp (comp f g) h)
 ```
@@ -239,12 +245,12 @@ let horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                   (z : *) (g : y -> z) (g' : y -> z) (b : g -> g')
  	  : comp f g -> comp f' g' = comp [a] [b]
 ```
-The functorialisation also works recursively for terms. Given any term and a variable in that term of the same dimension than the term, catt can compute the functorialisation of the term with respect to this argument, which is again specified syntactically by square brackets in the applciation.
+The functorialisation also works recursively for arbitrary terms. Given any term and a variable in that term of the same dimension as the term, `catt` can compute the functorialisation of the term with respect to this argument, which is again specified syntactically by square brackets in the applciation.
 
-This is partially described in [this thesis](https://hal.science/tel-03106197), a more complete account is in preparation.
+This is partially described in [this thesis](https://hal.science/tel-03106197). A more complete account is in preparation.
 
-### naturality of the coherences and terms
-Given a coherence or a term and an upwards closed subset of variables of codimension 1 in it, `catt` can compute the witness of naturality of this term with respect to that set of variables. This is again indicated with square bracket around the corresponding arguments of the applciation. In order to mark implicit arguements, we provide the construct `@`, which when given before a name indicates that the substitution in this case is explicit. This for instance lets us define the square composite as follows:
+### Naturality of the coherences and terms
+Given a coherence or a term and an upwards closed subset of variables of codimension at most 1 in it, `catt` can compute the witness of naturality of this term with respect to that set of variables. This is again indicated with square bracket around the corresponding arguments of the applciation. In order to mark implicit arguements, we provide the construct `@`, which when given before a name indicates that the substitution in this case is explicit. This for instance lets us define the square composite as follows:
 ```
 let sqcomp (x : *) (y : *) (z : *) (x' : *) (y' : *) (z ' : *)
            (f : x -> y) (g : y -> z) (f' : x' -> y') (g' : y' -> z')
@@ -264,7 +270,7 @@ let trcomp (x : *) (y : *) (z : *) (y' : *) (z ' : *)
 ```
 A formal account of this principle is in preparation.
 
-## Practical use
+## Usage
 ### The --debug flag
 Calling `catt --debug [FILE]` will make it so that if there is an error in the file, the program will not abort, but show a menu where the user can either abort the program, ignore the error and keep checking the file, or drop in an interactive mode. For the last option, the environment of the interactive is that at the point of failure, so any coherence defined in the file causing the failure before that point is directly accessible and usable.
 
