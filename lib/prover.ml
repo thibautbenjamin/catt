@@ -22,7 +22,20 @@ let parse s =
             option '--no-builtins' to deactivate the use of built-ins"
            x)
 
-let parse_file f =
+let read_file_to_string path =
+  let rec read_stream stream =
+    try
+      let line = input_line stream in
+      line :: (read_stream stream)
+    with End_of_file ->
+      []
+  in
+  let stream = open_in path in
+  String.concat "\n" (read_stream stream)
+
+let parse_file f = parse (read_file_to_string f)
+
+(* let parse_file f =
   let sin =
     let fi = open_in f in
     let flen = in_channel_length fi in
@@ -31,7 +44,7 @@ let parse_file f =
     close_in fi;
     buf
   in
-  parse (Bytes.to_string sin)
+  parse (Bytes.to_string sin) *)
 
 let reset () =
   Environment.reset ();
