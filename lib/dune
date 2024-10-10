@@ -7,6 +7,4 @@
  (name catt)
  (public_name catt)
  (modules_without_implementation raw_types)
- (libraries base)
- (instrumentation
-  (backend landmarks --auto)))
+ (libraries base))

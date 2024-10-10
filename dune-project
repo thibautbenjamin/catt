@@ -20,9 +20,7 @@
       (ocaml (and (>= 4.14) (< 5.0)))
       (dune (>= 3.10))
       (menhir (>= 20240715))
-      (base (>= 0.17.0))
-      (landmarks (>= 1.4))
-      (landmarks-ppx (>= 1.4)))
+      (base (>= 0.17.0)))
   (tags
     (higher-categories dependent-type-theory)))
 
