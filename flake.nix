@@ -191,6 +191,7 @@
               landmarks
               landmarks-ppx
               utop
+              dune-release
             ]);
 
           inputsFrom = [
