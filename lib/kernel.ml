@@ -12,6 +12,7 @@ exception MetaVariable
 module rec Sub : sig
   type t
 
+  val check : Ctx.t -> Unchecked_types(Coh)(Tm).sub -> Ctx.t -> t
   val check_to_ps : Ctx.t -> Unchecked_types(Coh)(Tm).sub_ps -> PS.t -> t
   val forget : t -> Unchecked_types(Coh)(Tm).sub
   val free_vars : t -> Var.t list
@@ -422,7 +423,7 @@ end = struct
   module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh)(Tm)
 
-  type expr = Var of Var.t | Coh of Coh.t * Sub.t
+  type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
   and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string }
 
   let typ t = t.ty
@@ -431,11 +432,13 @@ end = struct
   let name t = t.name
 
   let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
-  let to_var tm = match tm.e with Var v -> v | Coh _ -> raise IsCoh
+  let to_var tm = match tm.e with Var v -> v | Coh _ | App _ -> raise IsCoh
 
   let free_vars tm =
     let fvty = Ty.free_vars tm.ty in
-    match tm.e with Var x -> x :: fvty | Coh (_, sub) -> Sub.free_vars sub
+    match tm.e with
+    | Var x -> x :: fvty
+    | Coh (_, sub) | App(_, sub) -> Sub.free_vars sub
 
   let is_full tm = List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
   let forget tm = tm.unchecked
@@ -461,7 +464,12 @@ end = struct
               let tm = { ty; e; unchecked = t; name } in
               Hashtbl.add tbl (c, t) tm;
               tm
-          | App (_,_) -> assert false
+          | App (u,s) ->
+            let sub = Sub.check c s (Ty.ctx u.ty) in
+            let e, ty = (App(u,sub), Ty.apply_sub u.ty sub) in
+            let tm = {ty; e; unchecked = t; name} in
+            Hashtbl.add tbl (c, t) tm;
+            tm
         )
     in
     match ty with
