@@ -12,6 +12,7 @@ exception MetaVariable
 module rec Sub : sig
   type t
 
+  val check : Ctx.t -> Unchecked_types(Coh)(Tm).sub -> Ctx.t -> t
   val check_to_ps : Ctx.t -> Unchecked_types(Coh)(Tm).sub_ps -> PS.t -> t
   val forget : t -> Unchecked_types(Coh)(Tm).sub
   val free_vars : t -> Var.t list
@@ -412,6 +413,7 @@ and Tm : sig
   val preimage : t -> Sub.t -> t
   val ty : t -> Ty.t
   val name : t -> string
+  val develop : t -> Unchecked_types(Coh)(Tm).tm
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
@@ -422,8 +424,9 @@ end = struct
   module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh)(Tm)
 
-  type expr = Var of Var.t | Coh of Coh.t * Sub.t
-  and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string }
+  type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
+  and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string;
+            mutable developped : Types.tm option }
 
   let typ t = t.ty
   let ctx t = Ctx.forget(Ty.ctx t.ty)
@@ -431,11 +434,13 @@ end = struct
   let name t = t.name
 
   let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
-  let to_var tm = match tm.e with Var v -> v | Coh _ -> raise IsCoh
+  let to_var tm = match tm.e with Var v -> v | Coh _ | App _ -> raise IsCoh
 
   let free_vars tm =
     let fvty = Ty.free_vars tm.ty in
-    match tm.e with Var x -> x :: fvty | Coh (_, sub) -> Sub.free_vars sub
+    match tm.e with
+    | Var x -> x :: fvty
+    | Coh (_, sub) | App(_, sub) -> Sub.free_vars sub
 
   let is_full tm = List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
   let forget tm = tm.unchecked
@@ -453,15 +458,20 @@ end = struct
           match t with
           | Var x ->
               let e, ty = (Var x, Ty.check c (Ty.forget (Ctx.ty_var c x))) in
-              { ty; e; unchecked = t; name }
+              { ty; e; unchecked = t; name; developped = Some t }
           | Meta_tm _ -> raise MetaVariable
           | Coh (coh, s) ->
               let sub = Sub.check_to_ps c s (Coh.ps coh) in
               let e, ty = (Coh (coh, sub), Ty.apply_sub (Coh.ty coh) sub) in
-              let tm = { ty; e; unchecked = t; name } in
+              let tm = { ty; e; unchecked = t; name; developped = Some t } in
               Hashtbl.add tbl (c, t) tm;
               tm
-          | App (_,_) -> assert false
+          | App (u,s) ->
+            let sub = Sub.check c s (Ty.ctx u.ty) in
+            let e, ty = (App(u,sub), Ty.apply_sub u.ty sub) in
+            let tm = {ty; e; unchecked = t; name; developped = None} in
+            Hashtbl.add tbl (c, t) tm;
+            tm
         )
     in
     match ty with
@@ -469,6 +479,18 @@ end = struct
     | Some ty ->
         Ty.check_equal ty tm.ty;
         tm
+
+  let rec develop tm =
+    match tm.developped with
+    | Some t -> t
+    | None ->
+      let dev = match tm.e with
+        | Var _ | Coh(_,_) -> tm.unchecked
+        | App(t,s) ->
+          let dt = develop t in
+          let s = Sub.forget s in
+          Unchecked.tm_apply_sub dt s
+      in tm.developped <- Some dev; dev
 
   let apply_sub t sub =
     Ctx.check_equal (Sub.tgt sub) (Ty.ctx t.ty);
