@@ -2,19 +2,27 @@ open Std
 open Common
 open Unchecked_types
 
-module Unchecked (Coh : sig
-  type t
-end) =
+module Unchecked (CohT : sig type t end) (TmT : sig type t end) =
 struct
-  open Unchecked_types (Coh)
+  open Unchecked_types (CohT)(TmT)
 
-  module Make (Coh : sig
-    val forget : Coh.t -> ps * Unchecked_types(Coh).ty * coh_pp_data
-    val to_string : Coh.t -> string
-    val func_data : Coh.t -> (Var.t * int) list list
-    val check_equal : Coh.t -> Coh.t -> unit
-    val check : ps -> ty -> coh_pp_data -> Coh.t
-  end) =
+  module Make
+      (Coh : sig
+         val forget : CohT.t -> ps * Unchecked_types(CohT)(TmT).ty * coh_pp_data
+         val to_string : CohT.t -> string
+         val func_data : CohT.t -> (Var.t * int) list list
+         val check_equal : CohT.t -> CohT.t -> unit
+         val check : ps -> ty -> coh_pp_data -> CohT.t
+       end)
+      (Tm : sig
+         val name : TmT.t -> string
+         val apply :
+           (Unchecked_types(CohT)(TmT).ctx -> Unchecked_types(CohT)(TmT).ctx) ->
+           (Unchecked_types(CohT)(TmT).tm -> Unchecked_types(CohT)(TmT).tm) ->
+           TmT.t ->
+           TmT.t
+       end)
+  =
   struct
     let sub_ps_to_sub s =
       let rec aux s =
@@ -31,6 +39,10 @@ struct
       | Var v -> f v
       | Meta_tm i -> Meta_tm i
       | Coh (c, s) -> Coh (c, sub_ps_do_on_variables s f)
+      | App (t, s) -> App (t, sub_do_on_variables s f)
+
+    and sub_do_on_variables s f =
+      List.map (fun (v, t) -> (v, tm_do_on_variables t f)) s
 
     and sub_ps_do_on_variables s f =
       List.map (fun (t, expl) -> (tm_do_on_variables t f, expl)) s
@@ -101,25 +113,6 @@ struct
       let _, names, _ = db_levels c in
       List.map (fun (t, n) -> (t, Var (Var.Db n))) names
 
-    let suspend_ps ps = Br [ ps ]
-
-    let rec suspend_ty = function
-      | Obj -> Arr (Obj, Var (Db 0), Var (Db 1))
-      | Arr (a, v, u) -> Arr (suspend_ty a, suspend_tm v, suspend_tm u)
-      | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
-
-    and suspend_tm = function
-      | Var v -> Var (Var.suspend v)
-      | Coh (c, s) -> Coh (suspend_coh c, suspend_sub_ps s)
-      | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
-
-    and suspend_coh c =
-      let p, t, (name, susp, f) = Coh.forget c in
-      Coh.check (suspend_ps p) (suspend_ty t) (name, susp + 1, f)
-
-    and suspend_sub_ps = function
-      | [] -> [ (Var (Var.Db 1), false); (Var (Var.Db 0), false) ]
-      | (t, expl) :: s -> (suspend_tm t, expl) :: suspend_sub_ps s
 
     (* Definition of FreePos(B):
        - in the paper, we define the bipointed verison with suspension and wedge
@@ -134,7 +127,35 @@ struct
     type ctx_bp = { ctx : ctx; max : int; rp : int }
     type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
-    let rec suspend_ctx_rp ctx =
+
+    let suspend_ps ps = Br [ ps ]
+
+    let rec suspend_ty = function
+      | Obj -> Arr (Obj, Var (Db 0), Var (Db 1))
+      | Arr (a, v, u) -> Arr (suspend_ty a, suspend_tm v, suspend_tm u)
+      | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
+
+    and suspend_tm = function
+      | Var v -> Var (Var.suspend v)
+      | Coh (c, s) -> Coh (suspend_coh c, suspend_sub_ps s)
+      | App (t, s) ->
+        let t = Tm.apply suspend_ctx suspend_tm t in
+        App (t, suspend_sub s)
+      | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
+
+    and suspend_coh c =
+      let p, t, (name, susp, f) = Coh.forget c in
+      Coh.check (suspend_ps p) (suspend_ty t) (name, susp + 1, f)
+
+    and suspend_sub_ps = function
+      | [] -> [ (Var (Var.Db 1), false); (Var (Var.Db 0), false) ]
+      | (t, expl) :: s -> (suspend_tm t, expl) :: suspend_sub_ps s
+
+    and suspend_sub = function
+      | [] -> [ (Var.Db 0, Var (Var.Db 1)); (Var.Db 1, Var (Var.Db 0)) ]
+      | (v, t) :: s -> (v, suspend_tm t) :: (suspend_sub s)
+
+    and suspend_ctx_rp ctx =
       match ctx with
       | [] ->
           let ctx = [ (Var.Db 1, (Obj, false)); (Var.Db 0, (Obj, false)) ] in
@@ -156,7 +177,7 @@ struct
                 rp = c.rp;
               })
 
-    let suspend_ctx ctx = (suspend_ctx_rp ctx).ctx
+    and suspend_ctx ctx = (suspend_ctx_rp ctx).ctx
 
     let rec dim_ps = function Br [] -> 0 | Br l -> 1 + max_list_ps l
 
@@ -387,6 +408,7 @@ struct
               Printf.sprintf "(%s%s)" (Coh.to_string c)
                 (sub_ps_to_string ~func s)
             else Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
+        | App (t, s) -> Printf.sprintf "%s %s" (Tm.name t) (sub_to_string s)
 
       and sub_ps_to_string ?(func = []) s =
         match func with
@@ -435,6 +457,12 @@ struct
             susp_name ^ "_func" ^ func_to_string func
         | func -> susp_name ^ "_func" ^ func_to_string func
 
+      and sub_to_string = function
+        | [] -> ""
+        | (x, t) :: s ->
+            Printf.sprintf "%s (%s: %s)" (sub_to_string s) (Var.to_string x)
+              (tm_to_string t)
+
       let rec ctx_to_string = function
         | [] -> ""
         | (x, (t, true)) :: c ->
@@ -443,12 +471,6 @@ struct
         | (x, (t, false)) :: c ->
             Printf.sprintf "%s {%s: %s}" (ctx_to_string c) (Var.to_string x)
               (ty_to_string t)
-
-      let rec sub_to_string = function
-        | [] -> ""
-        | (x, t) :: s ->
-            Printf.sprintf "%s (%s: %s)" (sub_to_string s) (Var.to_string x)
-              (tm_to_string t)
 
       let rec meta_ctx_to_string = function
         | [] -> ""
@@ -508,7 +530,15 @@ struct
       | Meta_tm _, Var _
       | Meta_tm _, Coh _
       | Var _, Meta_tm _
-      | Coh _, Meta_tm _ ->
+      | Coh _, Meta_tm _
+      | App _, Coh _
+      | Coh _, App _
+      | App _, Meta_tm _
+      | Meta_tm _, App _
+      | App _, Var _
+      | Var _, App _
+      | App _, App _
+        ->
           raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
 
     and check_equal_sub_ps s1 s2 =
@@ -540,6 +570,7 @@ struct
       match t with
       | Var v -> v = x
       | Coh (_, s) -> List.exists (fun (t, _) -> tm_contains_var t x) s
+      | App (_, s) -> List.exists (fun (_, t) -> tm_contains_var t x) s
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
     let rec ty_contains_var a x =

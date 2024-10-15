@@ -1,7 +1,7 @@
 open Common
 open Kernel
 open Raw_types
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types(Coh)(Tm)
 
 exception UnknownOption of string
 exception NotAnInt of string
