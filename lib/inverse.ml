@@ -85,14 +85,14 @@ let rec cancel_linear_comp lc =
         compute_witness t :: t_inv :: t :: x :: sub_to_telescope (i - 1) s invs
     | _, _, _ -> Error.fatal "term must be a linear composite"
   in
-  let tel = Telescope.telescope k in
+  let tel = Telescope.checked k in
   let ctel = Telescope.ctx k in
   let stel =
     Unchecked.list_to_sub
       (sub_to_telescope (2 * k) lc.sub_ps [])
       (Suspension.ctx (Some (lc.dim - 1)) ctel)
   in
-  Unchecked.tm_apply_sub (Suspension.tm (Some (lc.dim - 1)) tel) stel
+  App((Suspension.checked_tm (Some (lc.dim - 1)) tel), stel)
 
 and cancel_all_linear_comp t =
   let c, sub = match t with Coh (c, sub) -> (c, sub) | _ -> Error.fatal "" in
@@ -181,11 +181,7 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
     let tm2 = Coh (c_op, inr) in
     let sub_inr = Unchecked.sub_ps_to_sub inr in
     let sub_inl = Unchecked.sub_ps_to_sub inl in
-    let w =
-      match Coh.forget c_op with
-      | _, Arr (_, _, v), _ -> Unchecked.tm_apply_sub v sub_inr
-      | _ -> Error.fatal "coherence must have an arrow type"
-    in
+    let w = App (Coh.tgt c_op, sub_inr) in
     let comp = Suspension.coh (Some (d - 1)) (Builtin.comp_n 2) in
     Coh
       ( comp,
@@ -202,11 +198,7 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
   let sub = Unchecked.sub_ps_to_sub s in
   let m1, src_m1, tgt_m1 =
     let coh = group_vertically ps_doubled t src_c src_c in
-    let src, tgt =
-      match Coh.forget coh with
-      | _, Arr (_, src, tgt), _ -> (src, tgt)
-      | _ -> Error.fatal "coherence must be of arrow type"
-    in
+    let src, tgt = Coh.src coh, Coh.tgt coh in
     let sinv =
       Unchecked.sub_ps_apply_sub
         (Opposite.equiv_op_ps ps [ d ])
@@ -215,22 +207,18 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
     let ssinv = Unchecked.pullback_up (d - 1) ps ps s sinv in
     let subsinv = Unchecked.sub_ps_to_sub ssinv in
     ( Coh (coh, ssinv),
-      Unchecked.tm_apply_sub src subsinv,
-      Unchecked.tm_apply_sub tgt subsinv )
+      App (src, subsinv),
+      App (tgt, subsinv))
   in
   let m2 = cancel_all_linear_comp tgt_m1 in
   let m3, src_m3, tgt_m3 =
     let coh = Builtin.unbiased_unitor ps_reduced src_c in
-    let src, tgt =
-      match Coh.forget coh with
-      | _, Arr (_, src, tgt), _ -> (src, tgt)
-      | _ -> Error.fatal "coherence must be of arrow type"
-    in
+    let src, tgt = Coh.src coh, Coh.tgt coh in
     let s = Unchecked.sub_ps_apply_sub (Unchecked.ps_src ps) sub in
     let sub = Unchecked.sub_ps_to_sub s in
     ( Coh (coh, s),
-      Unchecked.tm_apply_sub src sub,
-      Unchecked.tm_apply_sub tgt sub )
+      App (src, sub),
+      App (tgt, sub) )
   in
   let sub_total =
     (m3, true) :: (tgt_m3, false) :: (m2, true) :: (src_m3, false) :: (m1, true)

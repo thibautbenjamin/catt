@@ -153,13 +153,9 @@ let rec telescope k =
   | k ->
       let comp = Suspension.coh (Some 1) (Builtin.comp_n 4) in
       let tm_src_tgt coh sub_ps =
-        match Coh.forget coh with
-        | _, Arr (_, t, u), _ ->
-            let sub = Unchecked.sub_ps_to_sub sub_ps in
-            ( Coh (coh, sub_ps),
-              Unchecked.tm_apply_sub t sub,
-              Unchecked.tm_apply_sub u sub )
-        | _ -> Error.fatal "coherence must be of an arrow type"
+        let t,u = Coh.src coh, Coh.tgt coh in
+        let sub = Unchecked.sub_ps_to_sub sub_ps in
+        ( Coh (coh, sub_ps), App (t, sub), App (u, sub) )
       in
       let m3, src_m3, tgt_m3 =
         tm_src_tgt (middle_unitor (k - 1)) (sub_ps_telescope_bdry (k - 1))
