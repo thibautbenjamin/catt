@@ -233,7 +233,7 @@ and coh_successively c l =
     (Coh (c, id), Unchecked.ps_to_ctx ps)
   else
     let cohf, ctxf = coh c l in
-    tm ctxf cohf next
+    tm_successively cohf next, ctx_successively ctxf next
 
 (*
    Functorialisation a term once with respect to a list of variables.
@@ -266,13 +266,20 @@ and sub_ps s l =
       if not (Unchecked.tm_contains_vars t l) then (t, expl) :: sub_ps s l
       else List.append (tm_one_step t l expl) (sub_ps s l)
 
-and tm c t s =
+and tm_successively t s =
+  let l, next = next_round s in
+  if l <> [] then
+    let t = tm_one_step_tm t l in
+    tm_successively t next
+  else t
+
+and ctx_successively c s =
   let l, next = next_round s in
   if l <> [] then
     let c = ctx c l in
-    let t = tm_one_step_tm t l in
-    tm c t next
-  else (t, c)
+    ctx_successively c next
+  else c
+
 
 (* Public API *)
 let report_errors f str =
@@ -298,7 +305,9 @@ let coh_depth0 c l =
 
 let coh_successively c l =
   report_errors
-    (fun _ -> coh_successively c l)
+    (fun _ ->
+       let t,ct = coh_successively c l in
+       check_term (Ctx.check ct) t )
     (lazy ("coherence: " ^ Coh.to_string c))
 
 let rec sub s l =
@@ -327,8 +336,10 @@ let coh_all c =
   coh_depth0 c l
 
 (* Functorialisation a term: exposed function *)
-let tm c t s =
-  report_errors (fun _ -> tm c t s) (lazy ("term: " ^ Unchecked.tm_to_string t))
+let tm t l =
+  report_errors
+    (fun _ -> Tm.apply (fun c -> ctx_successively c l) (fun t -> tm_successively t l) t)
+    (lazy ("term: " ^ Tm.name t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in

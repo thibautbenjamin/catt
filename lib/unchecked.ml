@@ -152,8 +152,8 @@ struct
       | (t, expl) :: s -> (suspend_tm t, expl) :: suspend_sub_ps s
 
     and suspend_sub = function
-      | [] -> [ (Var.Db 0, Var (Var.Db 1)); (Var.Db 1, Var (Var.Db 0)) ]
-      | (v, t) :: s -> (v, suspend_tm t) :: (suspend_sub s)
+      | [] -> [ (Var.Db 1, Var (Var.Db 1)); (Var.Db 0, Var (Var.Db 0)) ]
+      | (v, t) :: s -> (Var.suspend v, suspend_tm t) :: (suspend_sub s)
 
     and suspend_ctx_rp ctx =
       match ctx with
