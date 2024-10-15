@@ -3,10 +3,10 @@
 (name catt)
 (generate_opam_files true)
 (source (github thibautbenjamin/catt))
-(authors "Thibaut Benjamin"
-         "Chiara Sarti")
-(maintainers "Thibaut Benjamin"
-             "Chiara Sarti")
+(authors "Thibaut Benjamin <thibaut.benjamin@gmail.com>"
+         "Chiara Sarti <cs2197@cam.ac.uk>")
+(maintainers "Thibaut Benjamin <thibaut.benjamin@gmail.com>"
+             "Chiara Sarti  <cs2197@cam.ac.uk>")
 (license MIT)
 (using menhir 2.0)
 (cram enable)
