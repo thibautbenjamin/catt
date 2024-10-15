@@ -41,26 +41,40 @@ module Constraints = struct
 
   and unify_tm cst tm1 tm2 =
     match (tm1, tm2) with
+    | Meta_tm _, Meta_tm _ when tm1 = tm2 -> ()
+    | Meta_tm _, _ | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
     | Var v1, Var v2 when v1 = v2 -> ()
     | Coh (coh1, s1), Coh (coh2, s2) -> (
         try
           Coh.check_equal coh1 coh2;
-          unify_sub cst s1 s2
+          unify_sub_ps cst s1 s2
         with Invalid_argument _ ->
           raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2)))
-    | Meta_tm _, Meta_tm _ when tm1 = tm2 -> ()
-    | Meta_tm _, _ | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
-    | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
+    | App (t1,s1), App(t2,s2) when t1 == t2 -> unify_sub cst s1 s2
+    | App _, App _
+    | App _, Coh _
+    | Coh _ , App _ -> assert false
+    | Var _, Coh _ | Coh _, Var _ | Var _, Var _  | App _, Var _ | Var _, App _ ->
         raise
           (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
-    | App _, _ | _ , App _ -> assert false
 
   and unify_sub cst s1 s2 =
+     match (s1, s2) with
+    | [], [] -> ()
+    | (_, t1) :: s1, (_, t2) :: s2 ->
+        unify_tm cst t1 t2;
+        unify_sub cst s1 s2
+    | [], _ :: _ | _ :: _, [] ->
+        raise
+          (NotUnifiable
+             (Unchecked.sub_to_string s1, Unchecked.sub_to_string s2))
+
+  and unify_sub_ps cst s1 s2 =
     match (s1, s2) with
     | [], [] -> ()
     | (t1, _) :: s1, (t2, _) :: s2 ->
         unify_tm cst t1 t2;
-        unify_sub cst s1 s2
+        unify_sub_ps cst s1 s2
     | [], _ :: _ | _ :: _, [] ->
         raise
           (NotUnifiable
@@ -88,7 +102,8 @@ module Constraints = struct
           ( c,
             List.map (fun (t, expl) -> (tm_replace_meta_tm (i, tm') t, expl)) s
           )
-    | App _ -> assert false
+    | App (t, s) ->
+      App (t, List.map (fun (x,t) -> (x, tm_replace_meta_tm (i, tm') t)) s)
 
   let rec ty_replace_meta_tm (i, tm') ty =
     match ty with
@@ -190,7 +205,11 @@ module Constraints_typing = struct
         let s1 = sub ctx meta_ctx s1 tgt cst in
         ( Coh (c, List.map2 (fun (_, t) (_, expl) -> (t, expl)) s1 s),
           Unchecked.ty_apply_sub ty s1 )
-    | App _ -> assert false
+    | App (t, s) ->
+      let tgt = Tm.ctx t in
+      let ty = Ty.forget (Tm.typ t) in
+      let s = sub ctx meta_ctx s tgt cst in
+      (App (t, s), Unchecked.ty_apply_sub ty s)
 
   and sub src meta_ctx s tgt cst =
     Io.info ~v:5
