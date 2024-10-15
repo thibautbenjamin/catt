@@ -12,8 +12,8 @@ exception MetaVariable
 module rec Sub : sig
   type t
 
-  val check_to_ps : Ctx.t -> Unchecked_types(Coh).sub_ps -> PS.t -> t
-  val forget : t -> Unchecked_types(Coh).sub
+  val check_to_ps : Ctx.t -> Unchecked_types(Coh)(Tm).sub_ps -> PS.t -> t
+  val forget : t -> Unchecked_types(Coh)(Tm).sub
   val free_vars : t -> Var.t list
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
@@ -22,15 +22,15 @@ end = struct
     list : Tm.t list;
     src : Ctx.t;
     tgt : Ctx.t;
-    unchecked : Unchecked_types(Coh).sub;
+    unchecked : Unchecked_types(Coh)(Tm).sub;
   }
 
   let src s = s.src
   let tgt s = s.tgt
 
-  open Unchecked (Coh)
+  open Unchecked (Coh)(Tm)
   module Unchecked = Make (Coh)
-  module Types = Unchecked_types (Coh)
+  module Types = Unchecked_types (Coh)(Tm)
 
   let tbl : (Ctx.t * PS.t * Types.sub_ps, Sub.t) Hashtbl.t = Hashtbl.create 7829
   let free_vars s = List.concat (List.map Tm.free_vars s.list)
@@ -90,18 +90,19 @@ and Ctx : sig
   val ty_var : t -> Var.t -> Ty.t
   val domain : t -> Var.t list
   val value : t -> (Var.t * Ty.t) list
-  val extend : t -> expl:bool -> Var.t -> Unchecked_types(Coh).ty -> t
-  val forget : t -> Unchecked_types(Coh).ctx
-  val check : Unchecked_types(Coh).ctx -> t
+  val extend : t -> expl:bool -> Var.t -> Unchecked_types(Coh)(Tm).ty -> t
+  val forget : t -> Unchecked_types(Coh)(Tm).ctx
+  val check : Unchecked_types(Coh)(Tm).ctx -> t
   val check_notin : t -> Var.t -> unit
   val check_equal : t -> t -> unit
 end = struct
-  type t = { c : (Var.t * Ty.t) list; unchecked : Unchecked_types(Coh).ctx }
+  type t = { c : (Var.t * Ty.t) list; unchecked : Unchecked_types(Coh)(Tm).ctx }
 
-  open Unchecked (Coh)
+  open Unchecked_types(Coh)(Tm)
+  open Unchecked (Coh)(Tm)
   module Unchecked = Make (Coh)
 
-  let tbl : (Unchecked_types(Coh).ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
+  let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
 
   let tail ctx =
     match (ctx.c, ctx.unchecked) with
@@ -167,7 +168,7 @@ and PS : sig
 end = struct
   exception Invalid
 
-  open Unchecked (Coh)
+  open Unchecked (Coh)(Tm)
   module Unchecked = Make (Coh)
 
   (** A pasting scheme. *)
@@ -312,8 +313,8 @@ and Ty : sig
   val is_obj : t -> bool
   val check_equal : t -> t -> unit
   val morphism : Tm.t -> Tm.t -> Ty.t
-  val forget : t -> Unchecked_types(Coh).ty
-  val check : Ctx.t -> Unchecked_types(Coh).ty -> t
+  val forget : t -> Unchecked_types(Coh)(Tm).ty
+  val check : Ctx.t -> Unchecked_types(Coh)(Tm).ty -> t
   val apply_sub : t -> Sub.t -> t
   val retrieve_arrow : t -> t * Tm.t * Tm.t
   val under_type : t -> t
@@ -321,14 +322,13 @@ and Ty : sig
   val ctx : t -> Ctx.t
   val dim : t -> int
 end = struct
+  open Unchecked (Coh)(Tm)
+  module Unchecked = Make (Coh)
+  module Types = Unchecked_types (Coh)(Tm)
+
   (** A type exepression. *)
   type expr = Obj | Arr of t * Tm.t * Tm.t
-
-  and t = { c : Ctx.t; e : expr; unchecked : Unchecked_types(Coh).ty }
-
-  open Unchecked (Coh)
-  module Unchecked = Make (Coh)
-  module Types = Unchecked_types (Coh)
+  and t = { c : Ctx.t; e : expr; unchecked : Types.ty }
 
   let tbl : (Ctx.t * Types.ty, Ty.t) Hashtbl.t = Hashtbl.create 7829
   let is_obj t = t.e = Obj
@@ -403,20 +403,20 @@ and Tm : sig
   val typ : t -> Ty.t
   val free_vars : t -> Var.t list
   val is_full : t -> bool
-  val forget : t -> Unchecked_types(Coh).tm
-  val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types(Coh).tm -> t
+  val forget : t -> Unchecked_types(Coh)(Tm).tm
+  val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types(Coh)(Tm).tm -> t
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
   val ty : t -> Ty.t
 end = struct
-  type expr = Var of Var.t  (** a context variable *) | Coh of Coh.t * Sub.t
-  and t = { ty : Ty.t; e : expr; unchecked : Unchecked_types(Coh).tm }
+  open Unchecked (Coh)(Tm)
+  module Unchecked = Make (Coh)
+  module Types = Unchecked_types (Coh)(Tm)
+
+  type expr = Var of Var.t | Coh of Coh.t * Sub.t
+  and t = { ty : Ty.t; e : expr; unchecked : Types.tm }
 
   let typ t = t.ty
-
-  open Unchecked (Coh)
-  module Unchecked = Make (Coh)
-  module Types = Unchecked_types (Coh)
 
   let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
   let to_var tm = match tm.e with Var v -> v | Coh _ -> raise IsCoh
@@ -447,7 +447,9 @@ end = struct
               let e, ty = (Coh (coh, sub), Ty.apply_sub (Coh.ty coh) sub) in
               let tm = { ty; e; unchecked = t } in
               Hashtbl.add tbl (c, t) tm;
-              tm)
+              tm
+          | App (_,_) -> assert false
+        )
     in
     match ty with
     | None -> tm
@@ -477,22 +479,22 @@ and Coh : sig
 
   val ps : t -> PS.t
   val ty : t -> Ty.t
-  val check : ps -> Unchecked_types(Coh).ty -> coh_pp_data -> t
+  val check : ps -> Unchecked_types(Coh)(Tm).ty -> coh_pp_data -> t
 
   val check_noninv :
-    ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
+    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> coh_pp_data -> t
 
   val check_inv :
-    ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
+    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> coh_pp_data -> t
 
   val to_string : t -> string
   val is_inv : t -> bool
 
   val noninv_srctgt :
     t ->
-    Unchecked_types(Coh).tm * Unchecked_types(Coh).tm * Unchecked_types(Coh).ty
+    Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).ty
 
-  val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
+  val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * coh_pp_data
   val func_data : t -> (Var.t * int) list list
   val check_equal : t -> t -> unit
   val dim : t -> int
@@ -501,7 +503,7 @@ end = struct
   type cohNonInv = { ps : PS.t; src : Tm.t; tgt : Tm.t; total_ty : Ty.t }
   type t = Inv of cohInv * coh_pp_data | NonInv of cohNonInv * coh_pp_data
 
-  module Types = Unchecked_types (Coh)
+  module Types = Unchecked_types (Coh)(Tm)
 
   let tbl : (ps * Types.ty, Coh.t) Hashtbl.t = Hashtbl.create 7829
 
@@ -513,7 +515,7 @@ end = struct
 
   exception NotAlgebraic
 
-  open Unchecked (Coh)
+  open Unchecked (Coh)(Tm)
   module Unchecked = Make (Coh)
 
   let ps = function Inv (data, _) -> data.ps | NonInv (data, _) -> data.ps
@@ -650,7 +652,7 @@ end = struct
           raise (NotEqual (to_string coh1, to_string coh2))
 end
 
-module U = Unchecked (Coh)
+module U = Unchecked (Coh)(Tm)
 module Unchecked = U.Make (Coh)
 
 let check check_fn name =

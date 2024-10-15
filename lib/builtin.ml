@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 module Memo = struct
   let tbl = Hashtbl.create 97

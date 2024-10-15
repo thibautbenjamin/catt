@@ -1,7 +1,7 @@
 open Std
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 exception NotUnifiable of string * string
 
@@ -53,6 +53,7 @@ module Constraints = struct
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
         raise
           (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
+    | App _, _ | _ , App _ -> assert false
 
   and unify_sub cst s1 s2 =
     match (s1, s2) with
@@ -87,6 +88,7 @@ module Constraints = struct
           ( c,
             List.map (fun (t, expl) -> (tm_replace_meta_tm (i, tm') t, expl)) s
           )
+    | App _ -> assert false
 
   let rec ty_replace_meta_tm (i, tm') ty =
     match ty with
@@ -188,6 +190,7 @@ module Constraints_typing = struct
         let s1 = sub ctx meta_ctx s1 tgt cst in
         ( Coh (c, List.map2 (fun (_, t) (_, expl) -> (t, expl)) s1 s),
           Unchecked.ty_apply_sub ty s1 )
+    | App _ -> assert false
 
   and sub src meta_ctx s tgt cst =
     Io.info ~v:5

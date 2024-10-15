@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 module F = Functorialisation
 
 module LinearComp = struct
@@ -328,6 +328,7 @@ let depth1_bridge_sub ps_inter l_inter d =
                 Suspension.ps (Some (Unchecked.dim_ty ty)) (Br [])
               in
               (ps_comp, s)
+          | App _ -> assert false
           | Meta_tm _ -> Error.fatal "meta_variables must have been resolved"
         in
         let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
