@@ -32,8 +32,13 @@ and Tm : sig
   type t
 
   val typ : t -> Ty.t
+  val name : t -> string
+  val apply :
+    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
+    (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+    t ->
+    t
 end
-
 
 open Unchecked_types(Coh)(Tm)
 
