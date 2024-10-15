@@ -17,22 +17,24 @@ let rec tm t =
     let coh = Suspension.coh susp coh in
     let ps, _, _ = Coh.forget coh in
     let func = find_functorialisation s (Unchecked.ps_to_ctx ps) expl in
-    let coh, ctx = Functorialisation.coh_successively coh func in
+    let t = Functorialisation.coh_successively coh func in
+    let ctx = Tm.ctx t in
     let s, meta_types = sub s ctx expl in
-    (Unchecked.tm_apply_sub coh s, meta_types)
+    (App (t, s), meta_types)
   in
   match t with
   | VarR v -> (Var v, [])
   | Sub (VarR v, s, susp, expl) -> (
       match Environment.val_var v with
       | Coh coh -> make_coh coh s susp expl
-      | Tm (c, t) ->
-          let c = Suspension.ctx susp c in
-          let t = Suspension.tm susp t in
+      | Tm t ->
+          let t = Suspension.checked_tm susp t in
+          let c = Tm.ctx t in
           let func = find_functorialisation s c expl in
-          let t, c = Functorialisation.tm c t func in
+          let t = Functorialisation.tm t func in
+          let c = Tm.ctx t in
           let s, meta_types = sub s c expl in
-          (Unchecked.tm_apply_sub t s, meta_types))
+          (App (t, s), meta_types))
   | Sub (BuiltinR b, s, susp, expl) ->
       let builtin_coh =
         match b with Comp -> Builtin.comp s expl | Id -> Builtin.id ()

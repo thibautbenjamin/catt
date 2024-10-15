@@ -318,6 +318,7 @@ and Ty : sig
   val apply_sub : t -> Sub.t -> t
   val retrieve_arrow : t -> t * Tm.t * Tm.t
   val under_type : t -> t
+  val source : t -> Tm.t
   val target : t -> Tm.t
   val ctx : t -> Ctx.t
   val dim : t -> int
@@ -337,6 +338,7 @@ end = struct
     match ty.e with Obj -> raise IsObj | Arr (a, u, v) -> (a, u, v)
 
   let under_type ty = match ty.e with Obj -> raise IsObj | Arr (a, _, _) -> a
+  let source ty = match ty.e with Obj -> raise IsObj | Arr (_, u, _) -> u
   let target ty = match ty.e with Obj -> raise IsObj | Arr (_, _, v) -> v
 
   let rec check c t =
@@ -401,6 +403,7 @@ and Tm : sig
 
   val to_var : t -> Var.t
   val typ : t -> Ty.t
+  val ctx : t -> Unchecked_types(Coh)(Tm).ctx
   val free_vars : t -> Var.t list
   val is_full : t -> bool
   val forget : t -> Unchecked_types(Coh)(Tm).tm
@@ -423,6 +426,7 @@ end = struct
   and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string }
 
   let typ t = t.ty
+  let ctx t = Ctx.forget(Ty.ctx t.ty)
 
   let name t = t.name
 
@@ -493,6 +497,8 @@ and Coh : sig
 
   val ps : t -> PS.t
   val ty : t -> Ty.t
+  val src : t -> Tm.t
+  val tgt : t -> Tm.t
   val check : ps -> Unchecked_types(Coh)(Tm).ty -> coh_pp_data -> t
 
   val check_noninv :
@@ -537,6 +543,9 @@ end = struct
   let ty = function
     | Inv (data, _) -> data.ty
     | NonInv (data, _) -> data.total_ty
+
+  let src c = Ty.source (ty c)
+  let tgt c = Ty.target (ty c)
 
   let is_inv = function Inv (_, _) -> true | NonInv (_, _) -> false
 

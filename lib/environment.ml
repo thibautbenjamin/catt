@@ -2,7 +2,7 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)(Tm)
 
-type value = Coh of Coh.t | Tm of ctx * tm
+type value = Coh of Coh.t | Tm of Tm.t
 type v = { value : value; dim_input : int; dim_output : int }
 type t = (Var.t, v) Hashtbl.t
 
@@ -21,7 +21,7 @@ let add_let v c ?ty t =
         (Printf.sprintf "term %s of type %s added to environment"
            (Unchecked.tm_to_string t)
            (Unchecked.ty_to_string ty)));
-    Hashtbl.add env v { value = Tm (c, t); dim_input; dim_output };
+    Hashtbl.add env v { value = Tm tm; dim_input; dim_output };
     (t, ty)
   with DoubledVar x -> Error.doubled_var (Unchecked.ctx_to_string c) x
 

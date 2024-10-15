@@ -10,6 +10,9 @@ module rec Coh : sig
   val to_string : t -> string
   val dim : t -> int
 
+  val src : t -> Tm.t
+  val tgt : t -> Tm.t
+
   val check_noninv :
     ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> coh_pp_data -> t
 
@@ -32,6 +35,7 @@ and Tm : sig
   type t
 
   val typ : t -> Ty.t
+  val ctx : t -> Unchecked_types(Coh)(Tm).ctx
   val name : t -> string
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
