@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 exception FunctorialiseMeta
 exception NotClosed
@@ -254,6 +254,7 @@ and tm_one_step t l expl =
       let subf = Unchecked.list_to_sub (List.map fst sf) pscf in
       let tm = Unchecked.tm_apply_sub cohf subf in
       [ (tm, expl); (t', false); (t, false) ]
+  | App _ -> assert false
   | Meta_tm _ -> raise FunctorialiseMeta
 
 and tm_one_step_tm t l = fst (List.hd (tm_one_step t l true))

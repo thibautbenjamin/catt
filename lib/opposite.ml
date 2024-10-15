@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types(Coh)(Tm)
 
 type op_data = int list
 
@@ -53,6 +53,7 @@ and tm t op_data =
       let op_s = sub (Unchecked.sub_ps_to_sub s) op_data in
       let s' = Unchecked.sub_ps_apply_sub equiv op_s in
       Coh (c, s')
+  | App _ -> assert false
   | Meta_tm m -> Meta_tm m
 
 and sub (s : sub) op_data : sub =

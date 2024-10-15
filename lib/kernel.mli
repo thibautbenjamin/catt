@@ -4,43 +4,43 @@ open Unchecked_types
 module rec Coh : sig
   type t
 
-  val forget : t -> ps * Unchecked_types(Coh).ty * coh_pp_data
+  val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * coh_pp_data
   val check_equal : t -> t -> unit
   val is_inv : t -> bool
   val to_string : t -> string
   val dim : t -> int
 
   val check_noninv :
-    ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
+    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> coh_pp_data -> t
 
   val check_inv :
-    ps -> Unchecked_types(Coh).tm -> Unchecked_types(Coh).tm -> coh_pp_data -> t
+    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> coh_pp_data -> t
 
   val noninv_srctgt :
     t ->
-    Unchecked_types(Coh).tm * Unchecked_types(Coh).tm * Unchecked_types(Coh).ty
+    Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).ty
 
   val func_data : t -> (Var.t * int) list list
 end
+and Ty : sig
+  type t
 
-open Unchecked_types(Coh)
+  val forget : t -> Unchecked_types(Coh)(Tm).ty
+end
+
+and Tm : sig
+  type t
+
+  val typ : t -> Ty.t
+end
+
+
+open Unchecked_types(Coh)(Tm)
 
 module Ctx : sig
   type t
 
   val check : ctx -> t
-end
-
-module Ty : sig
-  type t
-
-  val forget : t -> ty
-end
-
-module Tm : sig
-  type t
-
-  val typ : t -> Ty.t
 end
 
 module PS : sig

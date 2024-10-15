@@ -1,13 +1,13 @@
 open Common
 open Unchecked_types
 
-module Unchecked (Coh : sig
-  type t
-end) : sig
-  open Unchecked_types(Coh)
+module Unchecked (Coh : sig type t end) (Tm : sig type t end)
+
+  : sig
+  open Unchecked_types(Coh)(Tm)
 
   module Make (_ : sig
-    val forget : Coh.t -> ps * Unchecked_types(Coh).ty * coh_pp_data
+    val forget : Coh.t -> ps * Unchecked_types(Coh)(Tm).ty * coh_pp_data
     val to_string : Coh.t -> string
     val func_data : Coh.t -> (Var.t * int) list list
     val check_equal : Coh.t -> Coh.t -> unit

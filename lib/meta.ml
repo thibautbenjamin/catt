@@ -1,5 +1,5 @@
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh)(Tm)
 
 let meta_namer_ty = ref 0
 let meta_namer_tm = ref 0
