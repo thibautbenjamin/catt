@@ -29,7 +29,7 @@ end = struct
   let tgt s = s.tgt
 
   open Unchecked (Coh)(Tm)
-  module Unchecked = Make (Coh)
+  module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh)(Tm)
 
   let tbl : (Ctx.t * PS.t * Types.sub_ps, Sub.t) Hashtbl.t = Hashtbl.create 7829
@@ -100,7 +100,7 @@ end = struct
 
   open Unchecked_types(Coh)(Tm)
   open Unchecked (Coh)(Tm)
-  module Unchecked = Make (Coh)
+  module Unchecked = Make (Coh) (Tm)
 
   let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
 
@@ -169,7 +169,7 @@ end = struct
   exception Invalid
 
   open Unchecked (Coh)(Tm)
-  module Unchecked = Make (Coh)
+  module Unchecked = Make (Coh) (Tm)
 
   (** A pasting scheme. *)
   type ps_derivation =
@@ -323,7 +323,7 @@ and Ty : sig
   val dim : t -> int
 end = struct
   open Unchecked (Coh)(Tm)
-  module Unchecked = Make (Coh)
+  module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh)(Tm)
 
   (** A type exepression. *)
@@ -408,15 +408,23 @@ and Tm : sig
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
   val ty : t -> Ty.t
+  val name : t -> string
+  val apply :
+    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
+    (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+    t ->
+    t
 end = struct
   open Unchecked (Coh)(Tm)
-  module Unchecked = Make (Coh)
+  module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh)(Tm)
 
   type expr = Var of Var.t | Coh of Coh.t * Sub.t
-  and t = { ty : Ty.t; e : expr; unchecked : Types.tm }
+  and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string }
 
   let typ t = t.ty
+
+  let name t = t.name
 
   let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
   let to_var tm = match tm.e with Var v -> v | Coh _ -> raise IsCoh
@@ -433,6 +441,7 @@ end = struct
       (lazy
         (Printf.sprintf "building kernel term %s in context %s"
            (Unchecked.tm_to_string t) (Ctx.to_string c)));
+    let name = "placeholder_name" in
     let tm =
       match Hashtbl.find_opt tbl (c, t) with
       | Some tm -> tm
@@ -440,12 +449,12 @@ end = struct
           match t with
           | Var x ->
               let e, ty = (Var x, Ty.check c (Ty.forget (Ctx.ty_var c x))) in
-              { ty; e; unchecked = t }
+              { ty; e; unchecked = t; name }
           | Meta_tm _ -> raise MetaVariable
           | Coh (coh, s) ->
               let sub = Sub.check_to_ps c s (Coh.ps coh) in
               let e, ty = (Coh (coh, sub), Ty.apply_sub (Coh.ty coh) sub) in
-              let tm = { ty; e; unchecked = t } in
+              let tm = { ty; e; unchecked = t; name } in
               Hashtbl.add tbl (c, t) tm;
               tm
           | App (_,_) -> assert false
@@ -471,6 +480,11 @@ end = struct
     check c t
 
   let ty t = t.ty
+
+  let apply fun_ctx fun_tm t =
+    let c = Ctx.forget (Ty.ctx t.ty) in
+    let c = Ctx.check (fun_ctx c) in
+    check c (fun_tm t.unchecked)
 end
 
 (** A coherence. *)
@@ -516,7 +530,7 @@ end = struct
   exception NotAlgebraic
 
   open Unchecked (Coh)(Tm)
-  module Unchecked = Make (Coh)
+  module Unchecked = Make (Coh) (Tm)
 
   let ps = function Inv (data, _) -> data.ps | NonInv (data, _) -> data.ps
 
@@ -653,7 +667,7 @@ end = struct
 end
 
 module U = Unchecked (Coh)(Tm)
-module Unchecked = U.Make (Coh)
+module Unchecked = U.Make (Coh) (Tm)
 
 let check check_fn name =
   let v = 2 in
