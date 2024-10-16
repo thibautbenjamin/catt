@@ -306,8 +306,9 @@ let coh_depth0 c l =
 let coh_successively c l =
   report_errors
     (fun _ ->
+       let _,_,(name,_,_) = Coh.forget c in
        let t,ct = coh_successively c l in
-       check_term (Ctx.check ct) t )
+       check_term (Ctx.check ct) name t )
     (lazy ("coherence: " ^ Coh.to_string c))
 
 let rec sub s l =

@@ -408,7 +408,7 @@ and Tm : sig
   val free_vars : t -> Var.t list
   val is_full : t -> bool
   val forget : t -> Unchecked_types(Coh)(Tm).tm
-  val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types(Coh)(Tm).tm -> t
+  val check : Ctx.t -> ?ty:Ty.t -> ?name:string -> Unchecked_types(Coh)(Tm).tm -> t
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
   val ty : t -> Ty.t
@@ -425,13 +425,16 @@ end = struct
   module Types = Unchecked_types (Coh)(Tm)
 
   type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
-  and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string;
+  and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string option;
             mutable developped : Types.tm option }
 
   let typ t = t.ty
   let ctx t = Ctx.forget(Ty.ctx t.ty)
 
-  let name t = t.name
+  let name t =
+    match t.name with
+    | Some name -> name
+    | None -> Error.fatal "unnamed term application"
 
   let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
   let to_var tm = match tm.e with Var v -> v | Coh _ | App _ -> raise IsCoh
@@ -445,12 +448,11 @@ end = struct
   let is_full tm = List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
   let forget tm = tm.unchecked
 
-  let check c ?ty t =
+  let check c ?ty ?name t =
     Io.info ~v:5
       (lazy
         (Printf.sprintf "building kernel term %s in context %s"
            (Unchecked.tm_to_string t) (Ctx.to_string c)));
-    let name = "placeholder_name" in
     let tm =
       match Hashtbl.find_opt tbl (c, t) with
       | Some tm -> tm
@@ -725,10 +727,15 @@ let check_type ctx a =
   let ty = lazy ("type: " ^ Unchecked.ty_to_string a) in
   check (fun () -> Ty.check ctx a) ty
 
-let check_term ctx ?ty t =
+let check_unnamed_term ctx ?ty t =
   let ty = Option.map (check_type ctx) ty in
   let tm = lazy ("term: " ^ Unchecked.tm_to_string t) in
   check (fun () -> Tm.check ctx ?ty t) tm
+
+let check_term ctx name ?ty t =
+  let ty = Option.map (check_type ctx) ty in
+  let tm = lazy ("term: " ^ Unchecked.tm_to_string t) in
+  check (fun () -> Tm.check ctx ~name ?ty t) tm
 
 let check_coh ps ty pp_data =
   let c = lazy ("coherence: " ^ Unchecked.coh_pp_data_to_string pp_data) in

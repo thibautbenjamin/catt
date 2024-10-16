@@ -11,8 +11,9 @@ let reset () = Hashtbl.clear env
 
 let add_let v c ?ty t =
   try
+    let name = Var.to_string v in
     let kc = Kernel.Ctx.check c in
-    let tm = Kernel.check_term kc ?ty t in
+    let tm = Kernel.check_term kc name ?ty t in
     let ty = Kernel.(Ty.forget (Tm.typ tm)) in
     let dim_input = Unchecked.dim_ctx c in
     let dim_output = Unchecked.dim_ty ty in
