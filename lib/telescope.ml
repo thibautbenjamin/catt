@@ -183,4 +183,6 @@ let rec telescope k =
       in
       Coh (comp, sub_telescope)
 
-let checked k = check_term (Ctx.check (ctx k)) (telescope k)
+let checked k =
+  let name = "builtin_telescope" ^ (string_of_int k) in
+  check_term (Ctx.check (ctx k)) name (telescope k)

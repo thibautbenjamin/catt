@@ -122,5 +122,6 @@ module Unchecked : sig
   val list_to_db_level_sub : tm list -> sub
 end
 
-val check_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
+val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
+val check_term : Ctx.t -> string -> ?ty:ty -> tm -> Tm.t
 val check_coh : ps -> ty -> coh_pp_data -> Coh.t
