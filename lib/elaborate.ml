@@ -51,9 +51,9 @@ module Constraints = struct
         with Invalid_argument _ ->
           raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2)))
     | App (t1,s1), App(t2,s2) when t1 == t2 -> unify_sub cst s1 s2
-    | App _, App _
-    | App _, Coh _
-    | Coh _ , App _ -> assert false
+    | App (t,s) , (App _ | Coh _ as tm2)
+    | (Coh _ as tm2), App (t,s) ->
+      unify_tm cst (Unchecked.tm_apply_sub (Tm.develop t) s) tm2
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _  | App _, Var _ | Var _, App _ ->
         raise
           (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
