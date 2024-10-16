@@ -409,7 +409,9 @@ struct
               Printf.sprintf "(%s%s)" (Coh.to_string c)
                 (sub_ps_to_string ~func s)
             else Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
-        | App (t, s) -> Printf.sprintf "%s %s" (Tm.name t) (sub_to_string s)
+        | App (t, s) ->
+          Printf.sprintf "%s %s" (Tm.name t) (sub_to_string s)
+
 
       and sub_ps_to_string ?(func = []) s =
         match func with
