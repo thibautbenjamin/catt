@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types(Coh)(Tm)
 
 type op_data = int list
 
@@ -53,10 +53,14 @@ and tm t op_data =
       let op_s = sub (Unchecked.sub_ps_to_sub s) op_data in
       let s' = Unchecked.sub_ps_apply_sub equiv op_s in
       Coh (c, s')
+  | App (t, s) ->
+    let op_t = Tm.apply (fun c -> ctx c op_data) (fun t -> tm t op_data) t in
+    let op_s = sub s op_data in
+    App(op_t, op_s)
   | Meta_tm m -> Meta_tm m
 
 and sub (s : sub) op_data : sub =
-  match s with [] -> [] | (x, t) :: s -> (x, tm t op_data) :: sub s op_data
+  match s with [] -> [] | (x, (t, e)) :: s -> (x, (tm t op_data, e)) :: sub s op_data
 
 and coh c op_data equiv =
   let p, t, name = Coh.forget c in
@@ -67,19 +71,18 @@ and coh c op_data equiv =
   let name = Printf.sprintf "%s_op{%s}" name (op_data_to_string op_data) in
   check_coh op_p t' (name, 0, [])
 
+and ctx c op_data =
+  match c with
+  | [] -> []
+  | (x, (t,e)) :: c ->
+      let t = ty t op_data in
+      let c = ctx c op_data in
+      (x, (t,e)) :: c
+
 let coh c op_data =
   let ps, _, _ = Coh.forget c in
   let equiv = equiv_op_ps ps op_data in
   coh c op_data equiv
-
-(* Unused function : opposite of a context *)
-let rec _ctx c op_data =
-  match c with
-  | [] -> []
-  | (x, t) :: c ->
-      let t = ty t op_data in
-      let c = _ctx c op_data in
-      (x, t) :: c
 
 let tm t op_data =
   Io.info ~v:3 (lazy ("computing opposite of term " ^ Unchecked.tm_to_string t));

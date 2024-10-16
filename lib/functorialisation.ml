@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 exception FunctorialiseMeta
 exception NotClosed
@@ -108,8 +108,8 @@ let rec preimage ctx s l =
   | [], _ :: _ | _ :: _, [] ->
       Error.fatal "functorialisation in a non-existant place"
 
-let rec tgt_subst l =
-  match l with [] -> [] | v :: tl -> (v, Var (Var.Plus v)) :: tgt_subst tl
+let rec tgt_renaming l =
+  match l with [] -> [] | v :: tl -> (v, Var (Var.Plus v)) :: tgt_renaming tl
 
 (* returns the n-composite of a (n+j)-cell with a (n+k)-cell *)
 let rec whisk n j k =
@@ -176,9 +176,9 @@ and tgt_prod t l tm tm_t d n =
 
 and ty t l tm =
   let d = Unchecked.dim_ty t in
-  let tgt_subst = tgt_subst l in
-  let tm_incl = Unchecked.tm_apply_sub tm tgt_subst in
-  let t_incl = Unchecked.ty_apply_sub t tgt_subst in
+  let tgt_renaming = tgt_renaming l in
+  let tm_incl = Unchecked.tm_rename tm tgt_renaming in
+  let t_incl = Unchecked.ty_rename t tgt_renaming in
   let src, src_t = tgt_prod t l tm t d (d - 1) in
   let tgt, _tgt_t = src_prod t l tm_incl t_incl d (d - 1) in
   Arr (src_t, src, tgt)
@@ -187,7 +187,7 @@ and ctx c l =
   match c with
   | [] -> []
   | (x, (t, expl)) :: c when List.mem x l ->
-      let ty_tgt = Unchecked.ty_apply_sub t (tgt_subst l) in
+      let ty_tgt = Unchecked.ty_rename t (tgt_renaming l) in
       let tf = ty t l (Var x) in
       (Var.Bridge x, (tf, expl))
       :: (Var.Plus x, (ty_tgt, false))
@@ -233,7 +233,7 @@ and coh_successively c l =
     (Coh (c, id), Unchecked.ps_to_ctx ps)
   else
     let cohf, ctxf = coh c l in
-    tm ctxf cohf next
+    tm_successively cohf next, ctx_successively ctxf next
 
 (*
    Functorialisation a term once with respect to a list of variables.
@@ -245,7 +245,7 @@ and tm_one_step t l expl =
   | Var v ->
       [ (Var (Var.Bridge v), expl); (Var (Var.Plus v), false); (Var v, false) ]
   | Coh (c, s) ->
-      let t' = Unchecked.tm_apply_sub t (tgt_subst l) in
+      let t' = Unchecked.tm_rename t (tgt_renaming l) in
       let sf = sub_ps s l in
       let ps, _, _ = Coh.forget c in
       let psc = Unchecked.ps_to_ctx ps in
@@ -254,6 +254,7 @@ and tm_one_step t l expl =
       let subf = Unchecked.list_to_sub (List.map fst sf) pscf in
       let tm = Unchecked.tm_apply_sub cohf subf in
       [ (tm, expl); (t', false); (t, false) ]
+  | App _ -> assert false
   | Meta_tm _ -> raise FunctorialiseMeta
 
 and tm_one_step_tm t l = fst (List.hd (tm_one_step t l true))
@@ -265,13 +266,20 @@ and sub_ps s l =
       if not (Unchecked.tm_contains_vars t l) then (t, expl) :: sub_ps s l
       else List.append (tm_one_step t l expl) (sub_ps s l)
 
-and tm c t s =
+and tm_successively t s =
+  let l, next = next_round s in
+  if l <> [] then
+    let t = tm_one_step_tm t l in
+    tm_successively t next
+  else t
+
+and ctx_successively c s =
   let l, next = next_round s in
   if l <> [] then
     let c = ctx c l in
-    let t = tm_one_step_tm t l in
-    tm c t next
-  else (t, c)
+    ctx_successively c next
+  else c
+
 
 (* Public API *)
 let report_errors f str =
@@ -297,20 +305,26 @@ let coh_depth0 c l =
 
 let coh_successively c l =
   report_errors
-    (fun _ -> coh_successively c l)
+    (fun _ ->
+       let _,_,(name,_,_) = Coh.forget c in
+       let t,ct = coh_successively c l in
+       check_term (Ctx.check ct) name t )
     (lazy ("coherence: " ^ Coh.to_string c))
 
 let rec sub s l =
   match s with
   | [] -> []
-  | (x, t) :: s when not (List.mem x l) -> (x, t) :: sub s l
-  | (x, t) :: s -> (
+  | (x, (t, e)) :: s when not (List.mem x l) -> (x, (t,e)) :: sub s l
+  | (x, (t, e)) :: s -> (
       match tm_one_step t l true with
       | [ (tm_f, _); (tgt_t, _); (src_t, _) ] ->
-          (Var.Bridge x, tm_f) :: (Var.Plus x, tgt_t) :: (x, src_t) :: sub s l
+        (Var.Bridge x, (tm_f, e)) ::
+        (Var.Plus x, (tgt_t, false)) ::
+        (x, (src_t, false)) ::
+        sub s l
       | [ (t, _) ] ->
           Io.debug "no functorialisation needed for %s" (Var.to_string x);
-          (x, t) :: sub s l
+          (x, (t, e)) :: sub s l
       | _ -> assert false)
 
 (* Functorialisation once with respect to every maximal argument *)
@@ -326,8 +340,10 @@ let coh_all c =
   coh_depth0 c l
 
 (* Functorialisation a term: exposed function *)
-let tm c t s =
-  report_errors (fun _ -> tm c t s) (lazy ("term: " ^ Unchecked.tm_to_string t))
+let tm t l =
+  report_errors
+    (fun _ -> Tm.apply (fun c -> ctx_successively c l) (fun t -> tm_successively t l) t)
+    (lazy ("term: " ^ Tm.name t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in
