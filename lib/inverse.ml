@@ -36,8 +36,8 @@ let rec compute_inverse t =
 and sub_inv s ps i =
   match (s, ps) with
   | [], [] -> []
-  | (x, t) :: sub, (_, (ty, _)) :: ctx when Unchecked.dim_ty ty = i ->
-      (x, compute_inverse t) :: sub_inv sub ctx i
+  | (x, (t, e)) :: sub, (_, (ty, _)) :: ctx when Unchecked.dim_ty ty = i ->
+      (x, (compute_inverse t, e)) :: sub_inv sub ctx i
   | (x, t) :: sub, _ :: ctx -> (x, t) :: sub_inv sub ctx i
   | _, _ -> assert false
 

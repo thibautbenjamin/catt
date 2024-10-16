@@ -7,7 +7,7 @@ module type Unchecked_types_sig = functor
     type ty = Meta_ty of int | Obj | Arr of ty * tm * tm
     and tm = Var of Var.t | Meta_tm of int | Coh of Coh.t * sub_ps | App of Tm.t * sub
     and sub_ps = (tm * bool) list
-    and sub = (Var.t * tm) list
+    and sub = (Var.t * (tm * bool)) list
 
     type ctx = (Var.t * (ty * bool)) list
     type meta_ctx = (int * ty) list

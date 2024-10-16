@@ -50,12 +50,15 @@ module Unchecked (Coh : sig type t end) (Tm : sig type t end)
     val ty_apply_sub_ps : ty -> sub_ps -> ty
     val tm_apply_sub_ps : tm -> sub_ps -> tm
     val sub_ps_apply_sub_ps : sub_ps -> sub_ps -> sub_ps
+    val ty_rename : ty -> (Var.t * tm) list -> ty
+    val tm_rename : tm -> (Var.t * tm) list -> tm
+    val sub_ps_rename : sub_ps -> (Var.t * tm) list -> sub_ps
     val ty_sub_preimage : ty -> sub -> ty
-    val db_levels : ctx -> ctx * (Var.t * int) list * int
+    val db_levels : ctx -> ctx * (Var.t * (int * bool)) list * int
     val db_level_sub : ctx -> sub
     val db_level_sub_inv : ctx -> sub
-    val rename_ty : ty -> (Var.t * int) list -> ty
-    val rename_tm : tm -> (Var.t * int) list -> tm
+    val rename_ty : ty -> (Var.t * (int * bool)) list -> ty
+    val rename_tm : tm -> (Var.t * (int * bool)) list -> tm
     val tm_contains_var : tm -> Var.t -> bool
     val ty_contains_var : ty -> Var.t -> bool
     val tm_contains_vars : tm -> Var.t list -> bool
@@ -80,6 +83,6 @@ module Unchecked (Coh : sig type t end) (Tm : sig type t end)
     val sub_ps_to_sub_ps_bp : sub_ps -> sub_ps_bp
     val wedge_sub_ps_bp : sub_ps_bp list -> sub_ps
     val list_to_sub : tm list -> ctx -> sub
-    val list_to_db_level_sub : tm list -> sub
+    val list_to_db_level_sub : tm list -> (Var.t * tm) list
   end
 end

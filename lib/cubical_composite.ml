@@ -226,7 +226,8 @@ let ctx_tgt ps l =
   let src_incl_ps = Unchecked.ps_src ps in
   let src_f, bdry_f, names, l_bdry = F.sub_w_tgt bdry src_incl_ps l in
   let tgt_ctx, i1, i2 = Unchecked.ps_compose (d - 1) bdry_f ps in
-  let in_plus = Unchecked.sub_to_sub_ps ps (F.tgt_subst l) in
+  let id = Unchecked.identity_ps ps in
+  let in_plus = Unchecked.sub_ps_rename id (F.tgt_renaming l) in
   let tgt_incl = Unchecked.pullback_up (d - 1) bdry_f ps src_f in_plus in
   (tgt_ctx, tgt_incl, i1, i2, bdry_f, l_bdry, names)
 
@@ -335,7 +336,7 @@ let depth1_bridge_sub ps_inter l_inter d =
         if l <> [] then
           let arity = LinearComp.arity ps_comp in
           let s = F.sub (Unchecked.sub_ps_to_sub s) l in
-          let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
+          let w_plus = Unchecked.tm_rename w (F.tgt_renaming l_inter) in
           let list = List.map (fun v -> desuspend_db v (d - 1)) l in
           let ccomp, ty = LinearComp.cubical arity list in
           let ccomp = Suspension.tm (Some (d - 1)) ccomp in
@@ -364,8 +365,8 @@ let intermediate_ps ps l d =
     let ps_f_c = F.ctx (Unchecked.ps_to_ctx ps) l_d0 in
     let _, names, _ = Unchecked.db_levels ps_f_c in
     let ps_f = PS.(forget (mk (Ctx.check ps_f_c))) in
-    let l_psf = List.map (fun x -> Var.Db (List.assoc x names)) l_d1 in
-    let names = List.map (fun (x, n) -> (Var.Db n, Var x)) names in
+    let l_psf = List.map (fun x -> Var.Db (fst (List.assoc x names))) l_d1 in
+    let names = List.map (fun (x, (n, e)) -> (Var.Db n, (Var x, e))) names in
     (ps_f, l_psf, names)
 
 let bridge_ps ps_inter l_inter d =

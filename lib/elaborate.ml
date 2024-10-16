@@ -61,7 +61,7 @@ module Constraints = struct
   and unify_sub cst s1 s2 =
      match (s1, s2) with
     | [], [] -> ()
-    | (_, t1) :: s1, (_, t2) :: s2 ->
+    | (_, (t1, _)) :: s1, (_, (t2, _)) :: s2 ->
         unify_tm cst t1 t2;
         unify_sub cst s1 s2
     | [], _ :: _ | _ :: _, [] ->
@@ -103,7 +103,7 @@ module Constraints = struct
             List.map (fun (t, expl) -> (tm_replace_meta_tm (i, tm') t, expl)) s
           )
     | App (t, s) ->
-      App (t, List.map (fun (x,t) -> (x, tm_replace_meta_tm (i, tm') t)) s)
+      App (t, List.map (fun (x,(t,e)) -> (x, (tm_replace_meta_tm (i, tm') t, e))) s)
 
   let rec ty_replace_meta_tm (i, tm') ty =
     match ty with
@@ -203,7 +203,7 @@ module Constraints_typing = struct
         let tgt = Unchecked.ps_to_ctx ps in
         let s1 = Unchecked.sub_ps_to_sub s in
         let s1 = sub ctx meta_ctx s1 tgt cst in
-        ( Coh (c, List.map2 (fun (_, t) (_, expl) -> (t, expl)) s1 s),
+        ( Coh (c, List.map (fun (_, (t, expl))  -> (t, expl)) s1),
           Unchecked.ty_apply_sub ty s1 )
     | App (t, s) ->
       let tgt = Tm.ctx t in
@@ -222,11 +222,11 @@ module Constraints_typing = struct
            (Unchecked.meta_ctx_to_string meta_ctx)));
     match (s, tgt) with
     | [], [] -> []
-    | (x, u) :: s, (_, (t, _)) :: c ->
+    | (x, (u, e)) :: s, (_, (t, _)) :: c ->
         let u, ty = tm src meta_ctx u cst in
         let s = sub src meta_ctx s c cst in
         Constraints.unify_ty cst ty (Unchecked.ty_apply_sub t s);
-        (x, u) :: s
+        (x, (u, e)) :: s
     | [], _ :: _ | _ :: _, [] -> Error.fatal "wrong number of arguments"
 
   and ty ctx meta_ctx t cst =

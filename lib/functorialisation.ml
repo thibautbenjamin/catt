@@ -108,8 +108,8 @@ let rec preimage ctx s l =
   | [], _ :: _ | _ :: _, [] ->
       Error.fatal "functorialisation in a non-existant place"
 
-let rec tgt_subst l =
-  match l with [] -> [] | v :: tl -> (v, Var (Var.Plus v)) :: tgt_subst tl
+let rec tgt_renaming l =
+  match l with [] -> [] | v :: tl -> (v, Var (Var.Plus v)) :: tgt_renaming tl
 
 (* returns the n-composite of a (n+j)-cell with a (n+k)-cell *)
 let rec whisk n j k =
@@ -176,9 +176,9 @@ and tgt_prod t l tm tm_t d n =
 
 and ty t l tm =
   let d = Unchecked.dim_ty t in
-  let tgt_subst = tgt_subst l in
-  let tm_incl = Unchecked.tm_apply_sub tm tgt_subst in
-  let t_incl = Unchecked.ty_apply_sub t tgt_subst in
+  let tgt_renaming = tgt_renaming l in
+  let tm_incl = Unchecked.tm_rename tm tgt_renaming in
+  let t_incl = Unchecked.ty_rename t tgt_renaming in
   let src, src_t = tgt_prod t l tm t d (d - 1) in
   let tgt, _tgt_t = src_prod t l tm_incl t_incl d (d - 1) in
   Arr (src_t, src, tgt)
@@ -187,7 +187,7 @@ and ctx c l =
   match c with
   | [] -> []
   | (x, (t, expl)) :: c when List.mem x l ->
-      let ty_tgt = Unchecked.ty_apply_sub t (tgt_subst l) in
+      let ty_tgt = Unchecked.ty_rename t (tgt_renaming l) in
       let tf = ty t l (Var x) in
       (Var.Bridge x, (tf, expl))
       :: (Var.Plus x, (ty_tgt, false))
@@ -245,7 +245,7 @@ and tm_one_step t l expl =
   | Var v ->
       [ (Var (Var.Bridge v), expl); (Var (Var.Plus v), false); (Var v, false) ]
   | Coh (c, s) ->
-      let t' = Unchecked.tm_apply_sub t (tgt_subst l) in
+      let t' = Unchecked.tm_rename t (tgt_renaming l) in
       let sf = sub_ps s l in
       let ps, _, _ = Coh.forget c in
       let psc = Unchecked.ps_to_ctx ps in
@@ -314,14 +314,17 @@ let coh_successively c l =
 let rec sub s l =
   match s with
   | [] -> []
-  | (x, t) :: s when not (List.mem x l) -> (x, t) :: sub s l
-  | (x, t) :: s -> (
+  | (x, (t, e)) :: s when not (List.mem x l) -> (x, (t,e)) :: sub s l
+  | (x, (t, e)) :: s -> (
       match tm_one_step t l true with
       | [ (tm_f, _); (tgt_t, _); (src_t, _) ] ->
-          (Var.Bridge x, tm_f) :: (Var.Plus x, tgt_t) :: (x, src_t) :: sub s l
+        (Var.Bridge x, (tm_f, e)) ::
+        (Var.Plus x, (tgt_t, false)) ::
+        (x, (src_t, false)) ::
+        sub s l
       | [ (t, _) ] ->
           Io.debug "no functorialisation needed for %s" (Var.to_string x);
-          (x, t) :: sub s l
+          (x, (t, e)) :: sub s l
       | _ -> assert false)
 
 (* Functorialisation once with respect to every maximal argument *)

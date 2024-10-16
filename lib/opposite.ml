@@ -60,7 +60,7 @@ and tm t op_data =
   | Meta_tm m -> Meta_tm m
 
 and sub (s : sub) op_data : sub =
-  match s with [] -> [] | (x, t) :: s -> (x, tm t op_data) :: sub s op_data
+  match s with [] -> [] | (x, (t, e)) :: s -> (x, (tm t op_data, e)) :: sub s op_data
 
 and coh c op_data equiv =
   let p, t, name = Coh.forget c in

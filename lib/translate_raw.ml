@@ -73,15 +73,15 @@ and sub s tgt expl =
       let meta_types =
         List.concat [ meta_types_t; meta_types_f; meta_types_s ]
       in
-      ((x, t) :: List.append fmetas s, meta_types)
-  | (_ :: _ as s), (x, (_, _)) :: tgt ->
+      ((x, (t, e)) :: List.append fmetas s, meta_types)
+  | (_ :: _ as s), (x, (_, e)) :: tgt ->
       let t, meta_type = Meta.new_tm () in
       let s, meta_types_s = sub s tgt expl in
-      ((x, t) :: s, meta_type :: meta_types_s)
+      ((x, (t, e)) :: s, meta_type :: meta_types_s)
   | [], (x, (_, false)) :: tgt ->
       let t, meta_type = Meta.new_tm () in
       let s, meta_types_s = sub [] tgt expl in
-      ((x, t) :: s, meta_type :: meta_types_s)
+      ((x, (t, false)) :: s, meta_type :: meta_types_s)
   | _ :: _, [] | [], _ :: _ -> raise WrongNumberOfArguments
 
 and find_functorialisation s tgt expl =
@@ -101,7 +101,7 @@ and meta_functed_arg i ctx =
       let src, meta_types_src = Meta.new_tm () in
       let tgt, meta_types_tgt = Meta.new_tm () in
       let fmetas, meta_types, _ = meta_functed_arg (i - 1) ctx in
-      ( (y, tgt) :: (x, src) :: fmetas,
+      ( (y, (tgt, false)) :: (x, (src, false)) :: fmetas,
         meta_types_tgt :: meta_types_src :: meta_types,
         ctx )
   | _, _ -> raise WrongNumberOfArguments
