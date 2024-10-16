@@ -29,9 +29,9 @@ struct
       let rec aux s =
         match s with
         | [] -> ([], 0)
-        | (t, _) :: s ->
+        | (t, e) :: s ->
             let s, i = aux s in
-            ((Var.Db i, t) :: s, i + 1)
+            ((Var.Db i, (t, e)) :: s, i + 1)
       in
       fst (aux s)
 
@@ -43,7 +43,7 @@ struct
       | App (t, s) -> App (t, sub_do_on_variables s f)
 
     and sub_do_on_variables s f =
-      List.map (fun (v, t) -> (v, tm_do_on_variables t f)) s
+      List.map (fun (v, (t, e)) -> (v, (tm_do_on_variables t f, e))) s
 
     and sub_ps_do_on_variables s f =
       List.map (fun (t, expl) -> (tm_do_on_variables t f, expl)) s
@@ -59,7 +59,7 @@ struct
               tm_do_on_variables v f )
 
     let var_apply_sub v s =
-      match List.assoc_opt v s with Some t -> t | None -> Var v
+      match List.assoc_opt v s with Some (t,_) -> t | None -> Var v
 
     let tm_apply_sub tm s = tm_do_on_variables tm (fun v -> var_apply_sub v s)
     let ty_apply_sub ty s = ty_do_on_variables ty (fun v -> var_apply_sub v s)
@@ -74,10 +74,17 @@ struct
     let tm_apply_sub_ps tm s = tm_apply_sub tm (sub_ps_to_sub s)
     let sub_ps_apply_sub_ps sub_ps s = sub_ps_apply_sub sub_ps (sub_ps_to_sub s)
 
+    let var_rename v r =
+      match List.assoc_opt v r with Some t -> t | None -> Var v
+
+    let tm_rename tm r = tm_do_on_variables tm (fun v -> var_rename v r)
+    let ty_rename ty r = ty_do_on_variables ty (fun v -> var_rename v r)
+    let sub_ps_rename s r = sub_ps_do_on_variables s (fun v -> var_rename v r)
+
     let rec var_sub_preimage v s =
       match s with
       | [] -> raise NotInImage
-      | (w, Var v') :: _ when v = v' -> Var w
+      | (w, (Var v',_)) :: _ when v = v' -> Var w
       | _ :: s -> var_sub_preimage v s
 
     let tm_sub_preimage tm s =
@@ -88,7 +95,7 @@ struct
 
     (* rename is applying a variable to de Bruijn levels substitutions *)
     let rename_var v l =
-      try Var (Db (List.assoc v l))
+      try Var (Db (fst (List.assoc v l)))
       with Not_found ->
         Error.fatal
           (Printf.sprintf "variable %s not found in context" (Var.to_string v))
@@ -104,16 +111,15 @@ struct
           if List.mem_assoc x l then raise (DoubledVar (Var.to_string x))
           else
             let lvl = max + 1 in
-            ((Var.Db lvl, (rename_ty t l, expl)) :: c, (x, lvl) :: l, lvl)
+            ((Var.Db lvl, (rename_ty t l, expl)) :: c, (x, (lvl, expl)) :: l, lvl)
 
     let db_level_sub c =
       let _, names, _ = db_levels c in
-      List.map (fun (t, n) -> (Var.Db n, Var t)) names
+      List.map (fun (t, (n, expl)) -> (Var.Db n, (Var t, expl))) names
 
     let db_level_sub_inv c =
       let _, names, _ = db_levels c in
-      List.map (fun (t, n) -> (t, Var (Var.Db n))) names
-
+      List.map (fun (t, (n, expl)) -> (t, (Var (Var.Db n), expl))) names
 
     (* Definition of FreePos(B):
        - in the paper, we define the bipointed verison with suspension and wedge
@@ -153,8 +159,9 @@ struct
       | (t, expl) :: s -> (suspend_tm t, expl) :: suspend_sub_ps s
 
     and suspend_sub = function
-      | [] -> [ (Var.Db 1, Var (Var.Db 1)); (Var.Db 0, Var (Var.Db 0)) ]
-      | (v, t) :: s -> (Var.suspend v, suspend_tm t) :: (suspend_sub s)
+      | [] -> [ (Var.Db 1, (Var (Var.Db 1), false));
+                (Var.Db 0, (Var (Var.Db 0), false)) ]
+      | (v, (t, e)) :: s -> (Var.suspend v, (suspend_tm t, e)) :: (suspend_sub s)
 
     and suspend_ctx_rp ctx =
       match ctx with
@@ -462,9 +469,10 @@ struct
 
       and sub_to_string = function
         | [] -> ""
-        | (x, t) :: s ->
-            Printf.sprintf "%s (%s: %s)" (sub_to_string s) (Var.to_string x)
-              (tm_to_string t)
+        | (_, (t, expl)) :: s ->
+          if expl || !Settings.print_explicit_substitutions then
+              Printf.sprintf "%s %s" (sub_to_string s) (tm_to_string t)
+            else sub_to_string s
 
       let rec ctx_to_string = function
         | [] -> ""
@@ -552,7 +560,7 @@ struct
       List.iter2 (fun (t1, _) (t2, _) -> check_equal_tm t1 t2) s1 s2
 
     and check_equal_sub s1 s2 =
-      List.iter2 (fun (_, t1) (_, t2) -> check_equal_tm t1 t2) s1 s2
+      List.iter2 (fun (_, (t1,_)) (_, (t2,_)) -> check_equal_tm t1 t2) s1 s2
 
     let rec check_equal_ctx ctx1 ctx2 =
       match (ctx1, ctx2) with
@@ -580,7 +588,7 @@ struct
       match t with
       | Var v -> v = x
       | Coh (_, s) -> List.exists (fun (t, _) -> tm_contains_var t x) s
-      | App (_, s) -> List.exists (fun (_, t) -> tm_contains_var t x) s
+      | App (_, s) -> List.exists (fun (_, (t,_)) -> tm_contains_var t x) s
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
     let rec ty_contains_var a x =
@@ -594,7 +602,7 @@ struct
 
     let rec list_to_sub s ctx =
       match (s, ctx) with
-      | t :: s, (x, _) :: ctx -> (x, t) :: list_to_sub s ctx
+      | t :: s, (x, (_,expl)) :: ctx -> (x, (t, expl)) :: list_to_sub s ctx
       | [], [] -> []
       | _ -> raise WrongNumberOfArguments
 

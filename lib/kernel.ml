@@ -54,7 +54,7 @@ end = struct
         | [], [] -> []
         | _ :: _, [] | [], _ :: _ -> raise sub_exn
         | (x1, _) :: _, (x2, _) :: _ when x1 <> x2 -> raise sub_exn
-        | (_, t) :: s, (_, a) :: _ ->
+        | (_, (t, _)) :: s, (_, a) :: _ ->
             let sub = aux src s (Ctx.tail tgt) in
             let t = Tm.check src t in
             Ty.check_equal (Tm.typ t) (Ty.apply_sub a sub);
@@ -70,7 +70,7 @@ end = struct
     | None ->
         let tgt = PS.to_ctx tgt_ps in
         let s_assoc =
-          try List.map2 (fun (x, _) (t, _) -> (x, t)) (Ctx.value tgt) s
+          try List.map2 (fun (x, _) (t, e) -> (x, (t, e))) (Ctx.value tgt) s
           with Invalid_argument _ ->
             Error.fatal "uncaught wrong number of arguments"
         in

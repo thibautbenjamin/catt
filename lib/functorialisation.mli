@@ -4,7 +4,7 @@ open Unchecked_types.Unchecked_types(Coh)(Tm)
 
 val coh_depth1 : (Coh.t -> Var.t list -> tm * ctx) ref
 val preimage : ctx -> sub_ps -> Var.t list -> Var.t list
-val tgt_subst : Var.t list -> sub
+val tgt_renaming : Var.t list -> (Var.t * tm) list
 val coh : Coh.t -> Var.t list -> tm * ctx
 val coh_successively : Coh.t -> (Var.t * int) list -> Tm.t
 val coh_depth0 : Coh.t -> Var.t list -> Coh.t
@@ -14,12 +14,13 @@ val ty : ty -> Var.t list -> tm -> ty
 val tm : Tm.t -> (Var.t * int) list -> Tm.t
 val ctx : ctx -> Var.t list -> ctx
 val sub_ps : sub_ps -> Var.t list -> sub_ps
-val ps : ps -> Var.t list -> ps * (Var.t * int) list
+val ps : ps -> Var.t list -> ps * (Var.t * (int * bool)) list
 val sub : sub -> Var.t list -> sub
 
-
-
 val sub_w_tgt :
-  ps -> sub_ps -> Var.t list -> sub_ps * ps * (Var.t * int) list * Var.t list
+  ps ->
+  sub_ps ->
+  Var.t list ->
+  sub_ps * ps * (Var.t * (int * bool))  list * Var.t list
 
 val whisk_sub_ps : int -> tm -> ty -> tm -> ty -> sub_ps
