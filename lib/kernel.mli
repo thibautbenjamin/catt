@@ -37,6 +37,7 @@ and Tm : sig
   val typ : t -> Ty.t
   val ctx : t -> Unchecked_types(Coh)(Tm).ctx
   val name : t -> string
+  val develop : t -> Unchecked_types(Coh)(Tm).tm
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
