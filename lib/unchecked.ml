@@ -16,6 +16,7 @@ struct
        end)
       (Tm : sig
          val name : TmT.t -> string
+         val develop : TmT.t -> Unchecked_types(CohT)(TmT).tm
          val apply :
            (Unchecked_types(CohT)(TmT).ctx -> Unchecked_types(CohT)(TmT).ctx) ->
            (Unchecked_types(CohT)(TmT).tm -> Unchecked_types(CohT)(TmT).tm) ->
@@ -525,24 +526,31 @@ struct
       | Coh (coh1, s1), Coh (coh2, s2) ->
           Coh.check_equal coh1 coh2;
           check_equal_sub_ps s1 s2
+      (* Define check_equal_sub and Tm.develop *)
+      | App (t1, s1), App (t2, s2) when t1 == t2 ->
+        check_equal_sub s1 s2
+      | App (t, s) , (Coh _ | App _ as tm2)
+      | (Coh _ as tm2), App(t, s) ->
+        let c = Tm.develop t in
+        check_equal_tm (tm_apply_sub c s) tm2
       | Var _, Coh _
       | Coh _, Var _
       | Meta_tm _, Var _
       | Meta_tm _, Coh _
       | Var _, Meta_tm _
       | Coh _, Meta_tm _
-      | App _, Coh _
-      | Coh _, App _
       | App _, Meta_tm _
       | Meta_tm _, App _
       | App _, Var _
       | Var _, App _
-      | App _, App _
         ->
           raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
 
     and check_equal_sub_ps s1 s2 =
       List.iter2 (fun (t1, _) (t2, _) -> check_equal_tm t1 t2) s1 s2
+
+    and check_equal_sub s1 s2 =
+      List.iter2 (fun (_, t1) (_, t2) -> check_equal_tm t1 t2) s1 s2
 
     let rec check_equal_ctx ctx1 ctx2 =
       match (ctx1, ctx2) with

@@ -15,6 +15,7 @@ module Unchecked (Coh : sig type t end) (Tm : sig type t end)
   end)
       (_ : sig
          val name : Tm.t -> string
+         val develop : Tm.t -> Unchecked_types(Coh)(Tm).tm
          val apply :
            (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
            (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->

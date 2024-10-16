@@ -413,6 +413,7 @@ and Tm : sig
   val preimage : t -> Sub.t -> t
   val ty : t -> Ty.t
   val name : t -> string
+  val develop : t -> Unchecked_types(Coh)(Tm).tm
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
@@ -424,7 +425,8 @@ end = struct
   module Types = Unchecked_types (Coh)(Tm)
 
   type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
-  and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string }
+  and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string;
+            mutable developped : Types.tm option }
 
   let typ t = t.ty
   let ctx t = Ctx.forget(Ty.ctx t.ty)
@@ -456,18 +458,18 @@ end = struct
           match t with
           | Var x ->
               let e, ty = (Var x, Ty.check c (Ty.forget (Ctx.ty_var c x))) in
-              { ty; e; unchecked = t; name }
+              { ty; e; unchecked = t; name; developped = Some t }
           | Meta_tm _ -> raise MetaVariable
           | Coh (coh, s) ->
               let sub = Sub.check_to_ps c s (Coh.ps coh) in
               let e, ty = (Coh (coh, sub), Ty.apply_sub (Coh.ty coh) sub) in
-              let tm = { ty; e; unchecked = t; name } in
+              let tm = { ty; e; unchecked = t; name; developped = Some t } in
               Hashtbl.add tbl (c, t) tm;
               tm
           | App (u,s) ->
             let sub = Sub.check c s (Ty.ctx u.ty) in
             let e, ty = (App(u,sub), Ty.apply_sub u.ty sub) in
-            let tm = {ty; e; unchecked = t; name} in
+            let tm = {ty; e; unchecked = t; name; developped = None} in
             Hashtbl.add tbl (c, t) tm;
             tm
         )
@@ -477,6 +479,18 @@ end = struct
     | Some ty ->
         Ty.check_equal ty tm.ty;
         tm
+
+  let rec develop tm =
+    match tm.developped with
+    | Some t -> t
+    | None ->
+      let dev = match tm.e with
+        | Var _ | Coh(_,_) -> tm.unchecked
+        | App(t,s) ->
+          let dt = develop t in
+          let s = Sub.forget s in
+          Unchecked.tm_apply_sub dt s
+      in tm.developped <- Some dev; dev
 
   let apply_sub t sub =
     Ctx.check_equal (Sub.tgt sub) (Ty.ctx t.ty);
