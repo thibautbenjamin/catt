@@ -10,8 +10,8 @@ module rec Coh : sig
   val to_string : t -> string
   val dim : t -> int
 
-  val src : t -> Tm.t
-  val tgt : t -> Tm.t
+  val src : t -> Unchecked_types(Coh)(Tm).tm
+  val tgt : t -> Unchecked_types(Coh)(Tm).tm
 
   val check_noninv :
     ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> pp_data -> t
@@ -50,6 +50,12 @@ and Tm : sig
 end
 
 open Unchecked_types(Coh)(Tm)
+
+module UnnamedTm : sig
+  type t
+
+  val ty : t -> ty
+end
 
 module Ctx : sig
   type t
@@ -129,6 +135,6 @@ module Unchecked : sig
   val list_to_db_level_sub : tm list -> (Var.t * tm) list
 end
 
-val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
+val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> UnnamedTm.t
 val check_term : Ctx.t -> pp_data -> ?ty:ty -> tm -> Tm.t
 val check_coh : ps -> ty -> pp_data -> Coh.t

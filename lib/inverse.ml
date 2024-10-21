@@ -188,7 +188,7 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
     let tm2 = Coh (c_op, inr) in
     let sub_inr = Unchecked.sub_ps_to_sub inr in
     let sub_inl = Unchecked.sub_ps_to_sub inl in
-    let w = App (Coh.tgt c_op, sub_inr) in
+    let w = Unchecked.tm_apply_sub (Coh.tgt c_op) sub_inr in
     let comp = Suspension.coh (Some (d - 1)) (Builtin.comp_n 2) in
     Coh
       ( comp,
@@ -214,8 +214,8 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
     let ssinv = Unchecked.pullback_up (d - 1) ps ps s sinv in
     let subsinv = Unchecked.sub_ps_to_sub ssinv in
     ( Coh (coh, ssinv),
-      App (src, subsinv),
-      App (tgt, subsinv))
+      Unchecked.tm_apply_sub src subsinv,
+      Unchecked.tm_apply_sub tgt subsinv)
   in
   let m2 = cancel_all_linear_comp tgt_m1 in
   let m3, src_m3, tgt_m3 =
@@ -224,8 +224,8 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
     let s = Unchecked.sub_ps_apply_sub (Unchecked.ps_src ps) sub in
     let sub = Unchecked.sub_ps_to_sub s in
     ( Coh (coh, s),
-      App (src, sub),
-      App (tgt, sub) )
+      Unchecked.tm_apply_sub src sub,
+      Unchecked.tm_apply_sub tgt sub )
   in
   let sub_total =
     (m3, true) :: (tgt_m3, false) :: (m2, true) :: (src_m3, false) :: (m1, true)
