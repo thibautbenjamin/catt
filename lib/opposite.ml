@@ -32,6 +32,11 @@ let equiv_op_ps ps op_data =
   in
   level 0 ps
 
+let op_pp_data pp_data op_data =
+  let name = Unchecked.full_name pp_data in
+  let name = Printf.sprintf "%s_op{%s}" name (op_data_to_string op_data) in
+  (name, 0, [])
+
 let rec ty typ op_data =
   let d = Unchecked.dim_ty typ in
   match typ with
@@ -54,7 +59,13 @@ and tm t op_data =
       let s' = Unchecked.sub_ps_apply_sub equiv op_s in
       Coh (c, s')
   | App (t, s) ->
-    let op_t = Tm.apply (fun c -> ctx c op_data) (fun t -> tm t op_data) t in
+    let op_t =
+      Tm.apply
+        (fun c -> ctx c op_data)
+        (fun t -> tm t op_data)
+        (fun pp_data -> op_pp_data pp_data op_data)
+        t
+    in
     let op_s = sub s op_data in
     App(op_t, op_s)
   | Meta_tm m -> Meta_tm m
@@ -63,13 +74,11 @@ and sub (s : sub) op_data : sub =
   match s with [] -> [] | (x, (t, e)) :: s -> (x, (tm t op_data, e)) :: sub s op_data
 
 and coh c op_data equiv =
-  let p, t, name = Coh.forget c in
-  let name = Unchecked.full_name name in
+  let p, t, pp_data = Coh.forget c in
   let op_p = ps p op_data in
   let op_t = ty t op_data in
   let t' = Unchecked.ty_sub_preimage op_t (Unchecked.sub_ps_to_sub equiv) in
-  let name = Printf.sprintf "%s_op{%s}" name (op_data_to_string op_data) in
-  check_coh op_p t' (name, 0, [])
+  check_coh op_p t' (op_pp_data pp_data op_data)
 
 and ctx c op_data =
   match c with

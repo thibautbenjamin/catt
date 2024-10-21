@@ -8,11 +8,11 @@ struct
 
   module Make
       (Coh : sig
-         val forget : CohT.t -> ps * Unchecked_types(CohT)(TmT).ty * coh_pp_data
+         val forget : CohT.t -> ps * Unchecked_types(CohT)(TmT).ty * pp_data
          val to_string : CohT.t -> string
          val func_data : CohT.t -> (Var.t * int) list list
          val check_equal : CohT.t -> CohT.t -> unit
-         val check : ps -> ty -> coh_pp_data -> CohT.t
+         val check : ps -> ty -> pp_data -> CohT.t
        end)
       (Tm : sig
          val name : TmT.t -> string
@@ -20,6 +20,7 @@ struct
          val apply :
            (Unchecked_types(CohT)(TmT).ctx -> Unchecked_types(CohT)(TmT).ctx) ->
            (Unchecked_types(CohT)(TmT).tm -> Unchecked_types(CohT)(TmT).tm) ->
+           (pp_data -> pp_data) ->
            TmT.t ->
            TmT.t
        end)
@@ -136,6 +137,8 @@ struct
 
 
     let suspend_ps ps = Br [ ps ]
+    let suspend_pp_data = function
+      (name, susp, func) -> (name, susp + 1, func)
 
     let rec suspend_ty = function
       | Obj -> Arr (Obj, Var (Db 0), Var (Db 1))
@@ -146,13 +149,13 @@ struct
       | Var v -> Var (Var.suspend v)
       | Coh (c, s) -> Coh (suspend_coh c, suspend_sub_ps s)
       | App (t, s) ->
-        let t = Tm.apply suspend_ctx suspend_tm t in
+        let t = Tm.apply suspend_ctx suspend_tm suspend_pp_data t in
         App (t, suspend_sub s)
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
     and suspend_coh c =
-      let p, t, (name, susp, f) = Coh.forget c in
-      Coh.check (suspend_ps p) (suspend_ty t) (name, susp + 1, f)
+      let p, t, pp_data = Coh.forget c in
+      Coh.check (suspend_ps p) (suspend_ty t) (suspend_pp_data pp_data)
 
     and suspend_sub_ps = function
       | [] -> [ (Var (Var.Db 1), false); (Var (Var.Db 0), false) ]
@@ -456,7 +459,7 @@ struct
         in
         fst (print s)
 
-      and coh_pp_data_to_string ?(print_func = false) (name, susp, func) =
+      and pp_data_to_string ?(print_func = false) (name, susp, func) =
         let susp_name =
           if susp > 0 then Printf.sprintf "!%i%s" susp name else name
         in
@@ -489,7 +492,7 @@ struct
             Printf.sprintf "%s (_tm%i: %s)" (meta_ctx_to_string c) i
               (ty_to_string t)
 
-      let full_name name = coh_pp_data_to_string ~print_func:true name
+      let full_name name = pp_data_to_string ~print_func:true name
     end
 
     let ps_to_string = Printing.ps_to_string
@@ -499,7 +502,7 @@ struct
     let sub_ps_to_string = Printing.sub_ps_to_string
     let sub_to_string = Printing.sub_to_string
     let meta_ctx_to_string = Printing.meta_ctx_to_string
-    let coh_pp_data_to_string = Printing.coh_pp_data_to_string
+    let pp_data_to_string = Printing.pp_data_to_string
     let full_name = Printing.full_name
 
     let rec check_equal_ps ps1 ps2 =

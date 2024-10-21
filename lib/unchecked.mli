@@ -7,11 +7,11 @@ module Unchecked (Coh : sig type t end) (Tm : sig type t end)
   open Unchecked_types(Coh)(Tm)
 
   module Make (_ : sig
-    val forget : Coh.t -> ps * Unchecked_types(Coh)(Tm).ty * coh_pp_data
+    val forget : Coh.t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
     val to_string : Coh.t -> string
     val func_data : Coh.t -> (Var.t * int) list list
     val check_equal : Coh.t -> Coh.t -> unit
-    val check : ps -> ty -> coh_pp_data -> Coh.t
+    val check : ps -> ty -> pp_data -> Coh.t
   end)
       (_ : sig
          val name : Tm.t -> string
@@ -19,6 +19,7 @@ module Unchecked (Coh : sig type t end) (Tm : sig type t end)
          val apply :
            (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
            (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+           (pp_data -> pp_data) ->
            Tm.t ->
            Tm.t
        end)
@@ -32,8 +33,8 @@ module Unchecked (Coh : sig type t end) (Tm : sig type t end)
     val ctx_to_string : ctx -> string
     val sub_to_string : sub -> string
     val meta_ctx_to_string : meta_ctx -> string
-    val coh_pp_data_to_string : ?print_func:bool -> coh_pp_data -> string
-    val full_name : coh_pp_data -> string
+    val pp_data_to_string : ?print_func:bool -> pp_data -> string
+    val full_name : pp_data -> string
     val check_equal_ctx : ctx -> ctx -> unit
     val check_equal_ps : ps -> ps -> unit
     val check_equal_ty : ty -> ty -> unit

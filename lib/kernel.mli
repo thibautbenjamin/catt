@@ -4,7 +4,7 @@ open Unchecked_types
 module rec Coh : sig
   type t
 
-  val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * coh_pp_data
+  val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
   val check_equal : t -> t -> unit
   val is_inv : t -> bool
   val to_string : t -> string
@@ -14,10 +14,10 @@ module rec Coh : sig
   val tgt : t -> Tm.t
 
   val check_noninv :
-    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> coh_pp_data -> t
+    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> pp_data -> t
 
   val check_inv :
-    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> coh_pp_data -> t
+    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> pp_data -> t
 
   val noninv_srctgt :
     t ->
@@ -41,6 +41,7 @@ and Tm : sig
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+    (pp_data -> pp_data) ->
     t ->
     t
 end
@@ -72,8 +73,8 @@ module Unchecked : sig
   val ctx_to_string : ctx -> string
   val sub_to_string : sub -> string
   val meta_ctx_to_string : meta_ctx -> string
-  val coh_pp_data_to_string : ?print_func:bool -> coh_pp_data -> string
-  val full_name : coh_pp_data -> string
+  val pp_data_to_string : ?print_func:bool -> pp_data -> string
+  val full_name : pp_data -> string
   val check_equal_ctx : ctx -> ctx -> unit
   val check_equal_ps : ps -> ps -> unit
   val check_equal_ty : ty -> ty -> unit
@@ -126,5 +127,5 @@ module Unchecked : sig
 end
 
 val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> Tm.t
-val check_term : Ctx.t -> string -> ?ty:ty -> tm -> Tm.t
-val check_coh : ps -> ty -> coh_pp_data -> Coh.t
+val check_term : Ctx.t -> pp_data -> ?ty:ty -> tm -> Tm.t
+val check_coh : ps -> ty -> pp_data -> Coh.t

@@ -306,9 +306,10 @@ let coh_depth0 c l =
 let coh_successively c l =
   report_errors
     (fun _ ->
-       let _,_,(name,_,_) = Coh.forget c in
+       let _,_,(name,i,oldf) = Coh.forget c in
        let t,ct = coh_successively c l in
-       check_term (Ctx.check ct) name t )
+       (* TODO: update the old functorialisation data *)
+       check_term (Ctx.check ct) (name,i,oldf) t )
     (lazy ("coherence: " ^ Coh.to_string c))
 
 let rec sub s l =
@@ -340,9 +341,10 @@ let coh_all c =
   coh_depth0 c l
 
 (* Functorialisation a term: exposed function *)
+(* TODO : update the functorialisation *)
 let tm t l =
   report_errors
-    (fun _ -> Tm.apply (fun c -> ctx_successively c l) (fun t -> tm_successively t l) t)
+    (fun _ -> Tm.apply (fun c -> ctx_successively c l) (fun t -> tm_successively t l) (Fun.id) t)
     (lazy ("term: " ^ Tm.name t))
 
 let ps p l =
