@@ -31,7 +31,10 @@ let rec compute_inverse t =
         let equiv = Opposite.equiv_op_ps ps [ d ] in
         let coh = Opposite.coh c [ d ] in
         Coh (coh, Unchecked.sub_ps_apply_sub equiv sub_inv))
-  | App _ -> assert false
+  | App (t,s) ->
+    let t = Tm.develop t in
+    let total_t = Unchecked.tm_apply_sub t s in
+    compute_inverse total_t
 
 and sub_inv s ps i =
   match (s, ps) with
@@ -149,7 +152,11 @@ and compute_witness t =
       if Coh.is_inv c then
         compute_witness_coh_inv c s ~ps ~d ~pp_data ~sub_base ~u ~v
       else compute_witness_comp c s ~ps ~d ~sub_base ~u ~v
-  | App _ -> assert false
+  | App (t,s) ->
+    let t = Tm.develop t in
+    let total_t = Unchecked.tm_apply_sub t s in
+    compute_witness total_t
+
 
 and compute_witness_coh_inv c s ~ps ~pp_data ~d ~sub_base ~u ~v =
   let name, susp, func = pp_data in
