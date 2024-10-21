@@ -2,10 +2,10 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)(Tm)
 
-val coh_depth1 : (Coh.t -> Var.t list -> tm * ctx) ref
+val coh_depth1 : (Coh.t -> Var.t list -> Tm.t) ref
 val preimage : ctx -> sub_ps -> Var.t list -> Var.t list
 val tgt_renaming : Var.t list -> (Var.t * tm) list
-val coh : Coh.t -> Var.t list -> tm * ctx
+val coh : Coh.t -> Var.t list -> Tm.t
 val coh_successively : Coh.t -> (Var.t * int) list -> Tm.t
 val coh_depth0 : Coh.t -> Var.t list -> Coh.t
 val coh_all : Coh.t -> Coh.t

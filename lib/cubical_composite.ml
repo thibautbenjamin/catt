@@ -411,6 +411,7 @@ let coh_depth1 coh l =
       (Unchecked.ty_to_sub_ps intch_src_ty)
   in
   let comp = Suspension.coh (Some d) (Builtin.comp_n 3) in
-  (Coh (comp, comp_sub_ps), F.ctx (Unchecked.ps_to_ctx ps) l)
+  let ctx = F.ctx (Unchecked.ps_to_ctx ps) l in
+  check_term (Ctx.check ctx) ("placeholder_name", 0, []) (Coh (comp, comp_sub_ps))
 
 let init () = F.coh_depth1 := coh_depth1

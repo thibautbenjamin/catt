@@ -15,6 +15,7 @@ module Unchecked (Coh : sig type t end) (Tm : sig type t end)
   end)
       (_ : sig
          val name : Tm.t -> string
+         val func_data : Tm.t -> (Var.t * int) list list
          val develop : Tm.t -> Unchecked_types(Coh)(Tm).tm
          val apply :
            (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
@@ -31,7 +32,7 @@ module Unchecked (Coh : sig type t end) (Tm : sig type t end)
     val tm_to_string : tm -> string
     val sub_ps_to_string : ?func:(Var.t * int) list list -> sub_ps -> string
     val ctx_to_string : ctx -> string
-    val sub_to_string : sub -> string
+    val sub_to_string : ?func:(Var.t * int) list list -> sub -> string
     val meta_ctx_to_string : meta_ctx -> string
     val pp_data_to_string : ?print_func:bool -> pp_data -> string
     val full_name : pp_data -> string

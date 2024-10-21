@@ -16,6 +16,7 @@ struct
        end)
       (Tm : sig
          val name : TmT.t -> string
+         val func_data : TmT.t -> (Var.t * int) list list
          val develop : TmT.t -> Unchecked_types(CohT)(TmT).tm
          val apply :
            (Unchecked_types(CohT)(TmT).ctx -> Unchecked_types(CohT)(TmT).ctx) ->
@@ -420,8 +421,8 @@ struct
                 (sub_ps_to_string ~func s)
             else Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
         | App (t, s) ->
-          Printf.sprintf "(%s%s)" (Tm.name t) (sub_to_string s)
-
+          let func = Tm.func_data t in
+          Printf.sprintf "(%s%s)" (Tm.name t) (sub_to_string ~func s)
 
       and sub_ps_to_string ?(func = []) s =
         match func with
@@ -459,6 +460,42 @@ struct
         in
         fst (print s)
 
+      and sub_to_string ?(func = []) sub =
+        match func with
+        | [] -> sub_to_string_nofunc sub
+        | func :: _ -> sub_to_string_func sub func
+
+      and sub_to_string_nofunc sub =
+        match sub with
+        | [] -> ""
+        | (_, (t, expl)) :: s ->
+          if expl || !Settings.print_explicit_substitutions then
+              Printf.sprintf "%s %s" (sub_to_string s) (tm_to_string t)
+          else sub_to_string s
+
+      and sub_to_string_func s func =
+        let rec print s =
+          match s with
+          | (x, (t, true)) :: s ->
+            let str = print s in
+            let arg =
+              match List.assoc_opt x func with
+              | None -> tm_to_string t
+              | Some i -> bracket i (tm_to_string t)
+            in
+            Printf.sprintf "%s %s" str arg
+          | (_, (t, false)) :: s ->
+            let str = print s in
+            let str =
+              if !Settings.print_explicit_substitutions then
+                Printf.sprintf "%s %s" str (tm_to_string t)
+              else str
+            in
+            str
+          | [] -> ""
+        in
+        print s
+
       and pp_data_to_string ?(print_func = false) (name, susp, func) =
         let susp_name =
           if susp > 0 then Printf.sprintf "!%i%s" susp name else name
@@ -469,13 +506,6 @@ struct
         | _ :: func when not print_func ->
             susp_name ^ "_func" ^ func_to_string func
         | func -> susp_name ^ "_func" ^ func_to_string func
-
-      and sub_to_string = function
-        | [] -> ""
-        | (_, (t, expl)) :: s ->
-          if expl || !Settings.print_explicit_substitutions then
-              Printf.sprintf "%s %s" (sub_to_string s) (tm_to_string t)
-            else sub_to_string s
 
       let rec ctx_to_string = function
         | [] -> ""
