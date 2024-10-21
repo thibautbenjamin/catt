@@ -57,7 +57,7 @@ let rec next_round l =
    coherence that come from a functorialisation *)
 let compute_func_data l func =
   let incr_db v i =
-    match v with Var.Db k -> Var.Db (k + i) | _ -> assert false
+    match v with Var.Db k -> Var.Db (k + i) | v -> v
   in
   let is_mergeable =
     match func with
@@ -246,7 +246,9 @@ and tm_one_step t l expl =
       let subf = Unchecked.list_to_sub (List.map fst sf) (Tm.ctx cohf) in
       let tm = App(cohf, subf) in
       [ (tm, expl); (t', false); (t, false) ]
-  | App _ -> assert false
+  | App (t,s) ->
+    let total_t = Unchecked.tm_apply_sub (Tm.develop t) s in
+    tm_one_step total_t l expl
   | Meta_tm _ -> raise FunctorialiseMeta
 
 and tm_one_step_tm t l = fst (List.hd (tm_one_step t l true))
