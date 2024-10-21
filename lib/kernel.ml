@@ -408,7 +408,7 @@ and Tm : sig
   val free_vars : t -> Var.t list
   val is_full : t -> bool
   val forget : t -> Unchecked_types(Coh)(Tm).tm
-  val check : Ctx.t -> ?ty:Ty.t -> ?name:string -> Unchecked_types(Coh)(Tm).tm -> t
+  val check : Ctx.t -> ?ty:Ty.t -> ?pp_data:pp_data -> Unchecked_types(Coh)(Tm).tm -> t
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
   val ty : t -> Ty.t
@@ -417,6 +417,7 @@ and Tm : sig
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+    (pp_data -> pp_data) ->
     t ->
     t
 end = struct
@@ -425,15 +426,15 @@ end = struct
   module Types = Unchecked_types (Coh)(Tm)
 
   type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
-  and t = { ty : Ty.t; e : expr; unchecked : Types.tm; name : string option;
+  and t = { ty : Ty.t; e : expr; unchecked : Types.tm; pp_data : pp_data option;
             mutable developped : Types.tm option }
 
   let typ t = t.ty
   let ctx t = Ctx.forget(Ty.ctx t.ty)
 
   let name t =
-    match t.name with
-    | Some name -> name
+    match t.pp_data with
+    | Some pp_data -> Unchecked.pp_data_to_string pp_data
     | None -> Error.fatal "unnamed term application"
 
   let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
@@ -448,7 +449,7 @@ end = struct
   let is_full tm = List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
   let forget tm = tm.unchecked
 
-  let check c ?ty ?name t =
+  let check c ?ty ?pp_data t =
     Io.info ~v:5
       (lazy
         (Printf.sprintf "building kernel term %s in context %s"
@@ -460,18 +461,18 @@ end = struct
           match t with
           | Var x ->
               let e, ty = (Var x, Ty.check c (Ty.forget (Ctx.ty_var c x))) in
-              { ty; e; unchecked = t; name; developped = Some t }
+              { ty; e; unchecked = t; pp_data; developped = Some t }
           | Meta_tm _ -> raise MetaVariable
           | Coh (coh, s) ->
               let sub = Sub.check_to_ps c s (Coh.ps coh) in
               let e, ty = (Coh (coh, sub), Ty.apply_sub (Coh.ty coh) sub) in
-              let tm = { ty; e; unchecked = t; name; developped = Some t } in
+              let tm = { ty; e; unchecked = t; pp_data; developped = Some t } in
               Hashtbl.add tbl (c, t) tm;
               tm
           | App (u,s) ->
             let sub = Sub.check c s (Ty.ctx u.ty) in
             let e, ty = (App(u,sub), Ty.apply_sub u.ty sub) in
-            let tm = {ty; e; unchecked = t; name; developped = None} in
+            let tm = {ty; e; unchecked = t; pp_data; developped = None} in
             Hashtbl.add tbl (c, t) tm;
             tm
         )
@@ -509,10 +510,11 @@ end = struct
 
   let ty t = t.ty
 
-  let apply fun_ctx fun_tm t =
+  let apply fun_ctx fun_tm fun_pp_data t =
     let c = Ctx.forget (Ty.ctx t.ty) in
     let c = Ctx.check (fun_ctx c) in
-    check c (fun_tm t.unchecked)
+    let pp_data = Option.map fun_pp_data t.pp_data in
+    check c ?pp_data (fun_tm t.unchecked)
 end
 
 (** A coherence. *)
@@ -523,13 +525,13 @@ and Coh : sig
   val ty : t -> Ty.t
   val src : t -> Tm.t
   val tgt : t -> Tm.t
-  val check : ps -> Unchecked_types(Coh)(Tm).ty -> coh_pp_data -> t
+  val check : ps -> Unchecked_types(Coh)(Tm).ty -> pp_data -> t
 
   val check_noninv :
-    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> coh_pp_data -> t
+    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> pp_data -> t
 
   val check_inv :
-    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> coh_pp_data -> t
+    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> pp_data -> t
 
   val to_string : t -> string
   val is_inv : t -> bool
@@ -538,14 +540,14 @@ and Coh : sig
     t ->
     Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).ty
 
-  val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * coh_pp_data
+  val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
   val func_data : t -> (Var.t * int) list list
   val check_equal : t -> t -> unit
   val dim : t -> int
 end = struct
   type cohInv = { ps : PS.t; ty : Ty.t }
   type cohNonInv = { ps : PS.t; src : Tm.t; tgt : Tm.t; total_ty : Ty.t }
-  type t = Inv of cohInv * coh_pp_data | NonInv of cohNonInv * coh_pp_data
+  type t = Inv of cohInv * pp_data | NonInv of cohNonInv * pp_data
 
   module Types = Unchecked_types (Coh)(Tm)
 
@@ -665,7 +667,7 @@ end = struct
   let to_string c =
     let ps, ty, pp_data = data c in
     if not !Settings.unroll_coherences then
-      Unchecked.coh_pp_data_to_string pp_data
+      Unchecked.pp_data_to_string pp_data
     else Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 
   let noninv_srctgt c =
@@ -732,11 +734,11 @@ let check_unnamed_term ctx ?ty t =
   let tm = lazy ("term: " ^ Unchecked.tm_to_string t) in
   check (fun () -> Tm.check ctx ?ty t) tm
 
-let check_term ctx name ?ty t =
+let check_term ctx pp_data ?ty t =
   let ty = Option.map (check_type ctx) ty in
   let tm = lazy ("term: " ^ Unchecked.tm_to_string t) in
-  check (fun () -> Tm.check ctx ~name ?ty t) tm
+  check (fun () -> Tm.check ctx ~pp_data ?ty t) tm
 
 let check_coh ps ty pp_data =
-  let c = lazy ("coherence: " ^ Unchecked.coh_pp_data_to_string pp_data) in
+  let c = lazy ("coherence: " ^ Unchecked.pp_data_to_string pp_data) in
   check (fun () -> Coh.check ps ty pp_data) c

@@ -185,4 +185,4 @@ let rec telescope k =
 
 let checked k =
   let name = "builtin_telescope" ^ (string_of_int k) in
-  check_term (Ctx.check (ctx k)) name (telescope k)
+  check_term (Ctx.check (ctx k)) (name,0,[]) (telescope k)

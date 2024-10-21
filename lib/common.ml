@@ -50,5 +50,5 @@ module Var = struct
     fresh
 end
 
-(* For pretty-printing applied coherences *)
-type coh_pp_data = string * int * (Var.t * int) list list
+(* For application *)
+type pp_data = string * int * (Var.t * int) list list
