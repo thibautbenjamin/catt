@@ -52,47 +52,50 @@ let rec next_round l =
       (v :: vars, (Var.Bridge v, n - 1) :: left)
   | _ -> Error.fatal "cannot functorialise a negative number of times."
 
+let pp_data_rename pp names =
+  let (name, susp, func) = pp in
+  let rec rename f =
+    match f with
+    | [] -> []
+    | (x,i)::f ->
+      match List.assoc_opt x names with
+      | None -> (x,i) :: (rename f)
+      | Some (y,_) -> (Var.Db y,i) :: (rename f)
+  in (name, susp, List.map rename func)
+
 (* Functorialised coherences with respect to locally maximal variables are
    coherences. This function updates the list of variables in the resulting
    coherence that come from a functorialisation *)
-let compute_func_data l func =
-  let incr_db v i =
-    match v with Var.Db k -> Var.Db (k + i) | _ -> assert false
-  in
-  let is_mergeable =
-    match func with
-    | [] -> false
-    | f :: _ ->
+let pp_data l (name, susp, func) =
+  let func =
+    let is_mergeable =
+      match func with
+      | [] -> false
+      | f :: _ ->
         List.for_all
           (fun x ->
-            match List.assoc_opt x f with
-            | None -> false
-            | Some k -> List.for_all (fun (_, n) -> n <= k) f)
+             match List.assoc_opt x f with
+             | None -> false
+             | Some k -> List.for_all (fun (_, n) -> n <= k) f)
           l
-  in
-  if is_mergeable then
-    let f, func =
-      match func with [] -> assert false | f :: func -> (f, func)
     in
-    let rec add_in func v =
+    if is_mergeable then
+      let f, func =
+        match func with [] -> assert false | f :: func -> (f, func)
+      in
+      let rec add_in func v =
       match func with
-      | [] -> [ (incr_db v 2, 1) ]
-      | (w, n) :: func when v = w -> (incr_db v 2, n + 1) :: func
-      | (w, n) :: func -> (incr_db w 2, n) :: add_in func v
-    in
-    let rec add_all func l =
-      match l with [] -> func | v :: l -> add_all (add_in func v) l
-    in
-    add_all f l :: func
-  else
-    let rec increase_in l =
-      match l with
-      | [] -> ([], 2)
-      | w :: l ->
-          let l, k = increase_in l in
-          ((incr_db w k, 1) :: l, k + 2)
-    in
-    fst (increase_in l) :: func
+        | [] -> [ Var.Bridge v, 1 ]
+        | (w, n) :: func when v = w -> (Var.Bridge v, n + 1) :: func
+        | (w, n) :: func -> (w, n) :: add_in func v
+      in
+      let rec add_all func l =
+        match l with [] -> func | v :: l -> add_all (add_in func v) l
+      in
+      add_all f l :: func
+    else
+      (List.map (fun x -> (Var.Bridge x, 1)) l) :: func
+  in (name, susp, func)
 
 (*
    Given a context, a ps-substitution and a list of variables, returns
@@ -194,28 +197,27 @@ and ctx c l =
 (* Functorialisation of a coherence once with respect to a list of
    variables *)
 and coh_depth0 coh l =
-  let ps, t, (name, susp, func) = Coh.forget coh in
+  let ps, t, pp = Coh.forget coh in
   let ctxf = ctx (Unchecked.ps_to_ctx ps) l in
   let _, names, _ = Unchecked.db_levels ctxf in
   let psf = PS.forget (PS.mk (Ctx.check ctxf)) in
   let ty = ty t l (Coh (coh, Unchecked.identity_ps ps)) in
   let ty = Unchecked.rename_ty ty names in
-  let func_data = compute_func_data l func in
-  check_coh psf ty (name, susp, func_data)
+  let pp = pp_data l pp in
+  let pp = pp_data_rename pp names in
+  check_coh psf ty pp, names
 
 and coh coh l =
   let ps, ty, _ = Coh.forget coh in
   let c = Unchecked.ps_to_ctx ps in
   check_upwards_closed c l;
   let depth0 = List.for_all (fun (x, (_, e)) -> e || not (List.mem x l)) c in
-  let cohf =
-    if depth0 then
-      Tm.of_coh (coh_depth0 coh l)
-    else (
-      check_codim1 c (Unchecked.dim_ty ty) l;
-      !coh_depth1 coh l)
-  in
-  cohf
+  if depth0 then
+    let coh, names = coh_depth0 coh l in
+    Tm.of_coh coh, names
+  else (
+    check_codim1 c (Unchecked.dim_ty ty) l;
+    !coh_depth1 coh l, [])
 
 and coh_successively c l =
   let l, next = next_round l in
@@ -224,7 +226,17 @@ and coh_successively c l =
     let id = Unchecked.identity_ps ps in
     check_term (Ctx.check (Unchecked.ps_to_ctx ps)) pp_data (Coh(c, id))
   else
-    let cohf = coh c l in
+    let cohf,names = coh c l in
+    let next =
+      List.map
+        (fun (x,i) ->
+           let x_renamed =
+             match List.assoc_opt x names with
+             | Some (k,_) -> Var.Db k
+             | None -> x
+           in (x_renamed, i))
+        next
+    in
     tm_successively cohf next
 
 (*
@@ -242,11 +254,13 @@ and tm_one_step t l expl =
       let ps, _, _ = Coh.forget c in
       let psc = Unchecked.ps_to_ctx ps in
       let places = preimage psc s l in
-      let cohf = coh c places in
+      let cohf,_ = coh c places in
       let subf = Unchecked.list_to_sub (List.map fst sf) (Tm.ctx cohf) in
       let tm = App(cohf, subf) in
       [ (tm, expl); (t', false); (t, false) ]
-  | App _ -> assert false
+  | App (t,s) ->
+    let total_t = Unchecked.tm_apply_sub (Tm.develop t) s in
+    tm_one_step total_t l expl
   | Meta_tm _ -> raise FunctorialiseMeta
 
 and tm_one_step_tm t l = fst (List.hd (tm_one_step t l true))
@@ -265,7 +279,7 @@ and tm_successively t s =
       Tm.apply
         (fun c -> ctx c l)
         (fun t -> tm_one_step_tm t l)
-        (fun (name,susp,f) -> (name, susp, compute_func_data l f))
+        (fun pp -> pp_data l pp)
         t
     in
     tm_successively t next
@@ -286,11 +300,11 @@ let report_errors f str =
 
 (* Functorialisation of a coherence: exposed function *)
 let coh c l =
-  report_errors (fun _ -> coh c l) (lazy ("coherence: " ^ Coh.to_string c))
+  report_errors (fun _ -> fst (coh c l)) (lazy ("coherence: " ^ Coh.to_string c))
 
 let coh_depth0 c l =
   report_errors
-    (fun _ -> coh_depth0 c l)
+    (fun _ -> fst (coh_depth0 c l))
     (lazy ("coherence: " ^ Coh.to_string c))
 
 let coh_successively c l =

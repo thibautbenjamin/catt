@@ -385,7 +385,7 @@ let bridge_coh coh ps_bridge =
   coh_bridge
 
 let coh_depth1 coh l =
-  let ps, _, _ = Coh.forget coh in
+  let ps, _, pp_data = Coh.forget coh in
   let d = Unchecked.dim_ps ps in
   let ps_inter, l_inter, names = intermediate_ps ps l d in
   let ps_bridge, l_bridge = bridge_ps ps_inter l_inter d in
@@ -412,6 +412,7 @@ let coh_depth1 coh l =
   in
   let comp = Suspension.coh (Some d) (Builtin.comp_n 3) in
   let ctx = F.ctx (Unchecked.ps_to_ctx ps) l in
-  check_term (Ctx.check ctx) ("placeholder_name", 0, []) (Coh (comp, comp_sub_ps))
+  let pp_data = F.pp_data l pp_data in
+  check_term (Ctx.check ctx) pp_data (Coh (comp, comp_sub_ps))
 
 let init () = F.coh_depth1 := coh_depth1

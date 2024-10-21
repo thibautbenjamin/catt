@@ -422,7 +422,9 @@ struct
             else Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
         | App (t, s) ->
           let func = Tm.func_data t in
-          Printf.sprintf "(%s%s)" (Tm.name t) (sub_to_string ~func s)
+          let str_s, expl = sub_to_string ~func s in
+          let expl_str = if expl then "@" else "" in
+          Printf.sprintf "(%s%s%s)" expl_str (Tm.name t) str_s
 
       and sub_ps_to_string ?(func = []) s =
         match func with
@@ -462,41 +464,56 @@ struct
 
       and sub_to_string ?(func = []) sub =
         match func with
-        | [] -> sub_to_string_nofunc sub
-        | func :: _ -> sub_to_string_func sub func
+        | [] -> sub_to_string_nofunc sub, false
+        | func :: _ ->
+          let s, b = sub_to_string_func sub func in
+          (" " ^ s), b
 
       and sub_to_string_nofunc sub =
         match sub with
         | [] -> ""
         | (_, (t, expl)) :: s ->
           if expl || !Settings.print_explicit_substitutions then
-              Printf.sprintf "%s %s" (sub_to_string s) (tm_to_string t)
-          else sub_to_string s
+              Printf.sprintf "%s %s" (sub_to_string_nofunc s) (tm_to_string t)
+          else sub_to_string_nofunc s
 
       and sub_to_string_func s func =
-        let rec print s =
-          match s with
-          | (x, (t, true)) :: s ->
-            let str = print s in
-            let arg =
-              match List.assoc_opt x func with
-              | None -> tm_to_string t
-              | Some i -> bracket i (tm_to_string t)
-            in
-            Printf.sprintf "%s %s" str arg
-          | (_, (t, false)) :: s ->
-            let str = print s in
-            let str =
-              if !Settings.print_explicit_substitutions then
-                Printf.sprintf "%s %s" str (tm_to_string t)
-              else str
-            in
-            str
-          | [] -> ""
+        let arg_to_string t b =
+          if (b || !Settings.print_explicit_substitutions) then (tm_to_string t)
+          else "_"
         in
-        print s
+        let rec string_list s needs_expl skip =
+          match s with
+          | [] when skip <= 0 -> [], needs_expl
+          | (x, (t, e)) :: s when skip <= 0 ->
+            (match List.assoc_opt x func with
+             | None->
+               let l,b = string_list s needs_expl 0 in
+               ((arg_to_string t e, e) :: l, b)
+            | Some i ->
+              let l,b = string_list s (needs_expl || not e) (2*i) in
+              ((bracket i (arg_to_string t e), e) :: l, b))
+          | _ :: s -> string_list s needs_expl (skip - 1)
+          | [] -> Error.fatal "functorialised arguments present \
+                                             in inconsistent places"
+        in
+        let str, needs_expl  = string_list s false 0 in
+        let str = List.rev_map
+            (fun (tm,e) -> if e || needs_expl then Some tm else None)
+            str
+        in
+        String.concat " " (List.filter_map (Fun.id) str), needs_expl
 
-      and pp_data_to_string ?(print_func = false) (name, susp, func) =
+      and sub_to_string_debug sub =
+        match sub with
+        | [] -> ""
+        | (x, (t, _)) :: s ->
+          Printf.sprintf "%s (%s, %s)"
+            (sub_to_string_debug s)
+            (Var.to_string x)
+            (tm_to_string t)
+
+      let pp_data_to_string ?(print_func = false) (name, susp, func) =
         let susp_name =
           if susp > 0 then Printf.sprintf "!%i%s" susp name else name
         in
@@ -530,7 +547,8 @@ struct
     let tm_to_string = Printing.tm_to_string
     let ctx_to_string = Printing.ctx_to_string
     let sub_ps_to_string = Printing.sub_ps_to_string
-    let sub_to_string = Printing.sub_to_string
+    let sub_to_string ?func s = fst (Printing.sub_to_string ?func s)
+    let sub_to_string_debug = Printing.sub_to_string_debug
     let meta_ctx_to_string = Printing.meta_ctx_to_string
     let pp_data_to_string = Printing.pp_data_to_string
     let full_name = Printing.full_name

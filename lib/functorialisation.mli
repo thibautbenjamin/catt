@@ -17,6 +17,8 @@ val sub_ps : sub_ps -> Var.t list -> sub_ps
 val ps : ps -> Var.t list -> ps * (Var.t * (int * bool)) list
 val sub : sub -> Var.t list -> sub
 
+val pp_data : Var.t list -> pp_data -> pp_data
+
 val sub_w_tgt :
   ps ->
   sub_ps ->
