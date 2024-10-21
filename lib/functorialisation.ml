@@ -117,12 +117,8 @@ let rec whisk n j k =
     let n, j, k = t in
     let comp = Builtin.comp_n 2 in
     let func_data = [ (Var.Db 4, k); (Var.Db 2, j) ] in
-    let whisk =
-      match coh_successively comp func_data with
-      | Coh (c, _), _ -> c
-      | _ -> assert false
-    in
-    Suspension.coh (Some n) whisk
+    let whisk = coh_successively comp func_data in
+    Suspension.checked_tm (Some n) whisk
   in
   Memo.find_whisk (n, j, k) build_whisk
 
@@ -150,13 +146,13 @@ and src_prod t l tm tm_t d n =
   match t with
   | Arr (ty', src, _tgt) when Unchecked.tm_contains_vars src l ->
       let whisk = whisk n 0 (d - n - 1) in
-      let _, whisk_ty, _ = Coh.forget whisk in
+      let whisk_ty = Tm.ty whisk in
       let prod, prod_ty = src_prod ty' l tm tm_t d (n - 1) in
       let ty_f = ty ty' l src in
       let src_f = tm_one_step_tm src l in
       let sub_ps = whisk_sub_ps (d - n - 1) src_f ty_f prod prod_ty in
       let sub = Unchecked.sub_ps_to_sub sub_ps in
-      (Coh (whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
+      (App (whisk, sub), Unchecked.ty_apply_sub whisk_ty sub)
   | Arr (_, _, _) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 
@@ -164,13 +160,13 @@ and tgt_prod t l tm tm_t d n =
   match t with
   | Arr (ty', _src, tgt) when Unchecked.tm_contains_vars tgt l ->
       let whisk = whisk n (d - n - 1) 0 in
-      let _, whisk_ty, _ = Coh.forget whisk in
+      let whisk_ty = Tm.ty whisk in
       let prod, prod_ty = tgt_prod ty' l tm tm_t d (n - 1) in
       let ty_f = ty ty' l tgt in
       let tgt_f = tm_one_step_tm tgt l in
       let sub_ps = whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
       let sub = Unchecked.sub_ps_to_sub sub_ps in
-      (Coh (whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
+      (App (whisk, sub), Unchecked.ty_apply_sub whisk_ty sub)
   | Arr (_, _, _) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 
@@ -214,11 +210,7 @@ and coh coh l =
   let depth0 = List.for_all (fun (x, (_, e)) -> e || not (List.mem x l)) c in
   let cohf =
     if depth0 then
-      let id = Unchecked.identity_ps ps in
-      let sf = sub_ps id l in
-      let pscf = ctx (Unchecked.ps_to_ctx ps) l in
-      let cohf = coh_depth0 coh l in
-      (Coh (cohf, sf), pscf)
+      Tm.of_coh (coh_depth0 coh l)
     else (
       check_codim1 c (Unchecked.dim_ty ty) l;
       !coh_depth1 coh l)
@@ -228,12 +220,12 @@ and coh coh l =
 and coh_successively c l =
   let l, next = next_round l in
   if l = [] then
-    let ps, _, _ = Coh.forget c in
+    let ps, _, pp_data = Coh.forget c in
     let id = Unchecked.identity_ps ps in
-    (Coh (c, id), Unchecked.ps_to_ctx ps)
+    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) pp_data (Coh(c, id))
   else
-    let cohf, ctxf = coh c l in
-    tm_successively cohf next, ctx_successively ctxf next
+    let cohf = coh c l in
+    tm_successively cohf next
 
 (*
    Functorialisation a term once with respect to a list of variables.
@@ -250,9 +242,9 @@ and tm_one_step t l expl =
       let ps, _, _ = Coh.forget c in
       let psc = Unchecked.ps_to_ctx ps in
       let places = preimage psc s l in
-      let cohf, pscf = coh c places in
-      let subf = Unchecked.list_to_sub (List.map fst sf) pscf in
-      let tm = Unchecked.tm_apply_sub cohf subf in
+      let cohf = coh c places in
+      let subf = Unchecked.list_to_sub (List.map fst sf) (Tm.ctx cohf) in
+      let tm = App(cohf, subf) in
       [ (tm, expl); (t', false); (t, false) ]
   | App _ -> assert false
   | Meta_tm _ -> raise FunctorialiseMeta
@@ -269,17 +261,15 @@ and sub_ps s l =
 and tm_successively t s =
   let l, next = next_round s in
   if l <> [] then
-    let t = tm_one_step_tm t l in
+    let t =
+      Tm.apply
+        (fun c -> ctx c l)
+        (fun t -> tm_one_step_tm t l)
+        (fun (name,susp,f) -> (name, susp, compute_func_data l f))
+        t
+    in
     tm_successively t next
   else t
-
-and ctx_successively c s =
-  let l, next = next_round s in
-  if l <> [] then
-    let c = ctx c l in
-    ctx_successively c next
-  else c
-
 
 (* Public API *)
 let report_errors f str =
@@ -305,11 +295,7 @@ let coh_depth0 c l =
 
 let coh_successively c l =
   report_errors
-    (fun _ ->
-       let _,_,(name,i,oldf) = Coh.forget c in
-       let t,ct = coh_successively c l in
-       (* TODO: update the old functorialisation data *)
-       check_term (Ctx.check ct) (name,i,oldf) t )
+    (fun _ -> coh_successively c l)
     (lazy ("coherence: " ^ Coh.to_string c))
 
 let rec sub s l =
@@ -341,10 +327,9 @@ let coh_all c =
   coh_depth0 c l
 
 (* Functorialisation a term: exposed function *)
-(* TODO : update the functorialisation *)
-let tm t l =
+let tm t l  =
   report_errors
-    (fun _ -> Tm.apply (fun c -> ctx_successively c l) (fun t -> tm_successively t l) (Fun.id) t)
+    (fun _ -> tm_successively t l)
     (lazy ("term: " ^ Tm.name t))
 
 let ps p l =

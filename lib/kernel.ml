@@ -381,8 +381,8 @@ end = struct
     Unchecked.check_equal_ty (forget ty1) (forget ty2)
 
   let morphism t1 t2 =
-    let a1 = Tm.ty t1 in
-    let a2 = Tm.ty t2 in
+    let a1 = Tm.typ t1 in
+    let a2 = Tm.typ t2 in
     check_equal a1 a2;
     {
       c = a1.c;
@@ -404,15 +404,17 @@ and Tm : sig
 
   val to_var : t -> Var.t
   val typ : t -> Ty.t
+  val ty : t -> Unchecked_types(Coh)(Tm).ty
   val ctx : t -> Unchecked_types(Coh)(Tm).ctx
+  val of_coh : Coh.t -> t
   val free_vars : t -> Var.t list
   val is_full : t -> bool
   val forget : t -> Unchecked_types(Coh)(Tm).tm
   val check : Ctx.t -> ?ty:Ty.t -> ?pp_data:pp_data -> Unchecked_types(Coh)(Tm).tm -> t
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
-  val ty : t -> Ty.t
   val name : t -> string
+  val func_data : t -> (Var.t * int) list list
   val develop : t -> Unchecked_types(Coh)(Tm).tm
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
@@ -430,12 +432,24 @@ end = struct
             mutable developped : Types.tm option }
 
   let typ t = t.ty
+  let ty t = Ty.forget t.ty
   let ctx t = Ctx.forget(Ty.ctx t.ty)
 
   let name t =
     match t.pp_data with
     | Some pp_data -> Unchecked.pp_data_to_string pp_data
     | None -> Error.fatal "unnamed term application"
+
+  let func_data t =
+    match t.pp_data with
+    | Some (_,_,f) -> f
+    | None -> []
+
+  let of_coh coh =
+    let ps,_,pp_data = Coh.forget coh in
+    let id = Unchecked.identity_ps ps in
+    let ctx = Unchecked.ps_to_ctx ps in
+    Tm.check (Ctx.check ctx) ~pp_data (Coh(coh, id))
 
   let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
   let to_var tm = match tm.e with Var v -> v | Coh _ | App _ -> raise IsCoh
@@ -507,8 +521,6 @@ end = struct
     let c = Sub.tgt sub in
     let t = Unchecked.tm_sub_preimage (forget t) (Sub.forget sub) in
     check c t
-
-  let ty t = t.ty
 
   let apply fun_ctx fun_tm fun_pp_data t =
     let c = Ctx.forget (Ty.ctx t.ty) in
@@ -674,7 +686,7 @@ end = struct
     match c with
     | Inv (_, _) -> Error.fatal "non-invertible data of an invertible coh"
     | NonInv (d, _) ->
-        (Tm.forget d.src, Tm.forget d.tgt, Ty.forget (Tm.ty d.src))
+        (Tm.forget d.src, Tm.forget d.tgt, Ty.forget (Tm.typ d.src))
 
   let dim c =
     let ty = match c with Inv (d, _) -> d.ty | NonInv (d, _) -> d.total_ty in
