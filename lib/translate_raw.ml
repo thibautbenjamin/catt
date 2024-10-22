@@ -100,7 +100,7 @@ and meta_functed_arg i ctx =
   | _, (y, _) :: (x, _) :: ctx ->
       let src, meta_types_src = Meta.new_tm () in
       let tgt, meta_types_tgt = Meta.new_tm () in
-      let fmetas, meta_types, _ = meta_functed_arg (i - 1) ctx in
+      let fmetas, meta_types, ctx = meta_functed_arg (i - 1) ctx in
       ( (y, (tgt, false)) :: (x, (src, false)) :: fmetas,
         meta_types_tgt :: meta_types_src :: meta_types,
         ctx )

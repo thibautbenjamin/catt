@@ -496,7 +496,7 @@ struct
         in
         print s
 
-      and pp_data_to_string ?(print_func = false) (name, susp, func) =
+      let pp_data_to_string ?(print_func = false) (name, susp, func) =
         let susp_name =
           if susp > 0 then Printf.sprintf "!%i%s" susp name else name
         in
@@ -506,6 +506,15 @@ struct
         | _ :: func when not print_func ->
             susp_name ^ "_func" ^ func_to_string func
         | func -> susp_name ^ "_func" ^ func_to_string func
+
+      let rec sub_to_string_debug sub =
+        match sub with
+        | [] -> ""
+        | (x, (t, _)) :: s ->
+          Printf.sprintf "%s (%s, %s)"
+            (sub_to_string_debug s)
+            (Var.to_string x)
+            (tm_to_string t)
 
       let rec ctx_to_string = function
         | [] -> ""
@@ -531,6 +540,7 @@ struct
     let ctx_to_string = Printing.ctx_to_string
     let sub_ps_to_string = Printing.sub_ps_to_string
     let sub_to_string = Printing.sub_to_string
+    let sub_to_string_debug = Printing.sub_to_string_debug
     let meta_ctx_to_string = Printing.meta_ctx_to_string
     let pp_data_to_string = Printing.pp_data_to_string
     let full_name = Printing.full_name

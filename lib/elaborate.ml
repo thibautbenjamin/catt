@@ -216,7 +216,7 @@ module Constraints_typing = struct
       (lazy
         (Printf.sprintf
            "constraint typing substitution %s in ctx %s, target %s, meta_ctx %s"
-           (Unchecked.sub_to_string s)
+           (Unchecked.sub_to_string_debug s)
            (Unchecked.ctx_to_string src)
            (Unchecked.ctx_to_string tgt)
            (Unchecked.meta_ctx_to_string meta_ctx)));
