@@ -52,18 +52,22 @@ let rec next_round l =
       (v :: vars, (Var.Bridge v, n - 1) :: left)
   | _ -> Error.fatal "cannot functorialise a negative number of times."
 
+let pp_data_rename pp names =
+  let (name, susp, func) = pp in
+  let rec rename f =
+    match f with
+    | [] -> []
+    | (x,i)::f ->
+      match List.assoc_opt x names with
+      | None -> (x,i) :: (rename f)
+      | Some (y,_) -> (Var.Db y,i) :: (rename f)
+  in (name, susp, List.map rename func)
+
 (* Functorialised coherences with respect to locally maximal variables are
    coherences. This function updates the list of variables in the resulting
    coherence that come from a functorialisation *)
 let pp_data l (name, susp, func) =
   let func =
-    let rec incr_db v i =
-      match v with
-      | Var.Db k -> Var.Db (k + i)
-      | Plus v -> Plus (incr_db v i)
-      | Bridge v -> Bridge (incr_db v i)
-      | Name _ | New _ -> v
-    in
     let is_mergeable =
       match func with
       | [] -> false
@@ -81,23 +85,16 @@ let pp_data l (name, susp, func) =
       in
       let rec add_in func v =
       match func with
-        | [] -> [ (incr_db v 2, 1) ]
-        | (w, n) :: func when v = w -> (incr_db v 2, n + 1) :: func
-        | (w, n) :: func -> (incr_db w 2, n) :: add_in func v
+        | [] -> [ Var.Bridge v, 1 ]
+        | (w, n) :: func when v = w -> (Var.Bridge v, n + 1) :: func
+        | (w, n) :: func -> (w, n) :: add_in func v
       in
       let rec add_all func l =
         match l with [] -> func | v :: l -> add_all (add_in func v) l
       in
       add_all f l :: func
     else
-      let rec increase_in l =
-        match l with
-        | [] -> ([], 2)
-        | w :: l ->
-          let l, k = increase_in l in
-          ((incr_db w k, 1) :: l, k + 2)
-      in
-      fst (increase_in l) :: func
+      (List.map (fun x -> (Var.Bridge x, 1)) l) :: func
   in (name, susp, func)
 
 (*
@@ -207,6 +204,7 @@ and coh_depth0 coh l =
   let ty = ty t l (Coh (coh, Unchecked.identity_ps ps)) in
   let ty = Unchecked.rename_ty ty names in
   let pp = pp_data l pp in
+  let pp = pp_data_rename pp names in
   check_coh psf ty pp, names
 
 and coh coh l =
