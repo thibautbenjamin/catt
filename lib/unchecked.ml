@@ -594,7 +594,8 @@ struct
           check_equal_sub_ps s1 s2
       (* Define check_equal_sub and Tm.develop *)
       | App (t1, s1), App (t2, s2) when t1 == t2 -> check_equal_sub s1 s2
-      | App (t, s), ((Coh _ | App _) as tm2) | (Coh _ as tm2), App (t, s) ->
+      | App (t, s), ((Coh _ | App _ | Var _) as tm2)
+      | ((Coh _ | Var _) as tm2), App (t, s) ->
           let c = Tm.develop t in
           check_equal_tm (tm_apply_sub c s) tm2
       | Var _, Coh _
@@ -604,9 +605,7 @@ struct
       | Var _, Meta_tm _
       | Coh _, Meta_tm _
       | App _, Meta_tm _
-      | Meta_tm _, App _
-      | App _, Var _
-      | Var _, App _ ->
+      | Meta_tm _, App _ ->
           raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
 
     and check_equal_sub_ps s1 s2 =
