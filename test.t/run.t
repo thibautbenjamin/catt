@@ -390,6 +390,16 @@
   [=X.X=] Could not compute the inverse of term: (builtin_comp2 [a] [(!1builtin_id g)]) for the following reason:
   term a is not invertible
 
+  $ catt coverage/first-class-application-equality.catt
+  [=^.^=] let identity_substitution = x
+  [=I.I=] successfully defined term x of type *.
+  [=^.^=] coh another_identity = x -> (identity_substitution  x)
+  [=I.I=] successfully defined another_identity.
+  [=^.^=] let idsquared = (_builtin_comp  (another_identity  x) (another_identity  x))
+  [=I.I=] successfully defined term (builtin_comp2 (another_identity x) (another_identity x)) of type x -> (identity_substitution x).
+  [=^.^=] let bug = (_builtin_id  x)
+  [=I.I=] successfully defined term (builtin_id x) of type x -> x.
+
   $ catt coverage/eckmann-hilton-unoptimized.catt
   [=^.^=] coh comp3 = x1 -> x4
   [=I.I=] successfully defined comp3.
