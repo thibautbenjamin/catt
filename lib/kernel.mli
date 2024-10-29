@@ -9,22 +9,32 @@ module rec Coh : sig
   val is_inv : t -> bool
   val to_string : t -> string
   val dim : t -> int
-
   val src : t -> Unchecked_types(Coh)(Tm).tm
   val tgt : t -> Unchecked_types(Coh)(Tm).tm
 
   val check_noninv :
-    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> pp_data -> t
+    ps ->
+    Unchecked_types(Coh)(Tm).tm ->
+    Unchecked_types(Coh)(Tm).tm ->
+    pp_data ->
+    t
 
   val check_inv :
-    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> pp_data -> t
+    ps ->
+    Unchecked_types(Coh)(Tm).tm ->
+    Unchecked_types(Coh)(Tm).tm ->
+    pp_data ->
+    t
 
   val noninv_srctgt :
     t ->
-    Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).ty
+    Unchecked_types(Coh)(Tm).tm
+    * Unchecked_types(Coh)(Tm).tm
+    * Unchecked_types(Coh)(Tm).ty
 
   val func_data : t -> (Var.t * int) list list
 end
+
 and Ty : sig
   type t
 
@@ -41,6 +51,7 @@ and Tm : sig
   val func_data : t -> (Var.t * int) list list
   val of_coh : Coh.t -> t
   val develop : t -> Unchecked_types(Coh)(Tm).tm
+
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->

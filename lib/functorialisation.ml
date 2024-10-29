@@ -53,15 +53,16 @@ let rec next_round l =
   | _ -> Error.fatal "cannot functorialise a negative number of times."
 
 let pp_data_rename pp names =
-  let (name, susp, func) = pp in
+  let name, susp, func = pp in
   let rec rename f =
     match f with
     | [] -> []
-    | (x,i)::f ->
-      match List.assoc_opt x names with
-      | None -> (x,i) :: (rename f)
-      | Some (y,_) -> (Var.Db y,i) :: (rename f)
-  in (name, susp, List.map rename func)
+    | (x, i) :: f -> (
+        match List.assoc_opt x names with
+        | None -> (x, i) :: rename f
+        | Some (y, _) -> (Var.Db y, i) :: rename f)
+  in
+  (name, susp, List.map rename func)
 
 (* Functorialised coherences with respect to locally maximal variables are
    coherences. This function updates the list of variables in the resulting
@@ -72,20 +73,20 @@ let pp_data l (name, susp, func) =
       match func with
       | [] -> false
       | f :: _ ->
-        List.for_all
-          (fun x ->
-             match List.assoc_opt x f with
-             | None -> false
-             | Some k -> List.for_all (fun (_, n) -> n <= k) f)
-          l
+          List.for_all
+            (fun x ->
+              match List.assoc_opt x f with
+              | None -> false
+              | Some k -> List.for_all (fun (_, n) -> n <= k) f)
+            l
     in
     if is_mergeable then
       let f, func =
         match func with [] -> assert false | f :: func -> (f, func)
       in
       let rec add_in func v =
-      match func with
-        | [] -> [ Var.Bridge v, 1 ]
+        match func with
+        | [] -> [ (Var.Bridge v, 1) ]
         | (w, n) :: func when v = w -> (Var.Bridge v, n + 1) :: func
         | (w, n) :: func -> (w, n) :: add_in func v
       in
@@ -93,9 +94,9 @@ let pp_data l (name, susp, func) =
         match l with [] -> func | v :: l -> add_all (add_in func v) l
       in
       add_all f l :: func
-    else
-      (List.map (fun x -> (Var.Bridge x, 1)) l) :: func
-  in (name, susp, func)
+    else List.map (fun x -> (Var.Bridge x, 1)) l :: func
+  in
+  (name, susp, func)
 
 (*
    Given a context, a ps-substitution and a list of variables, returns
@@ -205,7 +206,7 @@ and coh_depth0 coh l =
   let ty = Unchecked.rename_ty ty names in
   let pp = pp_data l pp in
   let pp = pp_data_rename pp names in
-  check_coh psf ty pp, names
+  (check_coh psf ty pp, names)
 
 and coh coh l =
   let ps, ty, _ = Coh.forget coh in
@@ -214,27 +215,28 @@ and coh coh l =
   let depth0 = List.for_all (fun (x, (_, e)) -> e || not (List.mem x l)) c in
   if depth0 then
     let coh, names = coh_depth0 coh l in
-    Tm.of_coh coh, names
+    (Tm.of_coh coh, names)
   else (
     check_codim1 c (Unchecked.dim_ty ty) l;
-    !coh_depth1 coh l, [])
+    (!coh_depth1 coh l, []))
 
 and coh_successively c l =
   let l, next = next_round l in
   if l = [] then
     let ps, _, pp_data = Coh.forget c in
     let id = Unchecked.identity_ps ps in
-    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) pp_data (Coh(c, id))
+    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) pp_data (Coh (c, id))
   else
-    let cohf,names = coh c l in
+    let cohf, names = coh c l in
     let next =
       List.map
-        (fun (x,i) ->
-           let x_renamed =
-             match List.assoc_opt x names with
-             | Some (k,_) -> Var.Db k
-             | None -> x
-           in (x_renamed, i))
+        (fun (x, i) ->
+          let x_renamed =
+            match List.assoc_opt x names with
+            | Some (k, _) -> Var.Db k
+            | None -> x
+          in
+          (x_renamed, i))
         next
     in
     tm_successively cohf next
@@ -254,13 +256,13 @@ and tm_one_step t l expl =
       let ps, _, _ = Coh.forget c in
       let psc = Unchecked.ps_to_ctx ps in
       let places = preimage psc s l in
-      let cohf,_ = coh c places in
+      let cohf, _ = coh c places in
       let subf = Unchecked.list_to_sub (List.map fst sf) (Tm.ctx cohf) in
-      let tm = App(cohf, subf) in
+      let tm = App (cohf, subf) in
       [ (tm, expl); (t', false); (t, false) ]
-  | App (t,s) ->
-    let total_t = Unchecked.tm_apply_sub (Tm.develop t) s in
-    tm_one_step total_t l expl
+  | App (t, s) ->
+      let total_t = Unchecked.tm_apply_sub (Tm.develop t) s in
+      tm_one_step total_t l expl
   | Meta_tm _ -> raise FunctorialiseMeta
 
 and tm_one_step_tm t l = fst (List.hd (tm_one_step t l true))
@@ -300,7 +302,9 @@ let report_errors f str =
 
 (* Functorialisation of a coherence: exposed function *)
 let coh c l =
-  report_errors (fun _ -> fst (coh c l)) (lazy ("coherence: " ^ Coh.to_string c))
+  report_errors
+    (fun _ -> fst (coh c l))
+    (lazy ("coherence: " ^ Coh.to_string c))
 
 let coh_depth0 c l =
   report_errors
@@ -315,14 +319,14 @@ let coh_successively c l =
 let rec sub s l =
   match s with
   | [] -> []
-  | (x, (t, e)) :: s when not (List.mem x l) -> (x, (t,e)) :: sub s l
+  | (x, (t, e)) :: s when not (List.mem x l) -> (x, (t, e)) :: sub s l
   | (x, (t, e)) :: s -> (
       match tm_one_step t l true with
       | [ (tm_f, _); (tgt_t, _); (src_t, _) ] ->
-        (Var.Bridge x, (tm_f, e)) ::
-        (Var.Plus x, (tgt_t, false)) ::
-        (x, (src_t, false)) ::
-        sub s l
+          (Var.Bridge x, (tm_f, e))
+          :: (Var.Plus x, (tgt_t, false))
+          :: (x, (src_t, false))
+          :: sub s l
       | [ (t, _) ] ->
           Io.debug "no functorialisation needed for %s" (Var.to_string x);
           (x, (t, e)) :: sub s l
@@ -341,10 +345,8 @@ let coh_all c =
   coh_depth0 c l
 
 (* Functorialisation a term: exposed function *)
-let tm t l  =
-  report_errors
-    (fun _ -> tm_successively t l)
-    (lazy ("term: " ^ Tm.name t))
+let tm t l =
+  report_errors (fun _ -> tm_successively t l) (lazy ("term: " ^ Tm.name t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in

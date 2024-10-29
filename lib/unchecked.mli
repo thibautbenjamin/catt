@@ -1,9 +1,11 @@
 open Common
 open Unchecked_types
 
-module Unchecked (Coh : sig type t end) (Tm : sig type t end)
-
-  : sig
+module Unchecked (Coh : sig
+  type t
+end) (Tm : sig
+  type t
+end) : sig
   open Unchecked_types(Coh)(Tm)
 
   module Make (_ : sig
@@ -12,19 +14,18 @@ module Unchecked (Coh : sig type t end) (Tm : sig type t end)
     val func_data : Coh.t -> (Var.t * int) list list
     val check_equal : Coh.t -> Coh.t -> unit
     val check : ps -> ty -> pp_data -> Coh.t
-  end)
-      (_ : sig
-         val name : Tm.t -> string
-         val func_data : Tm.t -> (Var.t * int) list list
-         val develop : Tm.t -> Unchecked_types(Coh)(Tm).tm
-         val apply :
-           (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
-           (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
-           (pp_data -> pp_data) ->
-           Tm.t ->
-           Tm.t
-       end)
-    : sig
+  end) (_ : sig
+    val name : Tm.t -> string
+    val func_data : Tm.t -> (Var.t * int) list list
+    val develop : Tm.t -> Unchecked_types(Coh)(Tm).tm
+
+    val apply :
+      (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
+      (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+      (pp_data -> pp_data) ->
+      Tm.t ->
+      Tm.t
+  end) : sig
     type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
     val ps_to_string : ps -> string
