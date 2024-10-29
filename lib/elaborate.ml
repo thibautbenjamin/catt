@@ -50,24 +50,23 @@ module Constraints = struct
           unify_sub_ps cst s1 s2
         with Invalid_argument _ ->
           raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2)))
-    | App (t1,s1), App(t2,s2) when t1 == t2 -> unify_sub cst s1 s2
-    | App (t,s) , (App _ | Coh _ as tm2)
-    | (Coh _ as tm2), App (t,s) ->
-      unify_tm cst (Unchecked.tm_apply_sub (Tm.develop t) s) tm2
-    | Var _, Coh _ | Coh _, Var _ | Var _, Var _  | App _, Var _ | Var _, App _ ->
+    | App (t1, s1), App (t2, s2) when t1 == t2 -> unify_sub cst s1 s2
+    | App (t, s), ((App _ | Coh _) as tm2) | (Coh _ as tm2), App (t, s) ->
+        unify_tm cst (Unchecked.tm_apply_sub (Tm.develop t) s) tm2
+    | Var _, Coh _ | Coh _, Var _ | Var _, Var _ | App _, Var _ | Var _, App _
+      ->
         raise
           (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
 
   and unify_sub cst s1 s2 =
-     match (s1, s2) with
+    match (s1, s2) with
     | [], [] -> ()
     | (_, (t1, _)) :: s1, (_, (t2, _)) :: s2 ->
         unify_tm cst t1 t2;
         unify_sub cst s1 s2
     | [], _ :: _ | _ :: _, [] ->
         raise
-          (NotUnifiable
-             (Unchecked.sub_to_string s1, Unchecked.sub_to_string s2))
+          (NotUnifiable (Unchecked.sub_to_string s1, Unchecked.sub_to_string s2))
 
   and unify_sub_ps cst s1 s2 =
     match (s1, s2) with
@@ -103,7 +102,11 @@ module Constraints = struct
             List.map (fun (t, expl) -> (tm_replace_meta_tm (i, tm') t, expl)) s
           )
     | App (t, s) ->
-      App (t, List.map (fun (x,(t,e)) -> (x, (tm_replace_meta_tm (i, tm') t, e))) s)
+        App
+          ( t,
+            List.map
+              (fun (x, (t, e)) -> (x, (tm_replace_meta_tm (i, tm') t, e)))
+              s )
 
   let rec ty_replace_meta_tm (i, tm') ty =
     match ty with
@@ -203,13 +206,13 @@ module Constraints_typing = struct
         let tgt = Unchecked.ps_to_ctx ps in
         let s1 = Unchecked.sub_ps_to_sub s in
         let s1 = sub ctx meta_ctx s1 tgt cst in
-        ( Coh (c, List.map (fun (_, (t, expl))  -> (t, expl)) s1),
+        ( Coh (c, List.map (fun (_, (t, expl)) -> (t, expl)) s1),
           Unchecked.ty_apply_sub ty s1 )
     | App (t, s) ->
-      let tgt = Tm.ctx t in
-      let ty = Ty.forget (Tm.typ t) in
-      let s = sub ctx meta_ctx s tgt cst in
-      (App (t, s), Unchecked.ty_apply_sub ty s)
+        let tgt = Tm.ctx t in
+        let ty = Ty.forget (Tm.typ t) in
+        let s = sub ctx meta_ctx s tgt cst in
+        (App (t, s), Unchecked.ty_apply_sub ty s)
 
   and sub src meta_ctx s tgt cst =
     Io.info ~v:5

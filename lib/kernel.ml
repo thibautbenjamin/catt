@@ -29,9 +29,9 @@ end = struct
   let src s = s.src
   let tgt s = s.tgt
 
-  open Unchecked (Coh)(Tm)
+  open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
-  module Types = Unchecked_types (Coh)(Tm)
+  module Types = Unchecked_types (Coh) (Tm)
 
   let tbl : (Ctx.t * PS.t * Types.sub_ps, Sub.t) Hashtbl.t = Hashtbl.create 7829
   let free_vars s = List.concat (List.map UnnamedTm.free_vars s.list)
@@ -99,8 +99,8 @@ and Ctx : sig
 end = struct
   type t = { c : (Var.t * Ty.t) list; unchecked : Unchecked_types(Coh)(Tm).ctx }
 
-  open Unchecked_types(Coh)(Tm)
-  open Unchecked (Coh)(Tm)
+  open Unchecked_types (Coh) (Tm)
+  open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
 
   let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
@@ -169,7 +169,7 @@ and PS : sig
 end = struct
   exception Invalid
 
-  open Unchecked (Coh)(Tm)
+  open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
 
   (** A pasting scheme. *)
@@ -325,12 +325,13 @@ and Ty : sig
   val ctx : t -> Ctx.t
   val dim : t -> int
 end = struct
-  open Unchecked (Coh)(Tm)
+  open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
-  module Types = Unchecked_types (Coh)(Tm)
+  module Types = Unchecked_types (Coh) (Tm)
 
   (** A type exepression. *)
   type expr = Obj | Arr of t * UnnamedTm.t * UnnamedTm.t
+
   and t = { c : Ctx.t; e : expr; unchecked : Types.ty }
 
   let tbl : (Ctx.t * Types.ty, Ty.t) Hashtbl.t = Hashtbl.create 7829
@@ -370,7 +371,8 @@ end = struct
     match ty.e with
     | Obj -> []
     | Arr (t, u, v) ->
-      List.unions [ free_vars t; UnnamedTm.free_vars u; UnnamedTm.free_vars v ]
+        List.unions
+          [ free_vars t; UnnamedTm.free_vars u; UnnamedTm.free_vars v ]
 
   let is_full t = List.included (Ctx.domain t.c) (free_vars t)
   let forget t = t.unchecked
@@ -414,21 +416,21 @@ and UnnamedTm : sig
   val preimage : t -> Sub.t -> t
   val develop : t -> Unchecked_types(Coh)(Tm).tm
 end = struct
-  open Unchecked (Coh)(Tm)
+  open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
-  module Types = Unchecked_types (Coh)(Tm)
+  module Types = Unchecked_types (Coh) (Tm)
 
-  type expr =
-      Var of Var.t
-    | Coh of Coh.t * Sub.t
-    | App of Tm.t * Sub.t
+  type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
 
-  and t = { ty : Ty.t; e : expr; unchecked : Types.tm;
-            mutable developped : Types.tm option }
+  and t = {
+    ty : Ty.t;
+    e : expr;
+    unchecked : Types.tm;
+    mutable developped : Types.tm option;
+  }
 
   let typ t = t.ty
   let ty t = Ty.forget t.ty
-
   let tbl : (Ctx.t * Types.tm, UnnamedTm.t) Hashtbl.t = Hashtbl.create 7829
   let to_var tm = match tm.e with Var v -> v | Coh _ | App _ -> raise IsCoh
 
@@ -436,7 +438,7 @@ end = struct
     let fvty = Ty.free_vars tm.ty in
     match tm.e with
     | Var x -> x :: fvty
-    | Coh (_, sub) | App(_, sub) -> Sub.free_vars sub
+    | Coh (_, sub) | App (_, sub) -> Sub.free_vars sub
 
   let is_full tm = List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
   let forget tm = tm.unchecked
@@ -461,14 +463,13 @@ end = struct
               let tm = { ty; e; unchecked = t; developped = Some t } in
               Hashtbl.add tbl (c, t) tm;
               tm
-          | App (u,s) ->
-            let ty = Tm.typ u in
-            let sub = Sub.check c s (Ty.ctx ty) in
-            let e, ty = (App(u,sub), Ty.apply_sub ty sub) in
-            let tm = {ty; e; unchecked = t; developped = None} in
-            Hashtbl.add tbl (c, t) tm;
-            tm
-        )
+          | App (u, s) ->
+              let ty = Tm.typ u in
+              let sub = Sub.check c s (Ty.ctx ty) in
+              let e, ty = (App (u, sub), Ty.apply_sub ty sub) in
+              let tm = { ty; e; unchecked = t; developped = None } in
+              Hashtbl.add tbl (c, t) tm;
+              tm)
     in
     match ty with
     | None -> tm
@@ -480,13 +481,16 @@ end = struct
     match tm.developped with
     | Some t -> t
     | None ->
-      let dev = match tm.e with
-        | Var _ | Coh(_,_) -> tm.unchecked
-        | App(t,s) ->
-          let dt = Tm.develop t in
-          let s = Sub.forget s in
-          Unchecked.tm_apply_sub dt s
-      in tm.developped <- Some dev; dev
+        let dev =
+          match tm.e with
+          | Var _ | Coh (_, _) -> tm.unchecked
+          | App (t, s) ->
+              let dt = Tm.develop t in
+              let s = Sub.forget s in
+              Unchecked.tm_apply_sub dt s
+        in
+        tm.developped <- Some dev;
+        dev
 
   let apply_sub t sub =
     Ctx.check_equal (Sub.tgt sub) (Ty.ctx t.ty);
@@ -514,6 +518,7 @@ and Tm : sig
   val name : t -> string
   val func_data : t -> (Var.t * int) list list
   val develop : t -> Unchecked_types(Coh)(Tm).tm
+
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
@@ -521,25 +526,23 @@ and Tm : sig
     t ->
     t
 end = struct
-  open Unchecked (Coh)(Tm)
+  open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
-  module Types = Unchecked_types (Coh)(Tm)
+  module Types = Unchecked_types (Coh) (Tm)
 
   type t = UnnamedTm.t * pp_data
 
-  let typ (t,_) = UnnamedTm.typ t
-  let ty (t,_) = Ty.forget (UnnamedTm.typ t)
-  let ctx (t,_) = Ctx.forget (Ty.ctx (UnnamedTm.typ t))
-
+  let typ (t, _) = UnnamedTm.typ t
+  let ty (t, _) = Ty.forget (UnnamedTm.typ t)
+  let ctx (t, _) = Ctx.forget (Ty.ctx (UnnamedTm.typ t))
   let name (_, pp_data) = Unchecked.pp_data_to_string pp_data
-
-  let func_data (_, (_,_,f)) = f
+  let func_data (_, (_, _, f)) = f
 
   let of_coh coh =
-    let ps,_,pp_data = Coh.forget coh in
+    let ps, _, pp_data = Coh.forget coh in
     let id = Unchecked.identity_ps ps in
     let ctx = Unchecked.ps_to_ctx ps in
-    Tm.check (Ctx.check ctx) pp_data (Coh(coh, id))
+    Tm.check (Ctx.check ctx) pp_data (Coh (coh, id))
 
   let check c ?ty pp_data t =
     Io.info ~v:5
@@ -549,9 +552,9 @@ end = struct
     let t = UnnamedTm.check c ?ty t in
     (t, pp_data)
 
-  let develop (tm,_) = UnnamedTm.develop tm
+  let develop (tm, _) = UnnamedTm.develop tm
 
-  let apply fun_ctx fun_tm fun_pp_data (tm,pp_data) =
+  let apply fun_ctx fun_tm fun_pp_data (tm, pp_data) =
     let c = Ctx.forget (Ty.ctx (UnnamedTm.typ tm)) in
     let c = Ctx.check (fun_ctx c) in
     let pp_data = fun_pp_data pp_data in
@@ -569,17 +572,27 @@ and Coh : sig
   val check : ps -> Unchecked_types(Coh)(Tm).ty -> pp_data -> t
 
   val check_noninv :
-    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> pp_data -> t
+    ps ->
+    Unchecked_types(Coh)(Tm).tm ->
+    Unchecked_types(Coh)(Tm).tm ->
+    pp_data ->
+    t
 
   val check_inv :
-    ps -> Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm -> pp_data -> t
+    ps ->
+    Unchecked_types(Coh)(Tm).tm ->
+    Unchecked_types(Coh)(Tm).tm ->
+    pp_data ->
+    t
 
   val to_string : t -> string
   val is_inv : t -> bool
 
   val noninv_srctgt :
     t ->
-    Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).tm * Unchecked_types(Coh)(Tm).ty
+    Unchecked_types(Coh)(Tm).tm
+    * Unchecked_types(Coh)(Tm).tm
+    * Unchecked_types(Coh)(Tm).ty
 
   val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
   val func_data : t -> (Var.t * int) list list
@@ -587,11 +600,17 @@ and Coh : sig
   val dim : t -> int
 end = struct
   type cohInv = { ps : PS.t; ty : Ty.t }
-  type cohNonInv = { ps : PS.t; src : UnnamedTm.t; tgt : UnnamedTm.t;
-                     total_ty : Ty.t }
+
+  type cohNonInv = {
+    ps : PS.t;
+    src : UnnamedTm.t;
+    tgt : UnnamedTm.t;
+    total_ty : Ty.t;
+  }
+
   type t = Inv of cohInv * pp_data | NonInv of cohNonInv * pp_data
 
-  module Types = Unchecked_types (Coh)(Tm)
+  module Types = Unchecked_types (Coh) (Tm)
 
   let tbl : (ps * Types.ty, Coh.t) Hashtbl.t = Hashtbl.create 7829
 
@@ -603,7 +622,7 @@ end = struct
 
   exception NotAlgebraic
 
-  open Unchecked (Coh)(Tm)
+  open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
 
   let ps = function Inv (data, _) -> data.ps | NonInv (data, _) -> data.ps
@@ -614,7 +633,6 @@ end = struct
 
   let src c = UnnamedTm.forget (Ty.source (ty c))
   let tgt c = UnnamedTm.forget (Ty.target (ty c))
-
   let is_inv = function Inv (_, _) -> true | NonInv (_, _) -> false
 
   let algebraic ps ty name =
@@ -708,17 +726,16 @@ end = struct
 
   let to_string c =
     let ps, ty, pp_data = data c in
-    if not !Settings.unroll_coherences then
-      Unchecked.pp_data_to_string pp_data
+    if not !Settings.unroll_coherences then Unchecked.pp_data_to_string pp_data
     else Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 
   let noninv_srctgt c =
     match c with
     | Inv (_, _) -> Error.fatal "non-invertible data of an invertible coh"
     | NonInv (d, _) ->
-      (UnnamedTm.forget d.src,
-       UnnamedTm.forget d.tgt,
-       Ty.forget (UnnamedTm.typ d.src))
+        ( UnnamedTm.forget d.src,
+          UnnamedTm.forget d.tgt,
+          Ty.forget (UnnamedTm.typ d.src) )
 
   let dim c =
     let ty = match c with Inv (d, _) -> d.ty | NonInv (d, _) -> d.total_ty in
@@ -745,7 +762,7 @@ end = struct
           raise (NotEqual (to_string coh1, to_string coh2))
 end
 
-module U = Unchecked (Coh)(Tm)
+module U = Unchecked (Coh) (Tm)
 module Unchecked = U.Make (Coh) (Tm)
 
 let check check_fn name =

@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types(Coh)(Tm)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 type op_data = int list
 
@@ -59,19 +59,21 @@ and tm t op_data =
       let s' = Unchecked.sub_ps_apply_sub equiv op_s in
       Coh (c, s')
   | App (t, s) ->
-    let op_t =
-      Tm.apply
-        (fun c -> ctx c op_data)
-        (fun t -> tm t op_data)
-        (fun pp_data -> op_pp_data pp_data op_data)
-        t
-    in
-    let op_s = sub s op_data in
-    App(op_t, op_s)
+      let op_t =
+        Tm.apply
+          (fun c -> ctx c op_data)
+          (fun t -> tm t op_data)
+          (fun pp_data -> op_pp_data pp_data op_data)
+          t
+      in
+      let op_s = sub s op_data in
+      App (op_t, op_s)
   | Meta_tm m -> Meta_tm m
 
 and sub (s : sub) op_data : sub =
-  match s with [] -> [] | (x, (t, e)) :: s -> (x, (tm t op_data, e)) :: sub s op_data
+  match s with
+  | [] -> []
+  | (x, (t, e)) :: s -> (x, (tm t op_data, e)) :: sub s op_data
 
 and coh c op_data equiv =
   let p, t, pp_data = Coh.forget c in
@@ -83,10 +85,10 @@ and coh c op_data equiv =
 and ctx c op_data =
   match c with
   | [] -> []
-  | (x, (t,e)) :: c ->
+  | (x, (t, e)) :: c ->
       let t = ty t op_data in
       let c = ctx c op_data in
-      (x, (t,e)) :: c
+      (x, (t, e)) :: c
 
 let coh c op_data =
   let ps, _, _ = Coh.forget c in

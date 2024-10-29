@@ -67,8 +67,7 @@ let unbiased_unitor ps t =
     Coh (coh, id_all_max ps)
   in
   let a =
-    UnnamedTm.ty
-      (check_unnamed_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t)
+    UnnamedTm.ty (check_unnamed_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t)
   in
   let da = Unchecked.dim_ty a in
   let sub_base = Unchecked.ty_to_sub_ps a in

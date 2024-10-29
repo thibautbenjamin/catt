@@ -31,10 +31,10 @@ let rec compute_inverse t =
         let equiv = Opposite.equiv_op_ps ps [ d ] in
         let coh = Opposite.coh c [ d ] in
         Coh (coh, Unchecked.sub_ps_apply_sub equiv sub_inv))
-  | App (t,s) ->
-    let t = Tm.develop t in
-    let total_t = Unchecked.tm_apply_sub t s in
-    compute_inverse total_t
+  | App (t, s) ->
+      let t = Tm.develop t in
+      let total_t = Unchecked.tm_apply_sub t s in
+      compute_inverse total_t
 
 and sub_inv s ps i =
   match (s, ps) with
@@ -95,7 +95,7 @@ let rec cancel_linear_comp lc =
       (sub_to_telescope (2 * k) lc.sub_ps [])
       (Suspension.ctx (Some (lc.dim - 1)) ctel)
   in
-  App((Suspension.checked_tm (Some (lc.dim - 1)) tel), stel)
+  App (Suspension.checked_tm (Some (lc.dim - 1)) tel, stel)
 
 and cancel_all_linear_comp t =
   let c, sub = match t with Coh (c, sub) -> (c, sub) | _ -> Error.fatal "" in
@@ -152,11 +152,10 @@ and compute_witness t =
       if Coh.is_inv c then
         compute_witness_coh_inv c s ~ps ~d ~pp_data ~sub_base ~u ~v
       else compute_witness_comp c s ~ps ~d ~sub_base ~u ~v
-  | App (t,s) ->
-    let t = Tm.develop t in
-    let total_t = Unchecked.tm_apply_sub t s in
-    compute_witness total_t
-
+  | App (t, s) ->
+      let t = Tm.develop t in
+      let total_t = Unchecked.tm_apply_sub t s in
+      compute_witness total_t
 
 and compute_witness_coh_inv c s ~ps ~pp_data ~d ~sub_base ~u ~v =
   let name, susp, func = pp_data in
@@ -205,7 +204,7 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
   let sub = Unchecked.sub_ps_to_sub s in
   let m1, src_m1, tgt_m1 =
     let coh = group_vertically ps_doubled t src_c src_c in
-    let src, tgt = Coh.src coh, Coh.tgt coh in
+    let src, tgt = (Coh.src coh, Coh.tgt coh) in
     let sinv =
       Unchecked.sub_ps_apply_sub
         (Opposite.equiv_op_ps ps [ d ])
@@ -215,12 +214,12 @@ and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
     let subsinv = Unchecked.sub_ps_to_sub ssinv in
     ( Coh (coh, ssinv),
       Unchecked.tm_apply_sub src subsinv,
-      Unchecked.tm_apply_sub tgt subsinv)
+      Unchecked.tm_apply_sub tgt subsinv )
   in
   let m2 = cancel_all_linear_comp tgt_m1 in
   let m3, src_m3, tgt_m3 =
     let coh = Builtin.unbiased_unitor ps_reduced src_c in
-    let src, tgt = Coh.src coh, Coh.tgt coh in
+    let src, tgt = (Coh.src coh, Coh.tgt coh) in
     let s = Unchecked.sub_ps_apply_sub (Unchecked.ps_src ps) sub in
     let sub = Unchecked.sub_ps_to_sub s in
     ( Coh (coh, s),

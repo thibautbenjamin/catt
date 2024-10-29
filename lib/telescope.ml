@@ -153,11 +153,11 @@ let rec telescope k =
   | k ->
       let comp = Suspension.coh (Some 1) (Builtin.comp_n 4) in
       let tm_src_tgt coh sub_ps =
-        let t,u = Coh.src coh, Coh.tgt coh in
+        let t, u = (Coh.src coh, Coh.tgt coh) in
         let sub = Unchecked.sub_ps_to_sub sub_ps in
         let t = Unchecked.tm_apply_sub t sub in
         let u = Unchecked.tm_apply_sub u sub in
-        ( Coh (coh, sub_ps), t, u )
+        (Coh (coh, sub_ps), t, u)
       in
       let m3, src_m3, tgt_m3 =
         tm_src_tgt (middle_unitor (k - 1)) (sub_ps_telescope_bdry (k - 1))
@@ -186,5 +186,5 @@ let rec telescope k =
       Coh (comp, sub_telescope)
 
 let checked k =
-  let name = "builtin_telescope" ^ (string_of_int k) in
-  check_term (Ctx.check (ctx k)) (name,0,[]) (telescope k)
+  let name = "builtin_telescope" ^ string_of_int k in
+  check_term (Ctx.check (ctx k)) (name, 0, []) (telescope k)
