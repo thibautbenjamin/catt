@@ -122,7 +122,7 @@
             nativeBuildInputs = [ ];
 
             buildInputs =
-              [ self.packages.${system}.catt pkgs.dune_3 pkgs.opam ];
+              [ self.packages.${system}.catt pkgs.dune_3 pkgs.opam pkgs.coq ];
             mlPlugin = true;
             useDune = true;
 
