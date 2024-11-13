@@ -5,9 +5,10 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     nix-filter.url = "github:numtide/nix-filter";
+    coq-hott.url = "github:HoTT/Coq-HoTT";
   };
 
-  outputs = { self, nixpkgs, flake-utils, nix-filter, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-utils, nix-filter, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = (import nixpkgs { inherit system; });
@@ -192,7 +193,7 @@
               landmarks-ppx
               utop
               dune-release
-            ]);
+            ]) ++ [ inputs.coq-hott.packages.${system}.default ];
 
           inputsFrom = [
             self.packages.${system}.catt

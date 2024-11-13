@@ -14,9 +14,9 @@ let run_catt_on_file f =
 
 let rec catt_var_to_coq_name v =
   match v with
-  | Var.Db i -> "catt_db_" ^ string_of_int i
-  | Var.Name s -> "catt_name_" ^ s
-  | Var.New i -> "catt_new_" ^ string_of_int i
+  | Var.Db i -> "_" ^ string_of_int i
+  | Var.Name s -> s
+  | Var.New i -> string_of_int i
   | Var.Plus v -> catt_var_to_coq_name v ^ "_plus"
   | Var.Bridge v -> catt_var_to_coq_name v ^ "_bridge"
 
@@ -94,7 +94,7 @@ end = struct
     | [] ->
         ( sigma,
           EConstr.mkLambda
-            (nameR (Names.Id.of_string "catt_Obj"), obj_type, inner_tm) )
+            (nameR (Names.Id.of_string "A"), obj_type, inner_tm) )
     | (x, (ty, _)) :: ctx ->
         let sigma, ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
         let id_lambda = Names.Id.of_string (catt_var_to_coq_name x) in
