@@ -4,7 +4,7 @@ open Evd
 open Catt
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 let run_catt_on_file f =
   Prover.reset ();
@@ -35,7 +35,7 @@ let rec find_db ctx x =
   | _ :: ctx -> 1 + find_db ctx x
 
 module Translate : sig
-  val tm : Environ.env -> evar_map -> ctx -> tm -> evar_map * econstr
+  val tm : Environ.env -> evar_map -> Tm.t -> evar_map * econstr
   val coh : Environ.env -> evar_map -> Coh.t -> evar_map * econstr
 end = struct
   let catt_to_coq_db ctx var =
@@ -96,35 +96,43 @@ end = struct
           EConstr.mkLambda
             (nameR (Names.Id.of_string "catt_Obj"), obj_type, inner_tm) )
     | (x, (ty, _)) :: ctx ->
-        let sigma, ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
+        let sigma, ty = ty_to_econstr env sigma obj_type eq_type refl ctx ty in
         let id_lambda = Names.Id.of_string (catt_var_to_coq_name x) in
         let lambda = EConstr.mkLambda (nameR id_lambda, ty, inner_tm) in
         ctx_to_lambda env sigma obj_type eq_type refl ctx lambda
 
   (* translate a catt type into a coq type *)
-  and ty_to_lambda env sigma obj_type eq_type refl ctx ty =
+  and ty_to_econstr env sigma obj_type eq_type refl ctx ty =
     match ty with
     | Obj -> (sigma, EConstr.mkRel (List.length ctx + 1))
     | Arr (ty, u, v) ->
-        let sigma, ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
-        let sigma, u = tm_to_lambda env sigma obj_type eq_type refl ctx u in
-        let sigma, v = tm_to_lambda env sigma obj_type eq_type refl ctx v in
+        let sigma, ty = ty_to_econstr env sigma obj_type eq_type refl ctx ty in
+        let sigma, u = tm_to_econstr env sigma obj_type eq_type refl ctx u in
+        let sigma, v = tm_to_econstr env sigma obj_type eq_type refl ctx v in
         (sigma, EConstr.mkApp (eq_type, [| ty; u; v |]))
     | Meta_ty _ -> Error.fatal "unresolved type meta-variable"
 
   (* translate a catt term into a coq term *)
-  and tm_to_lambda env sigma obj_type eq_type refl ctx tm =
+  and tm_to_econstr env sigma obj_type eq_type refl ctx tm =
     match tm with
     | Var x -> (sigma, EConstr.mkRel (find_db ctx x))
     | Coh (c, s) ->
         let sigma, c = coh_to_lambda env sigma eq_type refl c in
-        let sigma, s = sub_ps_to_lambda env sigma obj_type eq_type refl ctx s in
+        let sigma, s =
+          sub_ps_to_econstr_array env sigma obj_type eq_type refl ctx s
+        in
         (sigma, EConstr.mkApp (c, s))
+    | App (tm, s) ->
+        let sigma, tm = tm_to_lambda env sigma obj_type eq_type refl tm in
+        let sigma, s =
+          sub_to_econstr_array env sigma obj_type eq_type refl ctx s
+        in
+        (sigma, EConstr.mkApp (tm, s))
     | Meta_tm _ -> Error.fatal "unresolved term meta-variable"
 
   (* translate a catt substitution into a list of function application
      arguments in coq *)
-  and sub_ps_to_lambda env sigma obj_type eq_type refl ctx sub_ps =
+  and sub_ps_to_econstr_array env sigma obj_type eq_type refl ctx sub_ps =
     let l = List.length sub_ps in
     let array = Array.make (l + 1) (EConstr.mkRel 0) in
     let rec set_next i (sigma : Evd.evar_map) sub_ps =
@@ -133,11 +141,28 @@ end = struct
           Array.set array 0 (EConstr.mkRel (List.length ctx + 1));
           sigma
       | (t, _) :: s ->
-          let sigma, tm = tm_to_lambda env sigma obj_type eq_type refl ctx t in
+          let sigma, tm = tm_to_econstr env sigma obj_type eq_type refl ctx t in
           Array.set array i tm;
           set_next (i - 1) sigma s
     in
     (set_next l sigma sub_ps, array)
+
+  (* translate a catt substitution into a list of function application
+     arguments in coq *)
+  and sub_to_econstr_array env sigma obj_type eq_type refl ctx sub =
+    let l = List.length sub in
+    let array = Array.make (l + 1) (EConstr.mkRel 0) in
+    let rec set_next i sigma sub =
+      match sub with
+      | [] ->
+          Array.set array i (EConstr.mkRel (List.length ctx + 1));
+          sigma
+      | (x, (t, _)) :: s ->
+          let sigma, tm = tm_to_econstr env sigma obj_type eq_type refl ctx t in
+          Array.set array i tm;
+          set_next (i - 1) sigma s
+    in
+    (set_next l sigma sub, array)
 
   (* translate a coherence into a coq function term *)
   and coh_to_lambda env sigma eq_type refl coh =
@@ -146,7 +171,7 @@ end = struct
     let ctx = Unchecked.ps_to_ctx ps in
     let l_ind = induction_vars ps in
     let l_ind = induction_data l_ind ctx in
-    let sigma, ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
+    let sigma, ty = ty_to_econstr env sigma obj_type eq_type refl ctx ty in
     let (eq_ind, univ), _ = Inductiveops.find_inductive env sigma eq_type in
     let catt_to_coq_db = catt_to_coq_db ctx in
     let rec body l_ind ty =
@@ -165,7 +190,7 @@ end = struct
           let m_coq, i_lm = catt_to_coq_db m in
           let s_coq, _ = catt_to_coq_db s_m in
           let sigma, ty_m_coq =
-            ty_to_lambda env sigma obj_type eq_type refl ctx ty_m
+            ty_to_econstr env sigma obj_type eq_type refl ctx ty_m
           in
           let ty = abstract env sigma ty i_lm in
           let case_return = (([| v1; v1 |], ty), ERelevance.relevant) in
@@ -186,12 +211,17 @@ end = struct
     in
     ctx_to_lambda env sigma obj_type eq_type refl ctx (body l_ind ty)
 
-  let tm env sigma ctx tm =
+  and tm_to_lambda env sigma obj_type eq_type refl tm =
+    let ctx = Tm.ctx tm in
+    let tm = Tm.develop tm in
+    let sigma, tm = tm_to_econstr env sigma obj_type eq_type refl ctx tm in
+    ctx_to_lambda env sigma obj_type eq_type refl ctx tm
+
+  let tm env sigma (tm : Tm.t) =
     let sigma, obj_type = Evarutil.new_Type sigma in
     let sigma, eq_type = c_Q env sigma in
     let sigma, refl = c_R env sigma in
-    let sigma, tm = tm_to_lambda env sigma obj_type eq_type refl ctx tm in
-    ctx_to_lambda env sigma obj_type eq_type refl ctx tm
+    tm_to_lambda env sigma obj_type eq_type refl tm
 
   let coh env sigma coh =
     let sigma, eq_type = c_Q env sigma in
@@ -207,7 +237,7 @@ let catt_tm file tm_names =
     let sigma, body =
       match Environment.val_var (Var.Name tm_name) with
       | Coh c -> Translate.coh env sigma c
-      | Tm (ctx, tm) -> Translate.tm env sigma ctx tm
+      | Tm tm -> Translate.tm env sigma tm
     in
     let sigma, body = Typing.solve_evars env sigma body in
     let body = Evarutil.nf_evar sigma body in
