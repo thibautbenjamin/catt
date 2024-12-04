@@ -14,5 +14,4 @@ coh assocI (x(f)y(g)z(h)w) : comp f (comp g h) -> comp (comp f g) h
 coh assocU (x(f)y(g)z(h)w) : comp (assoc f g h) (assocI f g h) -> id (comp (comp f g) h)
 coh complex (x(f)y(g)z(h)w(k)v) : comp (assoc (comp f g) h k) (assocI (comp f g) h k) -> id (comp (comp (comp f g) h ) k)
 
-
-coh exch (x(f(a)g)y(h(b)k)z) : vcomp (whiskr a h) (whiskl g b) -> vcomp (whiskl f b) (whiskr a k)
+coh exchange (x(f(a)g)y(h(b)k)z) : vcomp (whiskr a h) (whiskl g b) -> vcomp (whiskl f b) (whiskr a k)
