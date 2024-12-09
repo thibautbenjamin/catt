@@ -1,5 +1,5 @@
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 open Raw_types
 
 exception WrongNumberOfArguments
@@ -17,22 +17,24 @@ let rec tm t =
     let coh = Suspension.coh susp coh in
     let ps, _, _ = Coh.forget coh in
     let func = find_functorialisation s (Unchecked.ps_to_ctx ps) expl in
-    let coh, ctx = Functorialisation.coh_successively coh func in
+    let t = Functorialisation.coh_successively coh func in
+    let ctx = Tm.ctx t in
     let s, meta_types = sub s ctx expl in
-    (Unchecked.tm_apply_sub coh s, meta_types)
+    (App (t, s), meta_types)
   in
   match t with
   | VarR v -> (Var v, [])
   | Sub (VarR v, s, susp, expl) -> (
       match Environment.val_var v with
       | Coh coh -> make_coh coh s susp expl
-      | Tm (c, t) ->
-          let c = Suspension.ctx susp c in
-          let t = Suspension.tm susp t in
+      | Tm t ->
+          let t = Suspension.checked_tm susp t in
+          let c = Tm.ctx t in
           let func = find_functorialisation s c expl in
-          let t, c = Functorialisation.tm c t func in
+          let t = Functorialisation.tm t func in
+          let c = Tm.ctx t in
           let s, meta_types = sub s c expl in
-          (Unchecked.tm_apply_sub t s, meta_types))
+          (App (t, s), meta_types))
   | Sub (BuiltinR b, s, susp, expl) ->
       let builtin_coh =
         match b with Comp -> Builtin.comp s expl | Id -> Builtin.id ()
@@ -71,15 +73,15 @@ and sub s tgt expl =
       let meta_types =
         List.concat [ meta_types_t; meta_types_f; meta_types_s ]
       in
-      ((x, t) :: List.append fmetas s, meta_types)
-  | (_ :: _ as s), (x, (_, _)) :: tgt ->
+      ((x, (t, e)) :: List.append fmetas s, meta_types)
+  | (_ :: _ as s), (x, (_, e)) :: tgt ->
       let t, meta_type = Meta.new_tm () in
       let s, meta_types_s = sub s tgt expl in
-      ((x, t) :: s, meta_type :: meta_types_s)
+      ((x, (t, e)) :: s, meta_type :: meta_types_s)
   | [], (x, (_, false)) :: tgt ->
       let t, meta_type = Meta.new_tm () in
       let s, meta_types_s = sub [] tgt expl in
-      ((x, t) :: s, meta_type :: meta_types_s)
+      ((x, (t, false)) :: s, meta_type :: meta_types_s)
   | _ :: _, [] | [], _ :: _ -> raise WrongNumberOfArguments
 
 and find_functorialisation s tgt expl =
@@ -98,8 +100,8 @@ and meta_functed_arg i ctx =
   | _, (y, _) :: (x, _) :: ctx ->
       let src, meta_types_src = Meta.new_tm () in
       let tgt, meta_types_tgt = Meta.new_tm () in
-      let fmetas, meta_types, _ = meta_functed_arg (i - 1) ctx in
-      ( (y, tgt) :: (x, src) :: fmetas,
+      let fmetas, meta_types, ctx = meta_functed_arg (i - 1) ctx in
+      ( (y, (tgt, false)) :: (x, (src, false)) :: fmetas,
         meta_types_tgt :: meta_types_src :: meta_types,
         ctx )
   | _, _ -> raise WrongNumberOfArguments
