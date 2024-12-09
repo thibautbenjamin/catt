@@ -516,6 +516,7 @@ and Tm : sig
   val of_coh : Coh.t -> t
   val check : Ctx.t -> ?ty:Ty.t -> pp_data -> Unchecked_types(Coh)(Tm).tm -> t
   val name : t -> string
+  val full_name : t -> string
   val func_data : t -> (Var.t * int) list list
   val develop : t -> Unchecked_types(Coh)(Tm).tm
 
@@ -536,6 +537,7 @@ end = struct
   let ty (t, _) = Ty.forget (UnnamedTm.typ t)
   let ctx (t, _) = Ctx.forget (Ty.ctx (UnnamedTm.typ t))
   let name (_, pp_data) = Unchecked.pp_data_to_string pp_data
+  let full_name (_, pp_data) = Unchecked.full_name pp_data
   let func_data (_, (_, _, f)) = f
 
   let of_coh coh =

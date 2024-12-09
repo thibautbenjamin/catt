@@ -389,8 +389,9 @@ struct
       let rec func_to_string func =
         let rec print_list = function
           | [] -> ""
-          | [ (_, n) ] -> Printf.sprintf "%d" n
-          | (_, n) :: l -> Printf.sprintf "%s %d" (print_list l) n
+          | [ (x, n) ] -> Printf.sprintf "(%s,%d)" (Var.to_string x) n
+          | (x, n) :: l ->
+              Printf.sprintf "%s (%s,%d)" (print_list l) (Var.to_string x) n
         in
         match func with
         | [] -> ""
