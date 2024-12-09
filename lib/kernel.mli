@@ -48,6 +48,7 @@ and Tm : sig
   val ty : t -> Unchecked_types(Coh)(Tm).ty
   val ctx : t -> Unchecked_types(Coh)(Tm).ctx
   val name : t -> string
+  val full_name : t -> string
   val func_data : t -> (Var.t * int) list list
   val of_coh : Coh.t -> t
   val develop : t -> Unchecked_types(Coh)(Tm).tm
