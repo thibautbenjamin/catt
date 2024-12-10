@@ -1,7 +1,7 @@
 open Common
 open Kernel
 open Raw_types
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 exception UnknownOption of string
 exception NotAnInt of string
@@ -17,6 +17,22 @@ type cmd =
 type prog = cmd list
 
 let postprocess_fn : (ctx -> tm -> ctx * tm) ref = ref (fun c e -> (c, e))
+
+let () =
+  postprocess_fn :=
+    fun ctx tm ->
+      Io.debug "conectx 1: %s" (Unchecked.ctx_to_string (Cones.ctx 1));
+      Io.debug "conectx 2: %s" (Unchecked.ctx_to_string (Cones.ctx 2));
+      Io.debug "conectx 3: %s" (Unchecked.ctx_to_string (Cones.ctx 3));
+      Io.debug "conectx 4: %s" (Unchecked.ctx_to_string (Cones.ctx 4));
+      Io.debug "conectx 5: %s" (Unchecked.ctx_to_string (Cones.ctx 5));
+      Io.debug "conecomp 2: %s"
+        (Unchecked.tm_to_string (Tm.develop (Cones.compose 2)));
+      Io.debug "conecomp 3: %s"
+        (Unchecked.tm_to_string (Tm.develop (Cones.compose 3)));
+      Io.debug "conecomp 4: %s"
+        (Unchecked.tm_to_string (Tm.develop (Cones.compose 4)));
+      (ctx, tm)
 
 let exec_coh v ps ty =
   let ps, ty = Elaborate.ty_in_ps ps ty in
@@ -41,8 +57,8 @@ let check l e t =
         Some ty
   in
   let c = Kernel.Ctx.check c in
-  let tm = Kernel.check_term c ?ty e in
-  let ty = Kernel.(Ty.forget (Tm.typ tm)) in
+  let tm = Kernel.check_unnamed_term c ?ty e in
+  let ty = Kernel.UnnamedTm.ty tm in
   (e, ty)
 
 let exec_set o v =

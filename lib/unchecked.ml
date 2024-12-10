@@ -2,27 +2,40 @@ open Std
 open Common
 open Unchecked_types
 
-module Unchecked (Coh : sig
+module Unchecked (CohT : sig
+  type t
+end) (TmT : sig
   type t
 end) =
 struct
-  open Unchecked_types (Coh)
+  open Unchecked_types (CohT) (TmT)
 
   module Make (Coh : sig
-    val forget : Coh.t -> ps * Unchecked_types(Coh).ty * coh_pp_data
-    val to_string : Coh.t -> string
-    val func_data : Coh.t -> (Var.t * int) list list
-    val check_equal : Coh.t -> Coh.t -> unit
-    val check : ps -> ty -> coh_pp_data -> Coh.t
+    val forget : CohT.t -> ps * Unchecked_types(CohT)(TmT).ty * pp_data
+    val to_string : CohT.t -> string
+    val func_data : CohT.t -> (Var.t * int) list list
+    val check_equal : CohT.t -> CohT.t -> unit
+    val check : ps -> ty -> pp_data -> CohT.t
+  end) (Tm : sig
+    val name : TmT.t -> string
+    val func_data : TmT.t -> (Var.t * int) list list
+    val develop : TmT.t -> Unchecked_types(CohT)(TmT).tm
+
+    val apply :
+      (Unchecked_types(CohT)(TmT).ctx -> Unchecked_types(CohT)(TmT).ctx) ->
+      (Unchecked_types(CohT)(TmT).tm -> Unchecked_types(CohT)(TmT).tm) ->
+      (pp_data -> pp_data) ->
+      TmT.t ->
+      TmT.t
   end) =
   struct
     let sub_ps_to_sub s =
       let rec aux s =
         match s with
         | [] -> ([], 0)
-        | (t, _) :: s ->
+        | (t, e) :: s ->
             let s, i = aux s in
-            ((Var.Db i, t) :: s, i + 1)
+            ((Var.Db i, (t, e)) :: s, i + 1)
       in
       fst (aux s)
 
@@ -31,6 +44,10 @@ struct
       | Var v -> f v
       | Meta_tm i -> Meta_tm i
       | Coh (c, s) -> Coh (c, sub_ps_do_on_variables s f)
+      | App (t, s) -> App (t, sub_do_on_variables s f)
+
+    and sub_do_on_variables s f =
+      List.map (fun (v, (t, e)) -> (v, (tm_do_on_variables t f, e))) s
 
     and sub_ps_do_on_variables s f =
       List.map (fun (t, expl) -> (tm_do_on_variables t f, expl)) s
@@ -46,7 +63,7 @@ struct
               tm_do_on_variables v f )
 
     let var_apply_sub v s =
-      match List.assoc_opt v s with Some t -> t | None -> Var v
+      match List.assoc_opt v s with Some (t, _) -> t | None -> Var v
 
     let tm_apply_sub tm s = tm_do_on_variables tm (fun v -> var_apply_sub v s)
     let ty_apply_sub ty s = ty_do_on_variables ty (fun v -> var_apply_sub v s)
@@ -61,10 +78,17 @@ struct
     let tm_apply_sub_ps tm s = tm_apply_sub tm (sub_ps_to_sub s)
     let sub_ps_apply_sub_ps sub_ps s = sub_ps_apply_sub sub_ps (sub_ps_to_sub s)
 
+    let var_rename v r =
+      match List.assoc_opt v r with Some t -> t | None -> Var v
+
+    let tm_rename tm r = tm_do_on_variables tm (fun v -> var_rename v r)
+    let ty_rename ty r = ty_do_on_variables ty (fun v -> var_rename v r)
+    let sub_ps_rename s r = sub_ps_do_on_variables s (fun v -> var_rename v r)
+
     let rec var_sub_preimage v s =
       match s with
       | [] -> raise NotInImage
-      | (w, Var v') :: _ when v = v' -> Var w
+      | (w, (Var v', _)) :: _ when v = v' -> Var w
       | _ :: s -> var_sub_preimage v s
 
     let tm_sub_preimage tm s =
@@ -75,7 +99,7 @@ struct
 
     (* rename is applying a variable to de Bruijn levels substitutions *)
     let rename_var v l =
-      try Var (Db (List.assoc v l))
+      try Var (Db (fst (List.assoc v l)))
       with Not_found ->
         Error.fatal
           (Printf.sprintf "variable %s not found in context" (Var.to_string v))
@@ -91,35 +115,17 @@ struct
           if List.mem_assoc x l then raise (DoubledVar (Var.to_string x))
           else
             let lvl = max + 1 in
-            ((Var.Db lvl, (rename_ty t l, expl)) :: c, (x, lvl) :: l, lvl)
+            ( (Var.Db lvl, (rename_ty t l, expl)) :: c,
+              (x, (lvl, expl)) :: l,
+              lvl )
 
     let db_level_sub c =
       let _, names, _ = db_levels c in
-      List.map (fun (t, n) -> (Var.Db n, Var t)) names
+      List.map (fun (t, (n, expl)) -> (Var.Db n, (Var t, expl))) names
 
     let db_level_sub_inv c =
       let _, names, _ = db_levels c in
-      List.map (fun (t, n) -> (t, Var (Var.Db n))) names
-
-    let suspend_ps ps = Br [ ps ]
-
-    let rec suspend_ty = function
-      | Obj -> Arr (Obj, Var (Db 0), Var (Db 1))
-      | Arr (a, v, u) -> Arr (suspend_ty a, suspend_tm v, suspend_tm u)
-      | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
-
-    and suspend_tm = function
-      | Var v -> Var (Var.suspend v)
-      | Coh (c, s) -> Coh (suspend_coh c, suspend_sub_ps s)
-      | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
-
-    and suspend_coh c =
-      let p, t, (name, susp, f) = Coh.forget c in
-      Coh.check (suspend_ps p) (suspend_ty t) (name, susp + 1, f)
-
-    and suspend_sub_ps = function
-      | [] -> [ (Var (Var.Db 1), false); (Var (Var.Db 0), false) ]
-      | (t, expl) :: s -> (suspend_tm t, expl) :: suspend_sub_ps s
+      List.map (fun (t, (n, expl)) -> (t, (Var (Var.Db n), expl))) names
 
     (* Definition of FreePos(B):
        - in the paper, we define the bipointed verison with suspension and wedge
@@ -134,7 +140,39 @@ struct
     type ctx_bp = { ctx : ctx; max : int; rp : int }
     type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
-    let rec suspend_ctx_rp ctx =
+    let suspend_ps ps = Br [ ps ]
+    let suspend_pp_data = function name, susp, func -> (name, susp + 1, func)
+
+    let rec suspend_ty = function
+      | Obj -> Arr (Obj, Var (Db 0), Var (Db 1))
+      | Arr (a, v, u) -> Arr (suspend_ty a, suspend_tm v, suspend_tm u)
+      | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
+
+    and suspend_tm = function
+      | Var v -> Var (Var.suspend v)
+      | Coh (c, s) -> Coh (suspend_coh c, suspend_sub_ps s)
+      | App (t, s) ->
+          let t = Tm.apply suspend_ctx suspend_tm suspend_pp_data t in
+          App (t, suspend_sub s)
+      | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
+
+    and suspend_coh c =
+      let p, t, pp_data = Coh.forget c in
+      Coh.check (suspend_ps p) (suspend_ty t) (suspend_pp_data pp_data)
+
+    and suspend_sub_ps = function
+      | [] -> [ (Var (Var.Db 1), false); (Var (Var.Db 0), false) ]
+      | (t, expl) :: s -> (suspend_tm t, expl) :: suspend_sub_ps s
+
+    and suspend_sub = function
+      | [] ->
+          [
+            (Var.Db 1, (Var (Var.Db 1), false));
+            (Var.Db 0, (Var (Var.Db 0), false));
+          ]
+      | (v, (t, e)) :: s -> (Var.suspend v, (suspend_tm t, e)) :: suspend_sub s
+
+    and suspend_ctx_rp ctx =
       match ctx with
       | [] ->
           let ctx = [ (Var.Db 1, (Obj, false)); (Var.Db 0, (Obj, false)) ] in
@@ -156,7 +194,7 @@ struct
                 rp = c.rp;
               })
 
-    let suspend_ctx ctx = (suspend_ctx_rp ctx).ctx
+    and suspend_ctx ctx = (suspend_ctx_rp ctx).ctx
 
     let rec dim_ps = function Br [] -> 0 | Br l -> 1 + max_list_ps l
 
@@ -351,8 +389,9 @@ struct
       let rec func_to_string func =
         let rec print_list = function
           | [] -> ""
-          | [ (_, n) ] -> Printf.sprintf "%d" n
-          | (_, n) :: l -> Printf.sprintf "%s %d" (print_list l) n
+          | [ (x, n) ] -> Printf.sprintf "(%s,%d)" (Var.to_string x) n
+          | (x, n) :: l ->
+              Printf.sprintf "%s (%s,%d)" (print_list l) (Var.to_string x) n
         in
         match func with
         | [] -> ""
@@ -387,6 +426,11 @@ struct
               Printf.sprintf "(%s%s)" (Coh.to_string c)
                 (sub_ps_to_string ~func s)
             else Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
+        | App (t, s) ->
+            let func = Tm.func_data t in
+            let str_s, expl = sub_to_string ~func s in
+            let expl_str = if expl then "@" else "" in
+            Printf.sprintf "(%s%s%s)" expl_str (Tm.name t) str_s
 
       and sub_ps_to_string ?(func = []) s =
         match func with
@@ -424,7 +468,58 @@ struct
         in
         fst (print s)
 
-      and coh_pp_data_to_string ?(print_func = false) (name, susp, func) =
+      and sub_to_string ?(func = []) sub =
+        match func with
+        | [] -> (sub_to_string_nofunc sub, false)
+        | func :: _ ->
+            let s, b = sub_to_string_func sub func in
+            (" " ^ s, b)
+
+      and sub_to_string_nofunc sub =
+        match sub with
+        | [] -> ""
+        | (_, (t, expl)) :: s ->
+            if expl || !Settings.print_explicit_substitutions then
+              Printf.sprintf "%s %s" (sub_to_string_nofunc s) (tm_to_string t)
+            else sub_to_string_nofunc s
+
+      and sub_to_string_func s func =
+        let arg_to_string t b =
+          if b || !Settings.print_explicit_substitutions then tm_to_string t
+          else "_"
+        in
+        let rec string_list s needs_expl skip =
+          match s with
+          | [] when skip <= 0 -> ([], needs_expl)
+          | (x, (t, e)) :: s when skip <= 0 -> (
+              match List.assoc_opt x func with
+              | None ->
+                  let l, b = string_list s needs_expl 0 in
+                  ((arg_to_string t e, e) :: l, b)
+              | Some i ->
+                  let l, b = string_list s (needs_expl || not e) (2 * i) in
+                  ((bracket i (arg_to_string t e), e) :: l, b))
+          | _ :: s -> string_list s needs_expl (skip - 1)
+          | [] ->
+              Error.fatal
+                "functorialised arguments present in inconsistent places"
+        in
+        let str, needs_expl = string_list s false 0 in
+        let str =
+          List.rev_map
+            (fun (tm, e) -> if e || needs_expl then Some tm else None)
+            str
+        in
+        (String.concat " " (List.filter_map Fun.id str), needs_expl)
+
+      and sub_to_string_debug sub =
+        match sub with
+        | [] -> ""
+        | (x, (t, _)) :: s ->
+            Printf.sprintf "%s (%s, %s)" (sub_to_string_debug s)
+              (Var.to_string x) (tm_to_string t)
+
+      let pp_data_to_string ?(print_func = false) (name, susp, func) =
         let susp_name =
           if susp > 0 then Printf.sprintf "!%i%s" susp name else name
         in
@@ -444,19 +539,13 @@ struct
             Printf.sprintf "%s {%s: %s}" (ctx_to_string c) (Var.to_string x)
               (ty_to_string t)
 
-      let rec sub_to_string = function
-        | [] -> ""
-        | (x, t) :: s ->
-            Printf.sprintf "%s (%s: %s)" (sub_to_string s) (Var.to_string x)
-              (tm_to_string t)
-
       let rec meta_ctx_to_string = function
         | [] -> ""
         | (i, t) :: c ->
             Printf.sprintf "%s (_tm%i: %s)" (meta_ctx_to_string c) i
               (ty_to_string t)
 
-      let full_name name = coh_pp_data_to_string ~print_func:true name
+      let full_name name = pp_data_to_string ~print_func:true name
     end
 
     let ps_to_string = Printing.ps_to_string
@@ -464,9 +553,10 @@ struct
     let tm_to_string = Printing.tm_to_string
     let ctx_to_string = Printing.ctx_to_string
     let sub_ps_to_string = Printing.sub_ps_to_string
-    let sub_to_string = Printing.sub_to_string
+    let sub_to_string ?func s = fst (Printing.sub_to_string ?func s)
+    let sub_to_string_debug = Printing.sub_to_string_debug
     let meta_ctx_to_string = Printing.meta_ctx_to_string
-    let coh_pp_data_to_string = Printing.coh_pp_data_to_string
+    let pp_data_to_string = Printing.pp_data_to_string
     let full_name = Printing.full_name
 
     let rec check_equal_ps ps1 ps2 =
@@ -503,16 +593,27 @@ struct
       | Coh (coh1, s1), Coh (coh2, s2) ->
           Coh.check_equal coh1 coh2;
           check_equal_sub_ps s1 s2
+      (* Define check_equal_sub and Tm.develop *)
+      | App (t1, s1), App (t2, s2) when t1 == t2 -> check_equal_sub s1 s2
+      | App (t, s), ((Coh _ | App _ | Var _) as tm2)
+      | ((Coh _ | Var _) as tm2), App (t, s) ->
+          let c = Tm.develop t in
+          check_equal_tm (tm_apply_sub c s) tm2
       | Var _, Coh _
       | Coh _, Var _
       | Meta_tm _, Var _
       | Meta_tm _, Coh _
       | Var _, Meta_tm _
-      | Coh _, Meta_tm _ ->
+      | Coh _, Meta_tm _
+      | App _, Meta_tm _
+      | Meta_tm _, App _ ->
           raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
 
     and check_equal_sub_ps s1 s2 =
       List.iter2 (fun (t1, _) (t2, _) -> check_equal_tm t1 t2) s1 s2
+
+    and check_equal_sub s1 s2 =
+      List.iter2 (fun (_, (t1, _)) (_, (t2, _)) -> check_equal_tm t1 t2) s1 s2
 
     let rec check_equal_ctx ctx1 ctx2 =
       match (ctx1, ctx2) with
@@ -540,6 +641,7 @@ struct
       match t with
       | Var v -> v = x
       | Coh (_, s) -> List.exists (fun (t, _) -> tm_contains_var t x) s
+      | App (_, s) -> List.exists (fun (_, (t, _)) -> tm_contains_var t x) s
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
     let rec ty_contains_var a x =
@@ -553,7 +655,7 @@ struct
 
     let rec list_to_sub s ctx =
       match (s, ctx) with
-      | t :: s, (x, _) :: ctx -> (x, t) :: list_to_sub s ctx
+      | t :: s, (x, (_, expl)) :: ctx -> (x, (t, expl)) :: list_to_sub s ctx
       | [], [] -> []
       | _ -> raise WrongNumberOfArguments
 

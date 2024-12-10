@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 module Memo = struct
   let tbl = Hashtbl.create 97
@@ -38,6 +38,11 @@ let comp s expl =
   let arity = arity_comp s expl in
   comp_n arity
 
+let bcomp x y f z g =
+  let comp = comp_n 2 in
+  let sub = [ (g, true); (z, false); (f, true); (y, false); (x, false) ] in
+  Coh (comp, sub)
+
 let id = Memo.id
 
 let id_all_max ps =
@@ -60,6 +65,19 @@ let id_all_max ps =
   in
   aux (d - 1) ps
 
+let assoc =
+  let tdb i = Var (Db i) in
+  let src =
+    bcomp (tdb 0) (tdb 1) (tdb 2) (tdb 5)
+      (bcomp (tdb 1) (tdb 3) (tdb 4) (tdb 5) (tdb 6))
+  in
+  let tgt =
+    bcomp (tdb 0) (tdb 3)
+      (bcomp (tdb 0) (tdb 1) (tdb 2) (tdb 3) (tdb 4))
+      (tdb 5) (tdb 6)
+  in
+  Coh.check_inv (ps_comp 3) src tgt ("assoc", 0, [])
+
 let unbiased_unitor ps t =
   let bdry = Unchecked.ps_bdry ps in
   let src =
@@ -67,7 +85,7 @@ let unbiased_unitor ps t =
     Coh (coh, id_all_max ps)
   in
   let a =
-    Ty.forget (Tm.typ (check_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t))
+    UnnamedTm.ty (check_unnamed_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t)
   in
   let da = Unchecked.dim_ty a in
   let sub_base = Unchecked.ty_to_sub_ps a in

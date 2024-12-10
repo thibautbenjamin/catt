@@ -1,8 +1,8 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
-type value = Coh of Coh.t | Tm of ctx * tm
+type value = Coh of Coh.t | Tm of Tm.t
 type v = { value : value; dim_input : int; dim_output : int }
 type t = (Var.t, v) Hashtbl.t
 
@@ -11,8 +11,9 @@ let reset () = Hashtbl.clear env
 
 let add_let v c ?ty t =
   try
+    let pp_data = (Var.to_string v, 0, []) in
     let kc = Kernel.Ctx.check c in
-    let tm = Kernel.check_term kc ?ty t in
+    let tm = Kernel.check_term kc pp_data ?ty t in
     let ty = Kernel.(Ty.forget (Tm.typ tm)) in
     let dim_input = Unchecked.dim_ctx c in
     let dim_output = Unchecked.dim_ty ty in
@@ -21,7 +22,7 @@ let add_let v c ?ty t =
         (Printf.sprintf "term %s of type %s added to environment"
            (Unchecked.tm_to_string t)
            (Unchecked.ty_to_string ty)));
-    Hashtbl.add env v { value = Tm (c, t); dim_input; dim_output };
+    Hashtbl.add env v { value = Tm tm; dim_input; dim_output };
     (t, ty)
   with DoubledVar x -> Error.doubled_var (Unchecked.ctx_to_string c) x
 

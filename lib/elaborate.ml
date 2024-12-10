@@ -1,7 +1,7 @@
 open Std
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 exception NotUnifiable of string * string
 
@@ -41,15 +41,19 @@ module Constraints = struct
 
   and unify_tm cst tm1 tm2 =
     match (tm1, tm2) with
+    | Meta_tm _, Meta_tm _ when tm1 = tm2 -> ()
+    | Meta_tm _, _ | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
     | Var v1, Var v2 when v1 = v2 -> ()
     | Coh (coh1, s1), Coh (coh2, s2) -> (
         try
           Coh.check_equal coh1 coh2;
-          unify_sub cst s1 s2
+          unify_sub_ps cst s1 s2
         with Invalid_argument _ ->
           raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2)))
-    | Meta_tm _, Meta_tm _ when tm1 = tm2 -> ()
-    | Meta_tm _, _ | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
+    | App (t1, s1), App (t2, s2) when t1 == t2 -> unify_sub cst s1 s2
+    | App (t, s), ((App _ | Coh _ | Var _) as tm2)
+    | ((Coh _ | Var _) as tm2), App (t, s) ->
+        unify_tm cst (Unchecked.tm_apply_sub (Tm.develop t) s) tm2
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
         raise
           (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
@@ -57,9 +61,19 @@ module Constraints = struct
   and unify_sub cst s1 s2 =
     match (s1, s2) with
     | [], [] -> ()
-    | (t1, _) :: s1, (t2, _) :: s2 ->
+    | (_, (t1, _)) :: s1, (_, (t2, _)) :: s2 ->
         unify_tm cst t1 t2;
         unify_sub cst s1 s2
+    | [], _ :: _ | _ :: _, [] ->
+        raise
+          (NotUnifiable (Unchecked.sub_to_string s1, Unchecked.sub_to_string s2))
+
+  and unify_sub_ps cst s1 s2 =
+    match (s1, s2) with
+    | [], [] -> ()
+    | (t1, _) :: s1, (t2, _) :: s2 ->
+        unify_tm cst t1 t2;
+        unify_sub_ps cst s1 s2
     | [], _ :: _ | _ :: _, [] ->
         raise
           (NotUnifiable
@@ -87,6 +101,12 @@ module Constraints = struct
           ( c,
             List.map (fun (t, expl) -> (tm_replace_meta_tm (i, tm') t, expl)) s
           )
+    | App (t, s) ->
+        App
+          ( t,
+            List.map
+              (fun (x, (t, e)) -> (x, (tm_replace_meta_tm (i, tm') t, e)))
+              s )
 
   let rec ty_replace_meta_tm (i, tm') ty =
     match ty with
@@ -186,25 +206,30 @@ module Constraints_typing = struct
         let tgt = Unchecked.ps_to_ctx ps in
         let s1 = Unchecked.sub_ps_to_sub s in
         let s1 = sub ctx meta_ctx s1 tgt cst in
-        ( Coh (c, List.map2 (fun (_, t) (_, expl) -> (t, expl)) s1 s),
+        ( Coh (c, List.map (fun (_, (t, expl)) -> (t, expl)) s1),
           Unchecked.ty_apply_sub ty s1 )
+    | App (t, s) ->
+        let tgt = Tm.ctx t in
+        let ty = Ty.forget (Tm.typ t) in
+        let s = sub ctx meta_ctx s tgt cst in
+        (App (t, s), Unchecked.ty_apply_sub ty s)
 
   and sub src meta_ctx s tgt cst =
     Io.info ~v:5
       (lazy
         (Printf.sprintf
            "constraint typing substitution %s in ctx %s, target %s, meta_ctx %s"
-           (Unchecked.sub_to_string s)
+           (Unchecked.sub_to_string_debug s)
            (Unchecked.ctx_to_string src)
            (Unchecked.ctx_to_string tgt)
            (Unchecked.meta_ctx_to_string meta_ctx)));
     match (s, tgt) with
     | [], [] -> []
-    | (x, u) :: s, (_, (t, _)) :: c ->
+    | (x, (u, e)) :: s, (_, (t, _)) :: c ->
         let u, ty = tm src meta_ctx u cst in
         let s = sub src meta_ctx s c cst in
         Constraints.unify_ty cst ty (Unchecked.ty_apply_sub t s);
-        (x, u) :: s
+        (x, (u, e)) :: s
     | [], _ :: _ | _ :: _, [] -> Error.fatal "wrong number of arguments"
 
   and ty ctx meta_ctx t cst =
