@@ -78,10 +78,6 @@ let assoc =
   in
   Coh.check_inv (ps_comp 3) src tgt ("assoc", 0, [])
 
-let assoc_ty =
-  let _, ty, _ = Coh.forget assoc in
-  ty
-
 let unbiased_unitor ps t =
   let bdry = Unchecked.ps_bdry ps in
   let src =
