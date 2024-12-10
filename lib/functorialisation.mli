@@ -25,3 +25,4 @@ val sub_w_tgt :
   sub_ps * ps * (Var.t * (int * bool)) list * Var.t list
 
 val whisk_sub_ps : int -> tm -> ty -> tm -> ty -> sub_ps
+val wcomp : tm * ty -> int -> tm * ty -> tm * ty
