@@ -27,11 +27,11 @@ let () =
       Io.debug "conectx 4: %s" (Unchecked.ctx_to_string (Cones.ctx 4));
       Io.debug "conectx 5: %s" (Unchecked.ctx_to_string (Cones.ctx 5));
       Io.debug "conecomp 2: %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.compose 2)));
+        (Unchecked.tm_to_string (Tm.develop (Cones.compose 2 2 1)));
       Io.debug "conecomp 3: %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.compose 3)));
+        (Unchecked.tm_to_string (Tm.develop (Cones.compose 3 3 1)));
       Io.debug "conecomp 4: %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.compose 4)));
+        (Unchecked.tm_to_string (Tm.develop (Cones.compose 4 4 1)));
       (ctx, tm)
 
 let exec_coh v ps ty =

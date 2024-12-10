@@ -7,7 +7,7 @@ type display_map = (Var.t * Var.t) list
 let rec pullback c1 sub c2 dm =
   match (c2, dm) with
   | [], [] -> (c1, [])
-  | (x, (_, expl)) :: ctx, (p, y) :: dm when x = y ->
+  | (x, (_, expl)) :: ctx, (p, (Var y, _)) :: dm when x = y ->
       let ctx, names = pullback c1 sub ctx dm in
       (ctx, (x, (Unchecked.tm_apply_sub (Var p) sub, expl)) :: names)
   | (x, (ty, expl)) :: ctx, (_ as dm) ->
