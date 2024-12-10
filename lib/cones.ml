@@ -49,17 +49,19 @@ let ctx_c, right_incl =
     (ctx 2)
     [ (Var.Db 2, Var.Db 2); (Var.Db 1, Var.Db 1); (Var.Db 0, Var.Db 0) ]
 
+let left_base = Var (base 2)
+let right_base = Unchecked.tm_apply_sub left_base right_incl
+let left_filler = Var (filler 2)
+let right_filler = Unchecked.tm_apply_sub left_filler right_incl
+
 let compose =
-  let left_filler = (Var (filler 2), ty 2) in
-  let right_filler =
-    ( Unchecked.tm_apply_sub (fst left_filler) right_incl,
-      Unchecked.ty_apply_sub (snd left_filler) right_incl )
+  let with_type ctx t =
+    match t with Var x -> (t, fst (List.assoc x ctx)) | _ -> assert false
   in
-  let left_base = (Var (base 2), fst (List.assoc (base 2) (ctx 2))) in
-  let right_base =
-    ( Unchecked.tm_apply_sub (fst left_base) right_incl,
-      Unchecked.ty_apply_sub (snd left_base) right_incl )
-  in
+  let left_filler = with_type ctx_c left_filler in
+  let right_filler = with_type ctx_c right_filler in
+  let left_base = with_type ctx_c left_base in
+  let right_base = with_type ctx_c right_base in
   let tm_1 =
     Functorialisation.wcomp left_filler 1
       (Functorialisation.wcomp left_base 0 right_filler)
