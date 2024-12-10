@@ -18,6 +18,15 @@ type prog = cmd list
 
 let postprocess_fn : (ctx -> tm -> ctx * tm) ref = ref (fun c e -> (c, e))
 
+let () =
+  postprocess_fn :=
+    fun ctx tm ->
+      Io.debug "conectx 1: %s" (Unchecked.ctx_to_string (Cones.ctx 1));
+      Io.debug "conectx 2: %s" (Unchecked.ctx_to_string (Cones.ctx 2));
+      Io.debug "conectx 3: %s" (Unchecked.ctx_to_string (Cones.ctx 3));
+      Io.debug "conectx 4: %s" (Unchecked.ctx_to_string (Cones.ctx 4));
+      Io.debug "conectx 5: %s" (Unchecked.ctx_to_string (Cones.ctx 5));
+
 let exec_coh v ps ty =
   let ps, ty = Elaborate.ty_in_ps ps ty in
   Environment.add_coh v ps ty
