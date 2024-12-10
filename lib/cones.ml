@@ -39,7 +39,7 @@ let src n csub = Unchecked.tm_apply_sub (ty_src n) csub
 let tgt n csub = Unchecked.tm_apply_sub (ty_tgt n) csub
 
 (* Composition of two cones *)
-let ctx_c, right_incl =
+let ctx_c_base, right_incl =
   Display_maps.pullback (ctx 2)
     [
       (Var.Db 2, (Var (Var.Plus (Var.Db 2)), false));
@@ -49,19 +49,56 @@ let ctx_c, right_incl =
     (ctx 2)
     [ (Var.Db 2, Var.Db 2); (Var.Db 1, Var.Db 1); (Var.Db 0, Var.Db 0) ]
 
-let left_base = Var (base 2)
-let right_base = Unchecked.tm_apply_sub left_base right_incl
-let left_filler = Var (filler 2)
-let right_filler = Unchecked.tm_apply_sub left_filler right_incl
+let rec ctx_c n =
+  match n with
+  | n when n <= 1 -> assert false
+  | 2 -> ctx_c_base
+  | n ->
+      Functorialisation.ctx
+        (ctx_c (n - 1))
+        [
+          left_base (n - 1);
+          left_filler (n - 1);
+          right_base (n - 1);
+          right_filler (n - 1);
+        ]
 
-let compose =
-  let with_type ctx t =
-    match t with Var x -> (t, fst (List.assoc x ctx)) | _ -> assert false
-  in
-  let left_filler = with_type ctx_c left_filler in
-  let right_filler = with_type ctx_c right_filler in
-  let left_base = with_type ctx_c left_base in
-  let right_base = with_type ctx_c right_base in
+and left_base n =
+  match n with
+  | n when n <= 1 -> assert false
+  | 2 -> base 2
+  | n -> Var.Bridge (left_base (n - 1))
+
+and right_base n =
+  match n with
+  | n when n <= 1 -> assert false
+  | 2 -> (
+      match Unchecked.tm_apply_sub (Var (base 2)) right_incl with
+      | Var x -> x
+      | _ -> assert false)
+  | n -> Var.Bridge (right_base (n - 1))
+
+and left_filler n =
+  match n with
+  | n when n <= 1 -> assert false
+  | 2 -> filler 2
+  | n -> Var.Bridge (left_filler (n - 1))
+
+and right_filler n =
+  match n with
+  | n when n <= 1 -> assert false
+  | 2 -> (
+      match Unchecked.tm_apply_sub (Var (filler 2)) right_incl with
+      | Var x -> x
+      | _ -> assert false)
+  | n -> Var.Bridge (right_filler (n - 1))
+
+let compose_base =
+  let with_type ctx x = (Var x, fst (List.assoc x ctx)) in
+  let left_filler = with_type ctx_c_base (left_filler 2) in
+  let right_filler = with_type ctx_c_base (right_filler 2) in
+  let left_base = with_type ctx_c_base (left_base 2) in
+  let right_base = with_type ctx_c_base (right_base 2) in
   let tm_1 =
     Functorialisation.wcomp left_filler 1
       (Functorialisation.wcomp left_base 0 right_filler)
@@ -90,4 +127,18 @@ let compose =
       Unchecked.ty_apply_sub assoc_ty (Unchecked.sub_ps_to_sub sub_ps) )
   in
   let tm = Functorialisation.wcomp tm_1 1 tm_2 in
-  check_term (Ctx.check ctx_c) ("builtin_conecomp(1,0)", 0, []) (fst tm)
+  check_term (Ctx.check ctx_c_base) ("builtin_conecomp", 0, []) (fst tm)
+
+let rec compose n =
+  match n with
+  | n when n <= 1 -> assert false
+  | 2 -> compose_base
+  | n ->
+      Functorialisation.tm
+        (compose (n - 1))
+        [
+          (left_base (n - 1), 1);
+          (left_filler (n - 1), 1);
+          (right_base (n - 1), 1);
+          (right_filler (n - 1), 1);
+        ]
