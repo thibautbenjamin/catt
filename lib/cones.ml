@@ -19,3 +19,14 @@ and filler n =
   | n when n <= 0 -> Var.Db 0
   | 1 -> Var.Db 2
   | n -> Var.Bridge (filler (n - 1))
+
+(* Composition of two cones *)
+let ctx_c, right_incl =
+  Display_maps.pullback (ctx 2)
+    [
+      (Var.Db 2, (Var (Var.Plus (Var.Db 2)), false));
+      (Var.Db 1, (Var (Var.Db 1), false));
+      (Var.Db 0, (Var (Var.Plus (Var.Db 0)), false));
+    ]
+    (ctx 2)
+    [ (Var.Db 2, Var.Db 2); (Var.Db 1, Var.Db 1); (Var.Db 0, Var.Db 0) ]
