@@ -50,6 +50,7 @@ end) : sig
     val identity_ps : ps -> sub_ps
     val tm_apply_sub : tm -> sub -> tm
     val ty_apply_sub : ty -> sub -> ty
+    val sub_apply_sub : sub -> sub -> sub
     val sub_ps_apply_sub : sub_ps -> sub -> sub_ps
     val ty_apply_sub_ps : ty -> sub_ps -> ty
     val tm_apply_sub_ps : tm -> sub_ps -> tm
@@ -73,6 +74,7 @@ end) : sig
     val suspend_tm : tm -> tm
     val suspend_ctx : ctx -> ctx
     val suspend_sub_ps : sub_ps -> sub_ps
+    val suspend_sub : sub -> sub
     val ps_bdry : ps -> ps
     val ps_src : ps -> sub_ps
     val ps_tgt : ps -> sub_ps

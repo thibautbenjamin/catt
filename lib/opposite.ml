@@ -70,7 +70,7 @@ and tm t op_data =
       App (op_t, op_s)
   | Meta_tm m -> Meta_tm m
 
-and sub (s : sub) op_data : sub =
+and sub s op_data =
   match s with
   | [] -> []
   | (x, (t, e)) :: s -> (x, (tm t op_data, e)) :: sub s op_data
@@ -100,3 +100,11 @@ let tm t op_data =
   let t = tm t op_data in
   Io.info ~v:4 (lazy ("opposite computed: " ^ Unchecked.tm_to_string t));
   t
+
+let checked_tm t op_data =
+  let pp_data = Tm.pp_data t in
+  let c = Tm.ctx t in
+  let t = Tm.develop t in
+  let c = ctx c op_data in
+  let t = tm t op_data in
+  check_term (Ctx.check c) (op_pp_data pp_data op_data) t

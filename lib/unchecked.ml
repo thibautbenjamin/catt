@@ -71,8 +71,8 @@ struct
     let sub_ps_apply_sub s1 s2 =
       sub_ps_do_on_variables s1 (fun v -> var_apply_sub v s2)
 
-    let _sub_apply_sub s1 s2 =
-      List.map (fun (v, t) -> (v, tm_apply_sub t s2)) s1
+    let sub_apply_sub s1 s2 =
+      List.map (fun (v, (t, e)) -> (v, (tm_apply_sub t s2, e))) s1
 
     let ty_apply_sub_ps ty s = ty_apply_sub ty (sub_ps_to_sub s)
     let tm_apply_sub_ps tm s = tm_apply_sub tm (sub_ps_to_sub s)
