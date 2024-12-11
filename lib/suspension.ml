@@ -11,6 +11,7 @@ let ty = iter_option Unchecked.suspend_ty
 let tm = iter_option Unchecked.suspend_tm
 let sub_ps = iter_option Unchecked.suspend_sub_ps
 let ctx = iter_option Unchecked.suspend_ctx
+let sub = iter_option Unchecked.suspend_sub
 
 let coh i coh =
   match i with

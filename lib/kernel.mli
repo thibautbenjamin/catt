@@ -52,6 +52,7 @@ and Tm : sig
   val func_data : t -> (Var.t * int) list list
   val of_coh : Coh.t -> t
   val develop : t -> Unchecked_types(Coh)(Tm).tm
+  val pp_data : t -> pp_data
 
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
@@ -108,6 +109,7 @@ module Unchecked : sig
   val identity_ps : ps -> sub_ps
   val tm_apply_sub : tm -> sub -> tm
   val ty_apply_sub : ty -> sub -> ty
+  val sub_apply_sub : sub -> sub -> sub
   val sub_ps_apply_sub : sub_ps -> sub -> sub_ps
   val ty_apply_sub_ps : ty -> sub_ps -> ty
   val tm_apply_sub_ps : tm -> sub_ps -> tm
@@ -131,6 +133,7 @@ module Unchecked : sig
   val suspend_tm : tm -> tm
   val suspend_ctx : ctx -> ctx
   val suspend_sub_ps : sub_ps -> sub_ps
+  val suspend_sub : sub -> sub
   val ps_bdry : ps -> ps
   val ps_src : ps -> sub_ps
   val ps_tgt : ps -> sub_ps

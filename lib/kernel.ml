@@ -518,6 +518,7 @@ and Tm : sig
   val name : t -> string
   val full_name : t -> string
   val func_data : t -> (Var.t * int) list list
+  val pp_data : t -> pp_data
   val develop : t -> Unchecked_types(Coh)(Tm).tm
 
   val apply :
@@ -539,6 +540,7 @@ end = struct
   let name (_, pp_data) = Unchecked.pp_data_to_string pp_data
   let full_name (_, pp_data) = Unchecked.full_name pp_data
   let func_data (_, (_, _, f)) = f
+  let pp_data (_, pp_data) = pp_data
 
   let of_coh coh =
     let ps, _, pp_data = Coh.forget coh in
