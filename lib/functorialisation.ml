@@ -336,9 +336,7 @@ let rec sub s l =
           :: (Var.Plus x, (tgt_t, false))
           :: (x, (src_t, false))
           :: sub s l
-      | [ (t, _) ] ->
-          Io.debug "no functorialisation needed for %s" (Var.to_string x);
-          (x, (t, e)) :: sub s l
+      | [ (t, _) ] -> (x, (t, e)) :: sub s l
       | _ -> assert false)
 
 (* Functorialisation once with respect to every maximal argument *)

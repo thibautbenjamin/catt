@@ -34,9 +34,11 @@ let ty_src n =
 let ty_tgt n =
   match ty n with Arr (_, _, t) -> t | Obj | Meta_ty _ -> assert false
 
+(*  *)
+
 (* Cone represented as a substitution from the cone context *)
-let src n csub = Unchecked.tm_apply_sub (ty_src n) csub
-let tgt n csub = Unchecked.tm_apply_sub (ty_tgt n) csub
+(* let src n csub = Unchecked.tm_apply_sub (ty_src n) csub *)
+(* let tgt n csub = Unchecked.tm_apply_sub (ty_tgt n) csub *)
 
 (* Binary Composition of cones *)
 
@@ -127,34 +129,38 @@ module Codim1 = struct
 end
 
 let rec ctx_c n m k =
-  match (n - k, m - k) with
-  | i, j when i <= 0 || j <= 0 -> assert false
-  | 1, 1 -> fst (Codim1.ctx n)
-  | _, 1 ->
-      Functorialisation.ctx
-        (ctx_c (n - 1) m k)
-        [ left_base (n - 1); left_filler (n - 1) ]
-  | 1, _ ->
-      Functorialisation.ctx
-        (ctx_c n (m - 1) k)
-        [ right_base 1 (m - 1) k; right_filler 1 (m - 1) k ]
-  | _, _ ->
-      Functorialisation.ctx
-        (ctx_c (n - 1) (m - 1) k)
-        [
-          left_base (n - 1);
-          left_filler (n - 1);
-          right_base (n - 1) (m - 1) k;
-          right_filler (n - 1) (m - 1) k;
-        ]
+  if n > m then
+    Functorialisation.ctx
+      (ctx_c (n - 1) m k)
+      [ left_base (n - 1); left_filler (n - 1) ]
+  else if m > n then
+    Functorialisation.ctx
+      (ctx_c n (m - 1) k)
+      [ right_base n (m - 1) k; right_filler n (m - 1) k ]
+  else
+    match n - k with
+    | i when i <= 0 -> assert false
+    | 1 -> fst (Codim1.ctx n)
+    | _ ->
+        Functorialisation.ctx
+          (ctx_c (n - 1) (m - 1) k)
+          [
+            left_base (n - 1);
+            left_filler (n - 1);
+            right_base (n - 1) (m - 1) k;
+            right_filler (n - 1) (m - 1) k;
+          ]
 
 and left_base n = base n
 
 and right_base n m k =
-  match (n - k, m - k) with
-  | _, i when i <= 0 -> assert false
-  | _, 1 -> Codim1.right_base m
-  | _, _ -> Var.Bridge (right_base (n - 1) (m - 1) k)
+  if n > m then right_base (n - 1) m k
+  else if m > n then Var.Bridge (right_base n (m - 1) k)
+  else
+    match n - k with
+    | i when i <= 0 -> assert false
+    | 1 -> Codim1.right_base m
+    | _ -> Var.Bridge (right_base (n - 1) (m - 1) k)
 
 and left_filler n =
   match n with
@@ -163,10 +169,13 @@ and left_filler n =
   | n -> Var.Bridge (left_filler (n - 1))
 
 and right_filler n m k =
-  match (n - k, m - k) with
-  | _, i when i <= 0 -> assert false
-  | _, 1 -> Codim1.right_filler m
-  | _, _ -> Var.Bridge (right_filler (n - 1) (m - 1) k)
+  if n > m then right_filler (n - 1) m k
+  else if m > n then Var.Bridge (right_filler n (m - 1) k)
+  else
+    match n - k with
+    | i when i <= 0 -> assert false
+    | 1 -> Codim1.right_filler m
+    | _ -> Var.Bridge (right_filler (n - 1) (m - 1) k)
 
 let tbl = Hashtbl.create 97
 
@@ -175,26 +184,27 @@ let rec compose n m k =
   | Some res -> res
   | None ->
       let res =
-        match (n - k, m - k) with
-        | i, j when i <= 0 || j <= 0 -> assert false
-        | 1, 1 -> Codim1.compose n
-        | _, 1 ->
-            Functorialisation.tm
-              (compose (n - 1) m k)
-              [ (left_base (n - 1), 1); (left_filler (n - 1), 1) ]
-        | 1, _ ->
-            Functorialisation.tm
-              (compose n (m - 1) k)
-              [ (right_base n (m - 1) k, 1); (right_filler n (m - 1) k, 1) ]
-        | _, _ ->
-            Functorialisation.tm
-              (compose (n - 1) (m - 1) k)
-              [
-                (left_base (n - 1), 1);
-                (left_filler (n - 1), 1);
-                (right_base (n - 1) (m - 1) k, 1);
-                (right_filler (n - 1) (m - 1) k, 1);
-              ]
+        if n > m then
+          Functorialisation.tm
+            (compose (n - 1) m k)
+            [ (left_base (n - 1), 1); (left_filler (n - 1), 1) ]
+        else if m > n then
+          Functorialisation.tm
+            (compose n (m - 1) k)
+            [ (right_base n (m - 1) k, 1); (right_filler n (m - 1) k, 1) ]
+        else
+          match n - k with
+          | i when i <= 0 -> assert false
+          | 1 -> Codim1.compose n
+          | _ ->
+              Functorialisation.tm
+                (compose (n - 1) (m - 1) k)
+                [
+                  (left_base (n - 1), 1);
+                  (left_filler (n - 1), 1);
+                  (right_base (n - 1) (m - 1) k, 1);
+                  (right_filler (n - 1) (m - 1) k, 1);
+                ]
       in
       Hashtbl.add tbl (n, m, k) res;
       res
