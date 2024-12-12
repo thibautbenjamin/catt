@@ -91,3 +91,61 @@ let unbiased_unitor ps t =
   let sub_base = Unchecked.ty_to_sub_ps a in
   let tgt = Coh (Suspension.coh (Some da) (id ()), (t, true) :: sub_base) in
   Coh.check_inv bdry src tgt ("unbiased_unitor", 0, [])
+
+let tdb i = Var (Var.Db i)
+let wcomp = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+
+let rec bdry n (t, ty) =
+  match (n, ty) with
+  | 0, _ -> ((t, ty), (t, ty))
+  | 1, Arr (b, s, t) -> ((s, b), (t, b))
+  | _, Arr (b, s, _) -> bdry (n - 1) (s, b)
+  | _, _ -> assert false
+
+let _src n t = fst (bdry n t)
+let tgt n t = snd (bdry n t)
+
+(*
+  (a *_n b) *_0 g -> (a *_0 g) *_n (b *_0 g)
+    https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjciXSxbMCwxLCIyIiwwLHsiY3VydmUiOi01fV0sWzAsMSwiNSIsMix7ImN1cnZlIjo1fV0sWzAsMSwiMyIsMV0sWzEsMiwiOCIsMV0sWzMsNSwiNCIsMix7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbNSw0LCI2IiwyLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
+*)
+let intch_comp_n0_coh n =
+  let rec ty n =
+    match n with
+    | 0 -> Obj
+    | _ -> Arr (ty (n - 1), tdb ((2 * n) - 2), tdb ((2 * n) - 1))
+  in
+  let fty = ty n in
+  let a = (tdb ((2 * n) + 2), Arr (fty, tdb (2 * n), tdb ((2 * n) + 1))) in
+  let b =
+    (tdb ((2 * n) + 4), Arr (fty, tdb ((2 * n) + 1), tdb ((2 * n) + 3)))
+  in
+  let g = (tdb ((2 * n) + 6), Arr (Obj, tdb 1, tdb ((2 * n) + 5))) in
+  let s, _ = !wcomp (!wcomp a n b) 0 g in
+  let t, _ = !wcomp (!wcomp a 0 g) n (!wcomp b 0 g) in
+  let ps = Br [ Br []; Suspension.ps (Some (n - 1)) (Br [ Br []; Br [] ]) ] in
+  Coh.check_inv ps s t (Printf.sprintf "builtin_comp_%d_0_intch" n, 0, [])
+
+(*
+  For n>m
+  (a *_n b) *_m c -> (a *_m c) *_n (b *_m c)
+*)
+let intch_comp_nm_coh n m =
+  Suspension.coh (Some (m - 1)) (intch_comp_n0_coh (n - m))
+
+let intch_comp_nm a b c =
+  let n = Unchecked.dim_ty (snd a) in
+  let m = Unchecked.dim_ty (snd c) in
+  let sub_left =
+    (fst b, true)
+    :: (fst (tgt 1 b), false)
+    :: (fst a, true)
+    :: Unchecked.ty_to_sub_ps (snd a)
+  in
+  let sub_right =
+    (fst c, true) :: Common.take m (Unchecked.ty_to_sub_ps (snd c))
+  in
+  let coh = intch_comp_nm_coh n m in
+  let sub = sub_right @ sub_left in
+  let _, ty, _ = Coh.forget coh in
+  (Coh (coh, sub), Unchecked.ty_apply_sub_ps ty sub)
