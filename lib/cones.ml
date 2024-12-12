@@ -82,11 +82,13 @@ module Cone = struct
     ctx
 
   let rec bdry_left n k =
-    if n = k + 1 then bdry_left_gen n
+    if n <= k then Unchecked.identity (ctx n)
+    else if n = k + 1 then bdry_left_gen n
     else Unchecked.sub_apply_sub (bdry_left (n - 1) k) (bdry_left_gen n)
 
   let rec bdry_right n k =
-    if n = k + 1 then bdry_right_gen n
+    if n <= k then Unchecked.identity (ctx n)
+    else if n = k + 1 then bdry_right_gen n
     else Unchecked.sub_apply_sub (bdry_right (n - 1) k) (bdry_right_gen n)
 
   (* Cone types *)
@@ -100,52 +102,53 @@ module Cone = struct
 end
 
 (* Cone inductive relation : a (n+1)-cone is a suspended opposite of a n-cone *)
-(* module Induct : sig *)
-(*   val ctx : int -> ctx *)
-(*   val sub : int -> sub *)
-(* end = struct *)
-(*   (\* The suspension opposite of a cone context *\) *)
-(*   let ctx n = *)
-(*     let op_data = List.init (n - 1) (fun i -> i + 1) in *)
-(*     Suspension.ctx (Some 1) (Opposite.ctx (Cone.ctx (n - 1)) op_data) *)
+module Induct : sig
+  val ctx : int -> ctx
+  val sub : int -> sub
+end = struct
+  (* The suspension opposite of a cone context *)
+  let ctx n =
+    let op_data = List.init (n - 1) (fun i -> i + 1) in
+    Suspension.ctx (Some 1) (Opposite.ctx (Cone.ctx (n - 1)) op_data)
 
-(*   (\* substitution from the cone context to the suspension opposite of a cone. *)
-(*      This function returns a horribly hardcoded list, even though the target *)
-(*      context is not a pasting scheme *\) *)
-(*   let fake_sub_ps_unsafe n = *)
-(*     let ctx = Cone.ctx n in *)
-(*     let with_type v = (Var v, fst (List.assoc v ctx)) in *)
-(*     let b n = with_type (Cone.base n) in *)
-(*     let fP1 = with_type (Var.Plus (Cone.filler 1)) in *)
-(*     let bP n = with_type (Var.Plus (Cone.base n)) in *)
-(*     List.concat *)
-(*       [ *)
-(*         [ (Var (Cone.filler n), true) ]; *)
-(*         List.init *)
-(*           (2 * (n - 2)) *)
-(*           (fun i -> *)
-(*             let i = i + 2 in *)
-(*             let f = *)
-(*               if i mod 2 = 0 then Cone.filler (n - (i / 2)) *)
-(*               else Var.Plus (Cone.filler (n - ((i - 1) / 2))) *)
-(*             in *)
-(*             (Var f, false)); *)
-(*         [ (Var (Cone.filler 1), false); (fst @@ wcomp (b n) 0 fP1, false) ]; *)
-(*         List.init *)
-(*           (2 * (n - 2)) *)
-(*           (fun i -> *)
-(*             let i = i + 2 in *)
-(*             let b = *)
-(*               if i mod 2 = 0 then b (n - (i / 2)) else bP (n - ((i - 1) / 2)) *)
-(*             in *)
-(*             (fst @@ wcomp b 0 fP1, false)); *)
-(*         [ (Var (Cone.apex 1), false); (Var (Cone.base 1), false) ]; *)
-(*       ] *)
+  (* substitution from the cone context to the suspension opposite of a cone.
+     This function returns a horribly hardcoded list, even though the target
+     context is not a pasting scheme *)
+  let fake_sub_ps_unsafe n =
+    let ctx = Cone.ctx n in
+    let with_type v = (Var v, fst (List.assoc v ctx)) in
+    let b k = rename (Cone.base k) (Cone.bdry_left n k) in
+    let bP k = rename (Cone.base k) (Cone.bdry_right n k) in
+    let f k = rename (Cone.filler k) (Cone.bdry_left n k) in
+    let fP k = rename (Cone.filler k) (Cone.bdry_right n k) in
+    let fP1 = with_type (fP 1) in
+    let b k = with_type (b k) in
+    let bP k = with_type (bP k) in
+    List.concat
+      [
+        [ (Var (Cone.filler n), true) ];
+        List.init
+          (2 * (n - 2))
+          (fun i ->
+            let i = i + 2 in
+            let v =
+              if i mod 2 = 0 then f (n - (i / 2)) else fP (n - ((i - 1) / 2))
+            in
+            (Var v, false));
+        [ (Var (f 1), false); (fst @@ wcomp (b n) 0 fP1, false) ];
+        List.init
+          (2 * (n - 2))
+          (fun i ->
+            let i = i + 2 in
+            let v =
+              if i mod 2 = 0 then b (n - (i / 2)) else bP (n - ((i - 1) / 2))
+            in
+            (fst @@ wcomp v 0 fP1, false));
+        [ (Var (Cone.apex n), false); (Var (Cone.base 1), false) ];
+      ]
 
-(*   let sub n = *)
-(*     let list = fake_sub_ps_unsafe n in *)
-(*     List.map2 (fun (x, _) t -> (x, t)) (ctx n) list *)
-(* end *)
+  let sub n = Unchecked.sub_ps_to_sub (fake_sub_ps_unsafe n)
+end
 
 (* Binary Composition of cones *)
 
