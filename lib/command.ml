@@ -30,15 +30,15 @@ let () =
         (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 2 2 1)));
       Io.debug "conecomp 3: %s"
         (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 3 3 1)));
-      (* Io.debug "conecomp 3*_2*3: %s \n\t of type %s" *)
-      (*   (Unchecked.tm_to_string (Tm.develop (Cones.compose 3 3 2))) *)
-      (*   (Unchecked.ty_to_string (Tm.ty (Cones.compose 3 3 2))); *)
-      (* Io.debug "conecomp 4*_2*4: %s \n\t of type %s" *)
-      (*   (Unchecked.tm_to_string (Tm.develop (Cones.compose 4 4 2))) *)
-      (*   (Unchecked.ty_to_string (Tm.ty (Cones.compose 4 4 2))); *)
-      (* Io.debug "conecomp 4*_3*4: %s \n\t of type %s" *)
-      (*   (Unchecked.tm_to_string (Tm.develop (Cones.compose 4 4 3))) *)
-      (*   (Unchecked.ty_to_string (Tm.ty (Cones.compose 4 4 3))); *)
+      Io.debug "conecomp 3*_2*3: %s \n\t of type %s"
+        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 3 3 2)))
+        (Unchecked.ty_to_string (Tm.ty (Cones.Composition.compose 3 3 2)));
+      Io.debug "conecomp 4*_2*4: %s \n\t of type %s"
+        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 4 4 2)))
+        (Unchecked.ty_to_string (Tm.ty (Cones.Composition.compose 4 4 2)));
+      Io.debug "conecomp 4*_3*4: %s \n\t of type %s"
+        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 4 4 3)))
+        (Unchecked.ty_to_string (Tm.ty (Cones.Composition.compose 4 4 3)));
       Io.debug "conecomp 3*2: %s" (Tm.name (Cones.Composition.compose 3 2 1));
       Io.debug "conecomp 2*3: %s" (Tm.name (Cones.Composition.compose 2 3 1));
       Io.debug "conecomp 4*2: %s" (Tm.name (Cones.Composition.compose 4 2 1));

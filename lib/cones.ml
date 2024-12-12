@@ -109,7 +109,11 @@ end = struct
   (* The suspension opposite of a cone context *)
   let ctx n =
     let op_data = List.init (n - 1) (fun i -> i + 1) in
-    Suspension.ctx (Some 1) (Opposite.ctx (Cone.ctx (n - 1)) op_data)
+    let ctx =
+      Suspension.ctx (Some 1) (Opposite.ctx (Cone.ctx (n - 1)) op_data)
+    in
+    let ctx, _, _ = Unchecked.db_levels ctx in
+    ctx
 
   (* substitution from the cone context to the suspension opposite of a cone.
      This function returns a horribly hardcoded list, even though the target
@@ -168,30 +172,24 @@ module Codim1 = struct
                 (Cone.ctx n)
                 (Cone.bdry_left n (n - 1))
             in
+            let names = Unchecked.db_level_sub_inv ctx in
+            let ctx, _, _ = Unchecked.db_levels ctx in
+            let right_incl = Unchecked.sub_apply_sub right_incl names in
             let res = (ctx, right_incl) in
-
             Hashtbl.add tbl_comp_codim1 n res;
             res)
 
+  let right_incl n = snd @@ ctx n
+  let ctx n = fst @@ ctx n
   let left_base n = Cone.base n
-
-  let right_base n =
-    let _, right_incl = ctx n in
-    match Unchecked.tm_apply_sub (Var (Cone.base n)) right_incl with
-    | Var x -> x
-    | _ -> assert false
-
+  let right_base n = rename (Cone.base n) (right_incl n)
   let left_filler n = Cone.filler n
-
-  let right_filler n =
-    let _, right_incl = ctx n in
-    match Unchecked.tm_apply_sub (Var (Cone.filler n)) right_incl with
-    | Var x -> x
-    | _ -> assert false
+  let right_filler n = rename (Cone.filler n) (right_incl n)
 
   let compose_dim2 () =
     let with_type ctx x = (Var x, fst (List.assoc x ctx)) in
-    let ctx, right_incl = ctx 2 in
+    let ctx = ctx 2 in
+    let right_incl = right_incl 2 in
     let left_filler = with_type ctx (left_filler 2) in
     let right_filler = with_type ctx (right_filler 2) in
     let left_base = with_type ctx (left_base 2) in
@@ -224,75 +222,73 @@ module Codim1 = struct
         Unchecked.ty_apply_sub assoc_ty (Unchecked.sub_ps_to_sub sub_ps) )
     in
     let tm, _ = Functorialisation.wcomp tm_1 1 tm_2 in
-    let names = Unchecked.db_level_sub_inv ctx in
-    let ctx, _, _ = Unchecked.db_levels ctx in
-    let tm = Unchecked.tm_apply_sub tm names in
     check_term (Ctx.check ctx) ("builtin_conecomp", 0, []) tm
 
   let intch n =
     let with_type ctx x = (Var x, fst (List.assoc x ctx)) in
-    let ctx_comp = fst @@ ctx n in
+    let ctx_comp = ctx n in
+    let f k = rename (Cone.filler k) (Cone.bdry_left n k) in
+    let fP k = rename (Cone.filler k) (Cone.bdry_right n k) in
+    let fP k = rename (fP k) (right_incl n) in
     let lb = left_base n in
     let rb = right_base n in
-    let rec wrap n =
-      if n = 0 then
-        Builtin.intch_comp_nm (with_type ctx_comp lb) (with_type ctx_comp rb)
-          (with_type ctx_comp (Var.Plus (Cone.filler 1)))
-      else if n mod 2 <> 0 then
-        let f = with_type ctx_comp (Cone.filler (n + 1)) in
-        wcomp f n (wrap (n - 1))
+    let inner_intch =
+      if n mod 2 = 0 then
+        let tm, ty =
+          Builtin.intch_comp_nm (with_type ctx_comp lb) (with_type ctx_comp rb)
+            (with_type ctx_comp (fP 1))
+        in
+        (Inverse.compute_inverse tm, Inverse.ty ty)
       else
-        let f = with_type ctx_comp (Var.Plus (Cone.filler (n + 1))) in
-        wcomp (wrap (n - 1)) n f
+        Builtin.intch_comp_nm (with_type ctx_comp lb) (with_type ctx_comp rb)
+          (with_type ctx_comp (fP 1))
+    in
+    let rec wrap k =
+      if k = 0 then inner_intch
+      else if k mod 2 <> 0 then
+        let f = with_type ctx_comp (f (k + 1)) in
+        wcomp f k (wrap (k - 1))
+      else
+        let f = with_type ctx_comp (fP (k + 1)) in
+        wcomp (wrap (k - 1)) k f
     in
     wrap (n - 2)
 
-  let compose n =
+  let rec compose n =
     match n with
     | n when n <= 1 -> assert false
     | 2 -> compose_dim2 ()
-    | _ -> assert false
-  (* let ctx_comp, right_incl = ctx n in *)
-  (* let suspopcomp = *)
-  (*   let op_data = List.init (n - 1) (fun i -> i + 1) in *)
-  (*   let comp = *)
-  (*     Suspension.checked_tm (Some 1) *)
-  (*       (Opposite.checked_tm (compose (n - 1)) op_data) *)
-  (*   in *)
-  (*   let _, right_incl_prev = ctx (n - 1) in *)
-  (*   let ind_sub = Induct.sub n in *)
-  (*   let sub = *)
-  (*     if n mod 2 = 0 then *)
-  (*       Display_maps.glue ind_sub *)
-  (*         (Unchecked.sub_apply_sub ind_sub right_incl) *)
-  (*         (Suspension.sub (Some 1) (Opposite.sub right_incl_prev op_data)) *)
-  (*         (Induct.ctx n) *)
-  (*         (Suspension.sub (Some 1) *)
-  (*            (Opposite.sub (Cone.bdry_left (n - 2)) op_data)) *)
-  (*     else *)
-  (*       Display_maps.glue *)
-  (*         (Unchecked.sub_apply_sub ind_sub right_incl) *)
-  (*         ind_sub *)
-  (*         (Suspension.sub (Some 1) (Opposite.sub right_incl_prev op_data)) *)
-  (*         (Induct.ctx n) *)
-  (*         (Suspension.sub (Some 1) *)
-  (*            (Opposite.sub (Cone.bdry_left (n - 2)) op_data)) *)
-  (*   in *)
-  (*   Io.debug "target context is %s" *)
-  (*     (Unchecked.ctx_to_string (Tm.ctx comp)); *)
-  (*   Io.debug "generated substitution: %s" *)
-  (*     (Unchecked.sub_to_string_debug sub); *)
-  (*   Io.debug "bictx: %s" (Unchecked.ctx_to_string ctx_comp); *)
-  (*   check_term (Ctx.check ctx_comp) *)
-  (*     ("builtin_conecomp", 0, []) *)
-  (*     (App (comp, sub)) *)
-  (* in *)
-  (* Io.debug "building intch"; *)
-  (* let intch = intch n in *)
-  (* let socomp = (Tm.develop suspopcomp, Tm.ty suspopcomp) in *)
-  (* check_term (Ctx.check ctx_comp) *)
-  (*   ("builtin_conecomp", 0, []) *)
-  (*   (fst (wcomp intch (n - 1) socomp)) *)
+    | n ->
+        let right_incl_prev = right_incl (n - 1) in
+        let ctx_comp = ctx n in
+        let right_incl = right_incl n in
+        let suspopcomp =
+          let op_data = List.init (n - 1) (fun i -> i + 1) in
+          let comp =
+            Suspension.checked_tm (Some 1)
+              (Opposite.checked_tm (compose (n - 1)) op_data)
+          in
+          let ind_sub = Induct.sub n in
+          let sub =
+            Display_maps.glue
+              (Unchecked.sub_apply_sub ind_sub right_incl)
+              ind_sub
+              (Suspension.sub (Some 1) (Opposite.sub right_incl_prev op_data))
+              (Induct.ctx n)
+              (Suspension.sub (Some 1)
+                 (Opposite.sub (Cone.bdry_left (n - 1) (n - 2)) op_data))
+          in
+          check_term (Ctx.check ctx_comp)
+            ("builtin_conecomp", 0, [])
+            (App (comp, sub))
+        in
+        let intch = intch n in
+        let socomp = (Tm.develop suspopcomp, Tm.ty suspopcomp) in
+        let tm, _ =
+          if n mod 2 = 0 then wcomp socomp (n - 1) intch
+          else wcomp intch (n - 1) socomp
+        in
+        check_term (Ctx.check ctx_comp) ("builtin_conecomp", 0, []) tm
 end
 
 module Composition = struct
@@ -318,7 +314,12 @@ module Composition = struct
     else
       match n - k with
       | i when i <= 0 -> assert false
-      | 1 -> (fst @@ Codim1.ctx n, Var.Db 2, Var.Db 6, Var.Db 8, Var.Db 10)
+      | 1 ->
+          let lb = Cone.base n in
+          let lf = Cone.filler n in
+          let rb = rename (Cone.base n) (Codim1.right_incl n) in
+          let rf = rename (Cone.filler n) (Codim1.right_incl n) in
+          (Codim1.ctx n, lb, lf, rb, rf)
       | _ ->
           let ctx, lb, lf, rb, rf = ctx (n - 1) (m - 1) k in
           let ctx = Functorialisation.ctx ctx [ lb; lf; rb; rf ] in
