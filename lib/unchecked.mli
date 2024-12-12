@@ -90,5 +90,6 @@ end) : sig
     val wedge_sub_ps_bp : sub_ps_bp list -> sub_ps
     val list_to_sub : tm list -> ctx -> sub
     val list_to_db_level_sub : tm list -> (Var.t * tm) list
+    val identity : ctx -> sub
   end
 end

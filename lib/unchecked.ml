@@ -695,5 +695,10 @@ struct
       | _ -> Error.fatal "can only convert coh to sub ps"
 
     let sub_to_sub_ps ps s = sub_ps_apply_sub (identity_ps ps) s
+
+    let rec identity ctx =
+      match ctx with
+      | [] -> []
+      | (x, (_, e)) :: ctx -> (x, (Var x, e)) :: identity ctx
   end
 end
