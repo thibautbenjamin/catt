@@ -4,6 +4,11 @@ open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 type display_map = (Var.t * Var.t) list
 
+let var_apply_sub v s =
+  match Unchecked.tm_apply_sub (Var v) s with
+  | Var v -> v
+  | _ -> Error.fatal "image of a variable by a display map must be a variable"
+
 let rec pullback c1 sub c2 dm =
   match (c2, dm) with
   | [], [] -> (c1, [])
