@@ -46,7 +46,7 @@ end = struct
            (Unchecked.sub_to_string s)
            (Ctx.to_string tgt)));
     let sub_exn =
-      InvalidSubTarget (Unchecked.sub_to_string s, Ctx.to_string tgt)
+      InvalidSubTarget (Unchecked.sub_to_string_debug s, Ctx.to_string tgt)
     in
     let rec aux src s tgt =
       let expr s tgt =
