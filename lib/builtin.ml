@@ -95,16 +95,6 @@ let unbiased_unitor ps t =
 let tdb i = Var (Var.Db i)
 let wcomp = ref (fun _ -> Error.fatal "Uninitialised forward reference")
 
-let rec bdry n (t, ty) =
-  match (n, ty) with
-  | 0, _ -> ((t, ty), (t, ty))
-  | 1, Arr (b, s, t) -> ((s, b), (t, b))
-  | _, Arr (b, s, _) -> bdry (n - 1) (s, b)
-  | _, _ -> assert false
-
-let _src n t = fst (bdry n t)
-let tgt n t = snd (bdry n t)
-
 (*
   (a *_n b) *_0 g -> (a *_0 g) *_n (b *_0 g)
     https://q.uiver.app/#q=WzAsMyxbMCwwLCIwIl0sWzIsMCwiMSJdLFs0LDAsIjciXSxbMCwxLCIyIiwwLHsiY3VydmUiOi01fV0sWzAsMSwiNSIsMix7ImN1cnZlIjo1fV0sWzAsMSwiMyIsMV0sWzEsMiwiOCIsMV0sWzMsNSwiNCIsMix7InNob3J0ZW4iOnsic291cmNlIjoyMCwidGFyZ2V0IjoyMH19XSxbNSw0LCI2IiwyLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dXQ==
@@ -132,20 +122,3 @@ let intch_comp_n0_coh n =
 *)
 let intch_comp_nm_coh n m =
   Suspension.coh (Some (m - 1)) (intch_comp_n0_coh (n - m))
-
-let intch_comp_nm a b c =
-  let n = Unchecked.dim_ty (snd a) in
-  let m = Unchecked.dim_ty (snd c) in
-  let sub_left =
-    (fst b, true)
-    :: (fst (tgt 1 b), false)
-    :: (fst a, true)
-    :: Unchecked.ty_to_sub_ps (snd a)
-  in
-  let sub_right =
-    (fst c, true) :: Common.take m (Unchecked.ty_to_sub_ps (snd c))
-  in
-  let coh = intch_comp_nm_coh n m in
-  let sub = sub_right @ sub_left in
-  let _, ty, _ = Coh.forget coh in
-  (Coh (coh, sub), Unchecked.ty_apply_sub_ps ty sub)

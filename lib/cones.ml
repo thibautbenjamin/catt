@@ -2,7 +2,7 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types (Coh) (Tm)
 
-let wcomp = Functorialisation.wcomp
+let wcomp = Construct.wcomp
 
 let rename x names =
   match Unchecked.tm_apply_sub (Var x) names with
@@ -233,15 +233,11 @@ module Codim1 = struct
     let lb = left_base n in
     let rb = right_base n in
     let inner_intch =
-      if n mod 2 = 0 then
-        let tm, ty =
-          Builtin.intch_comp_nm (with_type ctx_comp lb) (with_type ctx_comp rb)
-            (with_type ctx_comp (fP 1))
-        in
-        (Inverse.compute_inverse tm, Inverse.ty ty)
-      else
-        Builtin.intch_comp_nm (with_type ctx_comp lb) (with_type ctx_comp rb)
-          (with_type ctx_comp (fP 1))
+      Construct.intch_comp_nm (with_type ctx_comp lb) (with_type ctx_comp rb)
+        (with_type ctx_comp (fP 1))
+    in
+    let inner_intch =
+      if n mod 2 = 0 then Construct.inv inner_intch else inner_intch
     in
     let rec wrap k =
       if k = 0 then inner_intch
