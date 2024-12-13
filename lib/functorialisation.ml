@@ -343,5 +343,3 @@ let sub_w_tgt p s l =
   let l = preimage (Unchecked.ps_to_ctx p) s l in
   let p_f, names = ps p l in
   (s_f, p_f, names, l)
-
-let () = Builtin.wcomp := wcomp
