@@ -222,7 +222,8 @@ module Codim1 = struct
         Unchecked.ty_apply_sub assoc_ty (Unchecked.sub_ps_to_sub sub_ps) )
     in
     let tm, _ = Functorialisation.wcomp tm_1 1 tm_2 in
-    check_term (Ctx.check ctx) ("builtin_conecomp", 0, []) tm
+    let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" 2 1 2 in
+    check_term (Ctx.check ctx) (name, 0, []) tm
 
   let intch n =
     let with_type ctx x = (Var x, fst (List.assoc x ctx)) in
@@ -258,6 +259,7 @@ module Codim1 = struct
         let right_incl_prev = right_incl (n - 1) in
         let ctx_comp = ctx n in
         let right_incl = right_incl n in
+        let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" n 1 n in
         let suspopcomp =
           let op_data = List.init (n - 1) (fun i -> i + 1) in
           let comp =
@@ -274,9 +276,7 @@ module Codim1 = struct
               (Suspension.sub (Some 1)
                  (Opposite.sub (Cone.bdry_left (n - 1) (n - 2)) op_data))
           in
-          check_term (Ctx.check ctx_comp)
-            ("builtin_conecomp", 0, [])
-            (App (comp, sub))
+          check_term (Ctx.check ctx_comp) (name, 0, []) (App (comp, sub))
         in
         let intch = intch n in
         let socomp = (Tm.develop suspopcomp, Tm.ty suspopcomp) in
@@ -284,7 +284,7 @@ module Codim1 = struct
           if n mod 2 = 0 then wcomp socomp (n - 1) intch
           else wcomp intch (n - 1) socomp
         in
-        check_term (Ctx.check ctx_comp) ("builtin_conecomp", 0, []) tm
+        check_term (Ctx.check ctx_comp) (name, 0, []) tm
 end
 
 module Composition = struct
@@ -350,7 +350,7 @@ module Composition = struct
     match Hashtbl.find_opt tbl (n, m, k) with
     | Some res -> res
     | None ->
-        let res =
+        let tm =
           if n > m then
             Functorialisation.tm
               (compose (n - 1) m k)
@@ -373,11 +373,12 @@ module Composition = struct
                     (right_filler (n - 1) (m - 1) k, 1);
                   ]
         in
-        let ctx = Tm.ctx res in
+        let ctx = Tm.ctx tm in
         let names = Unchecked.db_level_sub_inv ctx in
         let ctx, _, _ = Unchecked.db_levels ctx in
-        let res = Unchecked.tm_apply_sub (Tm.develop res) names in
-        let res = check_term (Ctx.check ctx) ("builtin_conecomp", 0, []) res in
+        let tm = Unchecked.tm_apply_sub (Tm.develop tm) names in
+        let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" n k m in
+        let res = check_term (Ctx.check ctx) (name, 0, []) tm in
         Hashtbl.add tbl (n, m, k) res;
         res
 end

@@ -17,7 +17,6 @@
       | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
         -> Error.fatal "only substitution can be marked explicit"
 
-
     let context_of_annotated_ps ps =
       let rec context_ending_to x ty l =
         match l with
@@ -31,14 +30,15 @@
         | Br(l,x) -> context_ending_to x ty l
       in
       context_over ObjR ps
-      %}
+%}
 
 %token COH OBJ MOR WILD IGNORE
 %token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP AT
 %token <string> BUILTIN
+%token <int*int*int> CONECOMP
 %token <string> IDENT
 %token <string> INT
-%token CHECK EQUAL LET IN SET INV UNIT
+%token CHECK EQUAL LET IN SET INV UNIT DECLARE
 %token EOF
 
 %start prog
@@ -57,6 +57,7 @@ cmd:
       else Coh (Var.make_var $2,$3,$5) }
   | CHECK args_or_ps COL tyexpr EQUAL tmexpr { Check ($2,$6, Some $4) }
   | CHECK args_or_ps EQUAL tmexpr { Check ($2,$4,None) }
+  | CHECK builtin { Check_builtin ($2) }
   | LET IDENT args_or_ps COL tyexpr EQUAL tmexpr
     { Decl (Var.make_var $2,$3,$7,Some $5) }
   | LET IDENT args_or_ps EQUAL tmexpr
@@ -71,6 +72,7 @@ cmd:
       else Decl (Var.make_var $2,$3,$5, None) }
   | SET IDENT EQUAL IDENT { Set ($2,$4) }
   | SET IDENT EQUAL INT { Set ($2,$4) }
+  | DECLARE IDENT EQUAL builtin { Decl_builtin (Var.make_var $2,$4) }
 
 args_of_same_ty :
   | IDENT COL tyexpr { [Var.make_var $1, $3], $3 }
@@ -95,15 +97,19 @@ sub:
   | nonempty_sub { $1 }
   | { [] }
 
+builtin_tm :
+  | builtin {
+            if !Settings.use_builtins
+            then BuiltinR $1
+            else VarR (Var.make_var (Raw.string_of_builtin $1)) }
+
 builtin:
   | BUILTIN {
-    if !Settings.use_builtins
-    then
     match $1 with
-    | s when String.equal s "comp" ->  BuiltinR Comp
-    | s when String.equal s "id" ->  BuiltinR Id
-    | _ -> assert false
-    else VarR (Var.make_var $1) }
+    | s when String.equal s "comp" -> Comp
+    | s when String.equal s "id" -> Id
+    | _ -> assert false }
+ | CONECOMP { let (n,k,m) = $1 in Conecomp(n,k,m) }
 
 simple_tmexpr:
   | LPAR tmexpr RPAR { $2 }
@@ -111,7 +117,7 @@ simple_tmexpr:
   | INV LPAR tmexpr RPAR { Inverse $3 }
   | UNIT LPAR tmexpr RPAR { Unit $3 }
   | IDENT { VarR (Var.make_var $1) }
-  | builtin { $1 }
+  | builtin_tm { $1 }
 
 functed_tmexpr:
   | LBRA maybe_functed_tmexpr RBRA { let t,n = $2 in t,n+1 }

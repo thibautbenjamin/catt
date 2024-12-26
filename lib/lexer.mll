@@ -11,6 +11,12 @@ rule token = parse
   | "in" { IN }
   | "comp" as str { BUILTIN str }
   | "id" as str { BUILTIN str }
+  | "conecomp(" (['0'-'9']* as n) "," (['0'-'9']* as k) "," (['0'-'9']* as m)")" {
+                                                                            let n = int_of_string n in
+                                                                            let k = int_of_string k in
+                                                                            let m = int_of_string m in
+                                                                            CONECOMP(n,k,m) }
+  | "declare" { DECLARE }
   | "I" { INV }
   | "U" { UNIT }
   | "(" { LPAR }
