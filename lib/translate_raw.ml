@@ -53,7 +53,7 @@ let rec tm t =
           let coh = Builtin.id () in
           make_coh coh s susp expl
       | Conecomp (n, k, m) ->
-          let tm = Cones.Composition.compose n m k in
+          let tm = Cones.compose n m k in
           make_app tm s susp expl)
   | Op (l, t) ->
       let offset = head_susp t in

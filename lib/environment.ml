@@ -9,7 +9,7 @@ let builtin_to_value b =
   match b with
   | Comp -> Coh (Builtin.comp_n 1)
   | Id -> Coh (Builtin.id ())
-  | Conecomp (n, k, m) -> Tm (Cones.Composition.compose n m k)
+  | Conecomp (n, k, m) -> Tm (Cones.compose n m k)
 
 let value_ty v =
   match v with
