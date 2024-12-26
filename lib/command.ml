@@ -11,46 +11,14 @@ exception NotABoolean of string
 type cmd =
   | Coh of Var.t * (Var.t * tyR) list * tyR
   | Check of (Var.t * tyR) list * tmR * tyR option
+  | Check_builtin of builtin
   | Decl of Var.t * (Var.t * tyR) list * tmR * tyR option
+  | Decl_builtin of Var.t * builtin
   | Set of string * string
 
 type prog = cmd list
 
 let postprocess_fn : (ctx -> tm -> ctx * tm) ref = ref (fun c e -> (c, e))
-
-let () =
-  postprocess_fn :=
-    fun ctx tm ->
-      Io.debug "conectx 1: %s" (Unchecked.ctx_to_string (Cones.Cone.ctx 1));
-      Io.debug "conectx 2: %s" (Unchecked.ctx_to_string (Cones.Cone.ctx 2));
-      Io.debug "conectx 3: %s" (Unchecked.ctx_to_string (Cones.Cone.ctx 3));
-      Io.debug "conectx 4: %s" (Unchecked.ctx_to_string (Cones.Cone.ctx 4));
-      Io.debug "conectx 5: %s" (Unchecked.ctx_to_string (Cones.Cone.ctx 5));
-      Io.debug "conecomp 2: %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 2 2 1)));
-      Io.debug "conecomp 3: %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 3 3 1)));
-      Io.debug "conecomp 3*_2*3: %s \n\t of type %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 3 3 2)))
-        (Unchecked.ty_to_string (Tm.ty (Cones.Composition.compose 3 3 2)));
-      Io.debug "conecomp 4*_2*4: %s \n\t of type %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 4 4 2)))
-        (Unchecked.ty_to_string (Tm.ty (Cones.Composition.compose 4 4 2)));
-      Io.debug "conecomp 4*_3*4: %s \n\t of type %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 4 4 3)))
-        (Unchecked.ty_to_string (Tm.ty (Cones.Composition.compose 4 4 3)));
-      Io.debug "conecomp 3*2: %s" (Tm.name (Cones.Composition.compose 3 2 1));
-      Io.debug "conecomp 2*3: %s" (Tm.name (Cones.Composition.compose 2 3 1));
-      Io.debug "conecomp 4*2: %s" (Tm.name (Cones.Composition.compose 4 2 1));
-      Io.debug "conecomp 4*3: %s" (Tm.name (Cones.Composition.compose 4 3 1));
-      Io.debug "conecomp 2*4: %s" (Tm.name (Cones.Composition.compose 2 4 1));
-      Io.debug "conecomp 3*4: %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 3 4 1)));
-      Io.debug "conecomp 4*4: %s"
-        (Unchecked.tm_to_string (Tm.develop (Cones.Composition.compose 4 4 1)));
-      (* Io.debug "conecomp 5: %s" (Tm.name (Cones.compose 5 5 1)); *)
-      (* Io.debug "conecomp 6: %s" (Tm.name (Cones.compose 6 6 1)); *)
-      (ctx, tm)
 
 let exec_coh v ps ty =
   let ps, ty = Elaborate.ty_in_ps ps ty in
@@ -65,6 +33,10 @@ let exec_decl v l e t =
       let _, ty = Elaborate.ty l ty in
       Environment.add_let v c ~ty e
 
+let exec_decl_builtin v b =
+  let value = Environment.builtin_to_value b in
+  Environment.add_value v value
+
 let check l e t =
   let c, e = Elaborate.tm l e in
   let ty =
@@ -77,6 +49,11 @@ let check l e t =
   let c = Kernel.Ctx.check c in
   let tm = Kernel.check_unnamed_term c ?ty e in
   let ty = Kernel.UnnamedTm.ty tm in
+  (e, ty)
+
+let exec_check_builtin b =
+  let e = Environment.builtin_to_value b in
+  let ty = Environment.value_ty e in
   (e, ty)
 
 let exec_set o v =
@@ -141,6 +118,22 @@ let exec_cmd cmd =
       | UnknownOption o -> Error.unknown_option o
       | NotAnInt v -> Error.wrong_option_argument ~expected:"int" o v
       | NotABoolean v -> Error.wrong_option_argument ~expected:"boolean" o v)
+  | Check_builtin b ->
+      Io.command "check %s" (Raw.string_of_builtin b);
+      let e, ty = exec_check_builtin b in
+      Io.info
+        (lazy
+          (Printf.sprintf "valid term %s of type %s"
+             (Environment.value_to_string e)
+             (Unchecked.ty_to_string ty)))
+  | Decl_builtin (v, b) ->
+      Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_builtin b);
+      let e, ty = exec_decl_builtin v b in
+      Io.info
+        (lazy
+          (Printf.sprintf "successfully defined term %s of type %s"
+             (Environment.value_to_string e)
+             (Unchecked.ty_to_string ty)))
 
 type next = Abort | KeepGoing | Interactive
 

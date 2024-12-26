@@ -4,11 +4,6 @@ open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 let wcomp = Construct.wcomp
 
-let rename x names =
-  match Unchecked.tm_apply_sub (Var x) names with
-  | Var a -> a
-  | _ -> assert false
-
 (* Cone contexts *)
 module Cone = struct
   let tbl = Hashtbl.create 97
@@ -39,7 +34,7 @@ module Cone = struct
               let ctx = Functorialisation.ctx ctx [ b; f ] in
               let names = Unchecked.db_level_sub_inv ctx in
               let ctx, _, _ = Unchecked.db_levels ctx in
-              let rename x = rename x names in
+              let rename x = Display_maps.var_apply_sub x names in
               let src = Unchecked.sub_apply_sub id names in
               let tgt_predb =
                 List.map
@@ -90,15 +85,6 @@ module Cone = struct
     if n <= k then Unchecked.identity (ctx n)
     else if n = k + 1 then bdry_right_gen n
     else Unchecked.sub_apply_sub (bdry_right (n - 1) k) (bdry_right_gen n)
-
-  (* Cone types *)
-  let ty n = fst (List.assoc (filler n) (ctx n))
-
-  let ty_src n =
-    match ty n with Arr (_, s, _) -> s | Obj | Meta_ty _ -> assert false
-
-  let ty_tgt n =
-    match ty n with Arr (_, _, t) -> t | Obj | Meta_ty _ -> assert false
 end
 
 (* Cone inductive relation : a (n+1)-cone is a suspended opposite of a n-cone *)
@@ -121,10 +107,12 @@ end = struct
   let fake_sub_ps_unsafe n =
     let ctx = Cone.ctx n in
     let with_type v = (Var v, fst (List.assoc v ctx)) in
-    let b k = rename (Cone.base k) (Cone.bdry_left n k) in
-    let bP k = rename (Cone.base k) (Cone.bdry_right n k) in
-    let f k = rename (Cone.filler k) (Cone.bdry_left n k) in
-    let fP k = rename (Cone.filler k) (Cone.bdry_right n k) in
+    let b k = Display_maps.var_apply_sub (Cone.base k) (Cone.bdry_left n k) in
+    let bP k = Display_maps.var_apply_sub (Cone.base k) (Cone.bdry_right n k) in
+    let f k = Display_maps.var_apply_sub (Cone.filler k) (Cone.bdry_left n k) in
+    let fP k =
+      Display_maps.var_apply_sub (Cone.filler k) (Cone.bdry_right n k)
+    in
     let fP1 = with_type (fP 1) in
     let b k = with_type (b k) in
     let bP k = with_type (bP k) in
@@ -182,9 +170,9 @@ module Codim1 = struct
   let right_incl n = snd @@ ctx n
   let ctx n = fst @@ ctx n
   let left_base n = Cone.base n
-  let right_base n = rename (Cone.base n) (right_incl n)
+  let right_base n = Display_maps.var_apply_sub (Cone.base n) (right_incl n)
   let left_filler n = Cone.filler n
-  let right_filler n = rename (Cone.filler n) (right_incl n)
+  let right_filler n = Display_maps.var_apply_sub (Cone.filler n) (right_incl n)
 
   let compose_dim2 () =
     let with_type ctx x = (Var x, fst (List.assoc x ctx)) in
@@ -222,14 +210,17 @@ module Codim1 = struct
         Unchecked.ty_apply_sub assoc_ty (Unchecked.sub_ps_to_sub sub_ps) )
     in
     let tm, _ = Functorialisation.wcomp tm_1 1 tm_2 in
-    check_term (Ctx.check ctx) ("builtin_conecomp", 0, []) tm
+    let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" 2 1 2 in
+    check_term (Ctx.check ctx) (name, 0, []) tm
 
   let intch n =
     let with_type ctx x = (Var x, fst (List.assoc x ctx)) in
     let ctx_comp = ctx n in
-    let f k = rename (Cone.filler k) (Cone.bdry_left n k) in
-    let fP k = rename (Cone.filler k) (Cone.bdry_right n k) in
-    let fP k = rename (fP k) (right_incl n) in
+    let f k = Display_maps.var_apply_sub (Cone.filler k) (Cone.bdry_left n k) in
+    let fP k =
+      Display_maps.var_apply_sub (Cone.filler k) (Cone.bdry_right n k)
+    in
+    let fP k = Display_maps.var_apply_sub (fP k) (right_incl n) in
     let lb = left_base n in
     let rb = right_base n in
     let inner_intch =
@@ -258,6 +249,7 @@ module Codim1 = struct
         let right_incl_prev = right_incl (n - 1) in
         let ctx_comp = ctx n in
         let right_incl = right_incl n in
+        let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" n 1 n in
         let suspopcomp =
           let op_data = List.init (n - 1) (fun i -> i + 1) in
           let comp =
@@ -274,9 +266,7 @@ module Codim1 = struct
               (Suspension.sub (Some 1)
                  (Opposite.sub (Cone.bdry_left (n - 1) (n - 2)) op_data))
           in
-          check_term (Ctx.check ctx_comp)
-            ("builtin_conecomp", 0, [])
-            (App (comp, sub))
+          check_term (Ctx.check ctx_comp) (name, 0, []) (App (comp, sub))
         in
         let intch = intch n in
         let socomp = (Tm.develop suspopcomp, Tm.ty suspopcomp) in
@@ -284,7 +274,7 @@ module Codim1 = struct
           if n mod 2 = 0 then wcomp socomp (n - 1) intch
           else wcomp intch (n - 1) socomp
         in
-        check_term (Ctx.check ctx_comp) ("builtin_conecomp", 0, []) tm
+        check_term (Ctx.check ctx_comp) (name, 0, []) tm
 end
 
 module Composition = struct
@@ -294,7 +284,7 @@ module Composition = struct
       let ctx = Functorialisation.ctx ctx [ lb; lf ] in
       let names = Unchecked.db_level_sub_inv ctx in
       let ctx, _, _ = Unchecked.db_levels ctx in
-      let rename x = rename x names in
+      let rename x = Display_maps.var_apply_sub x names in
       let lb = Var.Bridge lb in
       let lf = Var.Bridge lf in
       (ctx, rename lb, rename lf, rename rb, rename rf)
@@ -303,7 +293,7 @@ module Composition = struct
       let ctx = Functorialisation.ctx ctx [ rb; rf ] in
       let names = Unchecked.db_level_sub_inv ctx in
       let ctx, _, _ = Unchecked.db_levels ctx in
-      let rename x = rename x names in
+      let rename x = Display_maps.var_apply_sub x names in
       let rb = Var.Bridge rb in
       let rf = Var.Bridge rf in
       (ctx, rename lb, rename lf, rename rb, rename rf)
@@ -313,15 +303,19 @@ module Composition = struct
       | 1 ->
           let lb = Cone.base n in
           let lf = Cone.filler n in
-          let rb = rename (Cone.base n) (Codim1.right_incl n) in
-          let rf = rename (Cone.filler n) (Codim1.right_incl n) in
+          let rb =
+            Display_maps.var_apply_sub (Cone.base n) (Codim1.right_incl n)
+          in
+          let rf =
+            Display_maps.var_apply_sub (Cone.filler n) (Codim1.right_incl n)
+          in
           (Codim1.ctx n, lb, lf, rb, rf)
       | _ ->
           let ctx, lb, lf, rb, rf = ctx (n - 1) (m - 1) k in
           let ctx = Functorialisation.ctx ctx [ lb; lf; rb; rf ] in
           let names = Unchecked.db_level_sub_inv ctx in
           let ctx, _, _ = Unchecked.db_levels ctx in
-          let rename x = rename x names in
+          let rename x = Display_maps.var_apply_sub x names in
           let lb = Var.Bridge lb in
           let lf = Var.Bridge lf in
           let rb = Var.Bridge rb in
@@ -350,7 +344,7 @@ module Composition = struct
     match Hashtbl.find_opt tbl (n, m, k) with
     | Some res -> res
     | None ->
-        let res =
+        let tm =
           if n > m then
             Functorialisation.tm
               (compose (n - 1) m k)
@@ -373,11 +367,14 @@ module Composition = struct
                     (right_filler (n - 1) (m - 1) k, 1);
                   ]
         in
-        let ctx = Tm.ctx res in
+        let ctx = Tm.ctx tm in
         let names = Unchecked.db_level_sub_inv ctx in
         let ctx, _, _ = Unchecked.db_levels ctx in
-        let res = Unchecked.tm_apply_sub (Tm.develop res) names in
-        let res = check_term (Ctx.check ctx) ("builtin_conecomp", 0, []) res in
+        let tm = Unchecked.tm_apply_sub (Tm.develop tm) names in
+        let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" n k m in
+        let res = check_term (Ctx.check ctx) (name, 0, []) tm in
         Hashtbl.add tbl (n, m, k) res;
         res
 end
+
+let compose = Composition.compose
