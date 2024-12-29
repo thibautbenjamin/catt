@@ -48,4 +48,4 @@ let rec glue s1 s2 inr c2 dm =
          context"
   | _, _, _ ->
       Error.fatal
-        "wrong data pullback gluing: substitution must be point to the context"
+        "wrong data pullback gluing: substitution must point to the context"
