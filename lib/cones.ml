@@ -182,10 +182,7 @@ module Codim1 = struct
     let right_filler = with_type ctx (right_filler 2) in
     let left_base = with_type ctx (left_base 2) in
     let right_base = with_type ctx (right_base 2) in
-    let tm_1 =
-      Functorialisation.wcomp left_filler 1
-        (Functorialisation.wcomp left_base 0 right_filler)
-    in
+    let tm_1 = wcomp left_filler 1 (wcomp left_base 0 right_filler) in
     let leftmost_pt, midpoint =
       match snd left_base with Arr (_, s, t) -> (s, t) | _ -> assert false
     in
@@ -209,7 +206,7 @@ module Codim1 = struct
       ( Coh (Builtin.assoc, sub_ps),
         Unchecked.ty_apply_sub assoc_ty (Unchecked.sub_ps_to_sub sub_ps) )
     in
-    let tm, _ = Functorialisation.wcomp tm_1 1 tm_2 in
+    let tm, _ = wcomp tm_1 1 tm_2 in
     let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" 2 1 2 in
     check_term (Ctx.check ctx) (name, 0, []) tm
 
