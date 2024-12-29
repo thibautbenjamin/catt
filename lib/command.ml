@@ -20,6 +20,31 @@ type prog = cmd list
 
 let postprocess_fn : (ctx -> tm -> ctx * tm) ref = ref (fun c e -> (c, e))
 
+let () =
+  postprocess_fn :=
+    fun ctx tm ->
+      (* Io.debug "cylctx 1: %s" *)
+      (*   (Unchecked.ctx_to_string (Cylinders.Cylinder.ctx 1)); *)
+      (* Io.debug "cylctx 2: %s" *)
+      (*   (Unchecked.ctx_to_string (Cylinders.Cylinder.ctx 2)); *)
+      (* Io.debug "cylctx 3: %s" *)
+      (*   (Unchecked.ctx_to_string (Cylinders.Cylinder.ctx 3)); *)
+      (* Io.debug "cylctx 4: %s" *)
+      (*   (Unchecked.ctx_to_string (Cylinders.Cylinder.ctx 4)); *)
+      (* Io.debug "cylctx 5: %s" *)
+      (*   (Unchecked.ctx_to_string (Cylinders.Cylinder.ctx 5)); *)
+      Io.debug "cylcomp 2,1,2: %s"
+        (Unchecked.tm_to_string (Tm.develop (Cylinders.compose 2 2 1)));
+      Io.debug "cylcomp 3,1,2: %s"
+        (Unchecked.tm_to_string (Tm.develop (Cylinders.compose 3 2 1)));
+      Io.debug "cylcomp 2,1,3: %s"
+        (Unchecked.tm_to_string (Tm.develop (Cylinders.compose 2 3 1)));
+      Io.debug "cylcomp 3,1,3: %s"
+        (Unchecked.tm_to_string (Tm.develop (Cylinders.compose 3 3 1)));
+      Io.debug "cylcomp 3,2,3: %s"
+        (Unchecked.tm_to_string (Tm.develop (Cylinders.compose 3 3 2)));
+      (ctx, tm)
+
 let exec_coh v ps ty =
   let ps, ty = Elaborate.ty_in_ps ps ty in
   Environment.add_coh v ps ty
