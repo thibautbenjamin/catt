@@ -59,7 +59,6 @@ let pp_data_rename pp names =
     | [] -> []
     | (x, i) :: f -> (Display_maps.var_apply_sub x names, i) :: rename f
   in
-
   (name, susp, List.map rename func)
 
 (* Functorialised coherences with respect to locally maximal variables are
