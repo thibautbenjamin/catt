@@ -69,6 +69,7 @@ end) : sig
     val tm_contains_vars : tm -> Var.t list -> bool
     val sub_ps_to_sub : sub_ps -> sub
     val sub_to_sub_ps : ps -> sub -> sub_ps
+    val suspend_pp_data : pp_data -> pp_data
     val suspend_ps : ps -> ps
     val suspend_ty : ty -> ty
     val suspend_tm : tm -> tm

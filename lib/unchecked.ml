@@ -141,7 +141,12 @@ struct
     type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
     let suspend_ps ps = Br [ ps ]
-    let suspend_pp_data = function name, susp, func -> (name, susp + 1, func)
+
+    let suspend_func_data f =
+      List.map (List.map (fun (x, i) -> (Var.suspend x, i))) f
+
+    let suspend_pp_data = function
+      | name, susp, func -> (name, susp + 1, suspend_func_data func)
 
     let rec suspend_ty = function
       | Obj -> Arr (Obj, Var (Db 0), Var (Db 1))
@@ -421,11 +426,12 @@ struct
         | Var v -> Var.to_string v
         | Meta_tm i -> Printf.sprintf "_tm%i" i
         | Coh (c, s) ->
-            if not !Settings.unroll_coherences then
+            if !Settings.unroll_coherences then
+              Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
+            else
               let func = Coh.func_data c in
               Printf.sprintf "(%s%s)" (Coh.to_string c)
                 (sub_ps_to_string ~func s)
-            else Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
         | App (t, s) ->
             let func = Tm.func_data t in
             let str_s, expl = sub_to_string ~func s in
