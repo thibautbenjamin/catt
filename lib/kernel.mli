@@ -127,7 +127,7 @@ module Unchecked : sig
   val ty_contains_var : ty -> Var.t -> bool
   val tm_contains_vars : tm -> Var.t list -> bool
   val sub_ps_to_sub : sub_ps -> sub
-  val sub_to_sub_ps : ps -> sub -> sub_ps
+  val sub_to_sub_ps : sub -> sub_ps
   val suspend_pp_data : pp_data -> pp_data
   val suspend_ps : ps -> ps
   val suspend_ty : ty -> ty
