@@ -67,6 +67,7 @@ and tm t op_data =
           t
       in
       let op_s = sub s op_data in
+      let op_s = Unchecked.(sub_ps_to_sub (sub_to_sub_ps op_s)) in
       App (op_t, op_s)
   | Meta_tm m -> Meta_tm m
 

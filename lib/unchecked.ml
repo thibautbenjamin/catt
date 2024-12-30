@@ -39,6 +39,8 @@ struct
       in
       fst (aux s)
 
+    let sub_to_sub_ps s = List.map snd s
+
     let rec tm_do_on_variables tm f =
       match tm with
       | Var v -> f v
@@ -158,6 +160,7 @@ struct
       | Coh (c, s) -> Coh (suspend_coh c, suspend_sub_ps s)
       | App (t, s) ->
           let t, _ = Tm.apply suspend_ctx suspend_tm suspend_pp_data t in
+          let s = sub_ps_to_sub (sub_to_sub_ps s) in
           App (t, suspend_sub s)
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
@@ -699,8 +702,6 @@ struct
           let sub = sub_ps_to_sub s in
           (t, true) :: ty_to_sub_ps (ty_apply_sub ty sub)
       | _ -> Error.fatal "can only convert coh to sub ps"
-
-    let sub_to_sub_ps ps s = sub_ps_apply_sub (identity_ps ps) s
 
     let rec identity ctx =
       match ctx with
