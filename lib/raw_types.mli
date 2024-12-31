@@ -1,6 +1,10 @@
 open Common
 
-type builtin = Comp | Id | Conecomp of (int * int * int)
+type builtin =
+  | Comp
+  | Id
+  | Conecomp of (int * int * int)
+  | Cylcomp of (int * int * int)
 
 type tyR = Letin_ty of Var.t * tmR * tyR | ObjR | ArrR of tmR * tmR
 
