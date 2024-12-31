@@ -54,6 +54,9 @@ let rec tm t =
           make_coh coh s susp expl
       | Conecomp (n, k, m) ->
           let tm = Cones.compose n m k in
+          make_app tm s susp expl
+      | Cylcomp (n, k, m) ->
+          let tm = Cylinders.compose n m k in
           make_app tm s susp expl)
   | Op (l, t) ->
       let offset = head_susp t in
