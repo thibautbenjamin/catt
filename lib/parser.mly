@@ -36,6 +36,7 @@
 %token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP AT
 %token <string> BUILTIN
 %token <int*int*int> CONECOMP
+%token <int*int*int> CYLCOMP
 %token <string> IDENT
 %token <string> INT
 %token CHECK EQUAL LET IN SET INV UNIT DECLARE
@@ -110,6 +111,7 @@ builtin:
     | s when String.equal s "id" -> Id
     | _ -> assert false }
  | CONECOMP { let (n,k,m) = $1 in Conecomp(n,k,m) }
+ | CYLCOMP { let (n,k,m) = $1 in Cylcomp(n,k,m) }
 
 simple_tmexpr:
   | LPAR tmexpr RPAR { $2 }
