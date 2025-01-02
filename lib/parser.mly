@@ -37,6 +37,7 @@
 %token <string> BUILTIN
 %token <int*int*int> CONECOMP
 %token <int*int*int> CYLCOMP
+%token <int> CYLSTACK
 %token <string> IDENT
 %token <string> INT
 %token CHECK EQUAL LET IN SET INV UNIT DECLARE
@@ -112,6 +113,7 @@ builtin:
     | _ -> assert false }
  | CONECOMP { let (n,k,m) = $1 in Conecomp(n,k,m) }
  | CYLCOMP { let (n,k,m) = $1 in Cylcomp(n,k,m) }
+ | CYLSTACK { let n = $1 in Cylstack(n) }
 
 simple_tmexpr:
   | LPAR tmexpr RPAR { $2 }

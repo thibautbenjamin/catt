@@ -57,6 +57,9 @@ let rec tm t =
           make_app tm s susp expl
       | Cylcomp (n, k, m) ->
           let tm = Cylinders.compose n m k in
+          make_app tm s susp expl
+      | Cylstack n ->
+          let tm = Cylinders.stacking n in
           make_app tm s susp expl)
   | Op (l, t) ->
       let offset = head_susp t in
