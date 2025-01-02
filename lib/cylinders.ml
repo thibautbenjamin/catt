@@ -521,10 +521,6 @@ module Stacking = struct
     Hashtbl.add tbl_stacking_ctx n res;
     res
 
-  let rec print = function
-    | [] -> ""
-    | (x, _) :: l -> Printf.sprintf "%s %s" (Var.to_string x) (print l)
-
   let rec stacking n =
     let res =
       match n with

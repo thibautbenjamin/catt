@@ -7,6 +7,7 @@ let string_of_builtin = function
   | Id -> "id"
   | Conecomp (n, k, m) -> Printf.sprintf "conecomp(%d,%d,%d)" n k m
   | Cylcomp (n, k, m) -> Printf.sprintf "cylcomp(%d,%d,%d)" n k m
+  | Cylstack n -> Printf.sprintf "cylstack(%d)" n
 
 let rec string_of_ty e =
   match e with
@@ -122,6 +123,7 @@ and dim_builtin = function
   | Comp -> 1
   | Id -> 1
   | Conecomp (n, _, m) | Cylcomp (n, _, m) -> max n m
+  | Cylstack n -> n
 
 let rec dim_sub ctx = function
   | [] -> (0, 0)
@@ -143,7 +145,7 @@ let rec infer_susp_tm ctx = function
                 match b with
                 | Comp -> 1
                 | Id -> 0
-                | Conecomp (n, _, _) | Cylcomp (n, _, _) -> n)
+                | Conecomp (n, _, _) | Cylcomp (n, _, _) | Cylstack n -> n)
             | _ -> assert false
           in
           let d, func = dim_sub ctx s in
