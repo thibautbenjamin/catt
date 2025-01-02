@@ -473,3 +473,155 @@ module Composition = struct
 end
 
 let compose = Composition.compose
+
+module Stacking = struct
+  let tbl_stacking_ctx = Hashtbl.create 97
+  let tbl_stacking_tm = Hashtbl.create 97
+
+  let rec ctx n =
+    let res =
+      match n with
+      | n when n <= 1 -> assert false
+      | n when n = 2 ->
+          let ctx = Cylinder.ctx 2 in
+          let base_lower = Cylinder.base_lower 2 in
+          let base_upper = Cylinder.base_upper 2 in
+          let char v =
+            Unchecked.sub_ps_to_sub
+              ((Var v, true) :: Unchecked.ty_to_sub_ps (fst (List.assoc v ctx)))
+          in
+          let ctx, upper_incl =
+            Display_maps.pullback (Cylinder.ctx 2) (char base_upper)
+              (Cylinder.ctx 2) (char base_lower)
+          in
+          let names = Unchecked.db_level_sub_inv ctx in
+          let ctx, _, _ = Unchecked.db_levels ctx in
+          let upper_incl = Unchecked.sub_apply_sub upper_incl names in
+          (ctx, upper_incl)
+      | n ->
+          let ctx, upper_incl = ctx (n - 1) in
+          let lb = Cylinder.base_lower (n - 1) in
+          let mb = Cylinder.base_upper (n - 1) in
+          let ub = Display_maps.var_apply_sub mb upper_incl in
+          let lf = Cylinder.filler (n - 1) in
+          let uf = Display_maps.var_apply_sub lf upper_incl in
+          let var_fun = [ lb; mb; lf; ub; uf ] in
+          let ctx = Functorialisation.ctx ctx var_fun in
+          let ctx = Opposite.ctx ctx [ n ] in
+          let upper_incl = Functorialisation.sub upper_incl var_fun in
+          let upper_incl = Opposite.sub upper_incl [ n ] in
+          let names = Unchecked.db_level_sub_inv ctx in
+          let ctx, _, _ = Unchecked.db_levels ctx in
+          let upper_incl = Unchecked.sub_apply_sub upper_incl names in
+          let upper_incl =
+            Unchecked.(sub_ps_to_sub (sub_to_sub_ps upper_incl))
+          in
+          (ctx, upper_incl)
+    in
+    Hashtbl.add tbl_stacking_ctx n res;
+    res
+
+  let rec print = function
+    | [] -> ""
+    | (x, _) :: l -> Printf.sprintf "%s %s" (Var.to_string x) (print l)
+
+  let rec stacking n =
+    let res =
+      match n with
+      | n when n <= 1 -> assert false
+      | n when n = 2 ->
+          let ctx, upper_incl = ctx 2 in
+          let tm =
+            Functorialisation.coh (Builtin.comp_n 2)
+              [ Var.Db 4; Var.Db 3; Var.Db 2; Var.Db 1; Var.Db 0 ]
+          in
+          let tm = Opposite.checked_tm tm [ 2 ] in
+          let left_filler1_down =
+            Unchecked.tm_apply_sub
+              (Var (Cylinder.filler 1))
+              (Cylinder.bdry_left 2 1)
+          in
+          let right_filler1_down =
+            Unchecked.tm_apply_sub
+              (Var (Cylinder.filler 1))
+              (Cylinder.bdry_right 2 1)
+          in
+          let left_filler1_up =
+            Unchecked.tm_apply_sub left_filler1_down upper_incl
+          in
+          let right_filler1_up =
+            Unchecked.tm_apply_sub right_filler1_down upper_incl
+          in
+          let lower_base1_down =
+            Unchecked.tm_apply_sub
+              (Var (Cylinder.filler 0))
+              (Cylinder.bdry_left 2 0)
+          in
+          let lower_base1_mid =
+            Unchecked.tm_apply_sub
+              (Var (Cylinder.filler 0))
+              (Unchecked.sub_apply_sub (Cylinder.bdry_right 1 0)
+                 (Cylinder.bdry_left 2 1))
+          in
+          let upper_base1_down =
+            Unchecked.tm_apply_sub
+              (Var (Cylinder.filler 0))
+              (Unchecked.sub_apply_sub (Cylinder.bdry_left 1 0)
+                 (Cylinder.bdry_right 2 1))
+          in
+          let upper_base1_mid =
+            Unchecked.tm_apply_sub
+              (Var (Cylinder.filler 0))
+              (Cylinder.bdry_right 2 0)
+          in
+          let lower_base1_up =
+            Unchecked.tm_apply_sub lower_base1_mid upper_incl
+          in
+          let upper_base1_up =
+            Unchecked.tm_apply_sub upper_base1_mid upper_incl
+          in
+          let base2_down = Var (Cylinder.base_lower 2) in
+          let base2_mid = Var (Cylinder.base_upper 2) in
+          let base2_up = Unchecked.tm_apply_sub base2_mid upper_incl in
+          let filler2_down = Var (Cylinder.filler 2) in
+          let filler2_up = Unchecked.tm_apply_sub filler2_down upper_incl in
+          let sub_ps =
+            [
+              (filler2_up, true);
+              (right_filler1_up, false);
+              (left_filler1_up, false);
+              (base2_up, false);
+              (upper_base1_up, false);
+              (lower_base1_up, false);
+              (filler2_down, true);
+              (right_filler1_down, false);
+              (left_filler1_down, false);
+              (base2_mid, false);
+              (upper_base1_mid, false);
+              (lower_base1_mid, false);
+              (base2_down, false);
+              (upper_base1_down, false);
+              (lower_base1_down, false);
+            ]
+          in
+          let c = Tm.ctx tm in
+          let sub = List.map2 (fun (x, _) y -> (x, y)) c sub_ps in
+          check_term (Ctx.check ctx) ("builtin_cylstack", 0, []) (App (tm, sub))
+      | n ->
+          let _, upper_incl = ctx (n - 1) in
+          let lb = Cylinder.base_lower (n - 1) in
+          let mb = Cylinder.base_upper (n - 1) in
+          let ub = Display_maps.var_apply_sub mb upper_incl in
+          let lf = Cylinder.filler (n - 1) in
+          let uf = Display_maps.var_apply_sub lf upper_incl in
+          let tm = stacking (n - 1) in
+          let var_fun = [ (lb, 1); (mb, 1); (lf, 1); (ub, 1); (uf, 1) ] in
+          let tm = Functorialisation.tm tm var_fun in
+          let tm = Opposite.checked_tm tm [ n ] in
+          tm
+    in
+    Hashtbl.add tbl_stacking_tm n res;
+    res
+end
+
+let stacking = Stacking.stacking
