@@ -5,6 +5,7 @@ type builtin =
   | Id
   | Conecomp of (int * int * int)
   | Cylcomp of (int * int * int)
+  | Cylstack of int
 
 type tyR = Letin_ty of Var.t * tmR * tyR | ObjR | ArrR of tmR * tmR
 

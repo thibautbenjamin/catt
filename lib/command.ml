@@ -20,14 +20,6 @@ type prog = cmd list
 
 let postprocess_fn : (ctx -> tm -> ctx * tm) ref = ref (fun c e -> (c, e))
 
-let () =
-  postprocess_fn :=
-    fun c e ->
-      Io.debug "Stacking 2: %s" (Tm.name (Cylinders.stacking 2));
-      Io.debug "Stacking 3: %s" (Tm.name (Cylinders.stacking 3));
-      Io.debug "Stacking 4: %s" (Tm.name (Cylinders.stacking 4));
-      (c, e)
-
 let exec_coh v ps ty =
   let ps, ty = Elaborate.ty_in_ps ps ty in
   Environment.add_coh v ps ty

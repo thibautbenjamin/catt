@@ -21,6 +21,9 @@ rule token = parse
                                                                             let k = int_of_string k in
                                                                             let m = int_of_string m in
                                                                             CYLCOMP(n,k,m) }
+  | "cylstack(" (['0'-'9']* as n) ")" {
+                                      let n = int_of_string n in
+                                      CYLSTACK(n) }
   | "declare" { DECLARE }
   | "I" { INV }
   | "U" { UNIT }
