@@ -21,6 +21,23 @@ type prog = cmd list
 let postprocess_fn : (ctx -> tm -> ctx * tm) ref = ref (fun c e -> (c, e))
 
 let exec_coh v ps ty =
+  let t = Sys.time () in
+  let _ = Eh.full_eh 6 3 2 in
+  let t_diff = Sys.time () -. t in
+  Io.debug "time taken: %f" t_diff;
+  let t = Sys.time () in
+  let _ = Eh.full_eh 6 2 3 in
+  let t_diff = Sys.time () -. t in
+  Io.debug "time taken: %f" t_diff;
+  let t = Sys.time () in
+  let _ = Eh.full_eh_alt 6 3 2 in
+  let t_diff = Sys.time () -. t in
+  Io.debug "time taken: %f" t_diff;
+  let t = Sys.time () in
+  let _ = Eh.full_eh_alt 6 2 3 in
+  let t_diff = Sys.time () -. t in
+  Io.debug "time taken: %f" t_diff;
+
   let ps, ty = Elaborate.ty_in_ps ps ty in
   Environment.add_coh v ps ty
 
