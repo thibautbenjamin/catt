@@ -4,6 +4,14 @@ open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 type constr = tm * ty
 
+let to_tm (tm,_) = tm
+
+let to_ty (_,ty) = ty
+
+let characteristic_sub_ps (tm,ty) = (tm,true) :: (Unchecked.ty_to_sub_ps ty)
+let dim (_,ty) = Unchecked.dim_ty ty
+let arr (tm1, ty1) (tm2,_) = Arr(ty1,tm1,tm2)
+
 let rec bdry n (t, ty) =
   match (n, ty) with
   | 0, _ -> ((t, ty), (t, ty))
@@ -84,3 +92,111 @@ let intch_comp_mn a b c =
 
 let opposite (t, ty) op_data = (Opposite.tm t op_data, Opposite.ty ty op_data)
 let inv (t, ty) = (Inverse.compute_inverse t, Inverse.ty ty)
+
+let id constr = 
+  let d = dim constr in
+  (Coh( Suspension.coh (Some d) (Builtin.id()) ,characteristic_sub_ps constr), arr constr constr)
+
+let rec id_n n constr = match n with
+  | 0 -> constr
+  | n -> id (id_n (n-1) constr)
+
+let apply_sub (tm,ty) sigma = 
+  (Unchecked.tm_apply_sub tm sigma, Unchecked.ty_apply_sub ty sigma)
+
+let apply_sub_ps (tm,ty) sigma = 
+  (Unchecked.tm_apply_sub_ps tm sigma, Unchecked.ty_apply_sub_ps ty sigma)
+
+let inverse (tm,ty) = (Inverse.compute_inverse tm, Inverse.ty ty)
+
+let suspend i (tm, ty) = (Suspension.tm (Some i) tm, Suspension.ty (Some i) ty)
+
+
+
+
+let comp_n constrs = 
+  let rec last = function
+  | [] -> assert false
+  | [x] -> x
+  | _ :: tl -> (last tl)
+in
+  let first = function
+  | [] -> assert false
+  | h :: _ -> h
+in
+  let rec glue_subs = function
+  | [c] -> characteristic_sub_ps c
+  | c :: constrs -> (to_tm c, true) :: (to_tm (tgt 1 c), false) :: (glue_subs constrs)
+  | [] -> assert false
+in let l = List.length constrs in let c = first constrs in let d = dim c in
+(Coh(Suspension.coh (Some (d-1)) (Builtin.comp_n l),glue_subs (List.rev constrs)) , arr (_src 1 c) (tgt 1 (last constrs)))
+
+let op dims (tm,ty) = (Opposite.tm tm dims , Opposite.ty ty dims)
+
+let drop n xs =
+  let rec aux xs counter =
+    match xs with
+    | [] -> []
+    | h :: tl -> if counter > 0 then h :: aux tl (counter - 1) else []
+  in aux xs (List.length xs - n)
+
+let characteristic_sub_ps_composite constrs = 
+  let rec aux = function
+  | [] -> assert false
+  | [constr] -> characteristic_sub_ps constr
+  | constr :: tail ->[(to_tm constr, true);(to_tm @@ tgt 1 constr, false)] @ (aux tail) 
+in aux @@ List.rev constrs
+
+let glue_subs_along k subs = 
+  let rec aux = function
+  | [] -> assert false
+  | [sub] -> sub
+  | sub :: subs -> (drop (2*k + 1) sub) @ (aux subs)
+in aux @@ List.rev subs
+
+let rec whisk_n n dims =
+  let l = List.length dims in
+  let comp = Builtin.comp_n l in
+  let func_data = List.rev @@ List.mapi (fun idx dim -> (Var.Db (2*(idx + 1)),dim - 1)) dims in
+  let whisk = Functorialisation.coh_successively comp func_data in
+  Suspension.checked_tm (Some n) whisk 
+and wcomp_n k constrs = 
+  let dims_adjusted =  List.map (fun c -> (dim c) - k) constrs in
+  let whisk = whisk_n k dims_adjusted in
+  let whisk_sub_ps = glue_subs_along k (List.map characteristic_sub_ps constrs) in
+  let whisk_sub = Unchecked.sub_ps_to_sub whisk_sub_ps in
+  (App(whisk,whisk_sub), Unchecked.ty_apply_sub_ps (Tm.ty whisk) whisk_sub_ps)
+
+
+
+let witness constr =
+  let tm = to_tm constr in
+  let d = dim constr in
+  let ty = arr (wcomp constr (d-1) (inverse constr)) (id_n 1 (_src 1 constr)) in
+  (Inverse.compute_witness tm, ty)
+
+(* let min = function
+  | [] -> assert false
+  | [i] -> i
+  | h :: tl -> if h < (min tl) then h else min tl
+
+let isdisc = function
+  | Br [] -> true
+  | Br [x] -> isdisc x
+  | _ -> false
+ 
+let rec sphere_type_db = function 
+| -1 -> Obj
+| n -> Arr(sphere_type_db @@ n-1,Var (Var.Db (2*n)) ,Var (Var.Db (2*n+1))) 
+
+let rec unbiased_comp tree = 
+  let n =  Unchecked.dim_ps tree in
+  if isdisc tree then (Var (Var.Db 2*n), sphere_type_db (n-1))
+  else 
+  let comp_type = (Construct.arr (Construct.apply_sub_ps (unbiased_comp (Unchecked.ps_bdry tree)) (Unchecked.ps_src tree)) (Construct.apply_sub_ps (unbiased_comp (Unchecked.ps_bdry tree))(Unchecked.ps_tgt tree))) in
+  (Coh (
+    check_coh tree comp_type ("ucomp",0,[])
+  , Unchecked.identity_ps tree),comp_type)
+
+let wcomp_n constrs bdries = 
+  let dims = List.map dim constrs in *)

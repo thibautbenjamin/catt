@@ -40,6 +40,7 @@ struct
       fst (aux s)
 
     let sub_to_sub_ps s = List.map snd s
+    let sub_to_sub_ps s = List.map snd s
 
     let rec tm_do_on_variables tm f =
       match tm with

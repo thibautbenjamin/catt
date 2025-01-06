@@ -9,12 +9,12 @@
     let add_suspension = function
       | Sub (x,s,None,b) -> Sub (x,s,Some 1,b)
       | Sub (x,s,Some n,b) -> Sub (x,s,Some (n+1),b)
-      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _ 
         -> Error.fatal "trying to generate an invalid suspension"
 
     let mark_explicit = function
       | Sub(x,s,i,_) -> Sub(x,s,i,true)
-      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _ 
         -> Error.fatal "only substitution can be marked explicit"
 
     let context_of_annotated_ps ps =
@@ -114,6 +114,7 @@ builtin:
  | CONECOMP { let (n,k,m) = $1 in Conecomp(n,k,m) }
  | CYLCOMP { let (n,k,m) = $1 in Cylcomp(n,k,m) }
  | CYLSTACK { let n = $1 in Cylstack(n) }
+
 
 simple_tmexpr:
   | LPAR tmexpr RPAR { $2 }
