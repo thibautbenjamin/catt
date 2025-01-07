@@ -12,6 +12,8 @@ let builtin_to_value b =
   | Conecomp (n, k, m) -> Tm (Cones.compose n m k)
   | Cylcomp (n, k, m) -> Tm (Cylinders.compose n m k)
   | Cylstack n -> Tm (Cylinders.stacking n)
+  | Eh_half (n, k, l) -> Tm (Eh.eh_Tm n k l)
+  | Eh_full (n, k, l) -> Tm (Eh. full_eh_Tm n k l)
 
 let value_ty v =
   match v with
