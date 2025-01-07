@@ -8,6 +8,8 @@ let string_of_builtin = function
   | Conecomp (n, k, m) -> Printf.sprintf "conecomp(%d,%d,%d)" n k m
   | Cylcomp (n, k, m) -> Printf.sprintf "cylcomp(%d,%d,%d)" n k m
   | Cylstack n -> Printf.sprintf "cylstack(%d)" n
+  | Eh_half (n , k , l) -> Printf.sprintf "eh^%d_(%d,%d)" n k l
+  | Eh_full (n , k , l) -> Printf.sprintf "EH^%d_(%d,%d)" n k l
 
 let rec string_of_ty e =
   match e with
@@ -124,6 +126,7 @@ and dim_builtin = function
   | Id -> 1
   | Conecomp (n, _, m) | Cylcomp (n, _, m) -> max n m
   | Cylstack n -> n
+  | Eh_half (n, _, _) | Eh_full (n, _, _) -> n + 1
 
 let rec dim_sub ctx = function
   | [] -> (0, 0)
@@ -145,7 +148,8 @@ let rec infer_susp_tm ctx = function
                 match b with
                 | Comp -> 1
                 | Id -> 0
-                | Conecomp (n, _, _) | Cylcomp (n, _, _) | Cylstack n -> n)
+                | Conecomp (n, _, _) | Cylcomp (n, _, _) | Cylstack n -> n
+                | Eh_half (n, _, _) | Eh_full (n, _, _) -> n)
             | _ -> assert false
           in
           let d, func = dim_sub ctx s in
