@@ -47,7 +47,7 @@ let compute_inverse t =
   try compute_inverse t
   with NotInvertible s ->
     Error.inversion
-      ("term: " ^ Unchecked.tm_to_string t)
+      ("term: " ^ Printing.tm_to_string t)
       (Printf.sprintf "term %s is not invertible" s)
 
 let group_vertically ps t src_t tgt_t =
@@ -236,9 +236,9 @@ let compute_witness t =
   try
     let r = compute_witness t in
     Io.info ~v:3
-      (lazy (Printf.sprintf "inverse term: %s" (Unchecked.tm_to_string r)));
+      (lazy (Printf.sprintf "inverse term: %s" (Printing.tm_to_string r)));
     r
   with NotInvertible s ->
     Error.inversion
-      ("term: " ^ Unchecked.tm_to_string t)
+      ("term: " ^ Printing.tm_to_string t)
       (Printf.sprintf "term %s is not invertible" s)

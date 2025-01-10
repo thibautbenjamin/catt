@@ -319,7 +319,6 @@ module Codim1 = struct
               (Induct.ctx n)
               (Suspension.sub (Some 1) (Cylinder.bdry_left (n - 1) (n - 2)))
           in
-          Io.debug "substitution:%s" (Unchecked.sub_to_string_debug sub);
           check_term (Ctx.check ctx_comp) (name, 0, []) (App (comp, sub))
         in
         let intch_lower, intch_upper = intch n in

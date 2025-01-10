@@ -88,16 +88,6 @@ end
 module Unchecked : sig
   type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
-  val ps_to_string : ps -> string
-  val ty_to_string : ty -> string
-  val tm_to_string : tm -> string
-  val sub_ps_to_string : ?func:(Var.t * int) list list -> sub_ps -> string
-  val ctx_to_string : ctx -> string
-  val sub_to_string : ?func:(Var.t * int) list list -> sub -> string
-  val sub_to_string_debug : sub -> string
-  val meta_ctx_to_string : meta_ctx -> string
-  val pp_data_to_string : ?print_func:bool -> pp_data -> string
-  val full_name : pp_data -> string
   val check_equal_ctx : ctx -> ctx -> unit
   val check_equal_ps : ps -> ps -> unit
   val check_equal_ty : ty -> ty -> unit
@@ -151,6 +141,18 @@ module Unchecked : sig
   val list_to_sub : tm list -> ctx -> sub
   val list_to_db_level_sub : tm list -> (Var.t * tm) list
   val identity : ctx -> sub
+end
+
+module Printing : sig
+  val ps_to_string : ps -> string
+  val ty_to_string : ty -> string
+  val tm_to_string : tm -> string
+  val sub_ps_to_string : ?func:(Var.t * int) list list -> sub_ps -> string
+  val ctx_to_string : ctx -> string
+  val sub_to_string : ?func:(Var.t * int) list list -> sub -> string
+  val sub_to_string_debug : sub -> string
+  val meta_ctx_to_string : meta_ctx -> string
+  val full_name : pp_data -> string
 end
 
 val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> UnnamedTm.t

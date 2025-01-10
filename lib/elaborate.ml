@@ -16,14 +16,14 @@ module Constraints = struct
     let print_ty =
       Queue.fold c.ty ~init:"" ~f:(fun s (ty1, ty2) ->
           Printf.sprintf "%s (%s = %s)" s
-            (Unchecked.ty_to_string ty1)
-            (Unchecked.ty_to_string ty2))
+            (Printing.ty_to_string ty1)
+            (Printing.ty_to_string ty2))
     in
     let print_tm =
       Queue.fold c.tm ~init:"" ~f:(fun s (tm1, tm2) ->
           Printf.sprintf "%s (%s = %s)" s
-            (Unchecked.tm_to_string tm1)
-            (Unchecked.tm_to_string tm2))
+            (Printing.tm_to_string tm1)
+            (Printing.tm_to_string tm2))
     in
     Printf.sprintf "[%s] [%s]" print_ty print_tm
 
@@ -37,7 +37,7 @@ module Constraints = struct
     | Meta_ty _, _ | _, Meta_ty _ -> Queue.enqueue cst.ty (ty1, ty2)
     | Arr (_, _, _), Obj | Obj, Arr (_, _, _) ->
         raise
-          (NotUnifiable (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
+          (NotUnifiable (Printing.ty_to_string ty1, Printing.ty_to_string ty2))
 
   and unify_tm cst tm1 tm2 =
     match (tm1, tm2) with
@@ -56,7 +56,7 @@ module Constraints = struct
         unify_tm cst (Unchecked.tm_apply_sub (Tm.develop t) s) tm2
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
         raise
-          (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
+          (NotUnifiable (Printing.tm_to_string tm1, Printing.tm_to_string tm2))
 
   and unify_sub cst s1 s2 =
     match (s1, s2) with
@@ -66,7 +66,7 @@ module Constraints = struct
         unify_sub cst s1 s2
     | [], _ :: _ | _ :: _, [] ->
         raise
-          (NotUnifiable (Unchecked.sub_to_string s1, Unchecked.sub_to_string s2))
+          (NotUnifiable (Printing.sub_to_string s1, Printing.sub_to_string s2))
 
   and unify_sub_ps cst s1 s2 =
     match (s1, s2) with
@@ -77,7 +77,7 @@ module Constraints = struct
     | [], _ :: _ | _ :: _, [] ->
         raise
           (NotUnifiable
-             (Unchecked.sub_ps_to_string s1, Unchecked.sub_ps_to_string s2))
+             (Printing.sub_ps_to_string s1, Printing.sub_ps_to_string s2))
 
   type mgu = { uty : (int * ty) list; utm : (int * tm) list }
 
@@ -190,9 +190,9 @@ module Constraints_typing = struct
     Io.info ~v:5
       (lazy
         (Printf.sprintf "constraint typing term %s in ctx %s, meta_ctx %s"
-           (Unchecked.tm_to_string t)
-           (Unchecked.ctx_to_string ctx)
-           (Unchecked.meta_ctx_to_string meta_ctx)));
+           (Printing.tm_to_string t)
+           (Printing.ctx_to_string ctx)
+           (Printing.meta_ctx_to_string meta_ctx)));
     match t with
     | Var v -> (
         try (t, fst (List.assoc v ctx))
@@ -219,10 +219,10 @@ module Constraints_typing = struct
       (lazy
         (Printf.sprintf
            "constraint typing substitution %s in ctx %s, target %s, meta_ctx %s"
-           (Unchecked.sub_to_string_debug s)
-           (Unchecked.ctx_to_string src)
-           (Unchecked.ctx_to_string tgt)
-           (Unchecked.meta_ctx_to_string meta_ctx)));
+           (Printing.sub_to_string_debug s)
+           (Printing.ctx_to_string src)
+           (Printing.ctx_to_string tgt)
+           (Printing.meta_ctx_to_string meta_ctx)));
     match (s, tgt) with
     | [], [] -> []
     | (x, (u, e)) :: s, (_, (t, _)) :: c ->
@@ -236,9 +236,9 @@ module Constraints_typing = struct
     Io.info ~v:5
       (lazy
         (Printf.sprintf "constraint typing type %s in ctx %s, meta_ctx %s"
-           (Unchecked.ty_to_string t)
-           (Unchecked.ctx_to_string ctx)
-           (Unchecked.meta_ctx_to_string meta_ctx)));
+           (Printing.ty_to_string t)
+           (Printing.ctx_to_string ctx)
+           (Printing.meta_ctx_to_string meta_ctx)));
     match t with
     | Obj -> Obj
     | Arr (a, u, v) ->
@@ -293,7 +293,7 @@ let solve_cst ~elab_fn ~print_fn ~kind x =
 let ctx c =
   let c, meta_ctx = Translate_raw.ctx c in
   let elab_fn c = fst (Constraints_typing.ctx c meta_ctx) in
-  solve_cst ~elab_fn ~print_fn:Unchecked.ctx_to_string ~kind:"context" c
+  solve_cst ~elab_fn ~print_fn:Printing.ctx_to_string ~kind:"context" c
 
 let elab_ty ctx meta_ctx ty =
   let cst = Constraints.create () in
@@ -320,7 +320,7 @@ let ty c ty =
     let c = ctx c in
     let ty, meta_ctx = Translate_raw.ty ty in
     let elab_fn ty = elab_ty c meta_ctx ty in
-    let print_fn = Unchecked.ty_to_string in
+    let print_fn = Printing.ty_to_string in
     (c, solve_cst ~elab_fn ~print_fn ~kind:"type" ty)
   with Error.UnknownId s -> raise (Error.unknown_id s)
 
@@ -331,7 +331,7 @@ let tm c tm =
     let c = ctx c in
     let tm, meta_ctx = Translate_raw.tm tm in
     let elab_fn tm = elab_tm c meta_ctx tm in
-    let print_fn = Unchecked.tm_to_string in
+    let print_fn = Printing.tm_to_string in
     (c, solve_cst ~elab_fn ~print_fn ~kind:"term" tm)
   with Error.UnknownId s -> raise (Error.unknown_id s)
 
@@ -343,13 +343,13 @@ let ty_in_ps ps t =
     let t, meta_ctx = Translate_raw.ty t in
     let t =
       let elab_fn ty = elab_ty ps meta_ctx ty in
-      solve_cst ~elab_fn ~print_fn:Unchecked.ty_to_string ~kind:"type" t
+      solve_cst ~elab_fn ~print_fn:Printing.ty_to_string ~kind:"type" t
     in
     try
       let _, names, _ = Unchecked.db_levels ps in
       ( Kernel.PS.(forget (mk (Kernel.Ctx.check ps))),
         Unchecked.rename_ty t names )
     with
-    | Kernel.PS.Invalid -> raise (Error.invalid_ps (Unchecked.ctx_to_string ps))
-    | DoubledVar x -> raise (Error.doubled_var (Unchecked.ctx_to_string ps) x)
+    | Kernel.PS.Invalid -> raise (Error.invalid_ps (Printing.ctx_to_string ps))
+    | DoubledVar x -> raise (Error.doubled_var (Printing.ctx_to_string ps) x)
   with Error.UnknownId s -> raise (Error.unknown_id s)

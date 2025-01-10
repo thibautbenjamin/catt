@@ -22,22 +22,21 @@ let postprocess_fn : (ctx -> tm -> ctx * tm) ref = ref (fun c e -> (c, e))
 
 let exec_coh v ps ty =
   (* let t = Sys.time () in
-  let _ = Eh.full_eh 6 3 2 in
-  let t_diff = Sys.time () -. t in
-  Io.debug "time taken: %f" t_diff;
-  let t = Sys.time () in
-  let _ = Eh.full_eh 6 2 3 in
-  let t_diff = Sys.time () -. t in
-  Io.debug "time taken: %f" t_diff;
-  let t = Sys.time () in
-  let _ = Eh.full_eh_alt 6 3 2 in
-  let t_diff = Sys.time () -. t in
-  Io.debug "time taken: %f" t_diff;
-  let t = Sys.time () in
-  let _ = Eh.full_eh_alt 6 2 3 in
-  let t_diff = Sys.time () -. t in
-  Io.debug "time taken: %f" t_diff; *)
-
+     let _ = Eh.full_eh 6 3 2 in
+     let t_diff = Sys.time () -. t in
+     Io.debug "time taken: %f" t_diff;
+     let t = Sys.time () in
+     let _ = Eh.full_eh 6 2 3 in
+     let t_diff = Sys.time () -. t in
+     Io.debug "time taken: %f" t_diff;
+     let t = Sys.time () in
+     let _ = Eh.full_eh_alt 6 3 2 in
+     let t_diff = Sys.time () -. t in
+     Io.debug "time taken: %f" t_diff;
+     let t = Sys.time () in
+     let _ = Eh.full_eh_alt 6 2 3 in
+     let t_diff = Sys.time () -. t in
+     Io.debug "time taken: %f" t_diff; *)
   let ps, ty = Elaborate.ty_in_ps ps ty in
   Environment.add_coh v ps ty
 
@@ -120,16 +119,15 @@ let exec_cmd cmd =
       let e, ty = check l e t in
       Io.info
         (lazy
-          (Printf.sprintf "valid term %s of type %s" (Unchecked.tm_to_string e)
-             (Unchecked.ty_to_string ty)))
+          (Printf.sprintf "valid term %s of type %s" (Printing.tm_to_string e)
+             (Printing.ty_to_string ty)))
   | Decl (v, l, e, t) ->
       Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_tm e);
       let tm, ty = exec_decl v l e t in
       Io.info
         (lazy
           (Printf.sprintf "successfully defined term %s of type %s"
-             (Unchecked.tm_to_string tm)
-             (Unchecked.ty_to_string ty)))
+             (Printing.tm_to_string tm) (Printing.ty_to_string ty)))
   | Set (o, v) -> (
       try exec_set o v with
       | UnknownOption o -> Error.unknown_option o
@@ -142,7 +140,7 @@ let exec_cmd cmd =
         (lazy
           (Printf.sprintf "valid term %s of type %s"
              (Environment.value_to_string e)
-             (Unchecked.ty_to_string ty)))
+             (Printing.ty_to_string ty)))
   | Decl_builtin (v, b) ->
       Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_builtin b);
       let e, ty = exec_decl_builtin v b in
@@ -150,7 +148,7 @@ let exec_cmd cmd =
         (lazy
           (Printf.sprintf "successfully defined term %s of type %s"
              (Environment.value_to_string e)
-             (Unchecked.ty_to_string ty)))
+             (Printing.ty_to_string ty)))
 
 type next = Abort | KeepGoing | Interactive
 
