@@ -96,6 +96,7 @@ and Ctx : sig
   val forget : t -> Unchecked_types(Coh)(Tm).ctx
   val check : Unchecked_types(Coh)(Tm).ctx -> t
   val check_notin : t -> Var.t -> unit
+  val is_equal : t -> t -> bool
   val check_equal : t -> t -> unit
 end = struct
   type t = { c : (Var.t * Ty.t) list; unchecked : Unchecked_types(Coh)(Tm).ctx }
@@ -126,9 +127,15 @@ end = struct
   let forget c = c.unchecked
   let to_string ctx = Printing.ctx_to_string (forget ctx)
 
+  let is_equal ctx1 ctx2 =
+    ctx1 == ctx2 || Equality.is_equal_ctx (forget ctx1) (forget ctx2)
+
   let check_equal ctx1 ctx2 =
-    if ctx1 == ctx2 then ()
-    else Equality.check_equal_ctx (forget ctx1) (forget ctx2)
+    if not (is_equal ctx1 ctx2) then
+      raise
+        (NotEqual
+           ( Printing.ctx_to_string (forget ctx1),
+             Printing.ctx_to_string (forget ctx2) ))
 
   let check_notin ctx x =
     try
@@ -170,7 +177,7 @@ and PS : sig
   val source : t -> Sub.t
   val target : t -> Sub.t
   val forget : t -> ps
-  val check_equal : t -> t -> unit
+  val is_equal : t -> t -> bool
 end = struct
   exception Invalid
 
@@ -310,9 +317,8 @@ end = struct
   let target ps =
     Sub.check_to_ps (to_ctx ps) (Unchecked.ps_tgt ps.tree) (bdry ps)
 
-  let check_equal ps1 ps2 =
-    if ps1.tree == ps2.tree then ()
-    else Equality.check_equal_ps ps1.tree ps2.tree
+  let is_equal ps1 ps2 =
+    ps1.tree == ps2.tree || Equality.is_equal_ps ps1.tree ps2.tree
 end
 
 and Ty : sig
@@ -322,6 +328,7 @@ and Ty : sig
   val free_vars : t -> Var.t list
   val is_full : t -> bool
   val is_obj : t -> bool
+  val is_equal : t -> t -> bool
   val check_equal : t -> t -> unit
   val morphism : UnnamedTm.t -> UnnamedTm.t -> Ty.t
   val forget : t -> Unchecked_types(Coh)(Tm).ty
@@ -391,10 +398,15 @@ end = struct
   let forget t = t.unchecked
   let to_string ty = Printing.ty_to_string (forget ty)
 
-  (** Test for equality. *)
+  let is_equal ty1 ty2 =
+    Ctx.is_equal ty1.c ty2.c && Equality.is_equal_ty (forget ty1) (forget ty2)
+
   let check_equal ty1 ty2 =
-    Ctx.check_equal ty1.c ty2.c;
-    Equality.check_equal_ty (forget ty1) (forget ty2)
+    if not (is_equal ty1 ty2) then
+      raise
+        (NotEqual
+           ( Printing.ty_to_string (forget ty1),
+             Printing.ty_to_string (forget ty2) ))
 
   let morphism t1 t2 =
     let a1 = UnnamedTm.typ t1 in
@@ -620,6 +632,7 @@ and Coh : sig
 
   val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
   val func_data : t -> (Var.t * int) list list
+  val is_equal : t -> t -> bool
   val check_equal : t -> t -> unit
   val dim : t -> int
 end = struct
@@ -774,18 +787,19 @@ end = struct
     let ps, ty, pp_data = data c in
     (PS.forget ps, Ty.forget ty, pp_data)
 
+  let is_equal coh1 coh2 =
+    coh1 == coh2
+    ||
+    match (coh1, coh2) with
+    | Inv (d1, _), Inv (d2, _) ->
+        PS.is_equal d1.ps d2.ps && Ty.is_equal d1.ty d2.ty
+    | NonInv (d1, _), NonInv (d2, _) ->
+        PS.is_equal d1.ps d2.ps && Ty.is_equal d1.total_ty d2.total_ty
+    | Inv _, NonInv _ | NonInv _, Inv _ -> false
+
   let check_equal coh1 coh2 =
-    if coh1 == coh2 then ()
-    else
-      match (coh1, coh2) with
-      | Inv (d1, _), Inv (d2, _) ->
-          PS.check_equal d1.ps d2.ps;
-          Ty.check_equal d1.ty d2.ty
-      | NonInv (d1, _), NonInv (d2, _) ->
-          PS.check_equal d1.ps d2.ps;
-          Ty.check_equal d1.total_ty d2.total_ty
-      | Inv _, NonInv _ | NonInv _, Inv _ ->
-          raise (NotEqual (to_string coh1, to_string coh2))
+    if not (is_equal coh1 coh2) then
+      raise (NotEqual (to_string coh1, to_string coh2))
 end
 
 module U = Unchecked (Coh) (Tm)
