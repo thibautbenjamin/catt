@@ -101,10 +101,12 @@ end = struct
   type t = { c : (Var.t * Ty.t) list; unchecked : Unchecked_types(Coh)(Tm).ctx }
 
   open Unchecked_types (Coh) (Tm)
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
-  open Printing (Coh) (Tm)
-  module Printing = Make (Coh) (Tm)
+  module U = Unchecked (Coh) (Tm)
+  module Unchecked = U.Make (Coh) (Tm)
+  module P = Printing (Coh) (Tm)
+  module Printing = P.Make (Coh) (Tm)
+  module E = Equality.Equality (Coh) (Tm)
+  module Equality = E.Make (Coh) (Tm)
 
   let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
 
@@ -126,7 +128,7 @@ end = struct
 
   let check_equal ctx1 ctx2 =
     if ctx1 == ctx2 then ()
-    else Unchecked.check_equal_ctx (forget ctx1) (forget ctx2)
+    else Equality.check_equal_ctx (forget ctx1) (forget ctx2)
 
   let check_notin ctx x =
     try
@@ -172,10 +174,12 @@ and PS : sig
 end = struct
   exception Invalid
 
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
-  open Printing (Coh) (Tm)
-  module Printing = Make (Coh) (Tm)
+  module U = Unchecked (Coh) (Tm)
+  module Unchecked = U.Make (Coh) (Tm)
+  module P = Printing (Coh) (Tm)
+  module Printing = P.Make (Coh) (Tm)
+  module E = Equality.Equality (Coh) (Tm)
+  module Equality = E.Make (Coh) (Tm)
 
   (** A pasting scheme. *)
   type ps_derivation =
@@ -308,7 +312,7 @@ end = struct
 
   let check_equal ps1 ps2 =
     if ps1.tree == ps2.tree then ()
-    else Unchecked.check_equal_ps ps1.tree ps2.tree
+    else Equality.check_equal_ps ps1.tree ps2.tree
 end
 
 and Ty : sig
@@ -330,11 +334,13 @@ and Ty : sig
   val ctx : t -> Ctx.t
   val dim : t -> int
 end = struct
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
-  open Printing (Coh) (Tm)
-  module Printing = Make (Coh) (Tm)
+  module U = Unchecked (Coh) (Tm)
+  module Unchecked = U.Make (Coh) (Tm)
+  module P = Printing (Coh) (Tm)
+  module Printing = P.Make (Coh) (Tm)
+  module E = Equality.Equality (Coh) (Tm)
+  module Equality = E.Make (Coh) (Tm)
 
   (** A type exepression. *)
   type expr = Obj | Arr of t * UnnamedTm.t * UnnamedTm.t
@@ -388,7 +394,7 @@ end = struct
   (** Test for equality. *)
   let check_equal ty1 ty2 =
     Ctx.check_equal ty1.c ty2.c;
-    Unchecked.check_equal_ty (forget ty1) (forget ty2)
+    Equality.check_equal_ty (forget ty1) (forget ty2)
 
   let morphism t1 t2 =
     let a1 = UnnamedTm.typ t1 in
@@ -819,6 +825,8 @@ module Unchecked = U.Make (Coh) (Tm)
 module Display_maps = Unchecked.Display_maps
 module P = Printing (Coh) (Tm)
 module Printing = P.Make (Coh) (Tm)
+module E = Equality.Equality (Coh) (Tm)
+module Equality = E.Make (Coh) (Tm)
 
 let check check_fn name =
   let v = 2 in
