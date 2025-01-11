@@ -3,6 +3,7 @@ open Common
 open Unchecked_types
 open Unchecked
 open Printing
+open Equality
 
 exception IsObj
 exception IsCoh
@@ -106,7 +107,7 @@ end = struct
   module Unchecked = U.Make (Coh) (Tm)
   module P = Printing (Coh) (Tm)
   module Printing = P.Make (Coh) (Tm)
-  module E = Equality.Equality (Coh) (Tm)
+  module E = Equality (Coh) (Tm)
   module Equality = E.Make (Coh) (Tm)
 
   let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
@@ -185,7 +186,7 @@ end = struct
   module Unchecked = U.Make (Coh) (Tm)
   module P = Printing (Coh) (Tm)
   module Printing = P.Make (Coh) (Tm)
-  module E = Equality.Equality (Coh) (Tm)
+  module E = Equality (Coh) (Tm)
   module Equality = E.Make (Coh) (Tm)
 
   (** A pasting scheme. *)
@@ -346,7 +347,7 @@ end = struct
   module Unchecked = U.Make (Coh) (Tm)
   module P = Printing (Coh) (Tm)
   module Printing = P.Make (Coh) (Tm)
-  module E = Equality.Equality (Coh) (Tm)
+  module E = Equality (Coh) (Tm)
   module Equality = E.Make (Coh) (Tm)
 
   (** A type exepression. *)
@@ -440,12 +441,15 @@ and UnnamedTm : sig
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
   val develop : t -> Unchecked_types(Coh)(Tm).tm
+  val is_equal : t -> t -> bool
 end = struct
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
+  module U = Unchecked (Coh) (Tm)
+  module Unchecked = U.Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
-  open Printing (Coh) (Tm)
-  module Printing = Make (Coh) (Tm)
+  module P = Printing (Coh) (Tm)
+  module Printing = P.Make (Coh) (Tm)
+  module E = Equality (Coh) (Tm)
+  module Equality = E.Make (Coh) (Tm)
 
   type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
 
@@ -531,6 +535,10 @@ end = struct
     let c = Sub.tgt sub in
     let t = Unchecked.tm_sub_preimage (forget t) (Sub.forget sub) in
     check c t
+
+  let is_equal t1 t2 =
+    Ctx.is_equal (Ty.ctx t1.ty) (Ty.ctx t2.ty)
+    && Equality.is_equal_tm t1.unchecked t2.unchecked
 end
 
 (** Operations on terms. *)
@@ -547,6 +555,7 @@ and Tm : sig
   val func_data : t -> (Var.t * int) list list
   val pp_data : t -> pp_data
   val develop : t -> Unchecked_types(Coh)(Tm).tm
+  val is_equal : t -> t -> bool
 
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
@@ -595,6 +604,8 @@ end = struct
     let pp_data = fun_pp_data pp_data in
     let tm = Unchecked.tm_apply_sub (fun_tm (UnnamedTm.forget tm)) db_sub in
     (check c pp_data tm, db_sub)
+
+  let is_equal (t1, _) (t2, _) = UnnamedTm.is_equal t1 t2
 end
 
 (** A coherence. *)
@@ -807,7 +818,7 @@ module U = Unchecked (Coh) (Tm)
 module Unchecked = U.Make (Coh) (Tm)
 module P = Printing (Coh) (Tm)
 module Printing = P.Make (Coh) (Tm)
-module E = Equality.Equality (Coh) (Tm)
+module E = Equality (Coh) (Tm)
 module Equality = E.Make (Coh) (Tm)
 
 let check check_fn name =

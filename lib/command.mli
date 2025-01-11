@@ -10,6 +10,8 @@ type cmd =
   | Decl of Var.t * (Var.t * tyR) list * tmR * tyR option
   | Decl_builtin of Var.t * builtin
   | Set of string * string
+  | Benchmark of (Var.t * tyR) list * tmR
+  | Benchmark_builtin of builtin
 
 type prog = cmd list
 
