@@ -622,7 +622,7 @@ and Coh : sig
     pp_data ->
     t
 
-  val to_string : t -> string
+  val to_string : ?unroll:bool -> t -> string
   val is_inv : t -> bool
 
   val noninv_srctgt :
@@ -779,9 +779,10 @@ end = struct
     | Inv (d, pp_data) -> (d.ps, d.ty, pp_data)
     | NonInv (d, pp_data) -> (d.ps, d.total_ty, pp_data)
 
-  let to_string c =
+  let to_string ?(unroll = false) c =
     let ps, ty, pp_data = data c in
-    if not !Settings.unroll_coherences then Printing.pp_data_to_string pp_data
+    if not (unroll || !Settings.unroll_coherences) then
+      Printing.pp_data_to_string pp_data
     else Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 
   let noninv_srctgt c =
