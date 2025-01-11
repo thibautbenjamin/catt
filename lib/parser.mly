@@ -9,12 +9,12 @@
     let add_suspension = function
       | Sub (x,s,None,b) -> Sub (x,s,Some 1,b)
       | Sub (x,s,Some n,b) -> Sub (x,s,Some (n+1),b)
-      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _ 
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
         -> Error.fatal "trying to generate an invalid suspension"
 
     let mark_explicit = function
       | Sub(x,s,i,_) -> Sub(x,s,i,true)
-      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _ 
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
         -> Error.fatal "only substitution can be marked explicit"
 
     let context_of_annotated_ps ps =
@@ -42,7 +42,7 @@
 %token <int> CYLSTACK
 %token <string> IDENT
 %token <string> INT
-%token CHECK EQUAL LET IN SET INV UNIT DECLARE
+%token CHECK EQUAL LET IN SET INV UNIT DECLARE BENCHMARK
 %token EOF
 
 %start prog
@@ -77,6 +77,8 @@ cmd:
   | SET IDENT EQUAL IDENT { Set ($2,$4) }
   | SET IDENT EQUAL INT { Set ($2,$4) }
   | DECLARE IDENT EQUAL builtin { Decl_builtin (Var.make_var $2,$4) }
+  | BENCHMARK args_or_ps EQUAL tmexpr { Benchmark ($2,$4) }
+  | BENCHMARK builtin { Benchmark_builtin ($2) }
 
 args_of_same_ty :
   | IDENT COL tyexpr { [Var.make_var $1, $3], $3 }

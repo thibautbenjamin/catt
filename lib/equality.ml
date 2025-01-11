@@ -20,7 +20,9 @@ struct
     val func_data : TmT.t -> (Var.t * int) list list
     val develop : TmT.t -> Unchecked_types(CohT)(TmT).tm
     val name : TmT.t -> string
+    val full_name : TmT.t -> string
     val ctx : TmT.t -> ctx
+    val is_equal : TmT.t -> TmT.t -> bool
 
     val apply :
       (Unchecked_types(CohT)(TmT).ctx -> Unchecked_types(CohT)(TmT).ctx) ->
@@ -38,8 +40,10 @@ struct
     let rec is_equal_ps ps1 ps2 =
       match (ps1, ps2) with
       | Br [], Br [] -> true
-      | Br (ps1 :: l1), Br (ps2 :: l2) ->
-          is_equal_ps ps1 ps2 && List.for_all2 is_equal_ps l1 l2
+      | Br (ps1 :: l1), Br (ps2 :: l2) -> (
+          is_equal_ps ps1 ps2
+          &&
+          try List.for_all2 is_equal_ps l1 l2 with Invalid_argument _ -> true)
       | Br [], Br (_ :: _) | Br (_ :: _), Br [] -> false
 
     let rec is_equal_ty ty1 ty2 =
@@ -62,7 +66,6 @@ struct
       | Meta_tm i, Meta_tm j -> i = j
       | Coh (coh1, s1), Coh (coh2, s2) ->
           Coh.is_equal coh1 coh2 && is_equal_sub_ps s1 s2
-      (* Define check_equal_sub and Tm.develop *)
       | App (t1, s1), App (t2, s2) when t1 == t2 -> is_equal_sub s1 s2
       | App (t, s), ((Coh _ | App _ | Var _) as tm2)
       | ((Coh _ | Var _) as tm2), App (t, s) ->
