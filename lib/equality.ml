@@ -12,7 +12,7 @@ struct
 
   module Make (Coh : sig
     val forget : CohT.t -> ps * Unchecked_types(CohT)(TmT).ty * pp_data
-    val to_string : CohT.t -> string
+    val to_string : ?unroll:bool -> CohT.t -> string
     val func_data : CohT.t -> (Var.t * int) list list
     val is_equal : CohT.t -> CohT.t -> bool
     val check : ps -> ty -> pp_data -> CohT.t
@@ -20,6 +20,7 @@ struct
     val func_data : TmT.t -> (Var.t * int) list list
     val develop : TmT.t -> Unchecked_types(CohT)(TmT).tm
     val name : TmT.t -> string
+    val ctx : TmT.t -> ctx
 
     val apply :
       (Unchecked_types(CohT)(TmT).ctx -> Unchecked_types(CohT)(TmT).ctx) ->

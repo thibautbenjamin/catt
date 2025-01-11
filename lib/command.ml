@@ -127,7 +127,8 @@ let exec_cmd cmd =
       Io.info
         (lazy
           (Printf.sprintf "successfully defined term %s of type %s"
-             (Printing.tm_to_string tm) (Printing.ty_to_string ty)))
+             (Printing.print_kolmogorov tm)
+             (Printing.ty_to_string ty)))
   | Set (o, v) -> (
       try exec_set o v with
       | UnknownOption o -> Error.unknown_option o

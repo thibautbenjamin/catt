@@ -10,12 +10,14 @@ struct
   open Unchecked_types (CohT) (TmT)
 
   module Make (Coh : sig
-    val to_string : CohT.t -> string
+    val to_string : ?unroll:bool -> CohT.t -> string
     val func_data : CohT.t -> (Var.t * int) list list
+    val forget : CohT.t -> ps * ty * pp_data
   end) (Tm : sig
     val func_data : TmT.t -> (Var.t * int) list list
     val name : TmT.t -> string
-    (* val develop : TmT.t -> Unchecked_types(CohT)(TmT).tm *)
+    val develop : TmT.t -> tm
+    val ctx : TmT.t -> ctx
   end) =
   struct
     module Regular = struct
@@ -182,41 +184,85 @@ struct
       let full_name name = pp_data_to_string ~print_func:true name
     end
 
-    (* module Kolmogorov = struct *)
-    (*   let rec ps_to_string = function *)
-    (*     | Br l -> *)
-    (*         Printf.sprintf "[%s]" *)
-    (*           (List.fold_left *)
-    (*              (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s) *)
-    (*              "" l) *)
+    module Kolmogorov = struct
+      let rec ps_to_string = function
+        | Br l ->
+            Printf.sprintf "[%s]"
+              (List.fold_left
+                 (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s)
+                 "" l)
 
-    (*   let rec ty_to_string decls = function *)
-    (*     | Meta_ty i -> assert false *)
-    (*     | Obj -> ("*", decls) *)
-    (*     | Arr (_, u, v) -> *)
-    (*         let u, decls = tm_to_string decls u in *)
-    (*         let v, decls = tm_to_string decls v in *)
-    (*         (Printf.sprintf "%s -> %s" u v, decls) *)
+      let rec ty_to_string decls = function
+        | Meta_ty _ -> assert false
+        | Obj -> ("*", decls)
+        | Arr (_, u, v) ->
+            let u, decls = tm_to_string decls u in
+            let v, decls = tm_to_string decls v in
+            (Printf.sprintf "%s -> %s" u v, decls)
 
-    (*   and tm_to_string decls = function *)
-    (*     | Var v -> (Var.to_string v, decls) *)
-    (*     | Meta_tm i -> assert false *)
-    (*     | Coh (c, s) -> *)
-    (*         Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string decls s) *)
-    (*     | App (t, s) -> *)
-    (*         let t = Tm.develop t in *)
-    (*         tm_to_string decls (Unchecked.tm_apply_sub t s) *)
+      and tm_to_string decls t =
+        match t with
+        | Var v -> (Var.to_string v, decls)
+        | Meta_tm _ -> assert false
+        | Coh (c, s) ->
+            let ps, ty, _ = Coh.forget c in
+            let ty, decls = ty_to_string decls ty in
+            let s, decls = sub_ps_to_string decls s in
+            (Printf.sprintf "Coh(%s,%s) %s" (ps_to_string ps) ty s, decls)
+        | App (t, s) ->
+            let t, decls =
+              match List.assoc_opt t decls with
+              | Some t -> (t, decls)
+              | None ->
+                  let name = Tm.name t in
+                  (name, (t, name) :: decls)
+            in
+            let s, decls = sub_to_string decls s in
+            (Printf.sprintf "%s %s" t s, decls)
 
-    (*   and sub_ps_to_string decls s = *)
-    (*     match s with *)
-    (*     | [] -> ("", decls) *)
-    (*     | (t, expl) :: s -> *)
-    (*         if expl then *)
-    (*           let t, decls = tm_to_string decls t in *)
-    (*           let s, decls = sub_ps_to_string decls s in *)
-    (*           (Printf.sprintf "%s %s" s t, decls) *)
-    (*         else sub_ps_to_string decls s *)
-    (* end *)
+      and sub_ps_to_string decls s =
+        match s with
+        | [] -> ("", decls)
+        | (t, expl) :: s ->
+            if expl then
+              let t, decls = tm_to_string decls t in
+              let s, decls = sub_ps_to_string decls s in
+              (Printf.sprintf "%s %s" s t, decls)
+            else sub_ps_to_string decls s
+
+      and sub_to_string decls s = sub_ps_to_string decls (List.map snd s)
+
+      let print_tm_in_ctx decls ctx tm =
+        let rec print decls ctx res =
+          match ctx with
+          | [] -> ("λ" ^ res, decls)
+          | (x, (ty, true)) :: ctx ->
+              let ty, decls = ty_to_string decls ty in
+              let res = Printf.sprintf "(%s,%s) %s" (Var.to_string x) ty res in
+              print decls ctx res
+          | (x, (ty, false)) :: ctx ->
+              let ty, decls = ty_to_string decls ty in
+              let res = Printf.sprintf "{%s,%s} %s" (Var.to_string x) ty res in
+              print decls ctx res
+        in
+        print decls ctx (Printf.sprintf "=> %s" tm)
+
+      let print_tm t =
+        let rec print_decls decls res =
+          match decls with
+          | [] -> res
+          | (t, name) :: decls ->
+              let ctx = Tm.ctx t in
+              let newtm, decls = tm_to_string decls (Tm.develop t) in
+              let newdecl, decls = print_tm_in_ctx decls ctx newtm in
+              let res =
+                Printf.sprintf "let %s = %s in \n %s" name newdecl res
+              in
+              print_decls decls res
+        in
+        let res, decls = tm_to_string [] t in
+        print_decls decls res
+    end
 
     let ps_to_string = Regular.ps_to_string
     let ty_to_string = Regular.ty_to_string
@@ -228,5 +274,6 @@ struct
     let meta_ctx_to_string = Regular.meta_ctx_to_string
     let pp_data_to_string = Regular.pp_data_to_string
     let full_name = Regular.full_name
+    let print_kolmogorov = Kolmogorov.print_tm
   end
 end
