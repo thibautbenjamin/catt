@@ -354,7 +354,7 @@ let assoc_33_to_middle2 =
   (Construct.wcomp (ternary_comp f1 f2 f3) 0 (ternary_comp f4 f5 f6))
   (ternary_comp f1 (ternary_comp f2 (Construct.wcomp f3 0 f4) f5) f6)
   in
-  (Coh (check_coh tree cohty ("assoc",0,[]),Unchecked.identity_ps tree), cohty)
+  (Coh (check_coh tree cohty ("assoc_(---)(---)_to_-(-(--)-)-",0,[]),Unchecked.identity_ps tree), cohty)
   
 let middle_unitor = 
   let tree = Br [Br []; Br []] in
@@ -364,7 +364,7 @@ let middle_unitor =
   let cohty = Construct.arr
   (ternary_comp f1 (Construct.id_n 1 x1) f2)
   (Construct.wcomp f1 0 f2) in
-  (Coh (check_coh tree cohty ("unitor",0,[]), Unchecked.identity_ps tree), cohty)
+  (Coh (check_coh tree cohty ("unitor_-id-_to_--",0,[]), Unchecked.identity_ps tree), cohty)
 
 let xi_lt n = 
   let (p,q) = u_n_k_l (n-1) 0 (n-1) in
@@ -468,7 +468,7 @@ let zeta_inv n =
   (Construct.wcomp (Construct.wcomp d_l 0 (Construct.id_n 1 (Construct._src 1 d_r))) (n-1) (Construct.wcomp (Construct.id_n 1 (Construct.tgt 1 d_l)) 0 d_r))
   in
   let sub = (drop 1 (Construct.characteristic_sub_ps (Var (b_n n),type_i_l (n-1) (n-1)))) @ (Construct.characteristic_sub_ps (Var (a_n n), type_i_l (n-1) (n-1))) in
-  (Coh (check_coh tree cohty ("zeta^"^(string_of_int n), 0, []), sub), Unchecked.ty_apply_sub_ps cohty sub)
+  (Coh (check_coh tree cohty ("(zeta^"^(string_of_int n)^")^-1", 0, []), sub), Unchecked.ty_apply_sub_ps cohty sub)
     
 
 let first_step_gt n = 
@@ -544,7 +544,7 @@ let nat_unitor constr =
   let y_constr = (Var (Var.Db 1), Obj) in
   let f_constr = (Var (Var.Db 2), Construct.arr x_constr y_constr) in
   let cohty = Construct.arr f_constr (Construct.comp_n [f_constr;Construct.id_n 1 y_constr]) in
-  let runit = check_coh (disc 1) cohty ("unit_r^-1",0,[]) in
+  let runit = check_coh (disc 1) cohty ("unitor_-_to_-id",0,[]) in
   let d = Construct.dim constr in
   let sub = Construct.characteristic_sub_ps constr in
   (Coh(Suspension.coh (Some (d-1)) runit,sub),Unchecked.ty_apply_sub_ps (Suspension.ty (Some (d-1)) cohty) sub)
@@ -566,7 +566,7 @@ let nat_associator1 constr1 constr2 constr3 =
   let f2 = (Var (Var.Db 4), Arr (Obj, Var (Var.Db 1), Var (Var.Db 3))) in
   let f3 = (Var (Var.Db 6), Arr (Obj, Var (Var.Db 3), Var (Var.Db 5))) in
   let cohty = Construct.arr (Construct.comp_n [f1 ; Construct.comp_n [f2; f3]]) (Construct.comp_n [Construct.comp_n [f1 ; f2] ; f3]) in
-  let coherence = check_coh (Br[Br[];Br[];Br[]]) cohty ("assoc^-1",0,[]) in
+  let coherence = check_coh (Br[Br[];Br[];Br[]]) cohty ("assoc_-(--)_to_(--)-",0,[]) in
   let d = Construct.dim constr1 in
   let sub = Construct.characteristic_sub_ps_composite [constr1;constr2;constr3] in
   (Coh(Suspension.coh (Some (d-1)) coherence,sub),Unchecked.ty_apply_sub_ps (Suspension.ty (Some (d-1)) cohty) sub)
@@ -576,7 +576,7 @@ let nat_associator2 constr1 constr2 constr3 =
   let f2 = (Var (Var.Db 4), Arr (Obj, Var (Var.Db 1), Var (Var.Db 3))) in
   let f3 = (Var (Var.Db 6), Arr (Obj, Var (Var.Db 3), Var (Var.Db 5))) in
   let cohty = Construct.arr  (Construct.comp_n [Construct.comp_n [f1 ; f2] ; f3]) (Construct.comp_n [f1 ; f2 ; f3]) in
-  let coherence = check_coh (Br[Br[];Br[];Br[]]) cohty ("assoc_ternary",0,[]) in
+  let coherence = check_coh (Br[Br[];Br[];Br[]]) cohty ("assoc_(--)-_to_---",0,[]) in
   let d = Construct.dim constr1 in
   let sub = Construct.characteristic_sub_ps_composite [constr1;constr2;constr3] in
   (Coh(Suspension.coh (Some (d-1)) coherence,sub),Unchecked.ty_apply_sub_ps (Suspension.ty (Some (d-1)) cohty) sub)
@@ -648,6 +648,6 @@ let eh_Tm n k l =
 let full_eh_Tm n k l =
   let tm = Construct.to_tm @@ full_eh n k l in
   let checked_ctx = Ctx.check @@ eh_ctx n in
-  check_term checked_ctx (Printf.sprintf "EH^%d_(%d,%d)" n k l, 0 , []) tm
+  check_term checked_ctx (Printf.sprintf "EH^%d_(%d,%d)" n k l, 0 , []) ~ty:(Construct.arr (Construct.wcomp (a_n_constr n) k (b_n_constr n)) (Construct.wcomp (b_n_constr n) k (a_n_constr n))) tm 
   
  
