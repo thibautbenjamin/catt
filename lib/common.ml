@@ -50,5 +50,10 @@ module Var = struct
     fresh
 end
 
-(* For pretty-printing applied coherences *)
-type coh_pp_data = string * int * (Var.t * int) list list
+(* For application *)
+type pp_data = string * int * (Var.t * int) list list
+
+let rec take n l =
+  match l with h :: t when n > 0 -> h :: take (n - 1) t | _ -> []
+
+type op_data = int list
