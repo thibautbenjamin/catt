@@ -15,10 +15,14 @@ module Var : sig
 
   val to_string : t -> string
   val make_var : string -> t
-  val check_equal : t -> t -> unit
+  val is_equal : t -> t -> bool
   val suspend : t -> t
   val suspend_n : t -> int -> t
   val fresh : unit -> t
 end
 
-type coh_pp_data = string * int * (Var.t * int) list list
+type pp_data = string * int * (Var.t * int) list list
+
+val take : int -> 'a list -> 'a list
+
+type op_data = int list

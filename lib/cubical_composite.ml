@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 module F = Functorialisation
 
 module LinearComp = struct
@@ -226,7 +226,8 @@ let ctx_tgt ps l =
   let src_incl_ps = Unchecked.ps_src ps in
   let src_f, bdry_f, names, l_bdry = F.sub_w_tgt bdry src_incl_ps l in
   let tgt_ctx, i1, i2 = Unchecked.ps_compose (d - 1) bdry_f ps in
-  let in_plus = Unchecked.sub_to_sub_ps ps (F.tgt_subst l) in
+  let id = Unchecked.identity_ps ps in
+  let in_plus = Unchecked.sub_ps_rename id (F.tgt_renaming l) in
   let tgt_incl = Unchecked.pullback_up (d - 1) bdry_f ps src_f in_plus in
   (tgt_ctx, tgt_incl, i1, i2, bdry_f, l_bdry, names)
 
@@ -328,13 +329,14 @@ let depth1_bridge_sub ps_inter l_inter d =
                 Suspension.ps (Some (Unchecked.dim_ty ty)) (Br [])
               in
               (ps_comp, s)
+          | App _ -> assert false
           | Meta_tm _ -> Error.fatal "meta_variables must have been resolved"
         in
         let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
         if l <> [] then
           let arity = LinearComp.arity ps_comp in
           let s = F.sub (Unchecked.sub_ps_to_sub s) l in
-          let w_plus = Unchecked.tm_apply_sub w (F.tgt_subst l_inter) in
+          let w_plus = Unchecked.tm_rename w (F.tgt_renaming l_inter) in
           let list = List.map (fun v -> desuspend_db v (d - 1)) l in
           let ccomp, ty = LinearComp.cubical arity list in
           let ccomp = Suspension.tm (Some (d - 1)) ccomp in
@@ -363,8 +365,8 @@ let intermediate_ps ps l d =
     let ps_f_c = F.ctx (Unchecked.ps_to_ctx ps) l_d0 in
     let _, names, _ = Unchecked.db_levels ps_f_c in
     let ps_f = PS.(forget (mk (Ctx.check ps_f_c))) in
-    let l_psf = List.map (fun x -> Var.Db (List.assoc x names)) l_d1 in
-    let names = List.map (fun (x, n) -> (Var.Db n, Var x)) names in
+    let l_psf = List.map (fun x -> Var.Db (fst (List.assoc x names))) l_d1 in
+    let names = List.map (fun (x, (n, e)) -> (Var.Db n, (Var x, e))) names in
     (ps_f, l_psf, names)
 
 let bridge_ps ps_inter l_inter d =
@@ -378,12 +380,12 @@ let bridge_ps ps_inter l_inter d =
 let bridge_coh coh ps_bridge =
   let _, _, name = Coh.forget coh in
   let src, tgt, _ = Coh.noninv_srctgt coh in
-  let name_red = (Unchecked.full_name name ^ "_red", 0, []) in
+  let name_red = (Printing.full_name name ^ "_red", 0, []) in
   let coh_bridge = Coh.check_noninv ps_bridge src tgt name_red in
   coh_bridge
 
 let coh_depth1 coh l =
-  let ps, _, _ = Coh.forget coh in
+  let ps, _, pp_data = Coh.forget coh in
   let d = Unchecked.dim_ps ps in
   let ps_inter, l_inter, names = intermediate_ps ps l d in
   let ps_bridge, l_bridge = bridge_ps ps_inter l_inter d in
@@ -409,6 +411,8 @@ let coh_depth1 coh l =
       (Unchecked.ty_to_sub_ps intch_src_ty)
   in
   let comp = Suspension.coh (Some d) (Builtin.comp_n 3) in
-  (Coh (comp, comp_sub_ps), F.ctx (Unchecked.ps_to_ctx ps) l)
+  let ctx = F.ctx (Unchecked.ps_to_ctx ps) l in
+  let pp_data = F.pp_data l pp_data in
+  check_term (Ctx.check ctx) pp_data (Coh (comp, comp_sub_ps))
 
 let init () = F.coh_depth1 := coh_depth1
