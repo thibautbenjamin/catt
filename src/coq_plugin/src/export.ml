@@ -14,9 +14,9 @@ let run_catt_on_file f =
 
 let rec catt_var_to_coq_name v =
   match v with
-  | Var.Db i -> string_of_int i
+  | Var.Db i -> "_" ^ string_of_int i
   | Var.Name s -> s
-  | Var.New i -> string_of_int i
+  | Var.New i -> "n" ^ string_of_int i
   | Var.Plus v -> catt_var_to_coq_name v ^ "_plus"
   | Var.Bridge v -> catt_var_to_coq_name v ^ "_bridge"
 
