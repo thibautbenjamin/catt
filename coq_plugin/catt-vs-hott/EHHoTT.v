@@ -1,7 +1,8 @@
 (* Eckmann-Hilton term from the HoTT library *)
 
 From HoTT Require Import Basics.
-From HoTT Require Import Syllepsis.
+From HoTT Require Import PathGroupoids.
 
 Set Printing All.
-Eval cbv in eh.
+Set Printing Depth 9999999.
+Eval cbv in eckmann_hilton.

@@ -1,0 +1,1623 @@
+= fun (A : Type) (x : A)
+(a b : @eq (@eq A x x) (@eq_refl A x) (@eq_refl A x)) =>
+match
+match
+a as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1)
+match H2 in (@eq _ _ H3) return (@eq A x H3) with
+| @eq_refl _ _ => @eq_refl A x
+end H2)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H1 in (@eq _ _ H2) return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+b in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H1 in (@eq _ _ H2) return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end
+end
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+b in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+b as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1)
+match
+H2 in (@eq _ _ H3) return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end H2)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1)
+match
+H2 in (@eq _ _ H3) return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end
+match
+H2 in (@eq _ _ H3) return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1) H2
+match
+H2 in (@eq _ _ H3)
+return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x)
+match
+H in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end H1)
+with
+| @eq_refl _ _ =>
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1)
+match
+H2 in (@eq _ _ H3)
+return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end H2)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x)
+match
+H in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end H1)
+with
+| @eq_refl _ _ =>
+match
+match
+H in (@eq _ _ H1)
+return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end as H2 in 
+(@eq _ _ H1)
+return (@eq (@eq A x H1) H2 H2)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end
+end
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end
+end
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+b in (@eq _ _ H0) return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+match
+a in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+match
+match
+a in (@eq _ _ H)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match H in (@eq _ _ H0) return (@eq A x H0) with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+b in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2) return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+b in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2) return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+match
+b in (@eq _ _ H)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H in (@eq _ _ H0) return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+a in (@eq _ _ H0)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H0 in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+match
+b in (@eq _ _ H0)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H0 in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+a as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H1 in (@eq _ _ H2) return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+match
+b in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2) return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+b in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+b as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1)
+match
+H2 in (@eq _ _ H3)
+return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end
+match
+H2 in (@eq _ _ H3)
+return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H in (@eq _ _ H1)
+return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end as H2 in 
+(@eq _ _ H1)
+return (@eq (@eq A x H1) H2 H2)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq 
+(@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end
+end
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+a in (@eq _ _ H0)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H0 in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+match
+b in (@eq _ _ H0)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H0 in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H in (@eq _ _ H0) return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+match
+b in (@eq _ _ H)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H in (@eq _ _ H0) return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H) H0 H0)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end
+end in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+match
+a in (@eq _ _ H0)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H0 in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+match
+b in (@eq _ _ H0)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H0 in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end
+match
+H in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match H in (@eq _ _ H0) return (@eq A x H0) with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+match
+b in (@eq _ _ H)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H in (@eq _ _ H0) return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end
+end as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+b in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+match
+a in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+match
+a as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1)
+match
+H2 in (@eq _ _ H3) return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end
+match
+H2 in (@eq _ _ H3) return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+match
+b in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end as H2 in (@eq _ _ H1)
+return (@eq (@eq A x H1) H2 H2)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H1 in (@eq _ _ H2) return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+match
+b in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+b as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+match
+b in (@eq _ _ H0)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H0 in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H0)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H0 in (@eq _ _ H1)
+return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+b in (@eq _ _ H)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H in (@eq _ _ H0) return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H in (@eq _ _ H0) return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq A x x) 
+(@eq_refl A x) 
+(@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+match
+b in (@eq _ _ H0)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H0 in (@eq _ _ H1)
+return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H0)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H0 in (@eq _ _ H1)
+return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H0)
+return
+(@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+b in (@eq _ _ H)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H in (@eq _ _ H0) return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H)
+return (@eq (@eq A x x) (@eq_refl A x) H)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H in (@eq _ _ H0)
+return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H)
+return (@eq (@eq A x x) (@eq_refl A x) H)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H) H0 H0)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq A x x) 
+(@eq_refl A x) 
+(@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end
+end in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+match
+match
+b in (@eq _ _ H0)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H0 in (@eq _ _ H1) return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H0)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H0 in (@eq _ _ H1)
+return (@eq A x H1)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end
+match
+H in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+end)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+b in (@eq _ _ H)
+return
+(@eq (@eq A x x) (@eq_refl A x)
+match
+H in (@eq _ _ H0) return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H)
+return (@eq (@eq A x x) (@eq_refl A x) H)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H in (@eq _ _ H0) return (@eq A x H0)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H)
+return (@eq (@eq A x x) (@eq_refl A x) H)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+b in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+match
+a in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+b as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+a in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1)
+match
+H2 in (@eq _ _ H3) return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end H2)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+a in (@eq _ _ H1)
+return
+(@eq (@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+a as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+match
+H0 in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1)
+match
+H2 in (@eq _ _ H3)
+return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end H2)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end in (@eq _ _ H1)
+return (@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq A x H1)
+match
+H2 in (@eq _ _ H3)
+return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end
+match
+H2 in (@eq _ _ H3)
+return (@eq A x H3)
+with
+| @eq_refl _ _ => @eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq 
+(@eq A x H1) H2
+match
+H2 in (@eq _ _ H3)
+return (@eq A x H3)
+with
+| @eq_refl _ _ =>
+@eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end in 
+(@eq _ _ H1)
+return
+(@eq 
+(@eq A x x)
+match
+H in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl A x
+end H1)
+with
+| @eq_refl _ _ =>
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq 
+(@eq A x H1)
+match
+H2 in (@eq _ _ H3)
+return (@eq A x H3)
+with
+| @eq_refl _ _ =>
+@eq_refl A x
+end H2)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end in 
+(@eq _ _ H1)
+return
+(@eq 
+(@eq A x x)
+match
+H in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl A x
+end H1)
+with
+| @eq_refl _ _ =>
+match
+match
+H in (@eq _ _ H1)
+return (@eq A x H1)
+with
+| @eq_refl _ _ =>
+@eq_refl A x
+end as H2 in 
+(@eq _ _ H1)
+return
+(@eq (@eq A x H1) H2 H2)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end
+end
+end in 
+(@eq _ _ H1)
+return
+(@eq 
+(@eq A x x) 
+(@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq 
+(@eq A x x) 
+(@eq_refl A x)
+match
+H1 in (@eq _ _ H2)
+return (@eq A x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl A x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end in 
+(@eq _ _ H1)
+return
+(@eq 
+(@eq A x x) 
+(@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl 
+(@eq A x x) 
+(@eq_refl A x)
+end
+end
+end in (@eq _ _ H1)
+return
+(@eq (@eq A x x) (@eq_refl A x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+match
+b in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+match
+a in (@eq _ _ H0)
+return (@eq (@eq A x x) (@eq_refl A x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+b in (@eq _ _ H)
+return (@eq (@eq A x x) (@eq_refl A x) H)
+with
+| @eq_refl _ _ =>
+match
+a in (@eq _ _ H)
+return (@eq (@eq A x x) (@eq_refl A x) H)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq A x x) (@eq_refl A x)
+end
+end as H0 in (@eq _ _ H)
+return
+(@eq (@eq (@eq A x x) (@eq_refl A x) H) H0 H0)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq_refl (@eq A x x) (@eq_refl A x))
+end
+end
+end
+end
+end

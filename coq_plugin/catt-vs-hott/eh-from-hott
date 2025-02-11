@@ -1,0 +1,6420 @@
+= fun p q : @paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+match
+match
+match
+match
+match
+match
+match
+match
+p as h in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) p0)
+(match
+match
+match
+h in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a p0,
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) p0)
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) p0 =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+match
+p0 as p1 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x a)
+(match
+p1 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 a,
+@paths ?A ?x a)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x a =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A a)) p1)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end) h)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+(match
+p0 in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end q))
+with
+| @idpath _ _ =>
+match
+match
+q as h in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) p0)
+(match
+match
+match
+h in (@paths _ _ p1)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a p0,
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) p0)
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) p0 =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+match
+p0 as p1 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x a)
+match
+p1 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end p1)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end) h)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+(match
+match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ =>
+@idpath ?A ?x
+end
+end 
+(@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)) in 
+(@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x))))
+(match
+match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ =>
+@idpath ?A ?x
+end
+end 
+(@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)) in 
+(@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end p0))
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+(match
+match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ =>
+@idpath ?A ?x
+end
+end 
+(@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)) in 
+(@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x))))
+end
+end in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x)) a
+(match
+match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)))))
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x)) a
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end),
+@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end q)
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end q) a)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+end
+end
+match
+match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end as p0 in (@paths _ _ a)
+return
+(@paths (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a0 a,
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) a)) p0)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+(match
+p0 in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end))
+with
+| @idpath _ _ =>
+match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end as p0 in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 a,
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) a =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) a)) p0)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ =>
+@idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath 
+(@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x))))
+(match
+match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ =>
+@idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end p0))
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ =>
+@idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths 
+(@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths 
+(@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+end
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x)) a
+(match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end),
+@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end q)
+(match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q) a)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+end
+end
+match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x, @paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end as p0 in (@paths _ _ a)
+return
+(@paths (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+match
+p0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end p0)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end)
+(match
+p0 in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end))
+with
+| @idpath _ _ =>
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end as p0 in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+match
+p0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end p0)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end)
+(match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+end
+end p0))
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end)
+end
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x)) a
+(match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end),
+@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q) a)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+end
+end
+match
+q as b in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+match
+p0 in (@paths _ _ a) return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+(match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end,
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+b in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end)
+(match
+match
+b in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end,
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end p0))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x)
+match
+p0 in (@paths _ _ a) return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end))
+with
+| @idpath _ _ =>
+match
+p as a in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+(match
+match
+a in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(match
+p0 in (@paths _ _ a1)
+return
+(forall _ : @paths ?A a1 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a1)
+return (@paths ?A ?x a1)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a1)
+return
+(forall _ : @paths ?A a1 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a1)
+return (@paths ?A ?x a1)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(@idpath (@paths ?A ?x ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x))))
+match
+match
+a in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x)) a
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end),
+@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q) a)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+end
+end
+match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+match
+p0 in (@paths _ _ a) return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ => @idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end as p0 in (@paths _ _ a)
+return
+(@paths (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+match
+p0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end p0)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end)
+(match
+p0 in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end))
+with
+| @idpath _ _ =>
+match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end as p0 in (@paths _ _ a)
+return
+(@paths (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+match
+p0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end p0)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end)
+(match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end p0))
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end)
+end
+end in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+a
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end))
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a) return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x)) a
+(match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)))),
+@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a0)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)))))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+=>
+match
+q0 in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q) a)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+end
+end
+match
+match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+match
+p0 in (@paths _ _ a) return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ => @idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ => @idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end as p0 in (@paths _ _ a)
+return
+(@paths (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a0 a,
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) (@idpath ?A ?x) a
+=>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) a)) p0)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+(match
+p0 in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end))
+with
+| @idpath _ _ =>
+match
+match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end as p0 in (@paths _ _ a)
+return
+(@paths (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a0 a,
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) a =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) a)) p0)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+(match
+match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end p0))
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a
+(@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x)
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+end
+end in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+a
+(match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)))))
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a) return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+a
+(match
+q in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end p),
+@paths (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ => @idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+q in (@paths _ _ a0)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ => @idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end p))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+(match
+q in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end p) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a0)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a0 (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a0)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a0)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q) a)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+p in (@paths _ _ a)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q1 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q1 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end q)
+end
+end
+match
+match
+q as h in (@paths _ _ p0)
+return
+(@paths (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) p0)
+(match
+match
+match
+h in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a) return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a p0,
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x) p0)
+with
+| @idpath _ _ =>
+fun q0 : @paths (@paths ?A ?x ?x) (@idpath ?A ?x) p0
+=>
+match
+q0 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+p0 as p1 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x a)
+match
+p1 in (@paths _ _ a0) return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end p1)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end) h)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a) return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end p))
+with
+| @idpath _ _ =>
+match
+match
+p as h in (@paths _ _ p0)
+return
+(@paths (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) p0)
+(match
+match
+match
+h in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall _ : @paths (@paths ?A ?x ?x) a p0,
+@paths (@paths ?A ?x ?x) (@idpath ?A ?x) p0)
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) (@idpath ?A ?x) p0
+=>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+match
+p0 as p1 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x a)
+(match
+p1 in (@paths _ _ a0)
+return
+(forall _ : @paths ?A a0 a,
+@paths ?A ?x a)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x a =>
+match
+q0 in (@paths _ _ a0)
+return (@paths ?A ?x a0)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A a)) p1)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end) h)
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x)
+(@idpath ?A ?x))
+(@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))
+end in (@paths _ _ p0)
+return
+(@paths
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p1 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+(match
+match
+match
+match
+q in (@paths _ _ p1)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p1 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end p0))
+with
+| @idpath _ _ =>
+@idpath
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) (@idpath ?A ?x))
+(match
+match
+match
+match
+q in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+match
+p0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)) in
+(@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return (@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end
+(match
+match
+match
+p in (@paths _ _ p0)
+return
+(@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x)
+(match
+p0 in (@paths _ _ a)
+return
+(forall _ : @paths ?A a ?x,
+@paths ?A ?x ?x)
+with
+| @idpath _ _ =>
+fun q0 : @paths ?A ?x ?x =>
+match
+q0 in (@paths _ _ a)
+return (@paths ?A ?x a)
+with
+| @idpath _ _ => @idpath ?A ?x
+end
+end (@idpath ?A ?x)))
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end in (@paths _ _ a)
+return
+(forall
+_ : @paths (@paths ?A ?x ?x) a (@idpath ?A ?x),
+@paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) (@idpath ?A ?x))
+with
+| @idpath _ _ =>
+fun
+q0 : @paths (@paths ?A ?x ?x) 
+(@idpath ?A ?x) 
+(@idpath ?A ?x) =>
+match
+q0 in (@paths _ _ a)
+return
+(@paths (@paths ?A ?x ?x) (@idpath ?A ?x) a)
+with
+| @idpath _ _ =>
+@idpath (@paths ?A ?x ?x) (@idpath ?A ?x)
+end
+end (@idpath (@paths ?A ?x ?x) (@idpath ?A ?x))))
+end
+end

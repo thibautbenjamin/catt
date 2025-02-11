@@ -3,5 +3,6 @@ From Catt Require Import Loader.
 Catt "eh" From File "./eh.catt".
 
 Set Printing All.
+Set Printing Depth 9999999.
 
 Eval cbv in catt_eh.
