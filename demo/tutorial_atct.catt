@@ -1,0 +1,194 @@
+# Introduction
+
+# Catt is a proof assistant dedicated to working with weak higher categories.
+
+# It bears some similarities with homotopy.io in spirit, but it is not a
+# graphical tool. It works with all the algebraic formulas that are hidden in
+# the geometry.
+
+# It is a different tool for different purposes, and a very useful tool for
+# getting used to the algebraic formalism of higher categories.
+
+# Please follow along:
+# https://thibautbenjamin.github.io/catt/
+
+# This is an interactive class: Ask questions and participate!
+
+
+#### compositions ####
+
+# Defining composition operations on cells can be done using the following
+# syntax: `coh string ps : type`
+# string = name that we give to the composition
+# ps = arguments (= "pasting scheme")
+# type = type of the result
+
+# Our first example: The composition of 1-cells
+coh comp2 (x(f)y(g)z) : x -> z
+
+
+# Discussion: Let's try to write broken compositions.
+
+#### Applying a composition ####
+# We have defined the composition operation. This operation can be applied in
+# other contexts, in order to get the composition of any composable cell:
+
+# square of an endomorphism
+let square (x : *) (f : x -> x) = comp2 f f
+
+# cube of an endomorphism
+let cube (x : *) (f : x -> x) = comp2 (square f) f
+
+# composition of cells inside a bigger context
+let example (x y z : *) (f g : x -> y) (h : y -> z) = comp2 f h
+
+# Discussion: Let's try to compose non-composable cells
+
+
+#### coherences ####
+# coherences between the operations are obtained using the same
+# syntax: `coh string ps : type`
+# string = name of the coherence
+# ps = arguments (="pasting scheme")
+# type = type of the result
+
+# identity
+coh identity (x) : x -> x
+
+# associator
+coh assoc (x(f)y(g)z(h)w) : comp2 f (comp2 g h) -> comp2 (comp2 f g) h
+
+# unitors
+coh unitl (x(f)y) : comp2 f (identity _) -> f
+coh unitr (x(f)y) : comp2 (identity _) f -> f
+
+# Discussion: We have two choices of associativity when defining the cube of an
+# endomorphism. How can we relate them with a coherence?
+
+#### Some weirder things ####
+# In catt, we may consider general composition operations. For instance, there
+# is a ternary variant of the composition of morphisms.
+
+# ternary composition
+coh comp3 (x(f)y(g)z(h)w) : x -> w
+
+# This composition is different from a composition of a composition, but can be
+# related to it via a coherence (i.e. 2-cell analogous to an associator)
+coh assoc_comp3 (x(f)y(g)z(h)w) : comp2 (comp2 f g) h -> comp3 f g h
+
+# Similarly, the quaternary composition:
+coh comp4 (x(f)y(g)z(h)w(k)t) : x -> t
+
+# Discussion: How many composite do you think there are in dimension 1? What are
+# your bets about dimension 2?
+
+
+### Exercises: Understanding the pasting schemes:
+
+# Draw the diagram corresponding to the following pasting schemes:
+# (x(f)y(g)z)
+# (x(f(a)g)y(h)z)
+# (x(f)y(g(a(m)b)h)z(k(c)l)w)
+# (x(f(a)g)y(h)z(k(b)l(c)j)w(p)t)
+
+# Write out pasting schemes corresponding to diagrams:
+
+
+### 2-dimensional compositions
+# From now on, we just use "comp" for the composition. It is already predefined
+# in catt, since it is so useful.
+
+# vertical composition
+coh vert (x(f(a)g(b)h)y) : f -> h
+
+coh vert-ternary (x(f(a)g(b)h(c)k)y) : f -> k
+
+# horizontal composition
+coh horiz (x(f(a)g)y(h(b)k)z) : comp f h -> comp g k
+
+coh horiz-ternary (x(f(a)g)y(h(b)k)z(l(c)j)w) : comp3 f h l -> comp3 g k j
+
+coh comp-ex (x(f(a)g(b)h)y(l(c)j)z) : comp f l -> comp h j
+
+# Exercise: Write ternary versions of these operations!
+
+### And some more!
+# right "whiskering"
+coh whiskr (x(f(a)g)y(h)z) : comp f h -> comp g h
+
+# left "whiskering"
+coh whiskl (x(f)y(g(a)h)z) : comp f g -> comp f h
+
+# Discussion: what other operations do you think we can define in dimension 2?
+
+### Some coherences involving these
+# These compositions are associative and unital (up to a higher cell). On top of
+# that, they also satisfy some new relations:
+
+# interchange law
+coh exch (x(f(a)g(b)h)y(k(c)l(d)m)z) :
+    vert (horiz a c) (horiz b d) -> horiz (vert a b) (vert c d)
+
+coh exch-inv (x(f(a)g(b)h)y(k(c)l(d)m)z) :
+    horiz (vert a b) (vert c d) -> vert (horiz a c) (horiz b d)
+
+# "elevators"
+coh elevator (x(f(a)g)y(h(b)k)z) :
+    vert (whiskr a h) (whiskl g b) -> vert (whiskl f b) (whiskr a k)
+
+
+
+### Exercises
+
+# Recall the left and right unitors and the associator,
+# Define the triangle coherence 3-cell they satisfy
+
+coh tr (x(f)y(g)z) : vert (assoc f (identity _) g) (whiskr (unitl _) g) -> whiskl f (unitr _)
+
+# Define the pentagon 3-cell
+
+# Define a coherence between the left unitor of the unit and the right unitor of
+# the unit in a monoidal category
+
+# (Hard) Define the braiding of two objects in a braided monoidal category
+
+# (Harder) What equations do pentagons satisfy? Can they be defined?
+
+
+
+# A peak at what's inside:
+
+# Source and target of a pasting scheme: remove the innermost level parentheses
+# and keep the leftmost/rightmost label
+
+# Exercise: Give the source and target, and the diagrams corresponding to the
+# following pasting schemes:
+# (x(f)y(g)z)
+# (x(f(a)g)y(h)z)
+# (x(f(a)g(b)h)y(k)z(l(c)j)t)
+
+
+# Forming compositions:
+
+# coh name ps : u -> v
+# is accepted as a composition when
+# - u and v are of the same dimension
+# - u and v have the same type
+# - u is full in the source of ps (i.e. uses all its innermost variables)
+# - v is full in the target of ps
+
+# "Given ways to compose the source and the target of a pasting scheme, there
+# exists a way to compose the pasting scheme".
+
+
+# Forming coherences:
+
+# coh name ps : u -> v
+# is accepted as a coherence when
+# - u and v are of the same dimension
+# - u and v have the same type
+# - u is full in ps
+# - v is full in ps
+
+# "Given two ways to compose a same pasting scheme, they exists a coherence cell
+# between them".

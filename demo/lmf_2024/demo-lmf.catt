@@ -1,0 +1,99 @@
+######## 1-categorical results ########
+
+#### unbiased compositions ####
+# syntax: `coh string ps : type`
+# string = name of the coherence
+# ps = pasting scheme
+# type = type of the result, its source must contain all source variables, and
+#        its target must contain all target variables
+
+# binary composition
+coh comp2 (x(f)y(g)z) : x -> z
+
+# ternary composition
+coh comp3 (x(f)y(g)z(h)w) : x -> w
+
+
+#### coherences ####
+# syntax: `coh string ps : type`
+# string = name of the coherence
+# ps = pasting scheme
+# type = type of the result, it must contain all the variables.
+
+# identity
+coh identity (x) : x -> x
+
+# associator
+coh assoc (x(f)y(g)z(h)w) : comp2 f (comp2 g h) -> comp2 (comp2 f g) h
+
+# unitors
+coh unitl (x(f)y) : comp2 f (identity _) -> f
+coh unitr (x(f)y) : comp2 (identity _) f -> f
+
+#### Defining terms ####
+# catt also allows to define terms from the defined coherences
+# syntax: `let string ctx = term`
+# string = name of the term
+# ctx = context
+# term = body of the term
+
+# squaring an endomorphism
+let square (x : *) (f : x -> x) = comp2 f f
+
+
+#### Builtins ####
+# identity and n-ary compositions are provided. The arity of composition is
+# resulved on the fly
+
+# par exemple, l'associateur se réécrit comme:
+coh unbiase (x(f)y(g)z(h)w) : comp f (comp g h) -> comp f g h
+
+
+######## Climbing up dimensions ########
+# higher dimensional cells in catt
+
+# vertical composition
+coh vert (x(f(a)g(b)h)y) : f -> h
+
+# horizontal composition
+coh horiz (x(f(a)g)y(h(b)k)z) : comp f h -> comp g k
+
+# interchange law
+coh exch (x(f(a)g(b)h)y(k(c)l(d)m)z) :
+    vert (horiz a c) (horiz b d) -> horiz (vert a b) (vert c d)
+
+
+#### Suspension ####
+# Suspension is a meta-operation analogous to replacing the base type of an
+# identity type by an identity type itself
+
+# By default, it is implicit, but let's deactivate that
+set implicit_suspension = f
+
+# Syntax : `! name args`
+
+# For instance: vertical composition
+let comp-vert (x : *) (y : *)
+              (f : x -> y) (g : x -> y) (h : x -> y)
+              (a : f -> g) (b : g -> h) =
+              ! comp a b
+
+
+#### Suspension suite ####
+# Thanks to the suspension, coherences
+let assoc-vert (x : *) (y : *)
+               (f : x -> y) (g : x -> y) (h : x -> y) (k : x -> y)
+               (a : f -> g) (b : g -> h) (c : h -> k) :
+               comp-vert a (comp-vert b c) -> comp-vert (comp-vert a b) c =
+               ! assoc a b c
+
+# Suspension can be made implicit and inferred on the fly
+set implicit_suspension = t
+
+let assoc-vert-implicit (x : *) (y : *)
+                        (f : x -> y) (g : x -> y) (h : x -> y) (k : x -> y)
+                        (a : f -> g) (b : g -> h) (c : h -> k) :
+                        comp a (comp b c) -> comp (comp a b) c =
+                        assoc a b c
+
+######## END-- Run Catt and Coq demo ########
