@@ -1,146 +1,204 @@
-= fun (A : Type) (x : A)
-(a b : @eq (@eq A x x) (@eq_refl A x) (@eq_refl A x)) =>
+= fun (catt_Obj : Type) (catt_name_x : catt_Obj)
+(catt_name_a
+catt_name_b : @eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x)) =>
 match
 match
-a as H0 in (@eq _ _ H)
+catt_name_a as H0 in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
 match
 match
 H as H2 in (@eq _ _ H1)
 return
-(@eq (@eq A x H1)
-match H2 in (@eq _ _ H3) return (@eq A x H3) with
-| @eq_refl _ _ => @eq_refl A x
-end H2)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-match
-match
-H0 in (@eq _ _ H1)
-return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H1 in (@eq _ _ H2) return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-match
-b in (@eq _ _ H1)
-return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H1 in (@eq _ _ H2) return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end
-end
-match
-H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-b in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end
-end)
-with
-| @eq_refl _ _ =>
-match
-b as H0 in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
-match
-match
-H as H2 in (@eq _ _ H1)
-return
-(@eq (@eq A x H1)
-match
-H2 in (@eq _ _ H3) return (@eq A x H3)
-with
-| @eq_refl _ _ => @eq_refl A x
-end H2)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-match
-match
-H as H2 in (@eq _ _ H1)
-return
-(@eq (@eq A x H1)
-match
-H2 in (@eq _ _ H3) return (@eq A x H3)
-with
-| @eq_refl _ _ => @eq_refl A x
-end
-match
-H2 in (@eq _ _ H3) return (@eq A x H3)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-match
-match
-H as H2 in (@eq _ _ H1)
-return
-(@eq (@eq A x H1) H2
+(@eq (@eq catt_Obj catt_name_x H1)
 match
 H2 in (@eq _ _ H3)
-return (@eq A x H3)
+return (@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ => @eq_refl catt_Obj catt_name_x
+end H2)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return (@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
 return
-(@eq (@eq A x x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+catt_name_b in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return (@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+match
+catt_name_b in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+catt_name_b as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x H1)
+match
+H2 in (@eq _ _ H3)
+return (@eq catt_Obj catt_name_x H3)
+with
+| @eq_refl _ _ => @eq_refl catt_Obj catt_name_x
+end H2)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x H1)
+match
+H2 in (@eq _ _ H3)
+return (@eq catt_Obj catt_name_x H3)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end
+match
+H2 in (@eq _ _ H3)
+return (@eq catt_Obj catt_name_x H3)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+H as H2 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x H1) H2
+match
+H2 in (@eq _ _ H3)
+return
+(@eq catt_Obj catt_name_x H3)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
 match
 H in (@eq _ _ H2)
-return (@eq A x H2)
+return (@eq catt_Obj catt_name_x H2)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end H1)
 with
 | @eq_refl _ _ =>
@@ -148,585 +206,828 @@ match
 match
 H as H2 in (@eq _ _ H1)
 return
-(@eq (@eq A x H1)
+(@eq (@eq catt_Obj catt_name_x H1)
 match
 H2 in (@eq _ _ H3)
-return (@eq A x H3)
+return
+(@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj
+catt_name_x
 end H2)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
 return
-(@eq (@eq A x x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
 match
 H in (@eq _ _ H2)
-return (@eq A x H2)
+return
+(@eq catt_Obj catt_name_x H2)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end H1)
 with
 | @eq_refl _ _ =>
 match
 match
 H in (@eq _ _ H1)
-return (@eq A x H1)
+return
+(@eq catt_Obj catt_name_x H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end as H2 in 
 (@eq _ _ H1)
-return (@eq (@eq A x H1) H2 H2)
+return
+(@eq
+(@eq catt_Obj catt_name_x H1)
+H2 H2)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end
 end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
 match
 H0 in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
 return
-(@eq (@eq A x x) (@eq_refl A x) H1)
+(@eq catt_Obj catt_name_x H2)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end
-end
-match
-H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
-end
-end in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-match
-b in (@eq _ _ H0) return (@eq (@eq A x x) (@eq_refl A x) H0)
-with
-| @eq_refl _ _ =>
-match
-a in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end
-end H)
-with
-| @eq_refl _ _ =>
-match
-match
-match
-match
-match
-a in (@eq _ _ H)
-return
-(@eq (@eq A x x) (@eq_refl A x)
-match H in (@eq _ _ H0) return (@eq A x H0) with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end as H0 in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
-match
-H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-match
-b in (@eq _ _ H1)
-return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H1 in (@eq _ _ H2) return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end
-match
-H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-match
-b in (@eq _ _ H1)
-return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H1 in (@eq _ _ H2) return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end)
-with
-| @eq_refl _ _ =>
-match
-match
-b in (@eq _ _ H)
-return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H in (@eq _ _ H0) return (@eq A x H0)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end as H0 in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
-match
-H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-match
-H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 @eq_refl
-(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end
+end in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 end
 end in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 match
-a in (@eq _ _ H0)
+catt_name_b in (@eq _ _ H0)
 return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H0 in (@eq _ _ H1) return (@eq A x H1)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
 | @eq_refl _ _ =>
 match
-b in (@eq _ _ H0)
+catt_name_a in (@eq _ _ H0)
 return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H0 in (@eq _ _ H1) return (@eq A x H1)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end H)
 with
 | @eq_refl _ _ =>
 match
 match
-a as H0 in (@eq _ _ H)
+match
+match
+match
+catt_name_a in (@eq _ _ H)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
+with
+| @eq_refl _ _ => @eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end as H0 in (@eq _ _ H)
 return
 (@eq
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H in (@eq _ _ H1) return (@eq A x H1)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
 match
 H0 in (@eq _ _ H1)
 return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H1 in (@eq _ _ H2) return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
-b in (@eq _ _ H1)
+match
+catt_name_b in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
+return (@eq catt_Obj catt_name_x H2)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end
-match
 match
 H0 in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H1 in (@eq _ _ H2) return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
 match
-b in (@eq _ _ H1)
+catt_name_b in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
+return (@eq catt_Obj catt_name_x H2)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end)
 with
 | @eq_refl _ _ =>
 match
-b as H0 in (@eq _ _ H)
+match
+catt_name_b in (@eq _ _ H)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
+with
+| @eq_refl _ _ => @eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end as H0 in (@eq _ _ H)
 return
 (@eq
-(@eq (@eq A x x) (@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
 match
-H in (@eq _ _ H1) return (@eq A x H1)
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+end
+end in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+match
+catt_name_a in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H0 in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
+with
+| @eq_refl _ _ => @eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+match
+catt_name_b in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H0 in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+catt_name_a as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 match
 H0 in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
+return (@eq catt_Obj catt_name_x H2)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+match
+catt_name_b in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return (@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return (@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+catt_name_b in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return
+(@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+catt_name_b as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+match
+H0 in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return (@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 match
 match
 H as H2 in (@eq _ _ H1)
 return
-(@eq (@eq A x H1)
+(@eq (@eq catt_Obj catt_name_x H1)
 match
 H2 in (@eq _ _ H3)
-return (@eq A x H3)
+return
+(@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end
 match
 H2 in (@eq _ _ H3)
-return (@eq A x H3)
+return
+(@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
 match
 match
 H in (@eq _ _ H1)
-return (@eq A x H1)
-with
-| @eq_refl _ _ => @eq_refl A x
-end as H2 in 
-(@eq _ _ H1)
-return (@eq (@eq A x H1) H2 H2)
+return
+(@eq catt_Obj catt_name_x H1)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl catt_Obj catt_name_x
+end as H2 in 
+(@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x H1)
+H2 H2)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
 return
-(@eq (@eq A x x) (@eq_refl A x) H1)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
 match
 H0 in (@eq _ _ H1)
 return
-(@eq 
-(@eq A x x) 
-(@eq_refl A x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
+return
+(@eq catt_Obj catt_name_x H2)
 with
 | @eq_refl _ _ =>
-@eq_refl A x
+@eq_refl catt_Obj
+catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x)
 end in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x) H1)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+H1)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end
 end)
 with
 | @eq_refl _ _ =>
 @eq_refl
-(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 end
 end in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 match
-a in (@eq _ _ H0)
+catt_name_a in (@eq _ _ H0)
 return
-(@eq (@eq A x x) (@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
-H0 in (@eq _ _ H1) return (@eq A x H1)
+H0 in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 match
-b in (@eq _ _ H0)
+catt_name_b in (@eq _ _ H0)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
-H0 in (@eq _ _ H1) return (@eq A x H1)
+H0 in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end H)
 with
 | @eq_refl _ _ =>
 match
 match
-a in (@eq _ _ H)
+catt_name_a in (@eq _ _ H)
 return
-(@eq (@eq A x x) (@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
-H in (@eq _ _ H0) return (@eq A x H0)
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 match
-b in (@eq _ _ H)
+catt_name_b in (@eq _ _ H)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
-H in (@eq _ _ H0) return (@eq A x H0)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end as H0 in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H) H0 H0)
+@eq_refl catt_Obj catt_name_x
+end)
 with
 | @eq_refl _ _ =>
 @eq_refl
-(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H) H0 H0)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 end
 end
 end in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 match
 match
-a in (@eq _ _ H0)
+catt_name_a in (@eq _ _ H0)
 return
-(@eq (@eq A x x) (@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
-H0 in (@eq _ _ H1) return (@eq A x H1)
+H0 in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ => @eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 match
-b in (@eq _ _ H0)
+catt_name_b in (@eq _ _ H0)
 return
-(@eq (@eq A x x) (@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
-H0 in (@eq _ _ H1) return (@eq A x H1)
+H0 in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 match
 H in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end)
 with
 | @eq_refl _ _ =>
 match
 match
-a in (@eq _ _ H)
+catt_name_a in (@eq _ _ H)
 return
-(@eq (@eq A x x) (@eq_refl A x)
-match H in (@eq _ _ H0) return (@eq A x H0) with
-| @eq_refl _ _ => @eq_refl A x
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
+with
+| @eq_refl _ _ => @eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 match
-b in (@eq _ _ H)
+catt_name_b in (@eq _ _ H)
 return
-(@eq (@eq A x x) (@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
-H in (@eq _ _ H0) return (@eq A x H0)
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ => @eq_refl catt_Obj catt_name_x
 end)
 with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end as H0 in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
 match
 H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 match
 H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
+@eq_refl
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 end
 end in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 match
-b in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
+catt_name_b in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
 | @eq_refl _ _ =>
 match
-a in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
+catt_name_a in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end H)
 with
@@ -735,375 +1036,296 @@ match
 match
 match
 match
-a as H0 in (@eq _ _ H)
+catt_name_a as H0 in (@eq _ _ H)
 return
 (@eq
-(@eq (@eq A x x) (@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
-H in (@eq _ _ H1) return (@eq A x H1)
+H in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 match
 match
 H as H2 in (@eq _ _ H1)
 return
-(@eq (@eq A x H1)
+(@eq (@eq catt_Obj catt_name_x H1)
 match
-H2 in (@eq _ _ H3) return (@eq A x H3)
+H2 in (@eq _ _ H3)
+return (@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end
 match
-H2 in (@eq _ _ H3) return (@eq A x H3)
+H2 in (@eq _ _ H3)
+return (@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 match
-b in (@eq _ _ H1)
+catt_name_b in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
+return
+(@eq catt_Obj catt_name_x H2)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
 match
 match
-H in (@eq _ _ H1) return (@eq A x H1)
+H in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end as H2 in (@eq _ _ H1)
-return (@eq (@eq A x H1) H2 H2)
+return
+(@eq (@eq catt_Obj catt_name_x H1) H2
+H2)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-match
-H0 in (@eq _ _ H1)
-return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H1 in (@eq _ _ H2)
-return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return
-(@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end
-end
-match
-H0 in (@eq _ _ H1)
-return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H1 in (@eq _ _ H2) return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-match
-b in (@eq _ _ H1)
-return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H1 in (@eq _ _ H2)
-return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end)
-with
-| @eq_refl _ _ =>
-match
-b as H0 in (@eq _ _ H)
 return
 (@eq
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H in (@eq _ _ H1) return (@eq A x H1)
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
-| @eq_refl _ _ => @eq_refl A x
-end)
+| @eq_refl _ _ =>
 match
 match
 H0 in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-match
-H0 in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H1 in (@eq _ _ H2)
-return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
+(@eq catt_Obj catt_name_x H2)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl catt_Obj
+catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 @eq_refl
-(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
-end
-end in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-match
-match
-b in (@eq _ _ H0)
-return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H0 in (@eq _ _ H1) return (@eq A x H1)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
-with
-| @eq_refl _ _ =>
-match
-match
-a in (@eq _ _ H0)
-return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H0 in (@eq _ _ H1)
-return (@eq A x H1)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end H)
-with
-| @eq_refl _ _ =>
-match
-match
-match
-b in (@eq _ _ H)
-return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H in (@eq _ _ H0) return (@eq A x H0)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end as H0 in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
-match
-H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-match
-a in (@eq _ _ H1)
-return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H1 in (@eq _ _ H2)
-return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
 return
-(@eq (@eq A x x) (@eq_refl A x) H1)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
 end
 end
 match
 H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-match
-match
-a in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
+return (@eq catt_Obj catt_name_x H2)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H1)
-return
-(@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 match
-match
-a in (@eq _ _ H)
+catt_name_b in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
-H in (@eq _ _ H0) return (@eq A x H0)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
+H1 in (@eq _ _ H2)
+return (@eq catt_Obj catt_name_x H2)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end as H0 in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
-match
-H0 in (@eq _ _ H1)
-return
-(@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-match
-H0 in (@eq _ _ H1)
-return
-(@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 @eq_refl
-(@eq (@eq A x x) 
-(@eq_refl A x) 
-(@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+catt_name_b as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+match
+match
+H0 in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return
+(@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return (@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 end
 end in (@eq _ _ H)
 return
 (@eq
-(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 match
 match
-b in (@eq _ _ H0)
+catt_name_b in (@eq _ _ H0)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H0 in (@eq _ _ H1)
-return (@eq A x H1)
+return (@eq catt_Obj catt_name_x H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
 | @eq_refl _ _ =>
 match
 match
-a in (@eq _ _ H0)
+catt_name_a in (@eq _ _ H0)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H0 in (@eq _ _ H1)
-return (@eq A x H1)
+return (@eq catt_Obj catt_name_x H1)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H0)
 return
-(@eq (@eq A x x) (@eq_refl A x) H0)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end H)
 with
@@ -1111,222 +1333,569 @@ with
 match
 match
 match
-b in (@eq _ _ H)
+catt_name_b in (@eq _ _ H)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H in (@eq _ _ H0) return (@eq A x H0)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H)
-return (@eq (@eq A x x) (@eq_refl A x) H)
-with
-| @eq_refl _ _ =>
-match
-match
-a in (@eq _ _ H)
-return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H in (@eq _ _ H0)
-return (@eq A x H0)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
+return (@eq catt_Obj catt_name_x H0)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H)
-return (@eq (@eq A x x) (@eq_refl A x) H)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end as H0 in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H) H0 H0)
-with
-| @eq_refl _ _ =>
-@eq_refl
-(@eq (@eq A x x) 
-(@eq_refl A x) 
-(@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
-end
-end
-end in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-match
-match
-match
-b in (@eq _ _ H0)
-return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H0 in (@eq _ _ H1) return (@eq A x H1)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
-with
-| @eq_refl _ _ =>
-match
-match
-a in (@eq _ _ H0)
-return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H0 in (@eq _ _ H1)
-return (@eq A x H1)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end
-match
-H in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
-with
-| @eq_refl _ _ => @eq_refl (@eq A x x) (@eq_refl A x)
-end)
-with
-| @eq_refl _ _ =>
-match
-match
-match
-b in (@eq _ _ H)
-return
-(@eq (@eq A x x) (@eq_refl A x)
-match
-H in (@eq _ _ H0) return (@eq A x H0)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H)
-return (@eq (@eq A x x) (@eq_refl A x) H)
-with
-| @eq_refl _ _ =>
-match
-match
-a in (@eq _ _ H)
-return
-(@eq (@eq A x x) 
-(@eq_refl A x)
-match
-H in (@eq _ _ H0) return (@eq A x H0)
-with
-| @eq_refl _ _ => @eq_refl A x
-end)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end in (@eq _ _ H)
-return (@eq (@eq A x x) (@eq_refl A x) H)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end as H0 in (@eq _ _ H)
-return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
-match
-H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-match
-H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
 @eq_refl
-(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
+match
+H0 in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+catt_name_a in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return
+(@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj
+catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+match
+match
+catt_name_a in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H1 in (@eq _ _ H2)
+return
+(@eq catt_Obj catt_name_x H2)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj
+catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end)
+with
+| @eq_refl _ _ =>
+match
+match
+catt_name_a in (@eq _ _ H)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
+match
+H0 in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 end
 end in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 match
-b in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
+match
+catt_name_b in (@eq _ _ H0)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H0 in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
 | @eq_refl _ _ =>
 match
-a in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
+match
+catt_name_a in (@eq _ _ H0)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H0 in (@eq _ _ H1)
+return
+(@eq catt_Obj catt_name_x H1)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H0)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end H)
 with
 | @eq_refl _ _ =>
 match
 match
-b as H0 in (@eq _ _ H)
+match
+catt_name_b in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
+with
+| @eq_refl _ _ =>
+match
+match
+catt_name_a in (@eq _ _ H)
+return
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H0)
+return
+(@eq catt_Obj catt_name_x H0)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H) H0 H0)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+end
+end
+end in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+match
+match
+match
+catt_name_b in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return (@eq catt_Obj catt_name_x H1)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
 | @eq_refl _ _ =>
 match
-a in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+match
+catt_name_a in (@eq _ _ H0)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H0 in (@eq _ _ H1)
+return (@eq catt_Obj catt_name_x H1)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+match
+H in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end)
+with
+| @eq_refl _ _ =>
+match
+match
+match
+catt_name_b in (@eq _ _ H)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
+with
+| @eq_refl _ _ =>
+match
+match
+catt_name_a in (@eq _ _ H)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+match
+H in (@eq _ _ H0)
+return (@eq catt_Obj catt_name_x H0)
+with
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end in (@eq _ _ H)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+end
+end in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+match
+catt_name_b in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
+with
+| @eq_refl _ _ =>
+match
+catt_name_a in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
+with
+| @eq_refl _ _ =>
+@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end H)
+with
+| @eq_refl _ _ =>
+match
+match
+catt_name_b as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
+match
+H0 in (@eq _ _ H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+match
+catt_name_a in (@eq _ _ H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end
 match
 match
 H as H2 in (@eq _ _ H1)
 return
-(@eq (@eq A x H1)
+(@eq (@eq catt_Obj catt_name_x H1)
 match
-H2 in (@eq _ _ H3) return (@eq A x H3)
+H2 in (@eq _ _ H3)
+return (@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end H2)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
@@ -1334,82 +1903,124 @@ match
 match
 H0 in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
+return
+(@eq catt_Obj catt_name_x H2)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
 return
-(@eq (@eq A x x) (@eq_refl A x) H1)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
 match
-a in (@eq _ _ H1)
+catt_name_a in (@eq _ _ H1)
 return
-(@eq (@eq A x x) 
-(@eq_refl A x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
+return
+(@eq catt_Obj catt_name_x H2)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj
+catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
 return
-(@eq (@eq A x x) (@eq_refl A x) H1)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+H1)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end)
 with
 | @eq_refl _ _ =>
 match
-a as H0 in (@eq _ _ H)
+catt_name_a as H0 in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H)
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
 match
 H0 in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 match
 match
 H as H2 in (@eq _ _ H1)
 return
-(@eq (@eq A x H1)
+(@eq (@eq catt_Obj catt_name_x H1)
 match
 H2 in (@eq _ _ H3)
-return (@eq A x H3)
+return
+(@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj catt_name_x
 end H2)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
-return (@eq (@eq A x x) (@eq_refl A x) H1)
+return
+(@eq
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
@@ -1417,27 +2028,39 @@ match
 match
 H as H2 in (@eq _ _ H1)
 return
-(@eq (@eq A x H1)
+(@eq
+(@eq catt_Obj catt_name_x H1)
 match
 H2 in (@eq _ _ H3)
-return (@eq A x H3)
+return
+(@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj
+catt_name_x
 end
 match
 H2 in (@eq _ _ H3)
-return (@eq A x H3)
+return
+(@eq catt_Obj catt_name_x H3)
 with
-| @eq_refl _ _ => @eq_refl A x
+| @eq_refl _ _ =>
+@eq_refl catt_Obj
+catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end in (@eq _ _ H1)
 return
-(@eq (@eq A x x) (@eq_refl A x) H1)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+H1)
 with
 | @eq_refl _ _ =>
 match
@@ -1445,31 +2068,39 @@ match
 match
 H as H2 in (@eq _ _ H1)
 return
-(@eq 
-(@eq A x H1) H2
+(@eq
+(@eq catt_Obj catt_name_x H1)
+H2
 match
 H2 in (@eq _ _ H3)
-return (@eq A x H3)
+return
+(@eq catt_Obj catt_name_x H3)
 with
 | @eq_refl _ _ =>
-@eq_refl A x
+@eq_refl catt_Obj
+catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x)
 end in 
 (@eq _ _ H1)
 return
-(@eq 
-(@eq A x x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
 match
 H in (@eq _ _ H2)
-return (@eq A x H2)
+return
+(@eq catt_Obj catt_name_x H2)
 with
 | @eq_refl _ _ =>
-@eq_refl A x
+@eq_refl catt_Obj
+catt_name_x
 end H1)
 with
 | @eq_refl _ _ =>
@@ -1477,145 +2108,200 @@ match
 match
 H as H2 in (@eq _ _ H1)
 return
-(@eq 
-(@eq A x H1)
+(@eq
+(@eq catt_Obj catt_name_x H1)
 match
 H2 in (@eq _ _ H3)
-return (@eq A x H3)
+return
+(@eq catt_Obj catt_name_x H3)
 with
 | @eq_refl _ _ =>
-@eq_refl A x
+@eq_refl catt_Obj
+catt_name_x
 end H2)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x)
 end in 
 (@eq _ _ H1)
 return
-(@eq 
-(@eq A x x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
 match
 H in (@eq _ _ H2)
-return (@eq A x H2)
+return
+(@eq catt_Obj catt_name_x H2)
 with
 | @eq_refl _ _ =>
-@eq_refl A x
+@eq_refl catt_Obj
+catt_name_x
 end H1)
 with
 | @eq_refl _ _ =>
 match
 match
 H in (@eq _ _ H1)
-return (@eq A x H1)
+return
+(@eq catt_Obj catt_name_x H1)
 with
 | @eq_refl _ _ =>
-@eq_refl A x
+@eq_refl catt_Obj
+catt_name_x
 end as H2 in 
 (@eq _ _ H1)
 return
-(@eq (@eq A x H1) H2 H2)
+(@eq
+(@eq catt_Obj catt_name_x H1)
+H2 H2)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x)
 end
 end
 end in 
 (@eq _ _ H1)
 return
-(@eq 
-(@eq A x x) 
-(@eq_refl A x) H1)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x) H1)
 with
 | @eq_refl _ _ =>
 match
 match
 H0 in (@eq _ _ H1)
 return
-(@eq 
-(@eq A x x) 
-(@eq_refl A x)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x)
 match
 H1 in (@eq _ _ H2)
-return (@eq A x H2)
+return
+(@eq catt_Obj catt_name_x H2)
 with
 | @eq_refl _ _ =>
-@eq_refl A x
+@eq_refl catt_Obj
+catt_name_x
 end)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x)
 end in 
 (@eq _ _ H1)
 return
-(@eq 
-(@eq A x x) 
-(@eq_refl A x) H1)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x) H1)
 with
 | @eq_refl _ _ =>
-@eq_refl 
-(@eq A x x) 
-(@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj
+catt_name_x)
 end
 end
 end in (@eq _ _ H1)
 return
-(@eq (@eq A x x) (@eq_refl A x) H1)
+(@eq
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H1)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x
+catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end)
 with
 | @eq_refl _ _ =>
 @eq_refl
-(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 end
 end in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 match
-b in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
+catt_name_b in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
 | @eq_refl _ _ =>
 match
-a in (@eq _ _ H0)
-return (@eq (@eq A x x) (@eq_refl A x) H0)
+catt_name_a in (@eq _ _ H0)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H0)
 with
 | @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
+@eq_refl
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
 end
 end H)
 with
 | @eq_refl _ _ =>
 match
 match
-b in (@eq _ _ H)
-return (@eq (@eq A x x) (@eq_refl A x) H)
+catt_name_b in (@eq _ _ H)
+return
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
 with
 | @eq_refl _ _ =>
 match
-a in (@eq _ _ H)
-return (@eq (@eq A x x) (@eq_refl A x) H)
-with
-| @eq_refl _ _ =>
-@eq_refl (@eq A x x) (@eq_refl A x)
-end
-end as H0 in (@eq _ _ H)
+catt_name_a in (@eq _ _ H)
 return
-(@eq (@eq (@eq A x x) (@eq_refl A x) H) H0 H0)
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H)
 with
 | @eq_refl _ _ =>
 @eq_refl
-(@eq (@eq A x x) (@eq_refl A x) (@eq_refl A x))
-(@eq_refl (@eq A x x) (@eq_refl A x))
+(@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+end
+end as H0 in (@eq _ _ H)
+return
+(@eq
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x) H) H0 H0)
+with
+| @eq_refl _ _ =>
+@eq_refl
+(@eq (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
+(@eq_refl (@eq catt_Obj catt_name_x catt_name_x)
+(@eq_refl catt_Obj catt_name_x))
 end
 end
 end

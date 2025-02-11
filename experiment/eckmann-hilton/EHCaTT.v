@@ -5,4 +5,4 @@ Catt "eh" From File "./eckmann-hilton/eh.catt".
 Set Printing All.
 Set Printing Depth 9999999.
 
-Eval cbv in catt_eh.
+Eval cbv in catt_tm_eh.
