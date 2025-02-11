@@ -1,7 +1,0 @@
-let identity_substitution (x : *) = x
-
-coh another_identity (x) : x -> identity_substitution x
-
-let idsquared (x : *) = comp (another_identity x) (another_identity x)
-
-let bug (x : *) : x -> identity_substitution x = id x

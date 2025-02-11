@@ -1,0 +1,140 @@
+
+** Conflict (shift/reduce) in state 124.
+** Token involved: LPAR
+** This state is reached from prog after reading:
+
+CHECK
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+cmd prog 
+CHECK args COL tyexpr EQUAL tmexpr 
+      (?)
+
+** In state 124, looking ahead at LPAR, reducing production
+** args ->
+** is permitted because of the following sub-derivation:
+
+nonempty_args 
+args LPAR IDENT COL tyexpr RPAR // lookahead token appears
+. 
+
+** In state 124, looking ahead at LPAR, shifting is permitted
+** because of the following sub-derivation:
+
+ps 
+. LPAR IDENT RPAR 
+
+** Conflict (shift/reduce) in state 120.
+** Token involved: LPAR
+** This state is reached from prog after reading:
+
+COH BUILTIN
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+cmd prog 
+COH BUILTIN args COL tyexpr 
+            (?)
+
+** In state 120, looking ahead at LPAR, reducing production
+** args ->
+** is permitted because of the following sub-derivation:
+
+nonempty_args 
+args LPAR IDENT COL tyexpr RPAR // lookahead token appears
+. 
+
+** In state 120, looking ahead at LPAR, shifting is permitted
+** because of the following sub-derivation:
+
+ps 
+. LPAR IDENT RPAR 
+
+** Conflict (shift/reduce) in state 116.
+** Token involved: LPAR
+** This state is reached from prog after reading:
+
+COH IDENT
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+cmd prog 
+COH IDENT args COL tyexpr 
+          (?)
+
+** In state 116, looking ahead at LPAR, reducing production
+** args ->
+** is permitted because of the following sub-derivation:
+
+nonempty_args 
+args LPAR IDENT COL tyexpr RPAR // lookahead token appears
+. 
+
+** In state 116, looking ahead at LPAR, shifting is permitted
+** because of the following sub-derivation:
+
+ps 
+. LPAR IDENT RPAR 
+
+** Conflict (shift/reduce) in state 105.
+** Token involved: LPAR
+** This state is reached from prog after reading:
+
+LET BUILTIN
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+cmd prog 
+LET BUILTIN args COL tyexpr EQUAL tmexpr 
+            (?)
+
+** In state 105, looking ahead at LPAR, reducing production
+** args ->
+** is permitted because of the following sub-derivation:
+
+nonempty_args 
+args LPAR IDENT COL tyexpr RPAR // lookahead token appears
+. 
+
+** In state 105, looking ahead at LPAR, shifting is permitted
+** because of the following sub-derivation:
+
+ps 
+. LPAR IDENT RPAR 
+
+** Conflict (shift/reduce) in state 7.
+** Token involved: LPAR
+** This state is reached from prog after reading:
+
+LET IDENT
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+cmd prog 
+LET IDENT args COL tyexpr EQUAL tmexpr 
+          (?)
+
+** In state 7, looking ahead at LPAR, reducing production
+** args ->
+** is permitted because of the following sub-derivation:
+
+nonempty_args 
+args LPAR IDENT COL tyexpr RPAR // lookahead token appears
+. 
+
+** In state 7, looking ahead at LPAR, shifting is permitted
+** because of the following sub-derivation:
+
+ps 
+. LPAR IDENT RPAR 
