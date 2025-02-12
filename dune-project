@@ -1,7 +1,7 @@
 (lang dune 3.16)
 
 (name catt)
-(generate_opam_files true)
+(generate_opam_files false)
 (source (github thibautbenjamin/catt))
 (authors "Thibaut Benjamin <thibaut.benjamin@gmail.com>"
          "Chiara Sarti <cs2197@cam.ac.uk>")

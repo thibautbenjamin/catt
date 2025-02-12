@@ -3,7 +3,7 @@ Artifacts for FSCD submission Generating Higher Identity Proofs in Homotopy Type
 
 # Proof artifacts
 
-The proof artifacts produced by running coq 8.20, are located in the  the directory `artifacts/`. The source files are located in the `experiment/` directory.
+All proof artefacts produced by running catt, coq 8.20 and the catt plugin for coq, are located in the  the directory `artefacts/`. The source files are located in the `experiment/` directory.
 
 # Build Instructions
 
