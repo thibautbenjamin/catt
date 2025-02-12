@@ -13,6 +13,7 @@ All proof artefacts produced by running catt, coq 8.20 and the catt plugin for c
 Make sure that [opam](https://opam.ocaml.org/doc/Install.html) is installed and initialised on your system. We will create a local opam switch in this directory with all the dependencies required to build catt. For reproducibility, a file is provided with the exact version of those depencies. To create the switch, move to the root of this directory and run the following commands
 ```shell
 opam switch create ./ --empty
+opam repo add coq-released https://coq.inria.fr/opam/released
 opam switch import dependencies.export
 eval $(opam env)
 ```

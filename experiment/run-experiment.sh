@@ -1,5 +1,7 @@
 #!/bin/sh
 
+mkdir -p results
+
 coqc -noinit -indices-matter eckmann-hilton/EHHoTT.v | sed -n '/^[  \t]*:/q;p' | sed 's/^[ \t]*//' > results/eh-from-hott
 HOTT_TERM=$(wc -c results/eh-from-hott | sed 's/ .*//')
 printf "term from the hott library: $HOTT_TERM characters, saved in file results/eh-from-hott\n\n"
