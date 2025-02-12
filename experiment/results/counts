@@ -6,4 +6,6 @@ term from the hott library: 110940 characters
  term from catt export: 26427 characters 
  length of the catt file defining eckmann-hilton: 786 characters 
 
- cylinder term: 3412803 characters
+ 3-dimensional cylinder composition term: 3412803 characters 
+
+ 3-dimensional cylinder stacking term: 3095455 characters
