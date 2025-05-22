@@ -1,4 +1,4 @@
-Artefacts for FSCD submission Generating Higher Identity Proofs in Homotopy Type Theory
+Artefacts for article Generating Higher Identity Proofs in Homotopy Type Theory
 ========================================================================================
 
 # Proof artifacts
