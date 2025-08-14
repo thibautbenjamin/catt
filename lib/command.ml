@@ -26,6 +26,7 @@ let () =
       Io.debug "conectx 3: %s" (Unchecked.ctx_to_string (Cones.ctx 3));
       Io.debug "conectx 4: %s" (Unchecked.ctx_to_string (Cones.ctx 4));
       Io.debug "conectx 5: %s" (Unchecked.ctx_to_string (Cones.ctx 5));
+      (ctx, tm)
 
 let exec_coh v ps ty =
   let ps, ty = Elaborate.ty_in_ps ps ty in
