@@ -26,7 +26,7 @@ struct
       (Unchecked_types(CohT)(TmT).tm -> Unchecked_types(CohT)(TmT).tm) ->
       (pp_data -> pp_data) ->
       TmT.t ->
-      TmT.t
+      TmT.t * Unchecked_types(CohT)(TmT).sub
   end) =
   struct
     let sub_ps_to_sub s =
@@ -152,7 +152,7 @@ struct
       | Var v -> Var (Var.suspend v)
       | Coh (c, s) -> Coh (suspend_coh c, suspend_sub_ps s)
       | App (t, s) ->
-          let t = Tm.apply suspend_ctx suspend_tm suspend_pp_data t in
+          let t, _ = Tm.apply suspend_ctx suspend_tm suspend_pp_data t in
           App (t, suspend_sub s)
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 

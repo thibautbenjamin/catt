@@ -24,7 +24,7 @@ end) : sig
       (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
       (pp_data -> pp_data) ->
       Tm.t ->
-      Tm.t
+      Tm.t * Unchecked_types(Coh)(Tm).sub
   end) : sig
     type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 

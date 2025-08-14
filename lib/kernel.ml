@@ -526,7 +526,7 @@ and Tm : sig
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
     (pp_data -> pp_data) ->
     t ->
-    t
+    t * Unchecked_types(Coh)(Tm).sub
 end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
@@ -559,10 +559,13 @@ end = struct
   let develop (tm, _) = UnnamedTm.develop tm
 
   let apply fun_ctx fun_tm fun_pp_data (tm, pp_data) =
-    let c = Ctx.forget (Ty.ctx (UnnamedTm.typ tm)) in
-    let c = Ctx.check (fun_ctx c) in
+    let c = fun_ctx (Ctx.forget (Ty.ctx (UnnamedTm.typ tm))) in
+    let db_sub = Unchecked.db_level_sub_inv c in
+    let c, _, _ = Unchecked.db_levels c in
+    let c = Ctx.check c in
     let pp_data = fun_pp_data pp_data in
-    check c pp_data (fun_tm (UnnamedTm.forget tm))
+    let tm = Unchecked.tm_apply_sub (fun_tm (UnnamedTm.forget tm)) db_sub in
+    (check c pp_data tm, db_sub)
 end
 
 (** A coherence. *)
@@ -807,3 +810,5 @@ let check_term ctx pp_data ?ty t =
 let check_coh ps ty pp_data =
   let c = lazy ("coherence: " ^ Unchecked.pp_data_to_string pp_data) in
   check (fun () -> Coh.check ps ty pp_data) c
+
+let check_sub src s tgt = ignore @@ Sub.check (Ctx.check src) s (Ctx.check tgt)

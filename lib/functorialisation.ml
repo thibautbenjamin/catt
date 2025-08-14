@@ -57,11 +57,9 @@ let pp_data_rename pp names =
   let rec rename f =
     match f with
     | [] -> []
-    | (x, i) :: f -> (
-        match List.assoc_opt x names with
-        | None -> (x, i) :: rename f
-        | Some (y, _) -> (Var.Db y, i) :: rename f)
+    | (x, i) :: f -> (Display_maps.var_apply_sub x names, i) :: rename f
   in
+
   (name, susp, List.map rename func)
 
 (* Functorialised coherences with respect to locally maximal variables are
@@ -209,10 +207,10 @@ and ctx c l =
 and coh_depth0 coh l =
   let ps, t, pp = Coh.forget coh in
   let ctxf = ctx (Unchecked.ps_to_ctx ps) l in
-  let _, names, _ = Unchecked.db_levels ctxf in
+  let names = Unchecked.db_level_sub_inv ctxf in
   let psf = PS.forget (PS.mk (Ctx.check ctxf)) in
   let ty = ty t l (Coh (coh, Unchecked.identity_ps ps)) in
-  let ty = Unchecked.rename_ty ty names in
+  let ty = Unchecked.ty_apply_sub ty names in
   let pp = pp_data l pp in
   let pp = pp_data_rename pp names in
   (check_coh psf ty pp, names)
@@ -238,15 +236,7 @@ and coh_successively c l =
   else
     let cohf, names = coh c l in
     let next =
-      List.map
-        (fun (x, i) ->
-          let x_renamed =
-            match List.assoc_opt x names with
-            | Some (k, _) -> Var.Db k
-            | None -> x
-          in
-          (x_renamed, i))
-        next
+      List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next
     in
     tm_successively cohf next
 
@@ -286,14 +276,15 @@ and sub_ps s l =
 and tm_successively t s =
   let l, next = next_round s in
   if l <> [] then
-    let t =
+    let t, names =
       Tm.apply
         (fun c -> ctx c l)
         (fun t -> tm_one_step_tm t l)
         (fun pp -> pp_data l pp)
         t
     in
-    tm_successively t next
+    tm_successively t
+      (List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next)
   else t
 
 (* Public API *)

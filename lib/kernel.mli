@@ -59,7 +59,7 @@ and Tm : sig
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
     (pp_data -> pp_data) ->
     t ->
-    t
+    t * Unchecked_types(Coh)(Tm).sub
 end
 
 open Unchecked_types(Coh)(Tm)
@@ -155,3 +155,4 @@ end
 val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> UnnamedTm.t
 val check_term : Ctx.t -> pp_data -> ?ty:ty -> tm -> Tm.t
 val check_coh : ps -> ty -> pp_data -> Coh.t
+val check_sub : ctx -> sub -> ctx -> unit

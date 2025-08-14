@@ -59,7 +59,7 @@ and tm t op_data =
       let s' = Unchecked.sub_ps_apply_sub equiv op_s in
       Coh (c, s')
   | App (t, s) ->
-      let op_t =
+      let op_t, _ =
         Tm.apply
           (fun c -> ctx c op_data)
           (fun t -> tm t op_data)
