@@ -1,12 +1,12 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 exception FunctorialiseMeta
 exception NotClosed
 exception Unsupported
 
-let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference coh_depth1")
 
 module Memo = struct
   let tbl_whisk = Hashtbl.create 97
@@ -55,44 +55,36 @@ let rec next_round l =
 (* Functorialised coherences with respect to locally maximal variables are
    coherences. This function updates the list of variables in the resulting
    coherence that come from a functorialisation *)
-let compute_func_data l func =
-  let incr_db v i =
-    match v with Var.Db k -> Var.Db (k + i) | _ -> assert false
-  in
-  let is_mergeable =
-    match func with
-    | [] -> false
-    | f :: _ ->
-        List.for_all
-          (fun x ->
-            match List.assoc_opt x f with
-            | None -> false
-            | Some k -> List.for_all (fun (_, n) -> n <= k) f)
-          l
-  in
-  if is_mergeable then
-    let f, func =
-      match func with [] -> assert false | f :: func -> (f, func)
-    in
-    let rec add_in func v =
+let pp_data l (name, susp, func) =
+  let func =
+    let is_mergeable =
       match func with
-      | [] -> [ (incr_db v 2, 1) ]
-      | (w, n) :: func when v = w -> (incr_db v 2, n + 1) :: func
-      | (w, n) :: func -> (incr_db w 2, n) :: add_in func v
+      | [] -> false
+      | f :: _ ->
+          List.for_all
+            (fun x ->
+              match List.assoc_opt x f with
+              | None -> false
+              | Some k -> List.for_all (fun (_, n) -> n <= k) f)
+            l
     in
-    let rec add_all func l =
-      match l with [] -> func | v :: l -> add_all (add_in func v) l
-    in
-    add_all f l :: func
-  else
-    let rec increase_in l =
-      match l with
-      | [] -> ([], 2)
-      | w :: l ->
-          let l, k = increase_in l in
-          ((incr_db w k, 1) :: l, k + 2)
-    in
-    fst (increase_in l) :: func
+    if is_mergeable then
+      let f, func =
+        match func with [] -> assert false | f :: func -> (f, func)
+      in
+      let rec add_in func v =
+        match func with
+        | [] -> [ (Var.Bridge v, 1) ]
+        | (w, n) :: func when v = w -> (Var.Bridge v, n + 1) :: func
+        | (w, n) :: func -> (w, n) :: add_in func v
+      in
+      let rec add_all func l =
+        match l with [] -> func | v :: l -> add_all (add_in func v) l
+      in
+      add_all f l :: func
+    else List.map (fun x -> (Var.Bridge x, 1)) l :: func
+  in
+  (name, susp, func)
 
 (*
    Given a context, a ps-substitution and a list of variables, returns
@@ -108,8 +100,8 @@ let rec preimage ctx s l =
   | [], _ :: _ | _ :: _, [] ->
       Error.fatal "functorialisation in a non-existant place"
 
-let rec tgt_subst l =
-  match l with [] -> [] | v :: tl -> (v, Var (Var.Plus v)) :: tgt_subst tl
+let rec tgt_renaming l =
+  match l with [] -> [] | v :: tl -> (v, Var (Var.Plus v)) :: tgt_renaming tl
 
 (* returns the n-composite of a (n+j)-cell with a (n+k)-cell *)
 let rec whisk n j k =
@@ -117,12 +109,8 @@ let rec whisk n j k =
     let n, j, k = t in
     let comp = Builtin.comp_n 2 in
     let func_data = [ (Var.Db 4, k); (Var.Db 2, j) ] in
-    let whisk =
-      match coh_successively comp func_data with
-      | Coh (c, _), _ -> c
-      | _ -> assert false
-    in
-    Suspension.coh (Some n) whisk
+    let whisk = coh_successively comp func_data in
+    Suspension.checked_tm (Some n) whisk
   in
   Memo.find_whisk (n, j, k) build_whisk
 
@@ -143,42 +131,51 @@ and whisk_sub_ps k t1 ty1 t2 ty2 =
   let sub_ext = take ((2 * k) + 1) (Unchecked.ty_to_sub_ps ty2) in
   List.concat [ [ (t2, true) ]; sub_ext; [ (t1, true) ]; sub_base ]
 
+(*
+  wcomp is the whiskered binary composite
+  wcomp (f,fty) n (g,gty) means f *_n g
+
+  Since it has access to both fty and gty it can automatically infer j and k
+  Therefore the only dimension parameter it needs is n
+  This API takes and returns pairs (tm*ty) meaning it can be easily nested
+  (wcomp f 0 (wcomp g 0 h)) = f *_0 (g *_0 h)
+*)
+and wcomp (f, fty) n (g, gty) =
+  let j = Unchecked.dim_ty fty - n - 1 in
+  let k = Unchecked.dim_ty gty - n - 1 in
+  let whisk = whisk n j k in
+  let whisk_sub_ps = whisk_sub_ps k f fty g gty in
+  let whisk_sub = Unchecked.sub_ps_to_sub whisk_sub_ps in
+  (App (whisk, whisk_sub), Unchecked.ty_apply_sub_ps (Tm.ty whisk) whisk_sub_ps)
+
 (* Invariant maintained:
     src_prod returns a term of same dimension as tm
 *)
 and src_prod t l tm tm_t d n =
   match t with
   | Arr (ty', src, _tgt) when Unchecked.tm_contains_vars src l ->
-      let whisk = whisk n 0 (d - n - 1) in
-      let _, whisk_ty, _ = Coh.forget whisk in
-      let prod, prod_ty = src_prod ty' l tm tm_t d (n - 1) in
+      let prod = src_prod ty' l tm tm_t d (n - 1) in
       let ty_f = ty ty' l src in
       let src_f = tm_one_step_tm src l in
-      let sub_ps = whisk_sub_ps (d - n - 1) src_f ty_f prod prod_ty in
-      let sub = Unchecked.sub_ps_to_sub sub_ps in
-      (Coh (whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
+      wcomp (src_f, ty_f) n prod
   | Arr (_, _, _) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 
 and tgt_prod t l tm tm_t d n =
   match t with
   | Arr (ty', _src, tgt) when Unchecked.tm_contains_vars tgt l ->
-      let whisk = whisk n (d - n - 1) 0 in
-      let _, whisk_ty, _ = Coh.forget whisk in
-      let prod, prod_ty = tgt_prod ty' l tm tm_t d (n - 1) in
+      let prod = tgt_prod ty' l tm tm_t d (n - 1) in
       let ty_f = ty ty' l tgt in
       let tgt_f = tm_one_step_tm tgt l in
-      let sub_ps = whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
-      let sub = Unchecked.sub_ps_to_sub sub_ps in
-      (Coh (whisk, sub_ps), Unchecked.ty_apply_sub whisk_ty sub)
+      wcomp prod n (tgt_f, ty_f)
   | Arr (_, _, _) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 
 and ty t l tm =
   let d = Unchecked.dim_ty t in
-  let tgt_subst = tgt_subst l in
-  let tm_incl = Unchecked.tm_apply_sub tm tgt_subst in
-  let t_incl = Unchecked.ty_apply_sub t tgt_subst in
+  let tgt_renaming = tgt_renaming l in
+  let tm_incl = Unchecked.tm_rename tm tgt_renaming in
+  let t_incl = Unchecked.ty_rename t tgt_renaming in
   let src, src_t = tgt_prod t l tm t d (d - 1) in
   let tgt, _tgt_t = src_prod t l tm_incl t_incl d (d - 1) in
   Arr (src_t, src, tgt)
@@ -187,7 +184,7 @@ and ctx c l =
   match c with
   | [] -> []
   | (x, (t, expl)) :: c when List.mem x l ->
-      let ty_tgt = Unchecked.ty_apply_sub t (tgt_subst l) in
+      let ty_tgt = Unchecked.ty_rename t (tgt_renaming l) in
       let tf = ty t l (Var x) in
       (Var.Bridge x, (tf, expl))
       :: (Var.Plus x, (ty_tgt, false))
@@ -198,42 +195,37 @@ and ctx c l =
 (* Functorialisation of a coherence once with respect to a list of
    variables *)
 and coh_depth0 coh l =
-  let ps, t, (name, susp, func) = Coh.forget coh in
-  let ctxf = ctx (Unchecked.ps_to_ctx ps) l in
-  let _, names, _ = Unchecked.db_levels ctxf in
-  let psf = PS.forget (PS.mk (Ctx.check ctxf)) in
-  let ty = ty t l (Coh (coh, Unchecked.identity_ps ps)) in
-  let ty = Unchecked.rename_ty ty names in
-  let func_data = compute_func_data l func in
-  check_coh psf ty (name, susp, func_data)
+  let ps, _, _ = Coh.forget coh in
+  Coh.apply
+    (fun c -> ctx c l)
+    (fun t -> ty t l (Coh (coh, Unchecked.identity_ps ps)))
+    (fun pp -> pp_data l pp)
+    coh
 
 and coh coh l =
   let ps, ty, _ = Coh.forget coh in
   let c = Unchecked.ps_to_ctx ps in
   check_upwards_closed c l;
   let depth0 = List.for_all (fun (x, (_, e)) -> e || not (List.mem x l)) c in
-  let cohf =
-    if depth0 then
-      let id = Unchecked.identity_ps ps in
-      let sf = sub_ps id l in
-      let pscf = ctx (Unchecked.ps_to_ctx ps) l in
-      let cohf = coh_depth0 coh l in
-      (Coh (cohf, sf), pscf)
-    else (
-      check_codim1 c (Unchecked.dim_ty ty) l;
-      !coh_depth1 coh l)
-  in
-  cohf
+  if depth0 then
+    let coh, names = coh_depth0 coh l in
+    (Tm.of_coh coh, names)
+  else (
+    check_codim1 c (Unchecked.dim_ty ty) l;
+    (!coh_depth1 coh l, []))
 
 and coh_successively c l =
   let l, next = next_round l in
   if l = [] then
-    let ps, _, _ = Coh.forget c in
+    let ps, _, pp_data = Coh.forget c in
     let id = Unchecked.identity_ps ps in
-    (Coh (c, id), Unchecked.ps_to_ctx ps)
+    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) pp_data (Coh (c, id))
   else
-    let cohf, ctxf = coh c l in
-    tm ctxf cohf next
+    let cohf, names = coh c l in
+    let next =
+      List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next
+    in
+    tm_successively cohf next
 
 (*
    Functorialisation a term once with respect to a list of variables.
@@ -245,15 +237,18 @@ and tm_one_step t l expl =
   | Var v ->
       [ (Var (Var.Bridge v), expl); (Var (Var.Plus v), false); (Var v, false) ]
   | Coh (c, s) ->
-      let t' = Unchecked.tm_apply_sub t (tgt_subst l) in
+      let t' = Unchecked.tm_rename t (tgt_renaming l) in
       let sf = sub_ps s l in
       let ps, _, _ = Coh.forget c in
       let psc = Unchecked.ps_to_ctx ps in
       let places = preimage psc s l in
-      let cohf, pscf = coh c places in
-      let subf = Unchecked.list_to_sub (List.map fst sf) pscf in
-      let tm = Unchecked.tm_apply_sub cohf subf in
+      let cohf, _ = coh c places in
+      let subf = Unchecked.list_to_sub (List.map fst sf) (Tm.ctx cohf) in
+      let tm = App (cohf, subf) in
       [ (tm, expl); (t', false); (t, false) ]
+  | App (t, s) ->
+      let total_t = Unchecked.tm_apply_sub (Tm.develop t) s in
+      tm_one_step total_t l expl
   | Meta_tm _ -> raise FunctorialiseMeta
 
 and tm_one_step_tm t l = fst (List.hd (tm_one_step t l true))
@@ -265,13 +260,19 @@ and sub_ps s l =
       if not (Unchecked.tm_contains_vars t l) then (t, expl) :: sub_ps s l
       else List.append (tm_one_step t l expl) (sub_ps s l)
 
-and tm c t s =
+and tm_successively t s =
   let l, next = next_round s in
   if l <> [] then
-    let c = ctx c l in
-    let t = tm_one_step_tm t l in
-    tm c t next
-  else (t, c)
+    let t, names =
+      Tm.apply
+        (fun c -> ctx c l)
+        (fun t -> tm_one_step_tm t l)
+        (fun pp -> pp_data l pp)
+        t
+    in
+    tm_successively t
+      (List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next)
+  else t
 
 (* Public API *)
 let report_errors f str =
@@ -288,11 +289,13 @@ let report_errors f str =
 
 (* Functorialisation of a coherence: exposed function *)
 let coh c l =
-  report_errors (fun _ -> coh c l) (lazy ("coherence: " ^ Coh.to_string c))
+  report_errors
+    (fun _ -> fst (coh c l))
+    (lazy ("coherence: " ^ Coh.to_string c))
 
 let coh_depth0 c l =
   report_errors
-    (fun _ -> coh_depth0 c l)
+    (fun _ -> fst (coh_depth0 c l))
     (lazy ("coherence: " ^ Coh.to_string c))
 
 let coh_successively c l =
@@ -303,14 +306,15 @@ let coh_successively c l =
 let rec sub s l =
   match s with
   | [] -> []
-  | (x, t) :: s when not (List.mem x l) -> (x, t) :: sub s l
-  | (x, t) :: s -> (
+  | (x, (t, e)) :: s when not (List.mem x l) -> (x, (t, e)) :: sub s l
+  | (x, (t, e)) :: s -> (
       match tm_one_step t l true with
       | [ (tm_f, _); (tgt_t, _); (src_t, _) ] ->
-          (Var.Bridge x, tm_f) :: (Var.Plus x, tgt_t) :: (x, src_t) :: sub s l
-      | [ (t, _) ] ->
-          Io.debug "no functorialisation needed for %s" (Var.to_string x);
-          (x, t) :: sub s l
+          (Var.Bridge x, (tm_f, e))
+          :: (Var.Plus x, (tgt_t, false))
+          :: (x, (src_t, false))
+          :: sub s l
+      | [ (t, _) ] -> (x, (t, e)) :: sub s l
       | _ -> assert false)
 
 (* Functorialisation once with respect to every maximal argument *)
@@ -326,8 +330,8 @@ let coh_all c =
   coh_depth0 c l
 
 (* Functorialisation a term: exposed function *)
-let tm c t s =
-  report_errors (fun _ -> tm c t s) (lazy ("term: " ^ Unchecked.tm_to_string t))
+let tm t l =
+  report_errors (fun _ -> tm_successively t l) (lazy ("term: " ^ Tm.name t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in

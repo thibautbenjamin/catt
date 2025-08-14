@@ -4,7 +4,7 @@ open Evd
 open Catt
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 let run_catt_on_file f =
   Prover.reset ();
@@ -34,10 +34,51 @@ let rec find_db ctx x =
   | (y, _) :: _ when x = y -> 1
   | _ :: ctx -> 1 + find_db ctx x
 
+let clean_name s =
+  let s = Str.global_replace (Str.regexp "\\^-1") "_inv" s in
+  let s = Str.global_replace (Str.regexp "\\.") "db" s in
+  let s = Str.global_replace (Str.regexp ",") "F" s in
+  let s = Str.global_replace (Str.regexp " ") "" s in
+  let s = Str.global_replace (Str.regexp "_func") "" s in
+  String.map
+    (fun c ->
+      match c with
+      | '!' -> 'S'
+      | '{' | '}' | '[' | ']' | '(' | ')' -> '_'
+      | c -> c)
+    s
+
 module Translate : sig
-  val tm : Environ.env -> evar_map -> ctx -> tm -> evar_map * econstr
-  val coh : Environ.env -> evar_map -> Coh.t -> evar_map * econstr
+  val tm : Environ.env -> evar_map -> Tm.t -> unit
+  val coh : Environ.env -> evar_map -> Coh.t -> unit
 end = struct
+  let tbl : (Environment.value, string) Hashtbl.t = Hashtbl.create 97
+
+  let retrieve_lambda value sigma =
+    let build_econstr name =
+      let gr = Coqlib.lib_ref ("catt_" ^ name) in
+      let env = Global.env () in
+      let sigma, econstr = Evd.fresh_global env sigma gr in
+      (env, sigma, econstr)
+    in
+    Option.map build_econstr (Hashtbl.find_opt tbl value)
+
+  let register name env sigma body value =
+    let sigma, body = Typing.solve_evars env sigma body in
+    let body = Evarutil.nf_evar sigma body in
+    let info = Declare.Info.make () in
+    let cinfo =
+      Declare.CInfo.make ~name:Id.(of_string ("catt_" ^ name)) ~typ:None ()
+    in
+    let gr =
+      Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
+    in
+    Coqlib.register_ref ("catt_" ^ name) gr;
+    let env = Global.env () in
+    let sigma, econstr = Evd.fresh_global env sigma gr in
+    let _ = Hashtbl.add tbl value name in
+    (env, sigma, econstr)
+
   let catt_to_coq_db ctx var =
     match var with
     | Var.Db n ->
@@ -96,107 +137,171 @@ end = struct
           EConstr.mkLambda
             (nameR (Names.Id.of_string "catt_Obj"), obj_type, inner_tm) )
     | (x, (ty, _)) :: ctx ->
-        let sigma, ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
+        let env, sigma, ty =
+          ty_to_econstr env sigma obj_type eq_type refl ctx ty
+        in
         let id_lambda = Names.Id.of_string (catt_var_to_coq_name x) in
         let lambda = EConstr.mkLambda (nameR id_lambda, ty, inner_tm) in
         ctx_to_lambda env sigma obj_type eq_type refl ctx lambda
 
   (* translate a catt type into a coq type *)
-  and ty_to_lambda env sigma obj_type eq_type refl ctx ty =
+  and ty_to_econstr env sigma obj_type eq_type refl ctx ty =
     match ty with
-    | Obj -> (sigma, EConstr.mkRel (List.length ctx + 1))
+    | Obj -> (env, sigma, EConstr.mkRel (List.length ctx + 1))
     | Arr (ty, u, v) ->
-        let sigma, ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
-        let sigma, u = tm_to_lambda env sigma obj_type eq_type refl ctx u in
-        let sigma, v = tm_to_lambda env sigma obj_type eq_type refl ctx v in
-        (sigma, EConstr.mkApp (eq_type, [| ty; u; v |]))
+        let env, sigma, ty =
+          ty_to_econstr env sigma obj_type eq_type refl ctx ty
+        in
+        let env, sigma, u =
+          tm_to_econstr env sigma obj_type eq_type refl ctx u
+        in
+        let env, sigma, v =
+          tm_to_econstr env sigma obj_type eq_type refl ctx v
+        in
+        (env, sigma, EConstr.mkApp (eq_type, [| ty; u; v |]))
     | Meta_ty _ -> Error.fatal "unresolved type meta-variable"
 
   (* translate a catt term into a coq term *)
-  and tm_to_lambda env sigma obj_type eq_type refl ctx tm =
+  and tm_to_econstr env sigma obj_type eq_type refl ctx tm =
     match tm with
-    | Var x -> (sigma, EConstr.mkRel (find_db ctx x))
+    | Var x -> (env, sigma, EConstr.mkRel (find_db ctx x))
     | Coh (c, s) ->
-        let sigma, c = coh_to_lambda env sigma eq_type refl c in
-        let sigma, s = sub_ps_to_lambda env sigma obj_type eq_type refl ctx s in
-        (sigma, EConstr.mkApp (c, s))
+        let env, sigma, c = coh_to_lambda env sigma obj_type eq_type refl c in
+        let env, sigma, s =
+          sub_ps_to_econstr_array env sigma obj_type eq_type refl ctx s
+        in
+        (env, sigma, EConstr.mkApp (c, s))
+    | App (tm, s) ->
+        let env, sigma, tm = tm_to_lambda env sigma obj_type eq_type refl tm in
+        let env, sigma, s =
+          sub_to_econstr_array env sigma obj_type eq_type refl ctx s
+        in
+        (env, sigma, EConstr.mkApp (tm, s))
     | Meta_tm _ -> Error.fatal "unresolved term meta-variable"
 
   (* translate a catt substitution into a list of function application
      arguments in coq *)
-  and sub_ps_to_lambda env sigma obj_type eq_type refl ctx sub_ps =
+  and sub_ps_to_econstr_array env sigma obj_type eq_type refl ctx sub_ps =
     let l = List.length sub_ps in
     let array = Array.make (l + 1) (EConstr.mkRel 0) in
-    let rec set_next i (sigma : Evd.evar_map) sub_ps =
+    let rec set_next i env sigma sub_ps =
       match sub_ps with
       | [] ->
           Array.set array 0 (EConstr.mkRel (List.length ctx + 1));
-          sigma
+          (env, sigma)
       | (t, _) :: s ->
-          let sigma, tm = tm_to_lambda env sigma obj_type eq_type refl ctx t in
+          let env, sigma, tm =
+            tm_to_econstr env sigma obj_type eq_type refl ctx t
+          in
           Array.set array i tm;
-          set_next (i - 1) sigma s
+          set_next (i - 1) env sigma s
     in
-    (set_next l sigma sub_ps, array)
+    let env, sigma = set_next l env sigma sub_ps in
+    (env, sigma, array)
+
+  (* translate a catt substitution into a list of function application
+     arguments in coq *)
+  and sub_to_econstr_array env sigma obj_type eq_type refl ctx sub =
+    let l = List.length sub in
+    let array = Array.make (l + 1) (EConstr.mkRel 0) in
+    let rec set_next i env sigma sub =
+      match sub with
+      | [] ->
+          Array.set array i (EConstr.mkRel (List.length ctx + 1));
+          (env, sigma)
+      | (x, (t, _)) :: s ->
+          let env, sigma, tm =
+            tm_to_econstr env sigma obj_type eq_type refl ctx t
+          in
+          Array.set array i tm;
+          set_next (i - 1) env sigma s
+    in
+    let env, sigma = set_next l env sigma sub in
+    (env, sigma, array)
 
   (* translate a coherence into a coq function term *)
-  and coh_to_lambda env sigma eq_type refl coh =
-    let sigma, obj_type = Evarutil.new_Type sigma in
-    let ps, ty, _ = Coh.forget coh in
-    let ctx = Unchecked.ps_to_ctx ps in
-    let l_ind = induction_vars ps in
-    let l_ind = induction_data l_ind ctx in
-    let sigma, ty = ty_to_lambda env sigma obj_type eq_type refl ctx ty in
-    let (eq_ind, univ), _ = Inductiveops.find_inductive env sigma eq_type in
-    let catt_to_coq_db = catt_to_coq_db ctx in
-    let rec body l_ind ty =
-      match l_ind with
-      | [] ->
-          let _, args = EConstr.destApp sigma ty in
-          EConstr.mkApp (refl, [| args.(0); args.(1) |])
-      | (m, s_m, ty_m) :: l_ind ->
-          let v1 =
-            {
-              Context.binder_name = Names.Name.Anonymous;
-              Context.binder_relevance = ERelevance.relevant;
-            }
-          in
-          (* m_coq is the coq variable on which to do the match *)
-          let m_coq, i_lm = catt_to_coq_db m in
-          let s_coq, _ = catt_to_coq_db s_m in
-          let sigma, ty_m_coq =
-            ty_to_lambda env sigma obj_type eq_type refl ctx ty_m
-          in
-          let ty = abstract env sigma ty i_lm in
-          let case_return = (([| v1; v1 |], ty), ERelevance.relevant) in
-          let ty = instantiate ty ty_m_coq s_coq refl in
-          let case_branches = [| ([||], body l_ind ty) |] in
-          let pcase =
-            ( Inductiveops.make_case_info env eq_ind RegularStyle,
-              univ,
-              [| ty_m_coq; s_coq |],
-              (* parameters of inductive type *)
-              case_return,
-              Constr.NoInvert,
-              m_coq,
-              (* match m_coq in ... *)
-              case_branches )
-          in
-          EConstr.mkCase pcase
-    in
-    ctx_to_lambda env sigma obj_type eq_type refl ctx (body l_ind ty)
+  and coh_to_lambda env sigma obj_type eq_type refl coh =
+    let value = Environment.Coh coh in
+    match retrieve_lambda value sigma with
+    | Some res -> res
+    | None ->
+        let ps, ty, name = Coh.forget coh in
+        let name = clean_name (Printing.full_name name) in
+        let ctx = Unchecked.ps_to_ctx ps in
+        let l_ind = induction_vars ps in
+        let l_ind = induction_data l_ind ctx in
+        let env, sigma, ty =
+          ty_to_econstr env sigma obj_type eq_type refl ctx ty
+        in
+        let (eq_ind, univ), _ = Inductiveops.find_inductive env sigma eq_type in
+        let catt_to_coq_db = catt_to_coq_db ctx in
+        let rec body l_ind ty =
+          match l_ind with
+          | [] ->
+              let _, args = EConstr.destApp sigma ty in
+              EConstr.mkApp (refl, [| args.(0); args.(1) |])
+          | (m, s_m, ty_m) :: l_ind ->
+              let v1 =
+                {
+                  Context.binder_name = Names.Name.Anonymous;
+                  Context.binder_relevance = ERelevance.relevant;
+                }
+              in
+              (* m_coq is the coq variable on which to do the match *)
+              let m_coq, i_lm = catt_to_coq_db m in
+              let s_coq, _ = catt_to_coq_db s_m in
+              let env, sigma, ty_m_coq =
+                ty_to_econstr env sigma obj_type eq_type refl ctx ty_m
+              in
+              let ty = abstract env sigma ty i_lm in
+              let case_return = (([| v1; v1 |], ty), ERelevance.relevant) in
+              let ty = instantiate ty ty_m_coq s_coq refl in
+              let case_branches = [| ([||], body l_ind ty) |] in
+              let pcase =
+                ( Inductiveops.make_case_info env eq_ind RegularStyle,
+                  univ,
+                  [| ty_m_coq; s_coq |],
+                  (* parameters of inductive type *)
+                  case_return,
+                  Constr.NoInvert,
+                  m_coq,
+                  (* match m_coq in ... *)
+                  case_branches )
+              in
+              EConstr.mkCase pcase
+        in
+        let sigma, body =
+          ctx_to_lambda env sigma obj_type eq_type refl ctx (body l_ind ty)
+        in
+        register ("coh_" ^ name) env sigma body value
 
-  let tm env sigma ctx tm =
+  and tm_to_lambda ?name env sigma obj_type eq_type refl tm =
+    let value = Environment.Tm tm in
+    match retrieve_lambda value sigma with
+    | Some res -> res
+    | None ->
+        let name = clean_name (Tm.full_name tm) in
+        let ctx = Tm.ctx tm in
+        let tm = Tm.develop tm in
+        let env, sigma, tm =
+          tm_to_econstr env sigma obj_type eq_type refl ctx tm
+        in
+        let sigma, body =
+          ctx_to_lambda env sigma obj_type eq_type refl ctx tm
+        in
+        register ("tm_" ^ name) env sigma body value
+
+  let tm env sigma tm =
     let sigma, obj_type = Evarutil.new_Type sigma in
     let sigma, eq_type = c_Q env sigma in
     let sigma, refl = c_R env sigma in
-    let sigma, tm = tm_to_lambda env sigma obj_type eq_type refl ctx tm in
-    ctx_to_lambda env sigma obj_type eq_type refl ctx tm
+    ignore (tm_to_lambda env sigma obj_type eq_type refl tm)
 
   let coh env sigma coh =
+    let sigma, obj_type = Evarutil.new_Type sigma in
     let sigma, eq_type = c_Q env sigma in
     let sigma, refl = c_R env sigma in
-    coh_to_lambda env sigma eq_type refl coh
+    ignore (coh_to_lambda env sigma obj_type eq_type refl coh)
 end
 
 let catt_tm file tm_names =
@@ -204,20 +309,8 @@ let catt_tm file tm_names =
   let register_tm tm_name =
     let env = Global.env () in
     let sigma = Evd.from_env env in
-    let sigma, body =
-      match Environment.val_var (Var.Name tm_name) with
-      | Coh c -> Translate.coh env sigma c
-      | Tm (ctx, tm) -> Translate.tm env sigma ctx tm
-    in
-    let sigma, body = Typing.solve_evars env sigma body in
-    let body = Evarutil.nf_evar sigma body in
-    let info = Declare.Info.make () in
-    let cinfo =
-      Declare.CInfo.make ~name:Id.(of_string ("catt_" ^ tm_name)) ~typ:None ()
-    in
-    let gr =
-      Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
-    in
-    Coqlib.register_ref ("catt." ^ tm_name) gr
+    match Environment.val_var (Var.Name tm_name) with
+    | Coh c -> Translate.coh env sigma c
+    | Tm tm -> Translate.tm env sigma tm
   in
   List.iter register_tm tm_names
