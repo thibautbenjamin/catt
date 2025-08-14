@@ -226,7 +226,7 @@ end = struct
     | Some res -> res
     | None ->
         let ps, ty, name = Coh.forget coh in
-        let name = clean_name (Unchecked.full_name name) in
+        let name = clean_name (Printing.full_name name) in
         let ctx = Unchecked.ps_to_ctx ps in
         let l_ind = induction_vars ps in
         let l_ind = induction_data l_ind ctx in
