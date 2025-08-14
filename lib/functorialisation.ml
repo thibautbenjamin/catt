@@ -52,15 +52,6 @@ let rec next_round l =
       (v :: vars, (Var.Bridge v, n - 1) :: left)
   | _ -> Error.fatal "cannot functorialise a negative number of times."
 
-let pp_data_rename pp names =
-  let name, susp, func = pp in
-  let rec rename f =
-    match f with
-    | [] -> []
-    | (x, i) :: f -> (Display_maps.var_apply_sub x names, i) :: rename f
-  in
-  (name, susp, List.map rename func)
-
 (* Functorialised coherences with respect to locally maximal variables are
    coherences. This function updates the list of variables in the resulting
    coherence that come from a functorialisation *)
@@ -204,15 +195,12 @@ and ctx c l =
 (* Functorialisation of a coherence once with respect to a list of
    variables *)
 and coh_depth0 coh l =
-  let ps, t, pp = Coh.forget coh in
-  let ctxf = ctx (Unchecked.ps_to_ctx ps) l in
-  let names = Unchecked.db_level_sub_inv ctxf in
-  let psf = PS.forget (PS.mk (Ctx.check ctxf)) in
-  let ty = ty t l (Coh (coh, Unchecked.identity_ps ps)) in
-  let ty = Unchecked.ty_apply_sub ty names in
-  let pp = pp_data l pp in
-  let pp = pp_data_rename pp names in
-  (check_coh psf ty pp, names)
+  let ps, _, _ = Coh.forget coh in
+  Coh.apply
+    (fun c -> ctx c l)
+    (fun t -> ty t l (Coh (coh, Unchecked.identity_ps ps)))
+    (fun pp -> pp_data l pp)
+    coh
 
 and coh coh l =
   let ps, ty, _ = Coh.forget coh in

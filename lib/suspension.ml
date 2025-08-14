@@ -17,9 +17,7 @@ let sub = iter_option Unchecked.suspend_sub
 let coh i coh =
   match i with
   | None | Some 0 -> coh
-  | Some _ ->
-      let p, t, ppd = Coh.forget coh in
-      check_coh (ps i p) (ty i t) (pp_data i ppd)
+  | Some _ -> Coh.apply_ps (ps i) (ty i) (pp_data i) coh
 
 let checked_tm i t =
   match i with

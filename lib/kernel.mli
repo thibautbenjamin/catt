@@ -33,6 +33,20 @@ module rec Coh : sig
     * Unchecked_types(Coh)(Tm).ty
 
   val func_data : t -> (Var.t * int) list list
+
+  val apply_ps :
+    (ps -> ps) ->
+    (Unchecked_types(Coh)(Tm).ty -> Unchecked_types(Coh)(Tm).ty) ->
+    (pp_data -> pp_data) ->
+    t ->
+    t
+
+  val apply :
+    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
+    (Unchecked_types(Coh)(Tm).ty -> Unchecked_types(Coh)(Tm).ty) ->
+    (pp_data -> pp_data) ->
+    t ->
+    t * Unchecked_types(Coh)(Tm).sub
 end
 
 and Ty : sig
@@ -151,6 +165,12 @@ module Unchecked : sig
   val list_to_sub : tm list -> ctx -> sub
   val list_to_db_level_sub : tm list -> (Var.t * tm) list
   val identity : ctx -> sub
+end
+
+module Display_maps : sig
+  val var_apply_sub : Var.t -> sub -> Var.t
+  val pullback : ctx -> sub -> ctx -> sub -> ctx * sub
+  val glue : sub -> sub -> sub -> ctx -> sub -> sub
 end
 
 val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> UnnamedTm.t

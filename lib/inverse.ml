@@ -11,9 +11,11 @@ let ty t =
 
 let coh c =
   if not (Coh.is_inv c) then raise CohNonInv;
-  let ps, t, (name, susp, func) = Coh.forget c in
-  let ty_inv = ty t in
-  check_coh ps ty_inv (name ^ "^-1", susp, func)
+  Coh.apply_ps
+    (fun ps -> ps)
+    (fun t -> ty t)
+    (fun (name, susp, func) -> (name ^ "^-1", susp, func))
+    c
 
 let rec compute_inverse t =
   match t with

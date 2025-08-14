@@ -77,11 +77,12 @@ and sub s op_data =
   | (x, (t, e)) :: s -> (x, (tm t op_data, e)) :: sub s op_data
 
 and coh c op_data equiv =
-  let p, t, pp_data = Coh.forget c in
-  let op_p = ps p op_data in
-  let op_t = ty t op_data in
-  let t' = Unchecked.ty_sub_preimage op_t (Unchecked.sub_ps_to_sub equiv) in
-  check_coh op_p t' (op_pp_data pp_data op_data)
+  Coh.apply_ps
+    (fun p -> ps p op_data)
+    (fun t ->
+      Unchecked.ty_sub_preimage (ty t op_data) (Unchecked.sub_ps_to_sub equiv))
+    (fun pp -> op_pp_data pp op_data)
+    c
 
 and ctx c op_data =
   match c with

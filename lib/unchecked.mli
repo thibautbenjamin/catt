@@ -92,5 +92,12 @@ end) : sig
     val list_to_sub : tm list -> ctx -> sub
     val list_to_db_level_sub : tm list -> (Var.t * tm) list
     val identity : ctx -> sub
+
+    module Display_maps : sig
+      val var_apply_sub : Var.t -> sub -> Var.t
+      val pullback : ctx -> sub -> ctx -> sub -> ctx * sub
+      val glue : sub -> sub -> sub -> ctx -> sub -> sub
+      val pp_data_rename : pp_data -> sub -> pp_data
+    end
   end
 end

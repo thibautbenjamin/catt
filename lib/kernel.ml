@@ -531,6 +531,7 @@ end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
+  module Display_maps = Unchecked.Display_maps
 
   type t = UnnamedTm.t * pp_data
 
@@ -563,7 +564,7 @@ end = struct
     let db_sub = Unchecked.db_level_sub_inv c in
     let c, _, _ = Unchecked.db_levels c in
     let c = Ctx.check c in
-    let pp_data = fun_pp_data pp_data in
+    let pp_data = Display_maps.pp_data_rename (fun_pp_data pp_data) db_sub in
     let tm = Unchecked.tm_apply_sub (fun_tm (UnnamedTm.forget tm)) db_sub in
     (check c pp_data tm, db_sub)
 end
@@ -605,6 +606,20 @@ and Coh : sig
   val func_data : t -> (Var.t * int) list list
   val check_equal : t -> t -> unit
   val dim : t -> int
+
+  val apply_ps :
+    (ps -> ps) ->
+    (Unchecked_types(Coh)(Tm).ty -> Unchecked_types(Coh)(Tm).ty) ->
+    (pp_data -> pp_data) ->
+    t ->
+    t
+
+  val apply :
+    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
+    (Unchecked_types(Coh)(Tm).ty -> Unchecked_types(Coh)(Tm).ty) ->
+    (pp_data -> pp_data) ->
+    t ->
+    t * Unchecked_types(Coh)(Tm).sub
 end = struct
   type cohInv = { ps : PS.t; ty : Ty.t }
 
@@ -631,6 +646,7 @@ end = struct
 
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
+  module Display_maps = Unchecked.Display_maps
 
   let ps = function Inv (data, _) -> data.ps | NonInv (data, _) -> data.ps
 
@@ -767,10 +783,27 @@ end = struct
           Ty.check_equal d1.total_ty d2.total_ty
       | Inv _, NonInv _ | NonInv _, Inv _ ->
           raise (NotEqual (to_string coh1, to_string coh2))
+
+  let apply_ps fun_ps fun_ty fun_pp_data coh =
+    let ps, ty, pp = forget coh in
+    let ps = fun_ps ps in
+    let pp_data = fun_pp_data pp in
+    let ty = fun_ty ty in
+    check ps ty pp_data
+
+  let apply fun_ctx fun_ty fun_pp_data coh =
+    let ps, ty, pp = forget coh in
+    let ctx = fun_ctx (Unchecked.ps_to_ctx ps) in
+    let ps = PS.forget (PS.mk (Ctx.check ctx)) in
+    let db_sub = Unchecked.db_level_sub_inv ctx in
+    let pp_data = Display_maps.pp_data_rename (fun_pp_data pp) db_sub in
+    let ty = Unchecked.ty_apply_sub (fun_ty ty) db_sub in
+    (check ps ty pp_data, db_sub)
 end
 
 module U = Unchecked (Coh) (Tm)
 module Unchecked = U.Make (Coh) (Tm)
+module Display_maps = Unchecked.Display_maps
 
 let check check_fn name =
   let v = 2 in
