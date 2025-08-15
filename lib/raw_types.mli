@@ -6,6 +6,8 @@ type builtin =
   | Conecomp of (int * int * int)
   | Cylcomp of (int * int * int)
   | Cylstack of int
+  | Eh_half of (int * int * int)
+  | Eh_full of (int * int * int)
 
 type tyR = Letin_ty of Var.t * tmR * tyR | ObjR | ArrR of tmR * tmR
 

@@ -37,6 +37,8 @@
 %token <string> BUILTIN
 %token <int*int*int> CONECOMP
 %token <int*int*int> CYLCOMP
+%token <int*int*int> EH_FULL
+%token <int*int*int> EH_HALF
 %token <int> CYLSTACK
 %token <string> IDENT
 %token <string> INT
@@ -114,6 +116,8 @@ builtin:
  | CONECOMP { let (n,k,m) = $1 in Conecomp(n,k,m) }
  | CYLCOMP { let (n,k,m) = $1 in Cylcomp(n,k,m) }
  | CYLSTACK { let n = $1 in Cylstack(n) }
+ | EH_HALF { let (n,k,l) = $1 in Eh_half(n,k,l)}
+ | EH_FULL { let (n,k,l) = $1 in Eh_full(n,k,l)}
 
 simple_tmexpr:
   | LPAR tmexpr RPAR { $2 }

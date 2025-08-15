@@ -1113,3 +1113,13 @@ let full_eh n k l =
       Construct.inverse
         (Construct.apply_sub (Construct.op [ l + 1 ] ehnkl) (swap_a_and_b n));
     ]
+
+let eh_Tm n k l =
+  let tm = Construct.to_tm @@ eh n k l in
+  let checked_ctx = Ctx.check @@ eh_ctx n in
+  check_term checked_ctx (Printf.sprintf "eh^%d_(%d,%d)" n k l, 0, []) tm
+
+let full_eh_Tm n k l =
+  let tm = Construct.to_tm @@ full_eh n k l in
+  let checked_ctx = Ctx.check @@ eh_ctx n in
+  check_term checked_ctx (Printf.sprintf "EH^%d_(%d,%d)" n k l, 0, []) tm

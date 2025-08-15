@@ -60,6 +60,12 @@ let rec tm t =
           make_app tm s susp expl
       | Cylstack n ->
           let tm = Cylinders.stacking n in
+          make_app tm s susp expl
+      | Eh_half (n, k, l) ->
+          let tm = Eh.eh_Tm n k l in
+          make_app tm s susp expl
+      | Eh_full (n, k, l) ->
+          let tm = Eh.full_eh_Tm n k l in
           make_app tm s susp expl)
   | Op (l, t) ->
       let offset = head_susp t in
