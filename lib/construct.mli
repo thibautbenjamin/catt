@@ -3,6 +3,7 @@ open Kernel
 open Unchecked_types.Unchecked_types(Coh)(Tm)
 
 type constr = tm * ty
+
 val to_tm : constr -> tm
 val to_ty : constr -> ty
 val arr : constr -> constr -> ty
@@ -13,12 +14,13 @@ val intch_comp_nm : constr -> constr -> constr -> constr
 val intch_comp_mn : constr -> constr -> constr -> constr
 val opposite : constr -> op_data -> constr
 val inv : constr -> constr
+val functorialise : constr -> Var.t list -> constr
 val id : constr -> constr
 val id_n : int -> constr -> constr
 val dim : constr -> int
 val apply_sub : constr -> sub -> constr
 val apply_sub_ps : constr -> sub_ps -> constr
-val bdry : int -> constr -> constr*constr
+val bdry : int -> constr -> constr * constr
 val _src : int -> constr -> constr
 val tgt : int -> constr -> constr
 val inverse : constr -> constr
