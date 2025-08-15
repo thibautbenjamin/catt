@@ -1,5 +1,1 @@
-let first_eh (x : *) (a : id x -> id x) (b : id x -> id x)
-    = EH(2,1,0) a b
-
-let comp_eh (y : *) (p : id (id (id y)) -> id (id (id y))) (q : id (id (id y)) -> id (id (id y)))
-    = comp (EH(4,2,1) p q) (EH(4,2,1) q p)
+benchmark eh(5,4,1)

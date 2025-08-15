@@ -568,7 +568,9 @@ let assoc_33_to_middle2 =
       (Construct.wcomp (Construct.comp3 f1 f2 f3) 0 (Construct.comp3 f4 f5 f6))
       (Construct.comp3 f1 (Construct.comp3 f2 (Construct.wcomp f3 0 f4) f5) f6)
   in
-  ( Coh (check_coh tree cohty ("assoc", 0, []), Unchecked.identity_ps tree),
+  ( Coh
+      ( check_coh tree cohty ("assoc_(---)(---)_to_-(-(--)-)-", 0, []),
+        Unchecked.identity_ps tree ),
     cohty )
 
 let middle_unitor =
@@ -581,7 +583,9 @@ let middle_unitor =
       (Construct.comp3 f1 (Construct.id_n 1 x1) f2)
       (Construct.wcomp f1 0 f2)
   in
-  ( Coh (check_coh tree cohty ("unitor", 0, []), Unchecked.identity_ps tree),
+  ( Coh
+      ( check_coh tree cohty ("unitor_-id-_to_--", 0, []),
+        Unchecked.identity_ps tree ),
     cohty )
 
 let xi_lt n =
@@ -747,7 +751,7 @@ let zeta_inv n =
       (Construct.characteristic_sub_ps (Var (b_n n), type_i_l (n - 1) (n - 1)))
     @ Construct.characteristic_sub_ps (Var (a_n n), type_i_l (n - 1) (n - 1))
   in
-  ( Coh (check_coh tree cohty ("zeta^" ^ string_of_int n, 0, []), sub),
+  ( Coh (check_coh tree cohty ("(zeta^" ^ string_of_int n ^ ")^-1", 0, []), sub),
     Unchecked.ty_apply_sub_ps cohty sub )
 
 let first_step_gt n =
@@ -948,7 +952,7 @@ let nat_unitor constr =
     Construct.arr f_constr
       (Construct.comp_n [ f_constr; Construct.id_n 1 y_constr ])
   in
-  let runit = check_coh (Common.disc 1) cohty ("unit_r^-1", 0, []) in
+  let runit = check_coh (Common.disc 1) cohty ("unitor_-_to_-id", 0, []) in
   let d = Construct.dim constr in
   let sub = Construct.characteristic_sub_ps constr in
   ( Coh (Suspension.coh (Some (d - 1)) runit, sub),
@@ -990,7 +994,7 @@ let nat_associator1 constr1 constr2 constr3 =
       (Construct.comp_n [ Construct.comp_n [ f1; f2 ]; f3 ])
   in
   let coherence =
-    check_coh (Br [ Br []; Br []; Br [] ]) cohty ("assoc^-1", 0, [])
+    check_coh (Br [ Br []; Br []; Br [] ]) cohty ("assoc_-(--)_to_(--)-", 0, [])
   in
   let d = Construct.dim constr1 in
   let sub =
@@ -1009,7 +1013,7 @@ let nat_associator2 constr1 constr2 constr3 =
       (Construct.comp_n [ f1; f2; f3 ])
   in
   let coherence =
-    check_coh (Br [ Br []; Br []; Br [] ]) cohty ("assoc_ternary", 0, [])
+    check_coh (Br [ Br []; Br []; Br [] ]) cohty ("assoc_(--)-_to_---", 0, [])
   in
   let d = Construct.dim constr1 in
   let sub =
@@ -1122,4 +1126,10 @@ let eh_Tm n k l =
 let full_eh_Tm n k l =
   let tm = Construct.to_tm @@ full_eh n k l in
   let checked_ctx = Ctx.check @@ eh_ctx n in
-  check_term checked_ctx (Printf.sprintf "EH^%d_(%d,%d)" n k l, 0, []) tm
+  check_term checked_ctx
+    (Printf.sprintf "EH^%d_(%d,%d)" n k l, 0, [])
+    ~ty:
+      (Construct.arr
+         (Construct.wcomp (a_n_constr n) k (b_n_constr n))
+         (Construct.wcomp (b_n_constr n) k (a_n_constr n)))
+    tm
