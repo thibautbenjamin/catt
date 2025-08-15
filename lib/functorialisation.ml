@@ -6,7 +6,7 @@ exception FunctorialiseMeta
 exception NotClosed
 exception Unsupported
 
-let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference coh_depth1")
 
 module Memo = struct
   let tbl_whisk = Hashtbl.create 97

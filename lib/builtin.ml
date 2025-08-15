@@ -93,7 +93,7 @@ let unbiased_unitor ps t =
   Coh.check_inv bdry src tgt ("unbiased_unitor", 0, [])
 
 let tdb i = Var (Var.Db i)
-let wcomp = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let wcomp = ref (fun _ -> Error.fatal "Uninitialised forward reference wcomp")
 
 (*
   (a *_n b) *_0 g -> (a *_0 g) *_n (b *_0 g)
