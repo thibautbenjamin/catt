@@ -2,12 +2,11 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)(Tm)
 
-type constr = tm * ty
-
 val to_tm : constr -> tm
 val to_ty : constr -> ty
 val arr : constr -> constr -> ty
 val characteristic_sub_ps : constr -> sub_ps
+val tm_app : Tm.t -> sub -> constr
 val wcomp : constr -> int -> constr -> constr
 val wcomp3 : constr -> int -> constr -> int -> constr -> constr
 val intch_comp_nm : constr -> constr -> constr -> constr
@@ -21,7 +20,7 @@ val dim : constr -> int
 val apply_sub : constr -> sub -> constr
 val apply_sub_ps : constr -> sub_ps -> constr
 val bdry : int -> constr -> constr * constr
-val _src : int -> constr -> constr
+val src : int -> constr -> constr
 val tgt : int -> constr -> constr
 val inverse : constr -> constr
 val suspend : int -> constr -> constr

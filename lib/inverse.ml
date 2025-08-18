@@ -135,7 +135,7 @@ and cancel_all_linear_comp t =
         in
         Unchecked.wedge_sub_ps_bp lsubs
   in
-  Coh (Functorialisation.coh_all c, compute_sub 0 ps sub Obj)
+  Coh (Functorialisation.coh_all_depth0 c, compute_sub 0 ps sub Obj)
 
 and compute_witness t =
   match t with

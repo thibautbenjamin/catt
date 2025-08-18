@@ -17,7 +17,11 @@ let rec bdry n (t, ty) =
   | _, Arr (b, s, _) -> bdry (n - 1) (s, b)
   | _, _ -> assert false
 
-let _src n t = fst (bdry n t)
+let tm_app tm sub =
+  let ty = Tm.ty tm in
+  (App (tm, sub), Unchecked.ty_apply_sub ty sub)
+
+let src n t = fst (bdry n t)
 let tgt n t = snd (bdry n t)
 let wcomp = Functorialisation.wcomp
 let () = Builtin.wcomp := wcomp
@@ -130,7 +134,7 @@ let comp_n constrs =
   ( Coh
       ( Suspension.coh (Some (d - 1)) (Builtin.comp_n l),
         glue_subs (List.rev constrs) ),
-    arr (_src 1 c) (tgt 1 (last constrs)) )
+    arr (src 1 c) (tgt 1 (last constrs)) )
 
 let comp3 c1 c2 c3 = comp_n [ c1; c2; c3 ]
 let op dims (tm, ty) = (Opposite.tm tm dims, Opposite.ty ty dims)
@@ -183,6 +187,6 @@ let witness constr =
   let tm = to_tm constr in
   let d = dim constr in
   let ty =
-    arr (wcomp constr (d - 1) (inverse constr)) (id_n 1 (_src 1 constr))
+    arr (wcomp constr (d - 1) (inverse constr)) (id_n 1 (src 1 constr))
   in
   (Inverse.compute_witness tm, ty)
