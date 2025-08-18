@@ -5,6 +5,8 @@ exception NotInImage
 
 type ps = Br of ps list
 
+val disc : int -> ps
+
 module Var : sig
   type t =
     | Name of string
