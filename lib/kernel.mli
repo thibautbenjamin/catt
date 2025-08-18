@@ -165,6 +165,13 @@ module Unchecked : sig
   val list_to_sub : tm list -> ctx -> sub
   val list_to_db_level_sub : tm list -> (Var.t * tm) list
   val identity : ctx -> sub
+  val disc : int -> ps
+  val disc_ctx : int -> ctx
+  val disc_type : int -> ty
+  val sphere : int -> ctx
+  val sphere_inc : int -> sub
+  val disc_src : int -> sub_ps
+  val disc_tgt : int -> sub_ps
 end
 
 module Display_maps : sig

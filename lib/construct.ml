@@ -17,6 +17,14 @@ let rec bdry n (t, ty) =
   | _, Arr (b, s, _) -> bdry (n - 1) (s, b)
   | _, _ -> assert false
 
+let coh_app coh sub =
+  let _, ty, _ = Coh.forget coh in
+  (Coh (coh, sub), Unchecked.ty_apply_sub_ps ty sub)
+
+let of_coh coh =
+  let ps, _, _ = Coh.forget coh in
+  coh_app coh (Unchecked.identity_ps ps)
+
 let tm_app tm sub =
   let ty = Tm.ty tm in
   (App (tm, sub), Unchecked.ty_apply_sub ty sub)
@@ -108,6 +116,9 @@ let apply_sub (tm, ty) sigma =
 
 let apply_sub_ps (tm, ty) sigma =
   (Unchecked.tm_apply_sub_ps tm sigma, Unchecked.ty_apply_sub_ps ty sigma)
+
+let rename (tm, ty) sigma =
+  (Unchecked.tm_rename tm sigma, Unchecked.ty_rename ty sigma)
 
 let inverse (tm, ty) = (Inverse.compute_inverse tm, Inverse.ty ty)
 let suspend i (tm, ty) = (Suspension.tm (Some i) tm, Suspension.ty (Some i) ty)

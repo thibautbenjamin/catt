@@ -708,6 +708,26 @@ struct
       | [] -> []
       | (x, (_, e)) :: ctx -> (x, (Var x, e)) :: identity ctx
 
+    let rec disc = function 0 -> Br [] | n -> Br [ disc (n - 1) ]
+    let disc_ctx n = ps_to_ctx (disc n)
+
+    let rec disc_type n =
+      if n = 0 then Obj
+      else
+        Arr (disc_type (n - 1), Var (Var.Db ((2 * n) - 1)), Var (Var.Db (2 * n)))
+
+    let sphere n =
+      let d = ps_to_ctx (disc n) in
+      (Var.Db ((2 * n) + 1), (disc_type n, true)) :: d
+
+    let sphere_inc n = identity (sphere n)
+    let disc_src n = identity_ps (disc n)
+
+    let disc_tgt n =
+      (Var (Var.Db ((2 * n) + 1)), true)
+      :: (Var (Var.Db ((2 * n) - 1)), true)
+      :: identity_ps (disc (n - 1))
+
     module Display_maps = struct
       (* Construction related to display maps, i.e. var to var substitutions *)
       let var_apply_sub v s =

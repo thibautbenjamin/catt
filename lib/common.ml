@@ -5,8 +5,6 @@ exception NotInImage
 
 type ps = Br of ps list
 
-let rec disc = function 0 -> Br [] | n -> Br [ disc (n - 1) ]
-
 module Var = struct
   type t =
     | Name of string
