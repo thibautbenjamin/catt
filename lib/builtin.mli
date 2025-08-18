@@ -3,6 +3,12 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types(Coh)(Tm)
 
+module Comp : sig
+  val tree : int -> ps
+  val x : int -> constr
+  val f : int -> constr
+end
+
 val wcomp : (tm * ty -> int -> tm * ty -> tm * ty) ref
 val ps_comp : int -> ps
 val comp_n : int -> Coh.t

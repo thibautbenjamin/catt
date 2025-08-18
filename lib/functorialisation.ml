@@ -6,7 +6,8 @@ exception FunctorialiseMeta
 exception NotClosed
 exception Unsupported
 
-let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference coh_depth1")
+let coh_depth1 =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference coh_depth1")
 
 module Memo = struct
   let tbl_whisk = Hashtbl.create 97
@@ -318,7 +319,7 @@ let rec sub s l =
       | _ -> assert false)
 
 (* Functorialisation once with respect to every maximal argument *)
-let coh_all c =
+let coh_all_depth0 c =
   let ps, _, _ = Coh.forget c in
   let ct = Unchecked.ps_to_ctx ps in
   let d = Unchecked.dim_ps ps in
@@ -328,6 +329,12 @@ let coh_all c =
       ct
   in
   coh_depth0 c l
+
+(* Functorialisation once with respect to every maximal argument *)
+let coh_all c =
+  let ps, _, _ = Coh.forget c in
+  let l = List.map fst (Unchecked.ps_to_ctx ps) in
+  coh c l
 
 (* Functorialisation a term: exposed function *)
 let tm t l =
