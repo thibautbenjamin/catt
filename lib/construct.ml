@@ -132,6 +132,7 @@ let comp_n constrs =
         glue_subs (List.rev constrs) ),
     arr (_src 1 c) (tgt 1 (last constrs)) )
 
+let comp3 c1 c2 c3 = comp_n [ c1; c2; c3 ]
 let op dims (tm, ty) = (Opposite.tm tm dims, Opposite.ty ty dims)
 
 let drop n xs =

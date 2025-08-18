@@ -26,6 +26,7 @@ val tgt : int -> constr -> constr
 val inverse : constr -> constr
 val suspend : int -> constr -> constr
 val comp_n : constr list -> constr
+val comp3 : constr -> constr -> constr -> constr
 val op : int list -> constr -> constr
 val witness : constr -> constr
 val glue_subs_along : int -> 'a list list -> 'a list
