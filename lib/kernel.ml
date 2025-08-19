@@ -835,10 +835,23 @@ let check_unnamed_term ctx ?ty t =
   let tm = lazy ("term: " ^ Unchecked.tm_to_string t) in
   check (fun () -> UnnamedTm.check ctx ?ty t) tm
 
+let check_unnamed_constr ?(without_check = false) ctx constr =
+  let ctx = Ctx.check ctx in
+  let t, ty = constr in
+  let ty = if without_check then None else Some ty in
+  check_unnamed_term ctx t ?ty
+
 let check_term ctx pp_data ?ty t =
   let ty = Option.map (check_type ctx) ty in
   let tm = lazy ("term: " ^ Unchecked.tm_to_string t) in
   check (fun () -> Tm.check ctx pp_data ?ty t) tm
+
+let check_constr ?(without_check = false) ctx name constr =
+  Io.debug "checking %s" name;
+  let ctx = Ctx.check ctx in
+  let t, ty = constr in
+  let ty = if without_check then None else Some ty in
+  check_term ctx (name, 0, []) ?ty t
 
 let check_coh ps ty pp_data =
   let c = lazy ("coherence: " ^ Unchecked.pp_data_to_string pp_data) in

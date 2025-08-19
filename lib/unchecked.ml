@@ -714,7 +714,10 @@ struct
     let rec disc_type n =
       if n = 0 then Obj
       else
-        Arr (disc_type (n - 1), Var (Var.Db ((2 * n) - 1)), Var (Var.Db (2 * n)))
+        Arr
+          ( disc_type (n - 1),
+            Var (Var.Db ((2 * n) - 2)),
+            Var (Var.Db ((2 * n) - 1)) )
 
     let sphere n =
       let d = ps_to_ctx (disc n) in

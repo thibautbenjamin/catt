@@ -1,10 +1,13 @@
-open Common
 open Kernel
 open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 let pad p q previous v sigma =
+  Io.debug "Context of prev functorialisation: %s"
+    (Unchecked.ctx_to_string
+       (Tm.ctx (Functorialisation.tm previous [ (v, 1) ])));
+  Io.debug "substitution: %s" (Unchecked.sub_to_string_debug sigma);
   Construct.comp3 p
-    (Construct.apply_sub (Construct.functorialise previous [ v ]) sigma)
+    (Construct.tm_app (Functorialisation.tm previous [ (v, 1) ]) sigma)
     q
 
 let hexcomp fminus fplus ybridge fbridge gminus gplus gbridge zbridge hminus

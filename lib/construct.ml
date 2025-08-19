@@ -2,8 +2,6 @@ open Common
 open Kernel
 open Unchecked_types.Unchecked_types (Coh) (Tm)
 
-type constr = tm * ty
-
 let to_tm (tm, _) = tm
 let to_ty (_, ty) = ty
 let characteristic_sub_ps (tm, ty) = (tm, true) :: Unchecked.ty_to_sub_ps ty
@@ -28,6 +26,10 @@ let of_coh coh =
 let tm_app tm sub =
   let ty = Tm.ty tm in
   (App (tm, sub), Unchecked.ty_apply_sub ty sub)
+
+let of_tm tm =
+  let c = Tm.ctx tm in
+  tm_app tm (Unchecked.identity c)
 
 let src n t = fst (bdry n t)
 let tgt n t = snd (bdry n t)

@@ -9,6 +9,7 @@ val characteristic_sub_ps : constr -> sub_ps
 val coh_app : Coh.t -> sub_ps -> constr
 val of_coh : Coh.t -> constr
 val tm_app : Tm.t -> sub -> constr
+val of_tm : Tm.t -> constr
 val wcomp : constr -> int -> constr -> constr
 val wcomp3 : constr -> int -> constr -> int -> constr -> constr
 val intch_comp_nm : constr -> constr -> constr -> constr
