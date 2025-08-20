@@ -411,10 +411,17 @@ and UnnamedTm : sig
   val free_vars : t -> Var.t list
   val is_full : t -> bool
   val forget : t -> Unchecked_types(Coh)(Tm).tm
+  val constr : t -> Unchecked_types(Coh)(Tm).constr
   val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types(Coh)(Tm).tm -> t
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
   val develop : t -> Unchecked_types(Coh)(Tm).tm
+
+  val apply :
+    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
+    (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+    t ->
+    t * Unchecked_types(Coh)(Tm).sub
 end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
@@ -442,6 +449,7 @@ end = struct
 
   let is_full tm = List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
   let forget tm = tm.unchecked
+  let constr tm = (forget tm, ty tm)
 
   let check c ?ty t =
     Io.info ~v:5
@@ -504,6 +512,14 @@ end = struct
     let c = Sub.tgt sub in
     let t = Unchecked.tm_sub_preimage (forget t) (Sub.forget sub) in
     check c t
+
+  let apply fun_ctx fun_tm tm =
+    let c = fun_ctx (Ctx.forget (Ty.ctx (typ tm))) in
+    let db_sub = Unchecked.db_level_sub_inv c in
+    let c, _, _ = Unchecked.db_levels c in
+    let c = Ctx.check c in
+    let tm = Unchecked.tm_apply_sub (fun_tm (forget tm)) db_sub in
+    (check c tm, db_sub)
 end
 
 (** Operations on terms. *)
@@ -512,6 +528,8 @@ and Tm : sig
 
   val typ : t -> Ty.t
   val ty : t -> Unchecked_types(Coh)(Tm).ty
+  val bdry : t -> UnnamedTm.t * UnnamedTm.t
+  val constr : t -> Unchecked_types(Coh)(Tm).constr
   val ctx : t -> Unchecked_types(Coh)(Tm).ctx
   val of_coh : Coh.t -> t
   val check : Ctx.t -> ?ty:Ty.t -> pp_data -> Unchecked_types(Coh)(Tm).tm -> t
@@ -536,7 +554,9 @@ end = struct
   type t = UnnamedTm.t * pp_data
 
   let typ (t, _) = UnnamedTm.typ t
-  let ty (t, _) = Ty.forget (UnnamedTm.typ t)
+  let ty (t, _) = UnnamedTm.ty t
+  let bdry t = (Ty.source (typ t), Ty.target (typ t))
+  let constr (t, _) = UnnamedTm.constr t
   let ctx (t, _) = Ctx.forget (Ty.ctx (UnnamedTm.typ t))
   let name (_, pp_data) = Unchecked.pp_data_to_string pp_data
   let full_name (_, pp_data) = Unchecked.full_name pp_data
@@ -560,13 +580,9 @@ end = struct
   let develop (tm, _) = UnnamedTm.develop tm
 
   let apply fun_ctx fun_tm fun_pp_data (tm, pp_data) =
-    let c = fun_ctx (Ctx.forget (Ty.ctx (UnnamedTm.typ tm))) in
-    let db_sub = Unchecked.db_level_sub_inv c in
-    let c, _, _ = Unchecked.db_levels c in
-    let c = Ctx.check c in
+    let app_tm, db_sub = UnnamedTm.apply fun_ctx fun_tm tm in
     let pp_data = Display_maps.pp_data_rename (fun_pp_data pp_data) db_sub in
-    let tm = Unchecked.tm_apply_sub (fun_tm (UnnamedTm.forget tm)) db_sub in
-    (check c pp_data tm, db_sub)
+    ((app_tm, pp_data), db_sub)
 end
 
 (** A coherence. *)

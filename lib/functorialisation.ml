@@ -275,6 +275,16 @@ and tm_successively t s =
       (List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next)
   else t
 
+let rec unnamed_tm_successively t s =
+  let l, next = next_round s in
+  if l <> [] then
+    let t, names =
+      UnnamedTm.apply (fun c -> ctx c l) (fun t -> tm_one_step_tm t l) t
+    in
+    unnamed_tm_successively t
+      (List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next)
+  else t
+
 (* Public API *)
 let report_errors f str =
   try f () with
@@ -339,6 +349,11 @@ let coh_all c =
 (* Functorialisation a term: exposed function *)
 let tm t l =
   report_errors (fun _ -> tm_successively t l) (lazy ("term: " ^ Tm.name t))
+
+let unnamed_tm t l =
+  report_errors
+    (fun _ -> unnamed_tm_successively t l)
+    (lazy ("term: " ^ Unchecked.tm_to_string (UnnamedTm.forget t)))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in

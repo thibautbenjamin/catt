@@ -1,1 +1,3 @@
+set verbosity = 4
+
 check eh(3,2,1)

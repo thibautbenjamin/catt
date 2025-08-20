@@ -60,6 +60,8 @@ and Tm : sig
 
   val typ : t -> Ty.t
   val ty : t -> Unchecked_types(Coh)(Tm).ty
+  val constr : t -> Unchecked_types(Coh)(Tm).constr
+  val bdry : t -> UnnamedTm.t * UnnamedTm.t
   val ctx : t -> Unchecked_types(Coh)(Tm).ctx
   val name : t -> string
   val full_name : t -> string
@@ -76,14 +78,20 @@ and Tm : sig
     t * Unchecked_types(Coh)(Tm).sub
 end
 
-open Unchecked_types(Coh)(Tm)
-
-module UnnamedTm : sig
+and UnnamedTm : sig
   type t
 
-  val ty : t -> ty
+  val ty : t -> Unchecked_types(Coh)(Tm).ty
   val forget : t -> Unchecked_types(Coh)(Tm).tm
+
+  val apply :
+    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
+    (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+    t ->
+    t * Unchecked_types(Coh)(Tm).sub
 end
+
+open Unchecked_types(Coh)(Tm)
 
 module Ctx : sig
   type t

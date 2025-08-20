@@ -11,6 +11,20 @@ val repad :
   constr ->
   constr ->
   constr ->
+  Tm.t ->
+  sub ->
+  sub ->
+  Var.t ->
+  sub ->
+  constr
+
+val repad_old :
+  constr ->
+  constr ->
+  constr ->
+  constr ->
+  constr ->
+  constr ->
   constr ->
   sub ->
   sub ->
