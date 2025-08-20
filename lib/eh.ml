@@ -40,7 +40,7 @@ module UnbiasedPadding = struct
         let p, q = u n k l in
         Padding.pad p q (padded n k l) v (sub (n + 1) l)
     in
-    check_constr (ctx n l) name padded_constr
+    check_constr (ctx n l) ~name:(name, 0, []) padded_constr
 
   and u n k l =
     let pp_indices =
@@ -89,7 +89,7 @@ module ForwardBiasedPadding = struct
         let p, q = u n in
         Padding.pad p q (padded n) (v n) (sub (n + 1))
     in
-    check_constr (ctx n) name padded_constr
+    check_constr (ctx n) ~name:(name, 0, []) padded_constr
 
   and u n =
     let p =
@@ -145,7 +145,7 @@ module BackwardBiasedPadding = struct
         let p, q = u n in
         Padding.pad p q (padded n) (v n) (sub (n + 1))
     in
-    check_constr (ctx n) name padded_constr
+    check_constr (ctx n) ~name:(name, 0, []) padded_constr
 
   and u n =
     let p =
@@ -214,7 +214,7 @@ module ForwardToUnbiasedRepadding = struct
         let f, g = Construct.(of_coh f, of_coh g) in
         Padding.repad p_lt p_u f q_lt q_u g previous in_m in_p UP.v sigma
     in
-    check_constr (UP.ctx n i) "RepaddingUToF" repadding_constr
+    check_constr (UP.ctx n i) ~name:("RepaddingUToF", 0, []) repadding_constr
 end
 
 module BackwardToUnbiasedRepadding = struct
@@ -257,7 +257,7 @@ module BackwardToUnbiasedRepadding = struct
     Io.debug "context %d %d : %s" n i (Unchecked.ctx_to_string (UP.ctx i 0));
     Io.debug "term: %s" (Unchecked.tm_to_string (fst repadding_constr));
     Io.debug "type: %s" (Unchecked.ty_to_string (snd repadding_constr));
-    check_constr (UP.ctx i 0) "RepaddingBToU" repadding_constr
+    check_constr (UP.ctx i 0) ~name:("RepaddingBToU", 0, []) repadding_constr
 end
 
 module FToU = ForwardToUnbiasedRepadding
@@ -1269,13 +1269,13 @@ let full_eh n k l =
 let eh_Tm n k l =
   let tm = Construct.to_tm @@ eh n k l in
   let checked_ctx = Ctx.check @@ V.ctx n in
-  check_term checked_ctx (Printf.sprintf "eh^%d_(%d,%d)" n k l, 0, []) tm
+  check_term checked_ctx ~name:(Printf.sprintf "eh^%d_(%d,%d)" n k l, 0, []) tm
 
 let full_eh_Tm n k l =
   let tm = Construct.to_tm @@ full_eh n k l in
   let checked_ctx = Ctx.check @@ V.ctx n in
   check_term checked_ctx
-    (Printf.sprintf "EH^%d_(%d,%d)" n k l, 0, [])
+    ~name:(Printf.sprintf "EH^%d_(%d,%d)" n k l, 0, [])
     ~ty:
       (Construct.arr
          (Construct.wcomp (V.a_constr n) k (V.b_constr n))

@@ -57,8 +57,8 @@ let repad p_0 p_1 f q_0 q_1 g previous iota_minus iota_plus v sub =
   hexcomp p_0 p_1
     Construct.(apply_sub (tm_app previous iota_minus) sub)
     f
-    Construct.(tm_app (Functorialisation.unnamed_tm padding_0 [ (v, 1) ]) sub)
-    Construct.(tm_app (Functorialisation.unnamed_tm padding_1 [ (v, 1) ]) sub)
+    Construct.(tm_app (Functorialisation.tm padding_0 [ (v, 1) ]) sub)
+    Construct.(tm_app (Functorialisation.tm padding_1 [ (v, 1) ]) sub)
     Construct.(inverse (tm_app (Functorialisation.tm previous [ (v, 1) ]) sub))
     Construct.(apply_sub (tm_app previous iota_plus) sub)
     q_0 q_1 g
