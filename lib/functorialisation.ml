@@ -218,9 +218,9 @@ and coh coh l =
 and coh_successively c l =
   let l, next = next_round l in
   if l = [] then
-    let ps, _, pp_data = Coh.forget c in
+    let ps, _, name = Coh.forget c in
     let id = Unchecked.identity_ps ps in
-    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) pp_data (Coh (c, id))
+    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) ~name (Coh (c, id))
   else
     let cohf, names = coh c l in
     let next =
@@ -272,16 +272,6 @@ and tm_successively t s =
         t
     in
     tm_successively t
-      (List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next)
-  else t
-
-let rec unnamed_tm_successively t s =
-  let l, next = next_round s in
-  if l <> [] then
-    let t, names =
-      UnnamedTm.apply (fun c -> ctx c l) (fun t -> tm_one_step_tm t l) t
-    in
-    unnamed_tm_successively t
       (List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next)
   else t
 
@@ -348,12 +338,9 @@ let coh_all c =
 
 (* Functorialisation a term: exposed function *)
 let tm t l =
-  report_errors (fun _ -> tm_successively t l) (lazy ("term: " ^ Tm.name t))
-
-let unnamed_tm t l =
   report_errors
-    (fun _ -> unnamed_tm_successively t l)
-    (lazy ("term: " ^ Unchecked.tm_to_string (UnnamedTm.forget t)))
+    (fun _ -> tm_successively t l)
+    (lazy ("term: " ^ Tm.to_string t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in

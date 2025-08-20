@@ -13,7 +13,6 @@ val coh_all : Coh.t -> Tm.t
 val tm_one_step_tm : tm -> Var.t list -> tm
 val ty : ty -> Var.t list -> tm -> ty
 val tm : Tm.t -> (Var.t * int) list -> Tm.t
-val unnamed_tm : UnnamedTm.t -> (Var.t * int) list -> UnnamedTm.t
 val ctx : ctx -> Var.t list -> ctx
 val sub_ps : sub_ps -> Var.t list -> sub_ps
 val ps : ps -> Var.t list -> ps * (Var.t * (int * bool)) list

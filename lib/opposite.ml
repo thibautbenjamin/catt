@@ -102,9 +102,9 @@ let tm t op_data =
   t
 
 let checked_tm t op_data =
-  let pp_data = Tm.pp_data t in
+  let name = Option.map (fun a -> op_pp_data a op_data) (Tm.pp_data t) in
   let c = Tm.ctx t in
   let t = Tm.develop t in
   let c = ctx c op_data in
   let t = tm t op_data in
-  check_term (Ctx.check c) (op_pp_data pp_data op_data) t
+  check_term (Ctx.check c) ?name t

@@ -60,33 +60,22 @@ and Tm : sig
 
   val typ : t -> Ty.t
   val ty : t -> Unchecked_types(Coh)(Tm).ty
+  val forget : t -> Unchecked_types(Coh)(Tm).tm
   val constr : t -> Unchecked_types(Coh)(Tm).constr
-  val bdry : t -> UnnamedTm.t * UnnamedTm.t
+  val bdry : t -> t * t
   val ctx : t -> Unchecked_types(Coh)(Tm).ctx
-  val name : t -> string
-  val full_name : t -> string
-  val func_data : t -> (Var.t * int) list list
+  val name : t -> string option
+  val full_name : t -> string option
+  val func_data : t -> (Var.t * int) list list option
   val of_coh : Coh.t -> t
   val develop : t -> Unchecked_types(Coh)(Tm).tm
-  val pp_data : t -> pp_data
+  val pp_data : t -> pp_data option
+  val to_string : t -> string
 
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
     (pp_data -> pp_data) ->
-    t ->
-    t * Unchecked_types(Coh)(Tm).sub
-end
-
-and UnnamedTm : sig
-  type t
-
-  val ty : t -> Unchecked_types(Coh)(Tm).ty
-  val forget : t -> Unchecked_types(Coh)(Tm).tm
-
-  val apply :
-    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
-    (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
     t ->
     t * Unchecked_types(Coh)(Tm).sub
 end
@@ -189,9 +178,7 @@ module Display_maps : sig
   val glue : sub -> sub -> sub -> ctx -> sub -> sub
 end
 
-val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> UnnamedTm.t
-val check_unnamed_constr : ?without_check:bool -> ctx -> constr -> UnnamedTm.t
-val check_term : Ctx.t -> pp_data -> ?ty:ty -> tm -> Tm.t
-val check_constr : ?without_check:bool -> ctx -> string -> constr -> Tm.t
+val check_term : Ctx.t -> ?ty:ty -> ?name:pp_data -> tm -> Tm.t
+val check_constr : ?without_check:bool -> ?name:pp_data -> ctx -> constr -> Tm.t
 val check_coh : ps -> ty -> pp_data -> Coh.t
 val check_sub : ctx -> sub -> ctx -> unit
