@@ -42,17 +42,12 @@ let hexcomp fminus fplus ybridge fbridge gminus gplus gbridge zbridge hminus
     :: (tm x, false)
     :: Unchecked.ty_to_sub_ps (Construct.to_ty w)
   in
-  Io.debug "gminus, gplus = %s, %s"
-    (Unchecked.tm_to_string (Construct.to_tm gminus))
-    (Unchecked.tm_to_string (Construct.to_tm gplus));
   (* The call to sub_ps_to_sub is a bit of a hack, relying on the fact that all
      checked terms use deBruijn. Further refactoring to be done in the kernel to
      enforce this more statically *)
   Construct.tm_app hex (Unchecked.sub_ps_to_sub sub)
 
 let repad p_0 p_1 f q_0 q_1 g previous iota_minus iota_plus v sub =
-  Io.debug "computing repadding";
-  Io.debug "sub: %s" (Unchecked.sub_to_string_debug sub);
   let padding_0, padding_1 = Tm.bdry previous in
   hexcomp p_0 p_1
     Construct.(apply_sub (tm_app previous iota_minus) sub)

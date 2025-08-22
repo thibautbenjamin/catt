@@ -111,7 +111,10 @@ let id constr =
     arr constr constr )
 
 let rec id_n n constr =
-  match n with 0 -> constr | n -> id (id_n (n - 1) constr)
+  match n with
+  | 0 -> constr
+  | n when n > 0 -> id (id_n (n - 1) constr)
+  | _ -> Error.fatal "call to id_n with a negative argument"
 
 let apply_sub (tm, ty) sigma =
   (Unchecked.tm_apply_sub tm sigma, Unchecked.ty_apply_sub ty sigma)

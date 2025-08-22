@@ -13,6 +13,9 @@ module UnbiasedPadding = struct
     let id = Construct.id_n n (Var x, Obj) in
     if k < n then Construct.wcomp id k id else id
 
+  let src i l = id2 i l
+  let tgt i l = id2 i l
+
   let ty i l =
     let t = id2 i l in
     Construct.arr t t
@@ -61,11 +64,13 @@ module UnbiasedPadding = struct
     (Construct.of_coh p, Construct.of_coh q)
 
   let rec padded_func n k l = function
-    | 1 -> Construct.of_tm (Functorialisation.tm (padded n k l) [ (v, 1) ])
+    | 1 -> Functorialisation.tm (padded n k l) [ (v, 1) ]
     | r ->
-        Construct.functorialise
-          (Construct.apply_sub (padded_func n k l (r - 1)) (sub (n + r - 1) l))
-          [ v ]
+        Functorialisation.tm
+          (check_constr
+             (ctx (n + r - 1) l)
+             (Construct.tm_app (padded_func n k l (r - 1)) (sub (n + r - 1) l)))
+          [ (v, 1) ]
 end
 
 module ForwardBiasedPadding = struct
@@ -222,7 +227,6 @@ module BackwardToUnbiasedRepadding = struct
     (BP.v n, (Var UP.v, true)) :: sphere_to_point (n - 1)
 
   let rec repad n i =
-    Io.debug "computing repadding B to U";
     let repadding_constr =
       if i = 1 then Construct.id_n 1 (UP.v_constr i 0)
       else
@@ -253,10 +257,6 @@ module BackwardToUnbiasedRepadding = struct
         Padding.repad p_gt p_u f q_gt q_u g previous UP.in_minus UP.in_plus UP.v
           sigma
     in
-    Io.debug "computed the constr";
-    Io.debug "context %d %d : %s" n i (Unchecked.ctx_to_string (UP.ctx i 0));
-    Io.debug "term: %s" (Unchecked.tm_to_string (fst repadding_constr));
-    Io.debug "type: %s" (Unchecked.ty_to_string (snd repadding_constr));
     check_constr (UP.ctx i 0) ~name:("RepaddingBToU", 0, []) repadding_constr
 end
 
@@ -276,8 +276,8 @@ let drop n xs =
 
 module PseudoFunctorialityUnbiasedPadding = struct
   let w = Var.Db 2
-  let ctx n l = (w, (UP.ty n l, true)) :: UP.ctx n l
-  let w_constr n l = (Var w, UP.ty n l)
+  let ctx n l = (w, (UP.ty (n - 1) l, true)) :: UP.ctx n l
+  let w_constr n l = (Var w, UP.ty (n - 1) l)
   let v = UP.v
   let v_constr = UP.v_constr
 
@@ -344,8 +344,8 @@ module PseudoFunctorialityUnbiasedPadding = struct
   (* TODO: Merge witness_aux and witness_aux_gt *)
 
   let rec witness_aux n i =
-    let v = v_constr (i - 1) (n - 1) in
-    let w = w_constr (i - 1) (n - 1) in
+    let v = v_constr 0 (n - 1) in
+    let w = w_constr 0 (n - 1) in
     match i with
     | 1 -> Construct.id_n 1 (Construct.wcomp v (n - 1) w)
     | i when 1 < i -> (
@@ -353,8 +353,8 @@ module PseudoFunctorialityUnbiasedPadding = struct
         let t = UP.padded_func (i - 1) 0 (n - 1) (n - i + 1) in
         let v_sub = Construct.characteristic_sub_ps v in
         let w_sub = Construct.characteristic_sub_ps w in
-        let tv = Construct.apply_sub t (Unchecked.sub_ps_to_sub v_sub) in
-        let tw = Construct.apply_sub t (Unchecked.sub_ps_to_sub w_sub) in
+        let tv = Construct.tm_app t (Unchecked.sub_ps_to_sub v_sub) in
+        let tw = Construct.tm_app t (Unchecked.sub_ps_to_sub w_sub) in
         match i with
         | i when i < n ->
             let sub =
@@ -408,70 +408,125 @@ module PseudoFunctorialityUnbiasedPadding = struct
   let witness n = witness_aux n n
 
   let rec witness_aux_gt n i =
-    let v = v_constr (i - 1) 0 in
-    let w = w_constr (i - 1) 0 in
-    match i with
-    | 1 -> Construct.id_n 1 (Construct.wcomp v (n - 1) w)
-    | i when 1 < i -> (
-        let p, q = UP.u (i - 1) (n - 1) 0 in
-        let t = UP.padded_func (i - 1) (n - 1) 0 (n - i + 1) in
-        let v_sub = Construct.characteristic_sub_ps v in
-        let w_sub = Construct.characteristic_sub_ps w in
-        let tv = Construct.apply_sub t (Unchecked.sub_ps_to_sub v_sub) in
-        let tw = Construct.apply_sub t (Unchecked.sub_ps_to_sub w_sub) in
-        match i with
-        | i when i < n ->
-            let sub =
-              drop ((2 * i) - 1) (Construct.characteristic_sub_ps q)
-              @ drop ((2 * n) - 1) (Construct.characteristic_sub_ps tw)
-              @ drop ((2 * i) - 1) (Construct.characteristic_sub_ps tv)
-              @ Construct.characteristic_sub_ps p
-            in
-            let intch = Construct.coh_app (intch (n - i) (i - 1)) sub in
-            Construct.wcomp intch n
-              (Construct.wcomp_n (i - 1) [ p; witness_aux_gt n (i - 1); q ])
-        | i when i == n ->
-            let sub6 =
-              (Construct.to_tm q, true)
-              :: (Construct.to_tm @@ Construct.tgt 1 q, false)
-              :: (Construct.to_tm tw, true)
-              :: (Construct.to_tm @@ Construct.tgt 1 tw, false)
-              :: (Construct.to_tm p, true)
-              :: (Construct.to_tm @@ Construct.tgt 1 p, false)
-              :: (Construct.to_tm q, true)
-              :: (Construct.to_tm @@ Construct.tgt 1 q, false)
-              :: (Construct.to_tm tv, true)
-              :: (Construct.to_tm @@ Construct.tgt 1 tv, false)
-              :: Construct.characteristic_sub_ps p
-            in
-            let assoc = Construct.coh_app (assoc (n - 1)) sub6 in
-            let w = Construct.witness q in
-            let sub2 =
-              (Construct.to_tm tw, true)
-              :: (Construct.to_tm @@ Construct.tgt 1 tw, false)
-              :: Construct.characteristic_sub_ps tv
-            in
-            let unitor = Construct.coh_app (unitor (n - 1)) sub2 in
-            Construct.comp_n
-              [
-                assoc;
-                Construct.wcomp_n (n - 1)
-                  [ p; Construct.wcomp_n (n - 1) [ tv; w; tw ]; q ];
-                Construct.wcomp_n (n - 1) [ p; unitor; q ];
-                Construct.wcomp_n (n - 1) [ p; witness_aux_gt n (n - 1); q ];
-              ]
-        | _ ->
-            Error.fatal "[EH] Wrong arguments in pseudofunctoriality of padding"
-        )
-    | _ -> Error.fatal "[EH] Wrong arguments in pseudofunctoriality of padding"
+    (* Io.debug "aux: %d %d" n i; *)
+    let v_c = v_constr n 0 in
+    let w_c = w_constr n 0 in
+    let witness_constr =
+      match i with
+      | i when i = 1 -> Construct.id_n 1 (Construct.wcomp v_c (n - 1) w_c)
+      | i when 1 < i -> (
+          let p, q = UP.u (i - 1) (n - 1) 0 in
+          let t = UP.padded_func (i - 1) (n - 1) 0 (n - i + 1) in
+          (* TODO: replace these with builders *)
+          let v_sub =
+            [
+              (UP.v_bridge, (Var UP.v, true));
+              (UP.v_plus, (Construct.to_tm @@ UP.src (n - 1) 0, false));
+              (UP.v, (Construct.to_tm @@ UP.tgt (n - 1) 0, false));
+              (UP.x, (Var UP.x, false));
+            ]
+          in
+          let w_sub =
+            [
+              (UP.v_bridge, (Var w, true));
+              (UP.v_plus, (Construct.to_tm @@ UP.src (n - 1) 0, false));
+              (UP.v, (Construct.to_tm @@ UP.tgt (n - 1) 0, false));
+              (UP.x, (Var UP.x, false));
+            ]
+          in
+          let tv = Construct.tm_app t v_sub in
+          let tw = Construct.tm_app t w_sub in
+          match i with
+          | i when i < n ->
+              let sub =
+                drop ((2 * i) - 1) (Construct.characteristic_sub_ps q)
+                @ drop ((2 * n) - 1) (Construct.characteristic_sub_ps tw)
+                @ drop ((2 * i) - 1) (Construct.characteristic_sub_ps tv)
+                @ Construct.characteristic_sub_ps p
+              in
+              let intch = Construct.coh_app (intch (n - i) (i - 1)) sub in
+              Construct.wcomp intch n
+                (Construct.wcomp_n (i - 1)
+                   [ p; Tm.constr (witness_aux_gt n (i - 1)); q ])
+          | i when i == n ->
+              let sub6 =
+                (Construct.to_tm q, true)
+                :: (Construct.to_tm @@ Construct.tgt 1 q, false)
+                :: (Construct.to_tm tw, true)
+                :: (Construct.to_tm @@ Construct.tgt 1 tw, false)
+                :: (Construct.to_tm p, true)
+                :: (Construct.to_tm @@ Construct.tgt 1 p, false)
+                :: (Construct.to_tm q, true)
+                :: (Construct.to_tm @@ Construct.tgt 1 q, false)
+                :: (Construct.to_tm tv, true)
+                :: (Construct.to_tm @@ Construct.tgt 1 tv, false)
+                :: Construct.characteristic_sub_ps p
+              in
+              let assoc = Construct.coh_app (assoc (n - 1)) sub6 in
+              let w = Construct.witness q in
+              let sub2 =
+                (Construct.to_tm tw, true)
+                :: (Construct.to_tm @@ Construct.tgt 1 tw, false)
+                :: Construct.characteristic_sub_ps tv
+              in
+              let unitor = Construct.coh_app (unitor (n - 1)) sub2 in
+              Construct.comp_n
+                [
+                  assoc;
+                  Construct.wcomp_n (n - 1)
+                    [ p; Construct.wcomp_n (n - 1) [ tv; w; tw ]; q ];
+                  Construct.wcomp_n (n - 1) [ p; unitor; q ];
+                  Construct.wcomp_n (n - 1)
+                    [ p; Tm.constr (witness_aux_gt n (n - 1)); q ];
+                ]
+          | _ ->
+              Error.fatal
+                "[EH] Wrong arguments in pseudofunctoriality of padding")
+      | _ ->
+          Error.fatal "[EH] Wrong arguments in pseudofunctoriality of padding"
+    in
+    check_constr (ctx n 0) witness_constr
 
   let witness_gt n = witness_aux_gt n n
 end
 
+module IteratedPadding = struct
+  let witness n =
+    let tree = Br [ Unchecked.disc (n - 1); Unchecked.disc (n - 1) ] in
+    let rec sphere_type_L = function
+      | -1 -> Obj
+      | k ->
+          Arr
+            ( sphere_type_L (k - 1),
+              Var (Var.Db (2 * k)),
+              Var (Var.Db ((2 * k) + 1)) )
+    in
+    let rec sphere_type_R = function
+      | -1 -> Obj
+      | 0 -> Arr (Obj, Var (Var.Db 1), Var (Var.Db ((2 * n) + 1)))
+      | k ->
+          Arr
+            ( sphere_type_R (k - 1),
+              Var (Var.Db ((2 * n) + (2 * k))),
+              Var (Var.Db ((2 * n) + (2 * k) + 1)) )
+    in
+    let d_l = (Var (Var.Db (2 * n)), sphere_type_L (n - 1)) in
+    let d_r = (Var (Var.Db (4 * n)), sphere_type_R (n - 1)) in
+    let cohty =
+      Construct.arr
+        (Construct.wcomp
+           (Construct.wcomp d_l 0 (Construct.id_n 1 (Construct.src 1 d_r)))
+           (n - 1)
+           (Construct.wcomp (Construct.id_n 1 (Construct.tgt 1 d_l)) 0 d_r))
+        (Construct.wcomp d_l 0 d_r)
+    in
+    check_coh tree cohty ("zeta^" ^ string_of_int n, 0, [])
+end
+
 module EHBaseCases = struct
   let x = Var.Db 0
-  let a _ = Var.Db 1
-  let b _ = Var.Db 2
+  let a = Var.Db 1
+  let b = Var.Db 2
   let id n = Construct.id_n n (Var x, Obj)
 
   let ty n =
@@ -479,11 +534,11 @@ module EHBaseCases = struct
     Construct.arr id id
 
   let ctx n =
-    [ (b n, (ty (n - 1), true)); (a n, (ty (n - 1), true)); (x, (Obj, false)) ]
+    [ (b, (ty (n - 1), true)); (a, (ty (n - 1), true)); (x, (Obj, false)) ]
 
   let x_constr = (Var x, Obj)
-  let a_constr n = (Var (a n), ty (n - 1))
-  let b_constr n = (Var (b n), ty (n - 1))
+  let a_constr n = (Var a, ty (n - 1))
+  let b_constr n = (Var b, ty (n - 1))
 
   let a_comp_id i l =
     if l = i - 1 then a_constr i
@@ -493,10 +548,9 @@ module EHBaseCases = struct
     if l = i - 1 then b_constr i
     else Construct.wcomp (Construct.id_n i x_constr) l (b_constr i)
 
-  (* Step3 = PseudoFunctoriality(a_comp_id, id_comp_b) *)
-
+  (* TODO: inline the steps here *)
   let step1_gt n =
-    let p, _ = BP.u (n + 1) in
+    let p, _ = BP.u n in
     (* TODO: Use builders here *)
     let a_padded =
       Construct.(apply_sub_ps p (characteristic_sub_ps (a_constr n)))
@@ -515,14 +569,54 @@ module EHBaseCases = struct
 
   let step2_gt n =
     let r = BToU.repad n n in
+    let r_op = Opposite.checked_tm r [ 1 ] in
+    (* TODO: use builders here *)
     let repad_a = Construct.tm_app r (gamma_i_l_to_eh_a n 0) in
-    let repad_b =
-      Construct.tm_app (Opposite.checked_tm r [ 1 ]) (gamma_i_l_to_eh_b n 0)
-    in
+    let repad_b = Construct.tm_app r_op (gamma_i_l_to_eh_b n 0) in
     Construct.wcomp repad_a (n - 1) repad_b
 
-  (* let eh_gt n = *)
-  (*   Construct.comp_n [ step1_gt n; step2_gt n; step3_gt n; step4_gt n ] *)
+  let step3_gt n =
+    let sub =
+      [
+        ( PseudoFunctorialityUnbiasedPadding.w,
+          (Construct.to_tm (id_comp_b n 0), false) );
+        (UP.v, (Construct.to_tm (a_comp_id n 0), false));
+        (UP.x, (Var x, false));
+      ]
+    in
+    Construct.tm_app (PseudoFunctorialityUnbiasedPadding.witness_gt n) sub
+
+  let step4_gt n =
+    let zeta =
+      let sub =
+        drop 1 (Construct.characteristic_sub_ps (b_constr n))
+        @ Construct.characteristic_sub_ps (a_constr n)
+      in
+      Construct.coh_app (IteratedPadding.witness n) sub
+    in
+    let sub =
+      [
+        (UP.v_bridge, (Construct.to_tm @@ zeta, true));
+        ( UP.v_plus,
+          (Construct.to_tm @@ Construct.wcomp (a_constr n) 0 (b_constr n), false)
+        );
+        ( UP.v,
+          ( Construct.to_tm
+            @@ Construct.wcomp (a_comp_id n 0) (n - 1) (id_comp_b n 0),
+            false ) );
+        (x, (Var x, false));
+      ]
+    in
+    Construct.tm_app
+      (Functorialisation.tm (UP.padded n (n - 1) 0) [ (UP.v, 1) ])
+      sub
+
+  let eh_gt n =
+    let step1 = step1_gt n in
+    let step2 = step2_gt n in
+    let step3 = step3_gt n in
+    let step4 = step4_gt n in
+    Construct.comp_n [ step1; step2; step3; step4 ]
 end
 
 module V = EHBaseCases
@@ -978,20 +1072,16 @@ let fourth_step_gt n =
     (Functorialisation.tm (UP.padded n (n - 1) 0) [ (UP.v, 1) ])
     (func_v_to_zeta n)
 
-let eh_gt n =
-  Construct.comp_n
-    [ first_step_gt n; second_step_gt n; PSU.xi_gt n; fourth_step_gt n ]
+let eh_gt n = EHBaseCases.eh_gt n
+(* Construct.comp_n *)
+(*   [ first_step_gt n; second_step_gt n; PSU.xi_gt n; fourth_step_gt n ] *)
 
 let eh_lt n =
   Construct.comp_n
     [ zeta_inv n; second_step_lt n; third_step_lt n; PSU.xi_lt n ]
 
 let swap_a_and_b n =
-  [
-    (V.b n, (Var (V.a n), true));
-    (V.a n, (Var (V.b n), true));
-    (x, (Var x, false));
-  ]
+  [ (V.b, (Var V.a, true)); (V.a, (Var V.b, true)); (x, (Var x, false)) ]
 
 let suspended_point_to_point () =
   [
@@ -1072,8 +1162,8 @@ let gamma_i_l_to_a_comp_b n l =
 
 let eh_suspended_to_eh n =
   [
-    (V.b n, (Var (V.b (n + 1)), true));
-    (V.a n, (Var (V.a (n + 1)), true));
+    (V.b, (Var V.b, true));
+    (V.a, (Var V.a, true));
     (x, (Construct.to_tm @@ Construct.id_n 1 V.x_constr, false));
     (Var.Db 1, (Var x, false));
     (Var.Db 0, (Var x, false));
@@ -1111,8 +1201,8 @@ let nat_factor prev_eh n k l =
   let lhs = Construct.id_n 1 (Construct.wcomp idnx k idnx) in
   let eh_to_id =
     [
-      (V.b n, (Construct.to_tm idnx, true));
-      (V.a n, (Construct.to_tm idnx, true));
+      (V.b, (Construct.to_tm idnx, true));
+      (V.a, (Construct.to_tm idnx, true));
       (x, (Var (Var.Db 0), false));
     ]
   in
@@ -1177,8 +1267,8 @@ let nat_finalcoh prev_eh n k l =
   let idnx = Construct.id_n n db0 in
   let eh_to_id =
     [
-      (V.b n, (Construct.to_tm idnx, true));
-      (V.a n, (Construct.to_tm idnx, true));
+      (V.b, (Construct.to_tm idnx, true));
+      (V.a, (Construct.to_tm idnx, true));
       (x, (Var (Var.Db 0), false));
     ]
   in
@@ -1197,12 +1287,12 @@ let nat_finalcoh prev_eh n k l =
 
 let eh_func_to_eh n =
   [
-    (Var.Bridge (V.b n), (Var (V.b (n + 1)), true));
-    (Var.Plus (V.b n), (Construct.to_tm @@ V.id n, false));
-    (V.b n, (Construct.to_tm @@ V.id n, false));
-    (Var.Bridge (V.a n), (Var (V.a (n + 1)), true));
-    (Var.Plus (V.a n), (Construct.to_tm @@ V.id n, false));
-    (V.a n, (Construct.to_tm @@ V.id n, false));
+    (Var.Bridge V.b, (Var V.b, true));
+    (Var.Plus V.b, (Construct.to_tm @@ V.id n, false));
+    (V.b, (Construct.to_tm @@ V.id n, false));
+    (Var.Bridge V.a, (Var V.a, true));
+    (Var.Plus V.a, (Construct.to_tm @@ V.id n, false));
+    (V.a, (Construct.to_tm @@ V.id n, false));
     (x, (Var x, false));
   ]
 
@@ -1223,15 +1313,15 @@ let naturality_move prev_eh n k l =
   let idnx = V.id n in
   let eh_to_id =
     [
-      (V.b n, (Construct.to_tm idnx, true));
-      (V.a n, (Construct.to_tm idnx, true));
+      (V.b, (Construct.to_tm idnx, true));
+      (V.a, (Construct.to_tm idnx, true));
       (x, (Var x, false));
     ]
   in
   let nat =
     Construct.inverse
       (Construct.apply_sub
-         (Construct.functorialise prev_eh [ V.b n; V.a n ])
+         (Construct.functorialise prev_eh [ V.b; V.a ])
          (eh_func_to_eh n))
   in
   let paddedfunc =
@@ -1253,12 +1343,16 @@ let naturality_move prev_eh n k l =
 let rec eh n k l =
   if k = 0 && l = n - 1 then eh_lt n
   else if k = n - 1 && l = 0 then eh_gt n
-  else if max k l = n - 1 then
-    suspension_move (eh (n - 1) (k - 1) (l - 1)) n k l
-  else naturality_move (eh (n - 1) k l) (n - 1) k l
+  else if max k l = n - 1 then (
+    Io.debug "should not be here?";
+    suspension_move (eh (n - 1) (k - 1) (l - 1)) n k l)
+  else (
+    Io.debug "neither should be here";
+    naturality_move (eh (n - 1) k l) (n - 1) k l)
 
 let full_eh n k l =
   let ehnkl = eh n k l in
+  Io.debug "computed half eh";
   Construct.comp_n
     [
       ehnkl;
@@ -1268,11 +1362,13 @@ let full_eh n k l =
 
 let eh_Tm n k l =
   let tm = Construct.to_tm @@ eh n k l in
+  Io.debug "constructed the eh term";
   let checked_ctx = Ctx.check @@ V.ctx n in
   check_term checked_ctx ~name:(Printf.sprintf "eh^%d_(%d,%d)" n k l, 0, []) tm
 
 let full_eh_Tm n k l =
   let tm = Construct.to_tm @@ full_eh n k l in
+  Io.debug "constructed the full eh term";
   let checked_ctx = Ctx.check @@ V.ctx n in
   check_term checked_ctx
     ~name:(Printf.sprintf "EH^%d_(%d,%d)" n k l, 0, [])
