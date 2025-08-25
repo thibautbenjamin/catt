@@ -16,6 +16,14 @@ rule token = parse
                                                                             let k = int_of_string k in
                                                                             let m = int_of_string m in
                                                                             CONECOMP(n,k,m) }
+  | "cylcomp(" (['0'-'9']* as n) "," (['0'-'9']* as k) "," (['0'-'9']* as m)")" {
+                                                                            let n = int_of_string n in
+                                                                            let k = int_of_string k in
+                                                                            let m = int_of_string m in
+                                                                            CYLCOMP(n,k,m) }
+  | "cylstack(" (['0'-'9']* as n) ")" {
+                                      let n = int_of_string n in
+                                      CYLSTACK(n) }
   | "declare" { DECLARE }
   | "I" { INV }
   | "U" { UNIT }
