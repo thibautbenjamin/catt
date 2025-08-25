@@ -33,6 +33,20 @@ module rec Coh : sig
     * Unchecked_types(Coh)(Tm).ty
 
   val func_data : t -> (Var.t * int) list list
+
+  val apply_ps :
+    (ps -> ps) ->
+    (Unchecked_types(Coh)(Tm).ty -> Unchecked_types(Coh)(Tm).ty) ->
+    (pp_data -> pp_data) ->
+    t ->
+    t
+
+  val apply :
+    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
+    (Unchecked_types(Coh)(Tm).ty -> Unchecked_types(Coh)(Tm).ty) ->
+    (pp_data -> pp_data) ->
+    t ->
+    t * Unchecked_types(Coh)(Tm).sub
 end
 
 and Ty : sig
@@ -52,13 +66,14 @@ and Tm : sig
   val func_data : t -> (Var.t * int) list list
   val of_coh : Coh.t -> t
   val develop : t -> Unchecked_types(Coh)(Tm).tm
+  val pp_data : t -> pp_data
 
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
     (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
     (pp_data -> pp_data) ->
     t ->
-    t
+    t * Unchecked_types(Coh)(Tm).sub
 end
 
 open Unchecked_types(Coh)(Tm)
@@ -108,6 +123,7 @@ module Unchecked : sig
   val identity_ps : ps -> sub_ps
   val tm_apply_sub : tm -> sub -> tm
   val ty_apply_sub : ty -> sub -> ty
+  val sub_apply_sub : sub -> sub -> sub
   val sub_ps_apply_sub : sub_ps -> sub -> sub_ps
   val ty_apply_sub_ps : ty -> sub_ps -> ty
   val tm_apply_sub_ps : tm -> sub_ps -> tm
@@ -125,12 +141,14 @@ module Unchecked : sig
   val ty_contains_var : ty -> Var.t -> bool
   val tm_contains_vars : tm -> Var.t list -> bool
   val sub_ps_to_sub : sub_ps -> sub
-  val sub_to_sub_ps : ps -> sub -> sub_ps
+  val sub_to_sub_ps : sub -> sub_ps
+  val suspend_pp_data : pp_data -> pp_data
   val suspend_ps : ps -> ps
   val suspend_ty : ty -> ty
   val suspend_tm : tm -> tm
   val suspend_ctx : ctx -> ctx
   val suspend_sub_ps : sub_ps -> sub_ps
+  val suspend_sub : sub -> sub
   val ps_bdry : ps -> ps
   val ps_src : ps -> sub_ps
   val ps_tgt : ps -> sub_ps
@@ -146,8 +164,16 @@ module Unchecked : sig
   val wedge_sub_ps_bp : sub_ps_bp list -> sub_ps
   val list_to_sub : tm list -> ctx -> sub
   val list_to_db_level_sub : tm list -> (Var.t * tm) list
+  val identity : ctx -> sub
+end
+
+module Display_maps : sig
+  val var_apply_sub : Var.t -> sub -> Var.t
+  val pullback : ctx -> sub -> ctx -> sub -> ctx * sub
+  val glue : sub -> sub -> sub -> ctx -> sub -> sub
 end
 
 val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> UnnamedTm.t
 val check_term : Ctx.t -> pp_data -> ?ty:ty -> tm -> Tm.t
 val check_coh : ps -> ty -> pp_data -> Coh.t
+val check_sub : ctx -> sub -> ctx -> unit

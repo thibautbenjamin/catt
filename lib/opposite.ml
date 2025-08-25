@@ -59,7 +59,7 @@ and tm t op_data =
       let s' = Unchecked.sub_ps_apply_sub equiv op_s in
       Coh (c, s')
   | App (t, s) ->
-      let op_t =
+      let op_t, _ =
         Tm.apply
           (fun c -> ctx c op_data)
           (fun t -> tm t op_data)
@@ -67,20 +67,22 @@ and tm t op_data =
           t
       in
       let op_s = sub s op_data in
+      let op_s = Unchecked.(sub_ps_to_sub (sub_to_sub_ps op_s)) in
       App (op_t, op_s)
   | Meta_tm m -> Meta_tm m
 
-and sub (s : sub) op_data : sub =
+and sub s op_data =
   match s with
   | [] -> []
   | (x, (t, e)) :: s -> (x, (tm t op_data, e)) :: sub s op_data
 
 and coh c op_data equiv =
-  let p, t, pp_data = Coh.forget c in
-  let op_p = ps p op_data in
-  let op_t = ty t op_data in
-  let t' = Unchecked.ty_sub_preimage op_t (Unchecked.sub_ps_to_sub equiv) in
-  check_coh op_p t' (op_pp_data pp_data op_data)
+  Coh.apply_ps
+    (fun p -> ps p op_data)
+    (fun t ->
+      Unchecked.ty_sub_preimage (ty t op_data) (Unchecked.sub_ps_to_sub equiv))
+    (fun pp -> op_pp_data pp op_data)
+    c
 
 and ctx c op_data =
   match c with
@@ -100,3 +102,11 @@ let tm t op_data =
   let t = tm t op_data in
   Io.info ~v:4 (lazy ("opposite computed: " ^ Unchecked.tm_to_string t));
   t
+
+let checked_tm t op_data =
+  let pp_data = Tm.pp_data t in
+  let c = Tm.ctx t in
+  let t = Tm.develop t in
+  let c = ctx c op_data in
+  let t = tm t op_data in
+  check_term (Ctx.check c) (op_pp_data pp_data op_data) t
