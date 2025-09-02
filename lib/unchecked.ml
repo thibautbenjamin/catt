@@ -723,8 +723,10 @@ struct
             Var (Var.Db ((2 * n) - 1)) )
 
     let sphere n =
-      let d = ps_to_ctx (disc n) in
-      (Var.Db ((2 * n) + 1), (disc_type n, true)) :: d
+      if n = -1 then []
+      else
+        let d = ps_to_ctx (disc n) in
+        (Var.Db ((2 * n) + 1), (disc_type n, true)) :: d
 
     let sphere_inc n = identity (sphere n)
     let disc_src n = identity_ps (disc n)
@@ -733,6 +735,22 @@ struct
       (Var (Var.Db ((2 * n) + 1)), true)
       :: (Var (Var.Db ((2 * n) - 1)), true)
       :: identity_ps (disc (n - 1))
+
+    let rec develop_tm tm =
+      match tm with
+      | Var v -> Var v
+      | Meta_tm i -> Meta_tm i
+      | Coh (coh, s) -> Coh (coh, develop_sub_ps s)
+      | App (tm, s) -> tm_apply_sub (Tm.develop tm) (develop_sub s)
+
+    and develop_sub_ps s = List.map (fun (t, b) -> (develop_tm t, b)) s
+    and develop_sub s = List.map (fun (x, (t, b)) -> (x, (develop_tm t, b))) s
+
+    let rec develop_ty ty =
+      match ty with
+      | Obj -> Obj
+      | Meta_ty i -> Meta_ty i
+      | Arr (a, t, u) -> Arr (develop_ty a, develop_tm t, develop_tm u)
 
     module Display_maps = struct
       (* Construction related to display maps, i.e. var to var substitutions *)

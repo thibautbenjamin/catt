@@ -6,7 +6,7 @@ val to_tm : constr -> tm
 val to_ty : constr -> ty
 val arr : constr -> constr -> ty
 val characteristic_sub_ps : constr -> sub_ps
-val coh_app : Coh.t -> sub_ps -> constr
+val coh_app : Coh.t -> constr list -> constr
 val of_coh : Coh.t -> constr
 val tm_app : Tm.t -> sub -> constr
 val of_tm : Tm.t -> constr
@@ -36,3 +36,4 @@ val witness : constr -> constr
 val glue_subs_along : int -> 'a list list -> 'a list
 val wcomp_n : int -> constr list -> constr
 val characteristic_sub_ps_composite : constr list -> sub_ps
+val develop : constr -> constr

@@ -15,13 +15,37 @@ let rec bdry n (t, ty) =
   | _, Arr (b, s, _) -> bdry (n - 1) (s, b)
   | _, _ -> assert false
 
-let coh_app coh sub =
-  let _, ty, _ = Coh.forget coh in
+let coh_app coh tms =
+  let elaborate ps tms =
+    let rec aux_list psl tms =
+      match (psl, tms) with
+      | [], t :: tms -> ([ (fst t, true) ], tms, snd t)
+      | [ ps ], tms -> (
+          let s, tms, ty = aux ps tms in
+          match ty with
+          | Arr (ty, src, tgt) -> (s @ [ (tgt, false); (src, false) ], tms, ty)
+          | _ -> assert false)
+      | ps :: psl, tms -> (
+          let s, tms, _ = aux_list psl tms in
+          let sub_ps, tms, ty = aux ps tms in
+          match ty with
+          | Arr (ty, _, tgt) -> (sub_ps @ ((tgt, false) :: s), tms, ty)
+          | _ -> assert false)
+      | _ -> assert false
+    and aux ps tms = match ps with Br l -> aux_list l tms in
+    let sub_ps, _, _ = aux ps tms in
+    sub_ps
+  in
+  let ps, ty, _ = Coh.forget coh in
+  let sub = elaborate ps tms in
   (Coh (coh, sub), Unchecked.ty_apply_sub_ps ty sub)
 
 let of_coh coh =
-  let ps, _, _ = Coh.forget coh in
-  coh_app coh (Unchecked.identity_ps ps)
+  let ps, ty, _ = Coh.forget coh in
+  let id = Unchecked.identity_ps ps in
+  (Coh (coh, id), ty)
+
+let unify_naively tm1 tm2 = match tm1 tm2 with Meta_tm _ | _ -> assert false
 
 let tm_app tm sub =
   let ty = Tm.ty tm in
@@ -131,12 +155,9 @@ let suspend i (tm, ty) = (Suspension.tm (Some i) tm, Suspension.ty (Some i) ty)
 let functorialise (tm, ty) vars =
   (Functorialisation.tm_one_step_tm tm vars, Functorialisation.ty ty vars tm)
 
+(* TODO: more optimised implementation of this function *)
 let comp_n constrs =
-  let rec last = function
-    | [] -> assert false
-    | [ x ] -> x
-    | _ :: tl -> last tl
-  in
+  let constrs_rev = List.rev constrs in
   let first = function [] -> assert false | h :: _ -> h in
   let rec glue_subs = function
     | [ c ] -> characteristic_sub_ps c
@@ -147,10 +168,8 @@ let comp_n constrs =
   let l = List.length constrs in
   let c = first constrs in
   let d = dim c in
-  ( Coh
-      ( Suspension.coh (Some (d - 1)) (Builtin.comp_n l),
-        glue_subs (List.rev constrs) ),
-    arr (src 1 c) (tgt 1 (last constrs)) )
+  ( Coh (Suspension.coh (Some (d - 1)) (Builtin.comp_n l), glue_subs constrs_rev),
+    arr (src 1 c) (tgt 1 (first constrs_rev)) )
 
 let comp c1 c2 = comp_n [ c1; c2 ]
 let comp3 c1 c2 c3 = comp_n [ c1; c2; c3 ]
@@ -207,3 +226,5 @@ let witness constr =
     arr (wcomp constr (d - 1) (inverse constr)) (id_n 1 (src 1 constr))
   in
   (Inverse.compute_witness tm, ty)
+
+let develop (tm, ty) = (Unchecked.develop_tm tm, Unchecked.develop_ty ty)
