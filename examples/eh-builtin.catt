@@ -1,5 +1,5 @@
 # set verbosity = 5
-set print_explicit_substitutions = t
+# set print_explicit_substitutions = t
 
 check eh(2,1,0)
 check eh(3,2,0)

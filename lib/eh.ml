@@ -79,7 +79,7 @@ Padding.Padding.MakeCanonical (struct
     let ctx i = (v i, (ty_v (i - 1), true)) :: Unchecked.sphere (i - 1)
   end)
 
-  module D : Padding.CanonicalPaddingDataArgsS = struct
+  module D = struct
     let ps i = Unchecked.disc i
     let p_src i = d_src i
     let q_tgt i = d_src i
@@ -104,7 +104,7 @@ let sphere_to_point i =
   aux i
 
 module ForwardToUnbiasedRepadding (Args : BiasedPaddingArgsS) =
-Padding.Repadding.Make (struct
+Padding.Repadding.MakeCanonical (struct
   module EHArgs = struct
     let n = Args.n
     let k = 0
@@ -120,19 +120,14 @@ Padding.Repadding.Make (struct
 
   module P1 = Padding.PaddingApp (P2.F) (M) (FP)
 
-  module Args : Padding.CanonicalRepaddingDataArgsS = struct
+  module D = struct
     let ps _ = Br []
     let incl _ = [ (Var (Var.Db 0), Obj) ]
   end
-
-  module rec D : Padding.RepaddingDataS =
-    Padding.CanonicalRepaddingData (Args) (P1) (P2) (R)
-
-  and R : Padding.RepaddedS = Padding.Repadded (P1) (P2) (D)
 end)
 
 module BackwardToUnbiasedRepadding (Args : BiasedPaddingArgsS) =
-Padding.Repadding.Make (struct
+Padding.Repadding.MakeCanonical (struct
   module EHArgs = struct
     let n = Args.n
     let k = n - 1
@@ -148,15 +143,10 @@ Padding.Repadding.Make (struct
 
   module P1 = Padding.PaddingApp (P2.F) (M) (BP)
 
-  module Args : Padding.CanonicalRepaddingDataArgsS = struct
+  module D = struct
     let ps _ = Br []
     let incl _ = [ (Var (Var.Db 0), Obj) ]
   end
-
-  module rec D : Padding.RepaddingDataS =
-    Padding.CanonicalRepaddingData (Args) (P1) (P2) (R)
-
-  and R : Padding.RepaddedS = Padding.Repadded (P1) (P2) (D)
 end)
 
 module PseudoFunctorialityUnbiasedPadding (Args : EHArgsS) = struct
@@ -240,24 +230,8 @@ module PseudoFunctorialityUnbiasedPadding (Args : EHArgsS) = struct
           let p, q = (UP.D.p (i - 1), UP.D.q (i - 1)) in
           let p, q = (Tm.constr p, Tm.constr q) in
           let t = UP.padded_func (i - 1) (n - i + 1) in
-          (* TODO: replace these with builders *)
-          let v_sub =
-            [
-              (v_bridge, (Var v, true));
-              (v_plus, (Construct.(to_tm @@ src 1 v_constr), false));
-              (v, (Construct.(to_tm @@ tgt 1 v_constr), false));
-              (x, (Var x, false));
-            ]
-          in
-          let w_sub =
-            [
-              (v_bridge, (Var w, true));
-              (v_plus, (Construct.(to_tm @@ src 1 v_constr), false));
-              (v, (Construct.(to_tm @@ tgt 1 v_constr), false));
-              (x, (Var x, false));
-            ]
-          in
-          let tv = Construct.tm_app t v_sub in
+          let tv = Tm.constr t in
+          let w_sub = [ (v, (Var w, true)); (x, (Var x, false)) ] in
           let tw = Construct.tm_app t w_sub in
           match i with
           | i when i < n ->
@@ -273,20 +247,6 @@ module PseudoFunctorialityUnbiasedPadding (Args : EHArgsS) = struct
               in
               let w = Construct.witness q in
               let unitor = Construct.coh_app (unitor (n - 1)) [ tv; tw ] in
-              let _ = check_constr ctx assoc in
-              let _ =
-                check_constr ctx
-                  (Construct.wcomp_n (n - 1)
-                     [ p; Construct.wcomp_n (n - 1) [ tv; w; tw ]; q ])
-              in
-              let _ =
-                check_constr ctx (Construct.wcomp_n (n - 1) [ p; unitor; q ])
-              in
-              let _ =
-                check_constr ctx
-                  (Construct.wcomp_n (n - 1)
-                     [ p; Tm.constr (witness_aux_gt (n - 1)); q ])
-              in
               Construct.comp_n
                 [
                   assoc;

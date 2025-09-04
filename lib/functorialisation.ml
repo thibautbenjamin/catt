@@ -203,6 +203,10 @@ and coh_depth0 coh l =
     (fun pp -> pp_data l pp)
     coh
 
+and print_list = function
+  | [] -> ""
+  | x :: l -> Printf.sprintf "%s %s" (Var.to_string x) (print_list l)
+
 and coh coh l =
   let ps, ty, _ = Coh.forget coh in
   let c = Unchecked.ps_to_ctx ps in

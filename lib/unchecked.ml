@@ -571,6 +571,17 @@ struct
     let pp_data_to_string = Printing.pp_data_to_string
     let full_name = Printing.full_name
 
+    let rec tm_contains_var t x =
+      match t with
+      | Var v -> v = x
+      | Coh (_, s) -> List.exists (fun (t, _) -> tm_contains_var t x) s
+      | App (t, s) ->
+          List.exists
+            (fun (y, (u, _)) ->
+              tm_contains_var (Tm.develop t) y && tm_contains_var u x)
+            s
+      | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
+
     let rec check_equal_ps ps1 ps2 =
       match (ps1, ps2) with
       | Br [], Br [] -> ()
@@ -605,8 +616,8 @@ struct
       | Coh (coh1, s1), Coh (coh2, s2) ->
           Coh.check_equal coh1 coh2;
           check_equal_sub_ps s1 s2
-      (* Define check_equal_sub and Tm.develop *)
-      | App (t1, s1), App (t2, s2) when t1 == t2 -> check_equal_sub s1 s2
+      | App (t1, s1), App (t2, s2) when t1 == t2 ->
+          check_equal_sub_on_support t1 s1 s2
       | App (t, s), ((Coh _ | App _ | Var _) as tm2)
       | ((Coh _ | Var _) as tm2), App (t, s) ->
           let c = Tm.develop t in
@@ -626,6 +637,13 @@ struct
 
     and check_equal_sub s1 s2 =
       List.iter2 (fun (_, (t1, _)) (_, (t2, _)) -> check_equal_tm t1 t2) s1 s2
+
+    and check_equal_sub_on_support t s1 s2 =
+      List.iter2
+        (fun (x, (t1, _)) (y, (t2, _)) ->
+          Var.check_equal x y;
+          if tm_contains_var (Tm.develop t) x then check_equal_tm t1 t2)
+        s1 s2
 
     let rec check_equal_ctx ctx1 ctx2 =
       match (ctx1, ctx2) with
@@ -648,13 +666,6 @@ struct
 
     let check_equal_ctx ctx1 ctx2 =
       if ctx1 == ctx2 then () else check_equal_ctx ctx1 ctx2
-
-    let rec tm_contains_var t x =
-      match t with
-      | Var v -> v = x
-      | Coh (_, s) -> List.exists (fun (t, _) -> tm_contains_var t x) s
-      | App (_, s) -> List.exists (fun (_, (t, _)) -> tm_contains_var t x) s
-      | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
     let rec ty_contains_var a x =
       match a with

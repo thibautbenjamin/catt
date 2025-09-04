@@ -6,51 +6,6 @@ let pad_new p q previous v sigma ctx =
   let prev =
     Construct.tm_app (Functorialisation.tm previous [ (v, 1) ]) sigma
   in
-
-  (* Io.debug *)
-  (* "padding: \n\ *)
-     (*    \t p: %s \n\ *)
-     (*    \t of type: %s \n\ *)
-     (*    \t q: %s \n\ *)
-     (*    \t q explicit: %s \n\ *)
-     (*    \t of type %s \n\ *)
-     (*    \t previous %s  \n\ *)
-     (*    \t of type %s \n\ *)
-     (*    \t previous functorialised %s \n\ *)
-     (*    \t of type: %s" (Tm.to_string p) *)
-  (*   (Unchecked.ty_to_string (Tm.ty p)) *)
-  (*   (Tm.to_string q) *)
-  (*   (Unchecked.tm_to_string (Tm.forget q)) *)
-  (*   (Unchecked.ty_to_string (Tm.ty q)) *)
-  (*   (Tm.to_string previous) *)
-  (*   (Unchecked.ty_to_string (Tm.ty previous)) *)
-  (*   (Unchecked.tm_to_string (fst prev)) *)
-  (*   (Unchecked.ty_to_string (snd prev)); *)
-
-  (* Io.debug *)
-  (*   "testing compatibility condition tgt1 = src2 \n\t tgt1: %s \n\t src2:%s" *)
-  (*   (Unchecked.tm_to_string (fst (Construct.tgt 1 (Tm.constr p)))) *)
-  (*   (Unchecked.tm_to_string (fst (Construct.src 1 prev))); *)
-  (* let _ = *)
-  (*   Unchecked.check_equal_tm *)
-  (*     (fst (Construct.tgt 1 (Tm.constr p))) *)
-  (*     (fst (Construct.src 1 prev)) *)
-  (* in *)
-  (* Io.debug "compatible!"; *)
-  (* Io.debug "substitution :%s" (Unchecked.sub_to_string_debug sigma); *)
-  (* Io.debug "functorialised tm: %s" *)
-  (*   (Tm.to_string (Functorialisation.tm previous [ (v, 1) ])); *)
-  (* Io.debug "checking the application of the func"; *)
-  (* let _ = check_constr ctx prev in *)
-  (* Io.debug "ok"; *)
-  (* Io.debug "checking p again"; *)
-  (* let _ = check_constr ctx (Tm.constr p) in *)
-  (* Io.debug "ok"; *)
-  (* Io.debug "checking q again"; *)
-  (* let _ = check_term (Ctx.check ctx) (Tm.forget q) in *)
-  (* Io.debug "ok"; *)
-  (* let _ = check_constr ctx (Construct.comp3 (Tm.constr p) prev (Tm.constr q)) in *)
-  (* Io.debug "ok??????"; *)
   Construct.comp3 (Tm.constr p) prev (Tm.constr q)
 
 let pad p q previous v sigma =
@@ -133,83 +88,73 @@ module Filtration = struct
   end
 end
 
-module type PaddingDataS = sig
-  val p : int -> Tm.t
-  val q : int -> Tm.t
-end
-
-module type PaddedS = sig
-  val padded : int -> Tm.t
-end
-
-module Padded (F : Filtration.S) (D : PaddingDataS) : PaddedS = struct
-  let memo_padded : (int, Tm.t) Hashtbl.t = Hashtbl.create 77
-
-  let rec padded i =
-    let compute_padded i =
-      let name = Printf.sprintf "Padding(%d)" i in
-      let padded_constr =
-        if i = F.min then F.v_constr i
-        else
-          pad_new
-            (D.p (i - 1))
-            (D.q (i - 1))
-            (padded (i - 1))
-            (F.v (i - 1))
-            (F.sub (i - 1))
-            (F.ctx i)
-      in
-      check_constr (F.ctx i) ~name:(name, 0, []) padded_constr
-    in
-    match Hashtbl.find_opt memo_padded i with
-    | Some padded -> padded
-    | None ->
-        let padded = compute_padded i in
-        Hashtbl.add memo_padded i padded;
-        padded
-end
-
-(* Several padding data we consider are canonical -- they are given by a single
-   coherence in a well-chosen pasting scheme. The following aims at streamlining
-   the construction of such padding data *)
-module type CanonicalPaddingDataArgsS = sig
-  val ps : int -> ps
-  val p_src : int -> constr
-  val q_tgt : int -> constr
-  val p_inc : int -> constr list
-  val q_inc : int -> constr list
-  val pad_in_ps : int -> sub
-end
-
-module CanonicalPaddingData
-    (F : Filtration.S)
-    (Args : CanonicalPaddingDataArgsS)
-    (P : PaddedS) =
-struct
-  let p i =
-    let padded_subbed = Construct.tm_app (P.padded i) (Args.pad_in_ps i) in
-    let ty = Construct.arr (Args.p_src i) padded_subbed in
-    (* Io.debug "checking p: %d" i; *)
-    let coh = check_coh (Args.ps i) ty ("p", 0, []) in
-    (* Io.debug "checked"; *)
-    check_constr (F.ctx (i + 1)) (Construct.coh_app coh (Args.p_inc i))
-
-  let q i =
-    let padded_subbed = Construct.tm_app (P.padded i) (Args.pad_in_ps i) in
-    let ty = Construct.arr padded_subbed (Args.q_tgt i) in
-    (* Io.debug "checking q: %d" i; *)
-    (* Io.debug "ty: %s" (Unchecked.ty_to_string ty); *)
-    (* Io.debug "ps : %s" *)
-    (*   (Unchecked.ctx_to_string (Unchecked.ps_to_ctx (Args.ps i))); *)
-    let coh = check_coh (Args.ps i) ty ("q", 0, []) in
-    (* Io.debug "checked"; *)
-    (* Io.debug "outer context: %s" (Unchecked.ctx_to_string (F.ctx i)); *)
-    (* Io.debug "applied q coherence: %s" *)
-    (*   (Unchecked.tm_to_string (fst (Construct.coh_app coh (Args.q_inc i)))); *)
-    check_constr (F.ctx (i + 1)) (Construct.coh_app coh (Args.q_inc i))
-end
-
 module Padding = struct
+  module type PaddingDataS = sig
+    val p : int -> Tm.t
+    val q : int -> Tm.t
+  end
+
+  module type PaddedS = sig
+    val padded : int -> Tm.t
+  end
+
+  module Padded (F : Filtration.S) (D : PaddingDataS) : PaddedS = struct
+    let memo_padded : (int, Tm.t) Hashtbl.t = Hashtbl.create 77
+
+    let rec padded i =
+      let compute_padded i =
+        let name = Printf.sprintf "Padding(%d)" i in
+        let padded_constr =
+          if i = F.min then F.v_constr i
+          else
+            pad_new
+              (D.p (i - 1))
+              (D.q (i - 1))
+              (padded (i - 1))
+              (F.v (i - 1))
+              (F.sub (i - 1))
+              (F.ctx i)
+        in
+        check_constr (F.ctx i) ~name:(name, 0, []) padded_constr
+      in
+      match Hashtbl.find_opt memo_padded i with
+      | Some padded -> padded
+      | None ->
+          let padded = compute_padded i in
+          Hashtbl.add memo_padded i padded;
+          padded
+  end
+
+  (* Several padding data we consider are canonical -- they are given by a single
+     coherence in a well-chosen pasting scheme. The following aims at streamlining
+     the construction of such padding data *)
+  module type CanonicalPaddingDataArgsS = sig
+    val ps : int -> ps
+    val p_src : int -> constr
+    val q_tgt : int -> constr
+    val p_inc : int -> constr list
+    val q_inc : int -> constr list
+    val pad_in_ps : int -> sub
+  end
+
+  module CanonicalPaddingData
+      (F : Filtration.S)
+      (Args : CanonicalPaddingDataArgsS)
+      (P : PaddedS) =
+  struct
+    let p i =
+      let padded_subbed = Construct.tm_app (P.padded i) (Args.pad_in_ps i) in
+      let ty = Construct.arr (Args.p_src i) padded_subbed in
+      let coh = check_coh (Args.ps i) ty ("p", 0, []) in
+      check_constr (F.ctx (i + 1)) (Construct.coh_app coh (Args.p_inc i))
+
+    let q i =
+      let padded_subbed = Construct.tm_app (P.padded i) (Args.pad_in_ps i) in
+      let ty = Construct.arr padded_subbed (Args.q_tgt i) in
+      let coh = check_coh (Args.ps i) ty ("q", 0, []) in
+      check_constr (F.ctx (i + 1)) (Construct.coh_app coh (Args.q_inc i))
+  end
+
   module type DataS = sig
     module F : Filtration.S
     module D : PaddingDataS
@@ -244,15 +189,20 @@ module Padding = struct
     let q = D.q F.max
     let padded = P.padded F.max
 
-    let rec padded_func i r =
+    (* Assumption: t is in the i-th context of the filtration *)
+    let rec iterated_func t i r =
       match r with
-      | 1 -> Functorialisation.tm (P.padded i) [ (v, 1) ]
-      | r -> assert false
-    (* Functorialisation.tm *)
-    (*   (check_constr *)
-    (*      (F.ctx (n + r - 1)) *)
-    (*      (Construct.tm_app (padded_func (r - 1)) (F.sub (n + r - 1)))) *)
-    (*   [ (F.v (n + r), 1) ] *)
+      | 0 -> t
+      | r ->
+          check_constr
+            (F.ctx (i + r))
+            (Construct.tm_app
+               (Functorialisation.tm
+                  (iterated_func t i (r - 1))
+                  [ (F.v (i + r), 1) ])
+               (F.sub (i + r - 1)))
+
+    let padded_func i r = iterated_func (P.padded i) i r
   end
 
   module type CanonicalDataS = sig
@@ -370,78 +320,80 @@ let repad_one_step p_0 p_1 f q_0 q_1 g previous iota_minus iota_plus v sub =
     Construct.(apply_sub (tm_app previous iota_plus) sub)
     (Tm.constr q_0) (Tm.constr q_1) (Tm.constr g)
 
-module type RepaddingDataS = sig
-  val f : int -> Tm.t
-  val g : int -> Tm.t
-end
-
-module type RepaddedS = sig
-  val repad : int -> Tm.t
-end
-
-module Repadded (P1 : Padding.S) (P2 : Padding.S) (D : RepaddingDataS) = struct
-  let rec repad i =
-    let repadding_constr =
-      if i = P1.F.min then Construct.id_n 1 (P1.F.v_constr i)
-      else
-        let previous = repad (i - 1) in
-        let sigma = P1.F.sub (i - 1) in
-        let f, g = (D.f (i - 1), D.g (i - 1)) in
-        repad_one_step
-          (P1.D.p (i - 1))
-          (P2.D.p (i - 1))
-          f
-          (P1.D.q (i - 1))
-          (P2.D.q (i - 1))
-          g previous
-          (P1.F.in_minus (i - 1))
-          (P1.F.in_plus (i - 1))
-          (P1.F.v (i - 1))
-          sigma
-    in
-    check_constr (P1.F.ctx i) ~name:("Repadding", 0, []) repadding_constr
-end
-
-module type CanonicalRepaddingDataArgsS = sig
-  val ps : int -> ps
-  val incl : int -> constr list
-end
-
-module CanonicalRepaddingData
-    (Args : CanonicalRepaddingDataArgsS)
-    (P1 : Padding.S)
-    (P2 : Padding.S)
-    (R : RepaddedS) : RepaddingDataS = struct
-  let f i =
-    let ty =
-      Construct.(
-        arr
-          (wcomp
-             (Construct.develop (Tm.constr (P1.D.p i)))
-             i
-             (tm_app (R.repad i)
-                (Unchecked.sub_apply_sub (P1.F.in_minus i) (P1.F.sub i))))
-          (Construct.develop (Tm.constr (P2.D.p i))))
-    in
-    let coh = check_coh (Args.ps i) ty ("f^", 0, []) in
-    check_constr (P1.F.ctx i) (Construct.coh_app coh (Args.incl i))
-
-  let g i =
-    let ty =
-      Construct.(
-        arr
-          (Construct.develop (Tm.constr (P1.D.q i)))
-          (wcomp
-             (tm_app (R.repad i)
-                (Unchecked.sub_apply_sub (P1.F.in_plus i) (P1.F.sub i)))
-             i
-             (Construct.develop (Tm.constr (P2.D.q i)))))
-    in
-    let coh = check_coh (Args.ps i) ty ("g^", 0, []) in
-    check_constr (P1.F.ctx i) (Construct.coh_app coh (Args.incl i))
-end
-
 module Repadding = struct
+  module type RepaddingDataS = sig
+    val f : int -> Tm.t
+    val g : int -> Tm.t
+  end
+
+  module type RepaddedS = sig
+    val repad : int -> Tm.t
+  end
+
+  module Repadded (P1 : Padding.S) (P2 : Padding.S) (D : RepaddingDataS) =
+  struct
+    let rec repad i =
+      let repadding_constr =
+        if i = P1.F.min then Construct.id_n 1 (P1.F.v_constr i)
+        else
+          let previous = repad (i - 1) in
+          let sigma = P1.F.sub (i - 1) in
+          let f, g = (D.f (i - 1), D.g (i - 1)) in
+          repad_one_step
+            (P1.D.p (i - 1))
+            (P2.D.p (i - 1))
+            f
+            (P1.D.q (i - 1))
+            (P2.D.q (i - 1))
+            g previous
+            (P1.F.in_minus (i - 1))
+            (P1.F.in_plus (i - 1))
+            (P1.F.v (i - 1))
+            sigma
+      in
+      let name = (Printf.sprintf "Repadding(%d)" i, 0, []) in
+      check_constr (P1.F.ctx i) ~name repadding_constr
+  end
+
+  module type CanonicalRepaddingDataArgsS = sig
+    val ps : int -> ps
+    val incl : int -> constr list
+  end
+
+  module CanonicalRepaddingData
+      (Args : CanonicalRepaddingDataArgsS)
+      (P1 : Padding.S)
+      (P2 : Padding.S)
+      (R : RepaddedS) : RepaddingDataS = struct
+    let f i =
+      let ty =
+        Construct.(
+          arr
+            (wcomp
+               (Construct.develop (Tm.constr (P1.D.p i)))
+               i
+               (tm_app (R.repad i)
+                  (Unchecked.sub_apply_sub (P1.F.in_minus i) (P1.F.sub i))))
+            (Construct.develop (Tm.constr (P2.D.p i))))
+      in
+      let coh = check_coh (Args.ps i) ty ("f^", 0, []) in
+      check_constr (P1.F.ctx i) (Construct.coh_app coh (Args.incl i))
+
+    let g i =
+      let ty =
+        Construct.(
+          arr
+            (Construct.develop (Tm.constr (P1.D.q i)))
+            (wcomp
+               (tm_app (R.repad i)
+                  (Unchecked.sub_apply_sub (P1.F.in_plus i) (P1.F.sub i)))
+               i
+               (Construct.develop (Tm.constr (P2.D.q i)))))
+      in
+      let coh = check_coh (Args.ps i) ty ("g^", 0, []) in
+      check_constr (P1.F.ctx i) (Construct.coh_app coh (Args.incl i))
+  end
+
   module type DataS = sig
     module P1 : Padding.S
     module P2 : Padding.S
@@ -467,4 +419,18 @@ module Repadding = struct
     let f = D.f (P1.F.max - 1)
     let g = D.g (P1.F.max - 1)
   end
+
+  module type CanonicalDataS = sig
+    module P1 : Padding.S
+    module P2 : Padding.S
+    module D : CanonicalRepaddingDataArgsS
+  end
+
+  module MakeCanonical (A : CanonicalDataS) : S = Make (struct
+    module P1 = A.P1
+    module P2 = A.P2
+
+    module rec D : RepaddingDataS = CanonicalRepaddingData (A.D) (P1) (P2) (R)
+    and R : RepaddedS = Repadded (P1) (P2) (D)
+  end)
 end

@@ -28,32 +28,32 @@ module Filtration : sig
   module Make (_ : DataS) : S
 end
 
-module type PaddingDataS = sig
-  val p : int -> Tm.t
-  val q : int -> Tm.t
-end
-
-module type PaddedS = sig
-  val padded : int -> Tm.t
-end
-
-module Padded (F : Filtration.S) (D : PaddingDataS) : PaddedS
-
-module type CanonicalPaddingDataArgsS = sig
-  val ps : int -> ps
-  val p_src : int -> constr
-  val q_tgt : int -> constr
-  val p_inc : int -> constr list
-  val q_inc : int -> constr list
-  val pad_in_ps : int -> sub
-end
-
-module CanonicalPaddingData
-    (F : Filtration.S)
-    (Args : CanonicalPaddingDataArgsS)
-    (P : PaddedS) : PaddingDataS
-
 module Padding : sig
+  module type PaddingDataS = sig
+    val p : int -> Tm.t
+    val q : int -> Tm.t
+  end
+
+  module type PaddedS = sig
+    val padded : int -> Tm.t
+  end
+
+  module Padded (F : Filtration.S) (D : PaddingDataS) : PaddedS
+
+  module type CanonicalPaddingDataArgsS = sig
+    val ps : int -> ps
+    val p_src : int -> constr
+    val q_tgt : int -> constr
+    val p_inc : int -> constr list
+    val q_inc : int -> constr list
+    val pad_in_ps : int -> sub
+  end
+
+  module CanonicalPaddingData
+      (F : Filtration.S)
+      (Args : CanonicalPaddingDataArgsS)
+      (P : PaddedS) : PaddingDataS
+
   module type DataS = sig
     module F : Filtration.S
     module D : PaddingDataS
@@ -95,30 +95,30 @@ module PaddingApp
     (M : FiltrationMorphismS)
     (P : Padding.S) : Padding.S
 
-module type RepaddingDataS = sig
-  val f : int -> Tm.t
-  val g : int -> Tm.t
-end
-
-module type RepaddedS = sig
-  val repad : int -> Tm.t
-end
-
-module Repadded (P1 : Padding.S) (P2 : Padding.S) (D : RepaddingDataS) :
-  RepaddedS
-
-module type CanonicalRepaddingDataArgsS = sig
-  val ps : int -> ps
-  val incl : int -> constr list
-end
-
-module CanonicalRepaddingData
-    (Args : CanonicalRepaddingDataArgsS)
-    (P1 : Padding.S)
-    (P2 : Padding.S)
-    (R : RepaddedS) : RepaddingDataS
-
 module Repadding : sig
+  module type RepaddingDataS = sig
+    val f : int -> Tm.t
+    val g : int -> Tm.t
+  end
+
+  module type RepaddedS = sig
+    val repad : int -> Tm.t
+  end
+
+  module Repadded (P1 : Padding.S) (P2 : Padding.S) (D : RepaddingDataS) :
+    RepaddedS
+
+  module type CanonicalRepaddingDataArgsS = sig
+    val ps : int -> ps
+    val incl : int -> constr list
+  end
+
+  module CanonicalRepaddingData
+      (Args : CanonicalRepaddingDataArgsS)
+      (P1 : Padding.S)
+      (P2 : Padding.S)
+      (R : RepaddedS) : RepaddingDataS
+
   module type DataS = sig
     module P1 : Padding.S
     module P2 : Padding.S
@@ -135,6 +135,14 @@ module Repadding : sig
   end
 
   module Make (_ : DataS) : S
+
+  module type CanonicalDataS = sig
+    module P1 : Padding.S
+    module P2 : Padding.S
+    module D : CanonicalRepaddingDataArgsS
+  end
+
+  module MakeCanonical (_ : CanonicalDataS) : S
 end
 
 (* OLD API -- Should be removed ultimately *)
