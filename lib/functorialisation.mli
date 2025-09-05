@@ -8,7 +8,8 @@ val tgt_renaming : Var.t list -> (Var.t * tm) list
 val coh : Coh.t -> Var.t list -> Tm.t
 val coh_successively : Coh.t -> (Var.t * int) list -> Tm.t
 val coh_depth0 : Coh.t -> Var.t list -> Coh.t
-val coh_all : Coh.t -> Coh.t
+val coh_all_depth0 : Coh.t -> Coh.t
+val coh_all : Coh.t -> Tm.t
 val tm_one_step_tm : tm -> Var.t list -> tm
 val ty : ty -> Var.t list -> tm -> ty
 val tm : Tm.t -> (Var.t * int) list -> Tm.t
@@ -25,3 +26,4 @@ val sub_w_tgt :
   sub_ps * ps * (Var.t * (int * bool)) list * Var.t list
 
 val whisk_sub_ps : int -> tm -> ty -> tm -> ty -> sub_ps
+val wcomp : tm * ty -> int -> tm * ty -> tm * ty

@@ -21,6 +21,7 @@ module type Unchecked_types_sig = functor
 
   type ctx = (Var.t * (ty * bool)) list
   type meta_ctx = (int * ty) list
+  type constr = tm * ty
 end
 
 module Unchecked_types : Unchecked_types_sig

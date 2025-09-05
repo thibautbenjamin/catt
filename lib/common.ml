@@ -52,3 +52,8 @@ end
 
 (* For application *)
 type pp_data = string * int * (Var.t * int) list list
+
+let rec take n l =
+  match l with h :: t when n > 0 -> h :: take (n - 1) t | _ -> []
+
+type op_data = int list

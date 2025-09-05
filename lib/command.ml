@@ -11,7 +11,9 @@ exception NotABoolean of string
 type cmd =
   | Coh of Var.t * (Var.t * tyR) list * tyR
   | Check of (Var.t * tyR) list * tmR * tyR option
+  | Check_builtin of builtin
   | Decl of Var.t * (Var.t * tyR) list * tmR * tyR option
+  | Decl_builtin of Var.t * builtin
   | Set of string * string
 
 type prog = cmd list
@@ -31,6 +33,10 @@ let exec_decl v l e t =
       let _, ty = Elaborate.ty l ty in
       Environment.add_let v c ~ty e
 
+let exec_decl_builtin v b =
+  let value = Environment.builtin_to_value b in
+  Environment.add_value v value
+
 let check l e t =
   let c, e = Elaborate.tm l e in
   let ty =
@@ -41,8 +47,13 @@ let check l e t =
         Some ty
   in
   let c = Kernel.Ctx.check c in
-  let tm = Kernel.check_unnamed_term c ?ty e in
-  let ty = Kernel.UnnamedTm.ty tm in
+  let tm = Kernel.check_term c ?ty e in
+  let ty = Kernel.Tm.ty tm in
+  (e, ty)
+
+let exec_check_builtin b =
+  let e = Environment.builtin_to_value b in
+  let ty = Environment.value_ty e in
   (e, ty)
 
 let exec_set o v =
@@ -107,6 +118,22 @@ let exec_cmd cmd =
       | UnknownOption o -> Error.unknown_option o
       | NotAnInt v -> Error.wrong_option_argument ~expected:"int" o v
       | NotABoolean v -> Error.wrong_option_argument ~expected:"boolean" o v)
+  | Check_builtin b ->
+      Io.command "check %s" (Raw.string_of_builtin b);
+      let e, ty = exec_check_builtin b in
+      Io.info
+        (lazy
+          (Printf.sprintf "valid term %s of type %s"
+             (Environment.value_to_string e)
+             (Unchecked.ty_to_string ty)))
+  | Decl_builtin (v, b) ->
+      Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_builtin b);
+      let e, ty = exec_decl_builtin v b in
+      Io.info
+        (lazy
+          (Printf.sprintf "successfully defined term %s of type %s"
+             (Environment.value_to_string e)
+             (Unchecked.ty_to_string ty)))
 
 type next = Abort | KeepGoing | Interactive
 

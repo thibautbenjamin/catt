@@ -6,7 +6,8 @@ exception FunctorialiseMeta
 exception NotClosed
 exception Unsupported
 
-let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let coh_depth1 =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference coh_depth1")
 
 module Memo = struct
   let tbl_whisk = Hashtbl.create 97
@@ -51,18 +52,6 @@ let rec next_round l =
       let vars, left = next_round l in
       (v :: vars, (Var.Bridge v, n - 1) :: left)
   | _ -> Error.fatal "cannot functorialise a negative number of times."
-
-let pp_data_rename pp names =
-  let name, susp, func = pp in
-  let rec rename f =
-    match f with
-    | [] -> []
-    | (x, i) :: f -> (
-        match List.assoc_opt x names with
-        | None -> (x, i) :: rename f
-        | Some (y, _) -> (Var.Db y, i) :: rename f)
-  in
-  (name, susp, List.map rename func)
 
 (* Functorialised coherences with respect to locally maximal variables are
    coherences. This function updates the list of variables in the resulting
@@ -143,34 +132,43 @@ and whisk_sub_ps k t1 ty1 t2 ty2 =
   let sub_ext = take ((2 * k) + 1) (Unchecked.ty_to_sub_ps ty2) in
   List.concat [ [ (t2, true) ]; sub_ext; [ (t1, true) ]; sub_base ]
 
+(*
+  wcomp is the whiskered binary composite
+  wcomp (f,fty) n (g,gty) means f *_n g
+
+  Since it has access to both fty and gty it can automatically infer j and k
+  Therefore the only dimension parameter it needs is n
+  This API takes and returns pairs (tm*ty) meaning it can be easily nested
+  (wcomp f 0 (wcomp g 0 h)) = f *_0 (g *_0 h)
+*)
+and wcomp (f, fty) n (g, gty) =
+  let j = Unchecked.dim_ty fty - n - 1 in
+  let k = Unchecked.dim_ty gty - n - 1 in
+  let whisk = whisk n j k in
+  let whisk_sub_ps = whisk_sub_ps k f fty g gty in
+  let whisk_sub = Unchecked.sub_ps_to_sub whisk_sub_ps in
+  (App (whisk, whisk_sub), Unchecked.ty_apply_sub_ps (Tm.ty whisk) whisk_sub_ps)
+
 (* Invariant maintained:
     src_prod returns a term of same dimension as tm
 *)
 and src_prod t l tm tm_t d n =
   match t with
   | Arr (ty', src, _tgt) when Unchecked.tm_contains_vars src l ->
-      let whisk = whisk n 0 (d - n - 1) in
-      let whisk_ty = Tm.ty whisk in
-      let prod, prod_ty = src_prod ty' l tm tm_t d (n - 1) in
+      let prod = src_prod ty' l tm tm_t d (n - 1) in
       let ty_f = ty ty' l src in
       let src_f = tm_one_step_tm src l in
-      let sub_ps = whisk_sub_ps (d - n - 1) src_f ty_f prod prod_ty in
-      let sub = Unchecked.sub_ps_to_sub sub_ps in
-      (App (whisk, sub), Unchecked.ty_apply_sub whisk_ty sub)
+      wcomp (src_f, ty_f) n prod
   | Arr (_, _, _) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 
 and tgt_prod t l tm tm_t d n =
   match t with
   | Arr (ty', _src, tgt) when Unchecked.tm_contains_vars tgt l ->
-      let whisk = whisk n (d - n - 1) 0 in
-      let whisk_ty = Tm.ty whisk in
-      let prod, prod_ty = tgt_prod ty' l tm tm_t d (n - 1) in
+      let prod = tgt_prod ty' l tm tm_t d (n - 1) in
       let ty_f = ty ty' l tgt in
       let tgt_f = tm_one_step_tm tgt l in
-      let sub_ps = whisk_sub_ps 0 prod prod_ty tgt_f ty_f in
-      let sub = Unchecked.sub_ps_to_sub sub_ps in
-      (App (whisk, sub), Unchecked.ty_apply_sub whisk_ty sub)
+      wcomp prod n (tgt_f, ty_f)
   | Arr (_, _, _) | Obj -> (tm, tm_t)
   | _ -> raise FunctorialiseMeta
 
@@ -198,15 +196,16 @@ and ctx c l =
 (* Functorialisation of a coherence once with respect to a list of
    variables *)
 and coh_depth0 coh l =
-  let ps, t, pp = Coh.forget coh in
-  let ctxf = ctx (Unchecked.ps_to_ctx ps) l in
-  let _, names, _ = Unchecked.db_levels ctxf in
-  let psf = PS.forget (PS.mk (Ctx.check ctxf)) in
-  let ty = ty t l (Coh (coh, Unchecked.identity_ps ps)) in
-  let ty = Unchecked.rename_ty ty names in
-  let pp = pp_data l pp in
-  let pp = pp_data_rename pp names in
-  (check_coh psf ty pp, names)
+  let ps, _, _ = Coh.forget coh in
+  Coh.apply
+    (fun c -> ctx c l)
+    (fun t -> ty t l (Coh (coh, Unchecked.identity_ps ps)))
+    (fun pp -> pp_data l pp)
+    coh
+
+and print_list = function
+  | [] -> ""
+  | x :: l -> Printf.sprintf "%s %s" (Var.to_string x) (print_list l)
 
 and coh coh l =
   let ps, ty, _ = Coh.forget coh in
@@ -223,21 +222,13 @@ and coh coh l =
 and coh_successively c l =
   let l, next = next_round l in
   if l = [] then
-    let ps, _, pp_data = Coh.forget c in
+    let ps, _, name = Coh.forget c in
     let id = Unchecked.identity_ps ps in
-    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) pp_data (Coh (c, id))
+    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) ~name (Coh (c, id))
   else
     let cohf, names = coh c l in
     let next =
-      List.map
-        (fun (x, i) ->
-          let x_renamed =
-            match List.assoc_opt x names with
-            | Some (k, _) -> Var.Db k
-            | None -> x
-          in
-          (x_renamed, i))
-        next
+      List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next
     in
     tm_successively cohf next
 
@@ -277,14 +268,15 @@ and sub_ps s l =
 and tm_successively t s =
   let l, next = next_round s in
   if l <> [] then
-    let t =
+    let t, names =
       Tm.apply
         (fun c -> ctx c l)
         (fun t -> tm_one_step_tm t l)
         (fun pp -> pp_data l pp)
         t
     in
-    tm_successively t next
+    tm_successively t
+      (List.map (fun (x, i) -> (Display_maps.var_apply_sub x names, i)) next)
   else t
 
 (* Public API *)
@@ -327,13 +319,11 @@ let rec sub s l =
           :: (Var.Plus x, (tgt_t, false))
           :: (x, (src_t, false))
           :: sub s l
-      | [ (t, _) ] ->
-          Io.debug "no functorialisation needed for %s" (Var.to_string x);
-          (x, (t, e)) :: sub s l
+      | [ (t, _) ] -> (x, (t, e)) :: sub s l
       | _ -> assert false)
 
 (* Functorialisation once with respect to every maximal argument *)
-let coh_all c =
+let coh_all_depth0 c =
   let ps, _, _ = Coh.forget c in
   let ct = Unchecked.ps_to_ctx ps in
   let d = Unchecked.dim_ps ps in
@@ -344,9 +334,17 @@ let coh_all c =
   in
   coh_depth0 c l
 
+(* Functorialisation once with respect to every maximal argument *)
+let coh_all c =
+  let ps, _, _ = Coh.forget c in
+  let l = List.map fst (Unchecked.ps_to_ctx ps) in
+  coh c l
+
 (* Functorialisation a term: exposed function *)
 let tm t l =
-  report_errors (fun _ -> tm_successively t l) (lazy ("term: " ^ Tm.name t))
+  report_errors
+    (fun _ -> tm_successively t l)
+    (lazy ("term: " ^ Tm.to_string t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in
