@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 (* returns the associator pairing up the middle two cells of a composite of
     (2*k) 1-cells. The argument is the integer k *)
@@ -153,13 +153,11 @@ let rec telescope k =
   | k ->
       let comp = Suspension.coh (Some 1) (Builtin.comp_n 4) in
       let tm_src_tgt coh sub_ps =
-        match Coh.forget coh with
-        | _, Arr (_, t, u), _ ->
-            let sub = Unchecked.sub_ps_to_sub sub_ps in
-            ( Coh (coh, sub_ps),
-              Unchecked.tm_apply_sub t sub,
-              Unchecked.tm_apply_sub u sub )
-        | _ -> Error.fatal "coherence must be of an arrow type"
+        let t, u = (Coh.src coh, Coh.tgt coh) in
+        let sub = Unchecked.sub_ps_to_sub sub_ps in
+        let t = Unchecked.tm_apply_sub t sub in
+        let u = Unchecked.tm_apply_sub u sub in
+        (Coh (coh, sub_ps), t, u)
       in
       let m3, src_m3, tgt_m3 =
         tm_src_tgt (middle_unitor (k - 1)) (sub_ps_telescope_bdry (k - 1))
@@ -187,4 +185,6 @@ let rec telescope k =
       in
       Coh (comp, sub_telescope)
 
-let checked k = check_term (Ctx.check (ctx k)) (telescope k)
+let checked k =
+  let name = "builtin_telescope" ^ string_of_int k in
+  check_term (Ctx.check (ctx k)) (name, 0, []) (telescope k)

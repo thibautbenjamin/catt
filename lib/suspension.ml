@@ -18,3 +18,9 @@ let coh i coh =
   | Some n ->
       let p, t, (name, susp, f) = Coh.forget coh in
       check_coh (ps i p) (ty i t) (name, susp + n, f)
+
+let checked_tm i t =
+  Tm.apply (ctx i) (tm i)
+    (fun (name, k, l) ->
+      match i with Some i -> (name, k + i, l) | None -> (name, k, l))
+    t

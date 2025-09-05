@@ -1,6 +1,6 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh)
+open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 module Memo = struct
   let tbl = Hashtbl.create 97
@@ -67,7 +67,7 @@ let unbiased_unitor ps t =
     Coh (coh, id_all_max ps)
   in
   let a =
-    Ty.forget (Tm.typ (check_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t))
+    UnnamedTm.ty (check_unnamed_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t)
   in
   let da = Unchecked.dim_ty a in
   let sub_base = Unchecked.ty_to_sub_ps a in

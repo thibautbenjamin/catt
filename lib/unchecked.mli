@@ -3,15 +3,28 @@ open Unchecked_types
 
 module Unchecked (Coh : sig
   type t
+end) (Tm : sig
+  type t
 end) : sig
-  open Unchecked_types(Coh)
+  open Unchecked_types(Coh)(Tm)
 
   module Make (_ : sig
-    val forget : Coh.t -> ps * Unchecked_types(Coh).ty * coh_pp_data
+    val forget : Coh.t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
     val to_string : Coh.t -> string
     val func_data : Coh.t -> (Var.t * int) list list
     val check_equal : Coh.t -> Coh.t -> unit
-    val check : ps -> ty -> coh_pp_data -> Coh.t
+    val check : ps -> ty -> pp_data -> Coh.t
+  end) (_ : sig
+    val name : Tm.t -> string
+    val func_data : Tm.t -> (Var.t * int) list list
+    val develop : Tm.t -> Unchecked_types(Coh)(Tm).tm
+
+    val apply :
+      (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
+      (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+      (pp_data -> pp_data) ->
+      Tm.t ->
+      Tm.t
   end) : sig
     type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
@@ -20,10 +33,11 @@ end) : sig
     val tm_to_string : tm -> string
     val sub_ps_to_string : ?func:(Var.t * int) list list -> sub_ps -> string
     val ctx_to_string : ctx -> string
-    val sub_to_string : sub -> string
+    val sub_to_string : ?func:(Var.t * int) list list -> sub -> string
+    val sub_to_string_debug : sub -> string
     val meta_ctx_to_string : meta_ctx -> string
-    val coh_pp_data_to_string : ?print_func:bool -> coh_pp_data -> string
-    val full_name : coh_pp_data -> string
+    val pp_data_to_string : ?print_func:bool -> pp_data -> string
+    val full_name : pp_data -> string
     val check_equal_ctx : ctx -> ctx -> unit
     val check_equal_ps : ps -> ps -> unit
     val check_equal_ty : ty -> ty -> unit
@@ -40,12 +54,15 @@ end) : sig
     val ty_apply_sub_ps : ty -> sub_ps -> ty
     val tm_apply_sub_ps : tm -> sub_ps -> tm
     val sub_ps_apply_sub_ps : sub_ps -> sub_ps -> sub_ps
+    val ty_rename : ty -> (Var.t * tm) list -> ty
+    val tm_rename : tm -> (Var.t * tm) list -> tm
+    val sub_ps_rename : sub_ps -> (Var.t * tm) list -> sub_ps
     val ty_sub_preimage : ty -> sub -> ty
-    val db_levels : ctx -> ctx * (Var.t * int) list * int
+    val db_levels : ctx -> ctx * (Var.t * (int * bool)) list * int
     val db_level_sub : ctx -> sub
     val db_level_sub_inv : ctx -> sub
-    val rename_ty : ty -> (Var.t * int) list -> ty
-    val rename_tm : tm -> (Var.t * int) list -> tm
+    val rename_ty : ty -> (Var.t * (int * bool)) list -> ty
+    val rename_tm : tm -> (Var.t * (int * bool)) list -> tm
     val tm_contains_var : tm -> Var.t -> bool
     val ty_contains_var : ty -> Var.t -> bool
     val tm_contains_vars : tm -> Var.t list -> bool
@@ -70,6 +87,6 @@ end) : sig
     val sub_ps_to_sub_ps_bp : sub_ps -> sub_ps_bp
     val wedge_sub_ps_bp : sub_ps_bp list -> sub_ps
     val list_to_sub : tm list -> ctx -> sub
-    val list_to_db_level_sub : tm list -> sub
+    val list_to_db_level_sub : tm list -> (Var.t * tm) list
   end
 end
