@@ -47,8 +47,8 @@ let check l e t =
         Some ty
   in
   let c = Kernel.Ctx.check c in
-  let tm = Kernel.check_unnamed_term c ?ty e in
-  let ty = Kernel.UnnamedTm.ty tm in
+  let tm = Kernel.check_term c ?ty e in
+  let ty = Kernel.Tm.ty tm in
   (e, ty)
 
 let exec_check_builtin b =

@@ -412,7 +412,7 @@ let coh_depth1 coh l =
   in
   let comp = Suspension.coh (Some d) (Builtin.comp_n 3) in
   let ctx = F.ctx (Unchecked.ps_to_ctx ps) l in
-  let pp_data = F.pp_data l pp_data in
-  check_term (Ctx.check ctx) pp_data (Coh (comp, comp_sub_ps))
+  let name = F.pp_data l pp_data in
+  check_term (Ctx.check ctx) ~name (Coh (comp, comp_sub_ps))
 
 let init () = F.coh_depth1 := coh_depth1

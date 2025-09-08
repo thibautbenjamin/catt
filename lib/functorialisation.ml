@@ -217,9 +217,9 @@ and coh coh l =
 and coh_successively c l =
   let l, next = next_round l in
   if l = [] then
-    let ps, _, pp_data = Coh.forget c in
+    let ps, _, name = Coh.forget c in
     let id = Unchecked.identity_ps ps in
-    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) pp_data (Coh (c, id))
+    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) ~name (Coh (c, id))
   else
     let cohf, names = coh c l in
     let next =
@@ -331,7 +331,9 @@ let coh_all c =
 
 (* Functorialisation a term: exposed function *)
 let tm t l =
-  report_errors (fun _ -> tm_successively t l) (lazy ("term: " ^ Tm.name t))
+  report_errors
+    (fun _ -> tm_successively t l)
+    (lazy ("term: " ^ Tm.to_string t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in

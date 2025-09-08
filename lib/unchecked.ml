@@ -17,8 +17,8 @@ struct
     val check_equal : CohT.t -> CohT.t -> unit
     val check : ps -> ty -> pp_data -> CohT.t
   end) (Tm : sig
-    val name : TmT.t -> string
-    val func_data : TmT.t -> (Var.t * int) list list
+    val name : TmT.t -> string option
+    val func_data : TmT.t -> (Var.t * int) list list option
     val develop : TmT.t -> Unchecked_types(CohT)(TmT).tm
 
     val apply :
@@ -435,11 +435,14 @@ struct
               let func = Coh.func_data c in
               Printf.sprintf "(%s%s)" (Coh.to_string c)
                 (sub_ps_to_string ~func s)
-        | App (t, s) ->
-            let func = Tm.func_data t in
-            let str_s, expl = sub_to_string ~func s in
-            let expl_str = if expl then "@" else "" in
-            Printf.sprintf "(%s%s%s)" expl_str (Tm.name t) str_s
+        | App (t, s) -> (
+            match Tm.name t with
+            | Some name ->
+                let func = Tm.func_data t in
+                let str_s, expl = sub_to_string ?func s in
+                let expl_str = if expl then "@" else "" in
+                Printf.sprintf "(%s%s%s)" expl_str name str_s
+            | None -> tm_to_string (tm_apply_sub (Tm.develop t) s))
 
       and sub_ps_to_string ?(func = []) s =
         match func with

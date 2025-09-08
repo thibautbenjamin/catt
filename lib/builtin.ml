@@ -84,9 +84,7 @@ let unbiased_unitor ps t =
     let coh = Coh.check_noninv ps t t ("endo", 0, []) in
     Coh (coh, id_all_max ps)
   in
-  let a =
-    UnnamedTm.ty (check_unnamed_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t)
-  in
+  let a = Tm.ty (check_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t) in
   let da = Unchecked.dim_ty a in
   let sub_base = Unchecked.ty_to_sub_ps a in
   let tgt = Coh (Suspension.coh (Some da) (id ()), (t, true) :: sub_base) in

@@ -28,7 +28,7 @@ let value_ctx v =
   | Tm t -> Tm.ctx t
 
 let value_to_string v =
-  match v with Coh c -> Coh.to_string c | Tm t -> Tm.name t
+  match v with Coh c -> Coh.to_string c | Tm t -> Tm.to_string t
 
 type v = { value : value; dim_input : int; dim_output : int }
 type t = (Var.t, v) Hashtbl.t
@@ -40,7 +40,7 @@ let add_let v c ?ty t =
   try
     let pp_data = (Var.to_string v, 0, []) in
     let kc = Kernel.Ctx.check c in
-    let tm = Kernel.check_term kc pp_data ?ty t in
+    let tm = Kernel.check_term kc ?ty ~name:pp_data t in
     let ty = Kernel.(Ty.forget (Tm.typ tm)) in
     let dim_input = Unchecked.dim_ctx c in
     let dim_output = Unchecked.dim_ty ty in

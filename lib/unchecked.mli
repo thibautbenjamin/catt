@@ -15,8 +15,8 @@ end) : sig
     val check_equal : Coh.t -> Coh.t -> unit
     val check : ps -> ty -> pp_data -> Coh.t
   end) (_ : sig
-    val name : Tm.t -> string
-    val func_data : Tm.t -> (Var.t * int) list list
+    val name : Tm.t -> string option
+    val func_data : Tm.t -> (Var.t * int) list list option
     val develop : Tm.t -> Unchecked_types(Coh)(Tm).tm
 
     val apply :
