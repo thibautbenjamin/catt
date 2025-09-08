@@ -22,5 +22,3 @@ module Var : sig
 end
 
 type pp_data = string * int * (Var.t * int) list list
-
-val take : int -> 'a list -> 'a list
