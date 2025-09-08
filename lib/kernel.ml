@@ -411,6 +411,7 @@ and UnnamedTm : sig
   val free_vars : t -> Var.t list
   val is_full : t -> bool
   val forget : t -> Unchecked_types(Coh)(Tm).tm
+  val constr : t -> Unchecked_types(Coh)(Tm).constr
   val check : Ctx.t -> ?ty:Ty.t -> Unchecked_types(Coh)(Tm).tm -> t
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
@@ -442,6 +443,7 @@ end = struct
 
   let is_full tm = List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
   let forget tm = tm.unchecked
+  let constr tm = (forget tm, ty tm)
 
   let check c ?ty t =
     Io.info ~v:5
@@ -512,6 +514,8 @@ and Tm : sig
 
   val typ : t -> Ty.t
   val ty : t -> Unchecked_types(Coh)(Tm).ty
+  val bdry : t -> UnnamedTm.t * UnnamedTm.t
+  val constr : t -> Unchecked_types(Coh)(Tm).constr
   val ctx : t -> Unchecked_types(Coh)(Tm).ctx
   val of_coh : Coh.t -> t
   val check : Ctx.t -> ?ty:Ty.t -> pp_data -> Unchecked_types(Coh)(Tm).tm -> t
@@ -536,7 +540,9 @@ end = struct
   type t = UnnamedTm.t * pp_data
 
   let typ (t, _) = UnnamedTm.typ t
-  let ty (t, _) = Ty.forget (UnnamedTm.typ t)
+  let ty (t, _) = UnnamedTm.ty t
+  let bdry t = (Ty.source (typ t), Ty.target (typ t))
+  let constr (t, _) = UnnamedTm.constr t
   let ctx (t, _) = Ctx.forget (Ty.ctx (UnnamedTm.typ t))
   let name (_, pp_data) = Unchecked.pp_data_to_string pp_data
   let full_name (_, pp_data) = Unchecked.full_name pp_data
@@ -835,10 +841,23 @@ let check_unnamed_term ctx ?ty t =
   let tm = lazy ("term: " ^ Unchecked.tm_to_string t) in
   check (fun () -> UnnamedTm.check ctx ?ty t) tm
 
+let check_unnamed_constr ctx constr =
+  let ctx = Ctx.check ctx in
+  let t, ty = constr in
+  let ty = if !Settings.debug then None else Some ty in
+  check_unnamed_term ctx t ?ty
+
 let check_term ctx pp_data ?ty t =
   let ty = Option.map (check_type ctx) ty in
   let tm = lazy ("term: " ^ Unchecked.tm_to_string t) in
   check (fun () -> Tm.check ctx pp_data ?ty t) tm
+
+let check_constr ctx name constr =
+  Io.debug "checking %s" name;
+  let ctx = Ctx.check ctx in
+  let t, ty = constr in
+  let ty = if !Settings.debug then None else Some ty in
+  check_term ctx (name, 0, []) ?ty t
 
 let check_coh ps ty pp_data =
   let c = lazy ("coherence: " ^ Unchecked.pp_data_to_string pp_data) in

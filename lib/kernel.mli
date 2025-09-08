@@ -60,6 +60,8 @@ and Tm : sig
 
   val typ : t -> Ty.t
   val ty : t -> Unchecked_types(Coh)(Tm).ty
+  val constr : t -> Unchecked_types(Coh)(Tm).constr
+  val bdry : t -> UnnamedTm.t * UnnamedTm.t
   val ctx : t -> Unchecked_types(Coh)(Tm).ctx
   val name : t -> string
   val full_name : t -> string
@@ -82,6 +84,7 @@ module UnnamedTm : sig
   type t
 
   val ty : t -> ty
+  val forget : t -> Unchecked_types(Coh)(Tm).tm
 end
 
 module Ctx : sig
@@ -174,6 +177,8 @@ module Display_maps : sig
 end
 
 val check_unnamed_term : Ctx.t -> ?ty:ty -> tm -> UnnamedTm.t
+val check_unnamed_constr : ctx -> constr -> UnnamedTm.t
 val check_term : Ctx.t -> pp_data -> ?ty:ty -> tm -> Tm.t
+val check_constr : ctx -> string -> constr -> Tm.t
 val check_coh : ps -> ty -> pp_data -> Coh.t
 val check_sub : ctx -> sub -> ctx -> unit
