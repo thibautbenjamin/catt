@@ -759,7 +759,7 @@ struct
                than the context"
         | _, _, _ ->
             Error.fatal
-              "wrong data pullback gluing: substitution must be point to the \
+              "wrong data pullback gluing: substitution must point to the \
                context"
 
       let pp_data_rename pp names =
