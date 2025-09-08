@@ -1,5 +1,7 @@
 ## Catt
+- Computation of cylinder compositions as a builtin
 - Computation of cone compositions as a builtin
+
 
 # 1.0 (2024-10)
 
