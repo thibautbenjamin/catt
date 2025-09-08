@@ -22,6 +22,15 @@ let rec tm t =
     let s, meta_types = sub s ctx expl in
     (App (t, s), meta_types)
   in
+  let make_app tm s susp expl =
+    let tm = Suspension.checked_tm susp tm in
+    let ctx = Tm.ctx tm in
+    let func = find_functorialisation s ctx expl in
+    let t = Functorialisation.tm tm func in
+    let ctx = Tm.ctx t in
+    let s, meta_types = sub s ctx expl in
+    (App (t, s), meta_types)
+  in
   match t with
   | VarR v -> (Var v, [])
   | Sub (VarR v, s, susp, expl) -> (
@@ -35,11 +44,17 @@ let rec tm t =
           let c = Tm.ctx t in
           let s, meta_types = sub s c expl in
           (App (t, s), meta_types))
-  | Sub (BuiltinR b, s, susp, expl) ->
-      let builtin_coh =
-        match b with Comp -> Builtin.comp s expl | Id -> Builtin.id ()
-      in
-      make_coh builtin_coh s susp expl
+  | Sub (BuiltinR b, s, susp, expl) -> (
+      match b with
+      | Comp ->
+          let coh = Builtin.comp s expl in
+          make_coh coh s susp expl
+      | Id ->
+          let coh = Builtin.id () in
+          make_coh coh s susp expl
+      | Conecomp (n, k, m) ->
+          let tm = Cones.compose n m k in
+          make_app tm s susp expl)
   | Op (l, t) ->
       let offset = head_susp t in
       let t, meta = tm t in

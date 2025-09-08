@@ -6,15 +6,16 @@ open Std
 exception NotInvertible of string
 exception CohNonInv
 
+let ty t =
+  match t with Obj | Meta_ty _ -> assert false | Arr (a, u, v) -> Arr (a, v, u)
+
 let coh c =
   if not (Coh.is_inv c) then raise CohNonInv;
-  let ps, ty, (name, susp, func) = Coh.forget c in
-  let ty_inv =
-    match ty with
-    | Obj | Meta_ty _ -> assert false
-    | Arr (a, u, v) -> Arr (a, v, u)
-  in
-  check_coh ps ty_inv (name ^ "^-1", susp, func)
+  Coh.apply_ps
+    (fun ps -> ps)
+    (fun t -> ty t)
+    (fun (name, susp, func) -> (name ^ "^-1", susp, func))
+    c
 
 let rec compute_inverse t =
   match t with

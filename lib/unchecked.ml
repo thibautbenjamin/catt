@@ -26,7 +26,7 @@ struct
       (Unchecked_types(CohT)(TmT).tm -> Unchecked_types(CohT)(TmT).tm) ->
       (pp_data -> pp_data) ->
       TmT.t ->
-      TmT.t
+      TmT.t * Unchecked_types(CohT)(TmT).sub
   end) =
   struct
     let sub_ps_to_sub s =
@@ -38,6 +38,8 @@ struct
             ((Var.Db i, (t, e)) :: s, i + 1)
       in
       fst (aux s)
+
+    let sub_to_sub_ps s = List.map snd s
 
     let rec tm_do_on_variables tm f =
       match tm with
@@ -71,8 +73,8 @@ struct
     let sub_ps_apply_sub s1 s2 =
       sub_ps_do_on_variables s1 (fun v -> var_apply_sub v s2)
 
-    let _sub_apply_sub s1 s2 =
-      List.map (fun (v, t) -> (v, tm_apply_sub t s2)) s1
+    let sub_apply_sub s1 s2 =
+      List.map (fun (v, (t, e)) -> (v, (tm_apply_sub t s2, e))) s1
 
     let ty_apply_sub_ps ty s = ty_apply_sub ty (sub_ps_to_sub s)
     let tm_apply_sub_ps tm s = tm_apply_sub tm (sub_ps_to_sub s)
@@ -141,7 +143,12 @@ struct
     type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
     let suspend_ps ps = Br [ ps ]
-    let suspend_pp_data = function name, susp, func -> (name, susp + 1, func)
+
+    let suspend_func_data f =
+      List.map (List.map (fun (x, i) -> (Var.suspend x, i))) f
+
+    let suspend_pp_data = function
+      | name, susp, func -> (name, susp + 1, suspend_func_data func)
 
     let rec suspend_ty = function
       | Obj -> Arr (Obj, Var (Db 0), Var (Db 1))
@@ -152,7 +159,8 @@ struct
       | Var v -> Var (Var.suspend v)
       | Coh (c, s) -> Coh (suspend_coh c, suspend_sub_ps s)
       | App (t, s) ->
-          let t = Tm.apply suspend_ctx suspend_tm suspend_pp_data t in
+          let t, _ = Tm.apply suspend_ctx suspend_tm suspend_pp_data t in
+          let s = sub_ps_to_sub (sub_to_sub_ps s) in
           App (t, suspend_sub s)
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
@@ -421,11 +429,12 @@ struct
         | Var v -> Var.to_string v
         | Meta_tm i -> Printf.sprintf "_tm%i" i
         | Coh (c, s) ->
-            if not !Settings.unroll_coherences then
+            if !Settings.unroll_coherences then
+              Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
+            else
               let func = Coh.func_data c in
               Printf.sprintf "(%s%s)" (Coh.to_string c)
                 (sub_ps_to_string ~func s)
-            else Printf.sprintf "%s[%s]" (Coh.to_string c) (sub_ps_to_string s)
         | App (t, s) ->
             let func = Tm.func_data t in
             let str_s, expl = sub_to_string ~func s in
@@ -684,7 +693,7 @@ struct
       | Arr (a, u, v) -> (v, false) :: (u, false) :: ty_to_sub_ps a
       | Meta_ty _ ->
           Error.fatal
-            "substitution can only be computed afterresolving the type"
+            "substitution can only be computed after resolving the type"
 
     let coh_to_sub_ps t =
       match t with
@@ -694,6 +703,73 @@ struct
           (t, true) :: ty_to_sub_ps (ty_apply_sub ty sub)
       | _ -> Error.fatal "can only convert coh to sub ps"
 
-    let sub_to_sub_ps ps s = sub_ps_apply_sub (identity_ps ps) s
+    let rec identity ctx =
+      match ctx with
+      | [] -> []
+      | (x, (_, e)) :: ctx -> (x, (Var x, e)) :: identity ctx
+
+    module Display_maps = struct
+      (* Construction related to display maps, i.e. var to var substitutions *)
+      let var_apply_sub v s =
+        match tm_apply_sub (Var v) s with
+        | Var v -> v
+        | _ ->
+            Error.fatal
+              "image of a variable by a display map must be a variable"
+
+      (* Pullback of a substitution along a display map. Returns the resulting
+         * context with the right canonical inclusion. The left canonical inclusion is
+         *  the identity. *)
+      let rec pullback c1 sub c2 dm =
+        match (c2, dm) with
+        | [], [] -> (c1, [])
+        | (x, (_, expl)) :: ctx, (p, (Var y, _)) :: dm when x = y ->
+            let ctx, names = pullback c1 sub ctx dm in
+            (ctx, (x, (tm_apply_sub (Var p) sub, expl)) :: names)
+        | (x, (ty, expl)) :: ctx, (_ as dm) ->
+            let ctx, names = pullback c1 sub ctx dm in
+            let newvar = Var.fresh () in
+            let ty = ty_apply_sub ty names in
+            ((newvar, (ty, expl)) :: ctx, (x, (Var newvar, expl)) :: names)
+        | [], _ :: _ ->
+            Error.fatal
+              "wrong data for pullback: display map cannot be longer than the \
+               context"
+
+      (* Universal property of the pullback, gluing substitutions s1 and s2. Requires
+         * the inr canonical inclusion, the second context and the display map *)
+      let rec glue s1 s2 inr c2 dm =
+        match (s2, c2, dm) with
+        | [], [], [] -> s1
+        | (z, _) :: s2, (x, _) :: c2, (_, (Var y, _)) :: dm when x = y && x = z
+          ->
+            let s = glue s1 s2 inr c2 dm in
+            s
+        | (z, (t, e)) :: s2, (x, _) :: c2, (_ as dm) when x = z ->
+            let s = glue s1 s2 inr c2 dm in
+            let var =
+              match tm_apply_sub (Var x) inr with
+              | Var x -> x
+              | _ -> assert false
+            in
+            (var, (t, e)) :: s
+        | _, [], _ :: _ ->
+            Error.fatal
+              "wrong data for pullback gluing: display map cannot be longer \
+               than the context"
+        | _, _, _ ->
+            Error.fatal
+              "wrong data pullback gluing: substitution must be point to the \
+               context"
+
+      let pp_data_rename pp names =
+        let name, susp, func = pp in
+        let rec rename f =
+          match f with
+          | [] -> []
+          | (x, i) :: f -> (var_apply_sub x names, i) :: rename f
+        in
+        (name, susp, List.map rename func)
+    end
   end
 end
