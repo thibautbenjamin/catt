@@ -1,4 +1,5 @@
 ## Catt
+- Improve efficiency by storing partially checked terms
 - Computation of cylinder compositions as a builtin
 - Computation of cone compositions as a builtin
 
