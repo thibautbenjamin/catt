@@ -270,7 +270,7 @@
   [=^.^=] coh whiskl3 = (_builtin_comp  f [a]) -> (_builtin_comp  f [b])
   [=I.I=] successfully defined whiskl3.
   [=^.^=] let nat_whiskl3 = (whiskl3  [c] m)
-  [=I.I=] successfully defined term (whiskl3 [c] m) of type (!2builtin_comp2 (@!1builtin_comp2 _ _ [_] _ (whiskl3 f m) _ (builtin_comp2 [c] h)) (builtin_comp2_func[(.8,1)] [c] b)) -> (!2builtin_comp2 (builtin_comp2_func[(.8,1)] [c] a) (@!1builtin_comp2 _ _ _ _ [_] _ (whiskl3 f' m))).
+  [=I.I=] successfully defined term (whiskl3 [c] m) of type (!2builtin_comp2 (!1builtin_comp2 [(whiskl3 f m)] (builtin_comp2 [c] h)) (builtin_comp2_func[(.8,1)] [c] b)) -> (!2builtin_comp2 (builtin_comp2_func[(.8,1)] [c] a) (!1builtin_comp2 (builtin_comp2 [c] g) [(whiskl3 f' m)])).
   [=^.^=] coh whiskl4 = (_builtin_comp  f [[[p]]]) -> (_builtin_comp  f [[[p]]])
   [=I.I=] successfully defined whiskl4.
   [=^.^=] coh id2 = (_builtin_comp  (_builtin_id  x) (_builtin_id  x) (_builtin_id  x)) -> (_builtin_comp  (_builtin_id  x))

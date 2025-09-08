@@ -2,7 +2,10 @@ open Std
 open Common
 open Raw_types
 
-let string_of_builtin = function Comp -> "comp" | Id -> "id"
+let string_of_builtin = function
+  | Comp -> "comp"
+  | Id -> "id"
+  | Conecomp (n, k, m) -> Printf.sprintf "conecomp(%d,%d,%d)" n k m
 
 let rec string_of_ty e =
   match e with
@@ -114,7 +117,7 @@ and dim_tm ctx = function
   | Unit t -> dim_tm ctx t + 1
   | Letin_tm _ -> Error.fatal "letin_tm constructors cannot appear here"
 
-and dim_builtin = function Comp -> 1 | Id -> 1
+and dim_builtin = function Comp -> 1 | Id -> 1 | Conecomp (n, _, m) -> max n m
 
 let rec dim_sub ctx = function
   | [] -> (0, 0)
@@ -132,7 +135,8 @@ let rec infer_susp_tm ctx = function
           let inp =
             match tmR with
             | VarR v -> Environment.dim_input v
-            | BuiltinR b -> ( match b with Comp -> 1 | Id -> 0)
+            | BuiltinR b -> (
+                match b with Comp -> 1 | Id -> 0 | Conecomp (n, _, _) -> n)
             | _ -> assert false
           in
           let d, func = dim_sub ctx s in
