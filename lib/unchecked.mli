@@ -99,6 +99,8 @@ end) : sig
     val sphere_inc : int -> sub
     val disc_src : int -> sub_ps
     val disc_tgt : int -> sub_ps
+    val develop_tm : tm -> tm
+    val develop_ty : ty -> ty
 
     module Display_maps : sig
       val var_apply_sub : Var.t -> sub -> Var.t
