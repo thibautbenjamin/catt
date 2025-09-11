@@ -457,9 +457,6 @@ end = struct
   let ty t = Ty.forget t.ty
   let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
 
-  (* TODO: this is incorrect: an applied term can be a variable *)
-  let to_var tm = match tm.e with Var v -> v | Coh _ | App _ -> raise IsCoh
-
   let free_vars tm =
     let fvty = Ty.free_vars tm.ty in
     match tm.e with
@@ -518,6 +515,16 @@ end = struct
         in
         tm.developped <- Some dev;
         dev
+
+  let to_var tm =
+    match tm.e with
+    | Var v -> v
+    | Coh _ -> raise IsCoh
+    | App _ -> (
+        match develop tm with
+        | Var v -> v
+        | Coh _ -> raise IsCoh
+        | App _ | Meta_tm _ -> assert false)
 
   let apply_sub t sub =
     Ctx.check_equal (Sub.tgt sub) (Ty.ctx t.ty);
