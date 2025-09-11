@@ -20,6 +20,12 @@ let rec catt_var_to_coq_name v =
   | Var.Plus v -> catt_var_to_coq_name v ^ "_plus"
   | Var.Bridge v -> catt_var_to_coq_name v ^ "_bridge"
 
+let counter = ref 0
+
+let anon () =
+  incr counter;
+  Printf.sprintf "anonymous_term_%d" !counter
+
 let c_Q env sigma =
   let gr = Coqlib.lib_ref "core.eq.type" in
   Evd.fresh_global env sigma gr
@@ -280,7 +286,11 @@ end = struct
     match retrieve_lambda value sigma with
     | Some res -> res
     | None ->
-        let name = clean_name (Tm.full_name tm) in
+        let name =
+          match Tm.full_name tm with
+          | Some name -> clean_name name
+          | None -> anon ()
+        in
         let ctx = Tm.ctx tm in
         let tm = Tm.develop tm in
         let env, sigma, tm =

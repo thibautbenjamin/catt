@@ -17,8 +17,8 @@ struct
     val check_equal : CohT.t -> CohT.t -> unit
     val check : ps -> ty -> pp_data -> CohT.t
   end) (Tm : sig
-    val name : TmT.t -> string
-    val func_data : TmT.t -> (Var.t * int) list list
+    val name : TmT.t -> string option
+    val func_data : TmT.t -> (Var.t * int) list list option
     val develop : TmT.t -> Unchecked_types(CohT)(TmT).tm
 
     val apply :
@@ -435,11 +435,14 @@ struct
               let func = Coh.func_data c in
               Printf.sprintf "(%s%s)" (Coh.to_string c)
                 (sub_ps_to_string ~func s)
-        | App (t, s) ->
-            let func = Tm.func_data t in
-            let str_s, expl = sub_to_string ~func s in
-            let expl_str = if expl then "@" else "" in
-            Printf.sprintf "(%s%s%s)" expl_str (Tm.name t) str_s
+        | App (t, s) -> (
+            match Tm.name t with
+            | Some name ->
+                let func = Tm.func_data t in
+                let str_s, expl = sub_to_string ?func s in
+                let expl_str = if expl then "@" else "" in
+                Printf.sprintf "(%s%s%s)" expl_str name str_s
+            | None -> tm_to_string (tm_apply_sub (Tm.develop t) s))
 
       and sub_ps_to_string ?(func = []) s =
         match func with
@@ -568,6 +571,17 @@ struct
     let pp_data_to_string = Printing.pp_data_to_string
     let full_name = Printing.full_name
 
+    let rec tm_contains_var t x =
+      match t with
+      | Var v -> v = x
+      | Coh (_, s) -> List.exists (fun (t, _) -> tm_contains_var t x) s
+      | App (t, s) ->
+          List.exists
+            (fun (y, (u, _)) ->
+              tm_contains_var (Tm.develop t) y && tm_contains_var u x)
+            s
+      | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
+
     let rec check_equal_ps ps1 ps2 =
       match (ps1, ps2) with
       | Br [], Br [] -> ()
@@ -602,8 +616,8 @@ struct
       | Coh (coh1, s1), Coh (coh2, s2) ->
           Coh.check_equal coh1 coh2;
           check_equal_sub_ps s1 s2
-      (* Define check_equal_sub and Tm.develop *)
-      | App (t1, s1), App (t2, s2) when t1 == t2 -> check_equal_sub s1 s2
+      | App (t1, s1), App (t2, s2) when t1 == t2 ->
+          check_equal_sub_on_support t1 s1 s2
       | App (t, s), ((Coh _ | App _ | Var _) as tm2)
       | ((Coh _ | Var _) as tm2), App (t, s) ->
           let c = Tm.develop t in
@@ -621,8 +635,12 @@ struct
     and check_equal_sub_ps s1 s2 =
       List.iter2 (fun (t1, _) (t2, _) -> check_equal_tm t1 t2) s1 s2
 
-    and check_equal_sub s1 s2 =
-      List.iter2 (fun (_, (t1, _)) (_, (t2, _)) -> check_equal_tm t1 t2) s1 s2
+    and check_equal_sub_on_support t s1 s2 =
+      List.iter2
+        (fun (x, (t1, _)) (y, (t2, _)) ->
+          Var.check_equal x y;
+          if tm_contains_var (Tm.develop t) x then check_equal_tm t1 t2)
+        s1 s2
 
     let rec check_equal_ctx ctx1 ctx2 =
       match (ctx1, ctx2) with
@@ -645,13 +663,6 @@ struct
 
     let check_equal_ctx ctx1 ctx2 =
       if ctx1 == ctx2 then () else check_equal_ctx ctx1 ctx2
-
-    let rec tm_contains_var t x =
-      match t with
-      | Var v -> v = x
-      | Coh (_, s) -> List.exists (fun (t, _) -> tm_contains_var t x) s
-      | App (_, s) -> List.exists (fun (_, (t, _)) -> tm_contains_var t x) s
-      | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
     let rec ty_contains_var a x =
       match a with
@@ -707,6 +718,47 @@ struct
       match ctx with
       | [] -> []
       | (x, (_, e)) :: ctx -> (x, (Var x, e)) :: identity ctx
+
+    let rec disc = function 0 -> Br [] | n -> Br [ disc (n - 1) ]
+    let disc_ctx n = ps_to_ctx (disc n)
+
+    let rec disc_type n =
+      if n = 0 then Obj
+      else
+        Arr
+          ( disc_type (n - 1),
+            Var (Var.Db ((2 * n) - 2)),
+            Var (Var.Db ((2 * n) - 1)) )
+
+    let sphere n =
+      if n = -1 then []
+      else
+        let d = ps_to_ctx (disc n) in
+        (Var.Db ((2 * n) + 1), (disc_type n, true)) :: d
+
+    let sphere_inc n = identity (sphere n)
+    let disc_src n = identity_ps (disc n)
+
+    let disc_tgt n =
+      (Var (Var.Db ((2 * n) + 1)), true)
+      :: (Var (Var.Db ((2 * n) - 1)), true)
+      :: identity_ps (disc (n - 1))
+
+    let rec develop_tm tm =
+      match tm with
+      | Var v -> Var v
+      | Meta_tm i -> Meta_tm i
+      | Coh (coh, s) -> Coh (coh, develop_sub_ps s)
+      | App (tm, s) -> tm_apply_sub (Tm.develop tm) (develop_sub s)
+
+    and develop_sub_ps s = List.map (fun (t, b) -> (develop_tm t, b)) s
+    and develop_sub s = List.map (fun (x, (t, b)) -> (x, (develop_tm t, b))) s
+
+    let rec develop_ty ty =
+      match ty with
+      | Obj -> Obj
+      | Meta_ty i -> Meta_ty i
+      | Arr (a, t, u) -> Arr (develop_ty a, develop_tm t, develop_tm u)
 
     module Display_maps = struct
       (* Construction related to display maps, i.e. var to var substitutions *)

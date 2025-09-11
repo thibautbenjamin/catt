@@ -258,7 +258,7 @@ module Codim1 = struct
     let c = Tm.ctx cubcomp in
     let sub = List.map2 (fun (x, _) y -> (x, y)) c sub_ps in
     let tm = App (cubcomp, sub) in
-    check_term (Ctx.check (ctx 2)) ("cylcomp(2,1,2)", 0, []) tm
+    check_term (Ctx.check (ctx 2)) ~name:("cylcomp(2,1,2)", 0, []) tm
 
   let intch n =
     let with_type ctx x = (Var x, fst (List.assoc x ctx)) in
@@ -320,14 +320,14 @@ module Codim1 = struct
               (Suspension.sub (Some 1) (Cylinder.bdry_left (n - 1) (n - 2)))
           in
           Io.debug "substitution:%s" (Unchecked.sub_to_string_debug sub);
-          check_term (Ctx.check ctx_comp) (name, 0, []) (App (comp, sub))
+          check_term (Ctx.check ctx_comp) ~name:(name, 0, []) (App (comp, sub))
         in
         let intch_lower, intch_upper = intch n in
         let scomp = (Tm.develop suspcomp, Tm.ty suspcomp) in
         let tm, _ =
           Construct.wcomp3 intch_lower (n - 1) scomp (n - 1) intch_upper
         in
-        check_term (Ctx.check ctx_comp) (name, 0, []) tm
+        check_term (Ctx.check ctx_comp) ~name:(name, 0, []) tm
 end
 
 module Composition = struct
@@ -467,7 +467,7 @@ module Composition = struct
         let ctx, _, _ = Unchecked.db_levels ctx in
         let tm = Unchecked.tm_apply_sub (Tm.develop tm) names in
         let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" n k m in
-        let res = check_term (Ctx.check ctx) (name, 0, []) tm in
+        let res = check_term (Ctx.check ctx) ~name:(name, 0, []) tm in
         Hashtbl.add tbl (n, m, k) res;
         res
 end
@@ -602,7 +602,9 @@ module Stacking = struct
           in
           let c = Tm.ctx tm in
           let sub = List.map2 (fun (x, _) y -> (x, y)) c sub_ps in
-          check_term (Ctx.check ctx) ("builtin_cylstack", 0, []) (App (tm, sub))
+          check_term (Ctx.check ctx)
+            ~name:("builtin_cylstack", 0, [])
+            (App (tm, sub))
       | n ->
           let _, upper_incl = ctx (n - 1) in
           let lb = Cylinder.base_lower (n - 1) in

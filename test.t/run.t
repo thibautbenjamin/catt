@@ -184,9 +184,9 @@
   [=^.^=] let optest1 = op_{1}((test  c d a b))
   [=I.I=] successfully defined term (test_op{1} z y g g' c g'' d x f f' a f'' b) of type (builtin_comp2_op{1} z y g x f) -> (builtin_comp2_op{1} z y g'' x f'').
   [=^.^=] let optest2 = op_{2}((test  b a d c))
-  [=I.I=] successfully defined term (test_op{2} x y f'' f' b f a z g'' g' d g c) of type (builtin_comp2_op{2} x y f z g) -> (builtin_comp2_op{2} x y f'' z g'').
+  [=I.I=] successfully defined term (test_op{2} x y f'' f' b f a z g'' g' d g c) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
   [=^.^=] let optest12 = op_{1,2}((test  d c b a))
-  [=I.I=] successfully defined term (test_op{1,2} z y g'' g' d g c x f'' f' b f a) of type (builtin_comp2_op{1,2} z y g x f) -> (builtin_comp2_op{1,2} z y g'' x f'').
+  [=I.I=] successfully defined term (test_op{1,2} z y g'' g' d g c x f'' f' b f a) of type (builtin_comp2_op{1} z y g x f) -> (builtin_comp2_op{1} z y g'' x f'').
   [=^.^=] let nested1 = op_{1}((_builtin_comp  [(_builtin_comp  c d)] [(_builtin_comp  a b)]))
   [=I.I=] successfully defined term (builtin_comp2_func[(.4,1) (.8,1)]_op{1} z y g g'' (!1builtin_comp2_op{1} z y g g' c g'' d) x f f'' (!1builtin_comp2_op{1} y x f f' a f'' b)) of type (builtin_comp2_op{1} x y f z g) -> (builtin_comp2_op{1} x y f'' z g'').
   [=^.^=] let nested2 = op_{2}((_builtin_comp  [(_builtin_comp  b a)] [(_builtin_comp  d c)]))
@@ -198,7 +198,7 @@
   [=^.^=] coh assoc_susp = (_builtin_comp  f (_builtin_comp  g h)) -> (_builtin_comp  (_builtin_comp  f g) h)
   [=I.I=] successfully defined assoc_susp.
   [=^.^=] let test = (_builtin_id  op_{3}((assoc_susp  f g h)))
-  [=I.I=] successfully defined term (!3builtin_id p q x w (!1builtin_comp2_op{3} p q x z (!1builtin_comp2_op{3} p q x y f z g) w h) (!1builtin_comp2_op{3} p q x y f w (!1builtin_comp2_op{3} p q y z g w h)) (assoc_susp_op{3} p q x y f z g w h)) of type (assoc_susp_op{3} p q x y f z g w h) -> (assoc_susp_op{3} p q x y f z g w h).
+  [=I.I=] successfully defined term (!3builtin_id p q x w (!1builtin_comp2 p q x z (!1builtin_comp2 p q x y f z g) w h) (!1builtin_comp2 p q x y f w (!1builtin_comp2 p q y z g w h)) (assoc_susp_op{3} p q x y f z g w h)) of type (assoc_susp_op{3} p q x y f z g w h) -> (assoc_susp_op{3} p q x y f z g w h).
 
   $ catt features/inverses.catt
   [=^.^=] let id_inv = I((_builtin_id  x))
@@ -664,6 +664,6 @@
   [=^.^=] coh eh1 = (_builtin_comp  a b) -> (_builtin_comp  I((unitl  f)) (_builtin_comp  (_builtin_comp  _ [a]) (_builtin_comp  (unitl  g) I(op_{1}((unitl  g)))) (_builtin_comp  [b] _)) op_{1}((unitl  h)))
   [=I.I=] successfully defined eh1.
   [=^.^=] let eh2 = (_builtin_comp  [(Ilsimp  _)] [(_builtin_comp  (_builtin_comp  _ [(_builtin_comp  (_builtin_comp  [(lsimp  _)] [op_{1}((Ilsimp  _))]) U((unit  _)))] _) (exch  b a))] [op_{1}((lsimp  _))])
-  [=I.I=] successfully defined term (!1builtin_comp3 [(Ilsimp x)] [(!2builtin_comp2 (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) [(!2builtin_comp2 (!1builtin_comp2 [(lsimp x)] [(Ilsimp_op{1} x)]) (unit_Unit x))] (builtin_comp2 [b] (builtin_id x))) (exch b a))] [(lsimp_op{1} x)]) of type (!1builtin_comp3 (unitl^-1 (builtin_id x)) (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) (!1builtin_comp2 (unitl (builtin_id x)) (unitl_op{1}^-1 (builtin_id_op{1} x))) (builtin_comp2 [b] (builtin_id x))) (unitl_op{1} (builtin_id_op{1} x))) -> (!1builtin_comp3 (unit^-1 x) (builtin_comp2 [b] [a]) (unit_op{1} x)).
+  [=I.I=] successfully defined term (!1builtin_comp3 [(Ilsimp x)] [(!2builtin_comp2 (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) [(!2builtin_comp2 (!1builtin_comp2 [(lsimp x)] [(Ilsimp_op{1} x)]) (unit_Unit x))] (builtin_comp2 [b] (builtin_id x))) (exch b a))] [(lsimp_op{1} x)]) of type (!1builtin_comp3 (unitl^-1 (builtin_id x)) (!1builtin_comp3 (builtin_comp2 (builtin_id x) [a]) (!1builtin_comp2 (unitl (builtin_id x)) (unitl_op{1}^-1 (builtin_id x))) (builtin_comp2 [b] (builtin_id x))) (unitl_op{1} (builtin_id x))) -> (!1builtin_comp3 (unit^-1 x) (builtin_comp2 [b] [a]) (unit_op{1} x)).
   [=^.^=] let eh = (_builtin_comp  (eh1  a b) (eh2  a b) I(op_{1}((eh2  b a))) I(op_{1}((eh1  b a))))
-  [=I.I=] successfully defined term (!2builtin_comp4 (eh1 a b) (eh2 a b) (!1builtin_comp3 [(Ilsimp_op{1}^-1 x)] [(!2builtin_comp2 (exch_op{1}^-1 b a) (!1builtin_comp3 (builtin_comp2_func[(.6,1)]_op{1} (builtin_id_op{1} x) b) [(!2builtin_comp2 (unit_Unit_op{1}^-1 x) (!1builtin_comp2 [(lsimp_op{1}^-1 x)] [(Ilsimp_op{1}_op{1}^-1 x)]))] (builtin_comp2_func[(.4,1)]_op{1} a (builtin_id_op{1} x))))] [(lsimp_op{1}_op{1}^-1 x)]) (eh1_op{1}^-1 b a)) of type (!1builtin_comp2 a b) -> (!1builtin_comp2_op{1} b a).
+  [=I.I=] successfully defined term (!2builtin_comp4 (eh1 a b) (eh2 a b) (!1builtin_comp3 [(Ilsimp_op{1}^-1 x)] [(!2builtin_comp2 (exch_op{1}^-1 b a) (!1builtin_comp3 (builtin_comp2_func[(.6,1)]_op{1} (builtin_id x) b) [(!2builtin_comp2 (unit_Unit_op{1}^-1 x) (!1builtin_comp2 [(lsimp_op{1}^-1 x)] [(Ilsimp_op{1}_op{1}^-1 x)]))] (builtin_comp2_func[(.4,1)]_op{1} a (builtin_id x))))] [(lsimp_op{1}_op{1}^-1 x)]) (eh1_op{1}^-1 b a)) of type (!1builtin_comp2 a b) -> (!1builtin_comp2_op{1} b a).

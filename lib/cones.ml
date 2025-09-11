@@ -208,7 +208,7 @@ module Codim1 = struct
     in
     let tm, _ = wcomp tm_1 1 tm_2 in
     let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" 2 1 2 in
-    check_term (Ctx.check ctx) (name, 0, []) tm
+    check_term (Ctx.check ctx) ~name:(name, 0, []) tm
 
   let intch n =
     let with_type ctx x = (Var x, fst (List.assoc x ctx)) in
@@ -263,7 +263,7 @@ module Codim1 = struct
               (Suspension.sub (Some 1)
                  (Opposite.sub (Cone.bdry_left (n - 1) (n - 2)) op_data))
           in
-          check_term (Ctx.check ctx_comp) (name, 0, []) (App (comp, sub))
+          check_term (Ctx.check ctx_comp) ~name:(name, 0, []) (App (comp, sub))
         in
         let intch = intch n in
         let socomp = (Tm.develop suspopcomp, Tm.ty suspopcomp) in
@@ -271,7 +271,7 @@ module Codim1 = struct
           if n mod 2 = 0 then wcomp socomp (n - 1) intch
           else wcomp intch (n - 1) socomp
         in
-        check_term (Ctx.check ctx_comp) (name, 0, []) tm
+        check_term (Ctx.check ctx_comp) ~name:(name, 0, []) tm
 end
 
 module Composition = struct
@@ -369,7 +369,7 @@ module Composition = struct
         let ctx, _, _ = Unchecked.db_levels ctx in
         let tm = Unchecked.tm_apply_sub (Tm.develop tm) names in
         let name = Printf.sprintf "builtin_conecomp(%d,%d,%d)" n k m in
-        let res = check_term (Ctx.check ctx) (name, 0, []) tm in
+        let res = check_term (Ctx.check ctx) ~name:(name, 0, []) tm in
         Hashtbl.add tbl (n, m, k) res;
         res
 end

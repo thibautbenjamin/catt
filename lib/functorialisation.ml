@@ -6,7 +6,8 @@ exception FunctorialiseMeta
 exception NotClosed
 exception Unsupported
 
-let coh_depth1 = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let coh_depth1 =
+  ref (fun _ -> Error.fatal "Uninitialised forward reference coh_depth1")
 
 module Memo = struct
   let tbl_whisk = Hashtbl.create 97
@@ -217,9 +218,9 @@ and coh coh l =
 and coh_successively c l =
   let l, next = next_round l in
   if l = [] then
-    let ps, _, pp_data = Coh.forget c in
+    let ps, _, name = Coh.forget c in
     let id = Unchecked.identity_ps ps in
-    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) pp_data (Coh (c, id))
+    check_term (Ctx.check (Unchecked.ps_to_ctx ps)) ~name (Coh (c, id))
   else
     let cohf, names = coh c l in
     let next =
@@ -318,7 +319,7 @@ let rec sub s l =
       | _ -> assert false)
 
 (* Functorialisation once with respect to every maximal argument *)
-let coh_all c =
+let coh_all_depth0 c =
   let ps, _, _ = Coh.forget c in
   let ct = Unchecked.ps_to_ctx ps in
   let d = Unchecked.dim_ps ps in
@@ -329,9 +330,17 @@ let coh_all c =
   in
   coh_depth0 c l
 
+(* Functorialisation once with respect to every maximal argument *)
+let coh_all c =
+  let ps, _, _ = Coh.forget c in
+  let l = List.map fst (Unchecked.ps_to_ctx ps) in
+  coh c l
+
 (* Functorialisation a term: exposed function *)
 let tm t l =
-  report_errors (fun _ -> tm_successively t l) (lazy ("term: " ^ Tm.name t))
+  report_errors
+    (fun _ -> tm_successively t l)
+    (lazy ("term: " ^ Tm.to_string t))
 
 let ps p l =
   let c = ctx (Unchecked.ps_to_ctx p) l in

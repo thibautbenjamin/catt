@@ -15,8 +15,8 @@ end) : sig
     val check_equal : Coh.t -> Coh.t -> unit
     val check : ps -> ty -> pp_data -> Coh.t
   end) (_ : sig
-    val name : Tm.t -> string
-    val func_data : Tm.t -> (Var.t * int) list list
+    val name : Tm.t -> string option
+    val func_data : Tm.t -> (Var.t * int) list list option
     val develop : Tm.t -> Unchecked_types(Coh)(Tm).tm
 
     val apply :
@@ -92,6 +92,15 @@ end) : sig
     val list_to_sub : tm list -> ctx -> sub
     val list_to_db_level_sub : tm list -> (Var.t * tm) list
     val identity : ctx -> sub
+    val disc : int -> ps
+    val disc_ctx : int -> ctx
+    val disc_type : int -> ty
+    val sphere : int -> ctx
+    val sphere_inc : int -> sub
+    val disc_src : int -> sub_ps
+    val disc_tgt : int -> sub_ps
+    val develop_tm : tm -> tm
+    val develop_ty : ty -> ty
 
     module Display_maps : sig
       val var_apply_sub : Var.t -> sub -> Var.t

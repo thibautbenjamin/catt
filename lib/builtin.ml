@@ -16,33 +16,39 @@ module Memo = struct
     check_coh (Br []) (Arr (Obj, Var (Db 0), Var (Db 0))) ("builtin_id", 0, [])
 end
 
-let rec ps_comp i =
-  match i with
-  | i when i <= 0 -> Error.fatal "builtin composition with less than 0 argument"
-  | i when i = 1 -> Br [ Br [] ]
-  | i -> ( match ps_comp (i - 1) with Br l -> Br (Br [] :: l))
+module Comp = struct
+  let tdb i = Var (Var.Db i)
+  let tree i = Br (List.init i (fun _ -> Br []))
+  let x i = if i = 0 then (tdb 0, Obj) else (tdb ((2 * i) - 1), Obj)
+  let f i = (tdb (2 * i), Arr (Obj, fst @@ x (i - 1), fst @@ x i))
 
-let comp_n arity =
-  let build_comp i =
-    let ps = ps_comp i in
-    let pp_data = (Printf.sprintf "builtin_comp%i" arity, 0, []) in
-    Coh.check_noninv ps (Var (Db 0)) (Var (Db 0)) pp_data
-  in
-  Memo.find arity build_comp
+  let comp_n arity =
+    let build_comp i =
+      let ps = tree i in
+      let pp_data = (Printf.sprintf "builtin_comp%i" arity, 0, []) in
+      Coh.check_noninv ps (fst (x 0)) (fst (x 0)) pp_data
+    in
+    Memo.find arity build_comp
 
-let arity_comp s expl =
-  let n = List.length s in
-  if expl || !Settings.explicit_substitutions then (n - 1) / 2 else n
+  let arity_comp s expl =
+    let n = List.length s in
+    if expl || !Settings.explicit_substitutions then (n - 1) / 2 else n
 
-let comp s expl =
-  let arity = arity_comp s expl in
-  comp_n arity
+  let comp s expl =
+    let arity = arity_comp s expl in
+    comp_n arity
 
-let bcomp x y f z g =
-  let comp = comp_n 2 in
-  let sub = [ (g, true); (z, false); (f, true); (y, false); (x, false) ] in
-  Coh (comp, sub)
+  let bcomp x y f z g =
+    let comp = comp_n 2 in
+    let sub = [ (g, true); (z, false); (f, true); (y, false); (x, false) ] in
+    Coh (comp, sub)
+end
 
+let ps_comp = Comp.tree
+let comp_n = Comp.comp_n
+let arity_comp = Comp.arity_comp
+let comp = Comp.comp
+let bcomp = Comp.bcomp
 let id = Memo.id
 
 let id_all_max ps =
@@ -84,16 +90,14 @@ let unbiased_unitor ps t =
     let coh = Coh.check_noninv ps t t ("endo", 0, []) in
     Coh (coh, id_all_max ps)
   in
-  let a =
-    UnnamedTm.ty (check_unnamed_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t)
-  in
+  let a = Tm.ty (check_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t) in
   let da = Unchecked.dim_ty a in
   let sub_base = Unchecked.ty_to_sub_ps a in
   let tgt = Coh (Suspension.coh (Some da) (id ()), (t, true) :: sub_base) in
   Coh.check_inv bdry src tgt ("unbiased_unitor", 0, [])
 
 let tdb i = Var (Var.Db i)
-let wcomp = ref (fun _ -> Error.fatal "Uninitialised forward reference")
+let wcomp = ref (fun _ -> Error.fatal "Uninitialised forward reference wcomp")
 
 (*
   (a *_n b) *_0 g -> (a *_0 g) *_n (b *_0 g)
