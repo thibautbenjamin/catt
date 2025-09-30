@@ -33,8 +33,9 @@ rule token = parse
                                                                             let n = int_of_string n in
                                                                             let k = int_of_string k in
                                                                             let l = int_of_string l in
-                                                                            EH_HALF(n,k,l) }                                                                        
+                                                                            EH_HALF(n,k,l) }
   | "declare" { DECLARE }
+  | "benchmark" { BENCHMARK }
   | "I" { INV }
   | "U" { UNIT }
   | "(" { LPAR }

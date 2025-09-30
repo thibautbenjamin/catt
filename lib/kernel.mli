@@ -7,7 +7,7 @@ module rec Coh : sig
   val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
   val check_equal : t -> t -> unit
   val is_inv : t -> bool
-  val to_string : t -> string
+  val to_string : ?unroll:bool -> t -> string
   val dim : t -> int
   val src : t -> Unchecked_types(Coh)(Tm).tm
   val tgt : t -> Unchecked_types(Coh)(Tm).tm
@@ -171,6 +171,7 @@ module Printing : sig
   val meta_ctx_to_string : meta_ctx -> string
   val pp_data_to_string : ?print_func:bool -> pp_data -> string
   val full_name : pp_data -> string
+  val print_kolmogorov : tm -> string
 end
 
 module Equality : sig

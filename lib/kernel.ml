@@ -103,12 +103,12 @@ end = struct
   type t = { c : (Var.t * Ty.t) list; unchecked : Unchecked_types(Coh)(Tm).ctx }
 
   open Unchecked_types (Coh) (Tm)
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
-  open Printing (Coh) (Tm)
-  module Printing = Make (Coh) (Tm)
-  open Equality (Coh) (Tm)
-  module Equality = Make (Coh) (Tm)
+  module U = Unchecked (Coh) (Tm)
+  module Unchecked = U.Make (Coh) (Tm)
+  module P = Printing (Coh) (Tm)
+  module Printing = P.Make (Coh) (Tm)
+  module E = Equality (Coh) (Tm)
+  module Equality = E.Make (Coh) (Tm)
 
   let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
 
@@ -182,12 +182,12 @@ and PS : sig
 end = struct
   exception Invalid
 
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
-  open Printing (Coh) (Tm)
-  module Printing = Make (Coh) (Tm)
-  open Equality (Coh) (Tm)
-  module Equality = Make (Coh) (Tm)
+  module U = Unchecked (Coh) (Tm)
+  module Unchecked = U.Make (Coh) (Tm)
+  module P = Printing (Coh) (Tm)
+  module Printing = P.Make (Coh) (Tm)
+  module E = Equality (Coh) (Tm)
+  module Equality = E.Make (Coh) (Tm)
 
   (** A pasting scheme. *)
   type ps_derivation =
@@ -341,13 +341,13 @@ and Ty : sig
   val ctx : t -> Ctx.t
   val dim : t -> int
 end = struct
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
-  open Printing (Coh) (Tm)
-  module Printing = Make (Coh) (Tm)
-  open Equality (Coh) (Tm)
-  module Equality = Make (Coh) (Tm)
+  module U = Unchecked (Coh) (Tm)
+  module Unchecked = U.Make (Coh) (Tm)
+  module P = Printing (Coh) (Tm)
+  module Printing = P.Make (Coh) (Tm)
+  module E = Equality (Coh) (Tm)
+  module Equality = E.Make (Coh) (Tm)
 
   (** A type exepression. *)
   type expr = Obj | Arr of t * Tm.t * Tm.t
@@ -463,13 +463,17 @@ and Tm : sig
     (pp_data -> pp_data) ->
     t ->
     t * Unchecked_types(Coh)(Tm).sub
+
+  val is_equal : t -> t -> bool
 end = struct
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
+  module U = Unchecked (Coh) (Tm)
+  module Unchecked = U.Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
   module Display_maps = Unchecked.Display_maps
-  open Printing (Coh) (Tm)
-  module Printing = Make (Coh) (Tm)
+  module P = Printing (Coh) (Tm)
+  module Printing = P.Make (Coh) (Tm)
+  module E = Equality (Coh) (Tm)
+  module Equality = E.Make (Coh) (Tm)
 
   type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
 
@@ -567,6 +571,10 @@ end = struct
     let t = Unchecked.tm_sub_preimage (forget t) (Sub.forget sub) in
     check c t
 
+  let is_equal t1 t2 =
+    Ctx.is_equal (Ty.ctx t1.ty) (Ty.ctx t2.ty)
+    && Equality.is_equal_tm t1.unchecked t2.unchecked
+
   let apply fun_ctx fun_tm fun_pp_data tm =
     let c = fun_ctx (Ctx.forget (Ty.ctx (typ tm))) in
     let db_sub = Unchecked.db_level_sub_inv c in
@@ -624,7 +632,7 @@ and Coh : sig
     pp_data ->
     t
 
-  val to_string : t -> string
+  val to_string : ?unroll:bool -> t -> string
   val is_inv : t -> bool
 
   val noninv_srctgt :
@@ -774,9 +782,10 @@ end = struct
     | Inv (d, pp_data) -> (d.ps, d.ty, pp_data)
     | NonInv (d, pp_data) -> (d.ps, d.total_ty, pp_data)
 
-  let to_string c =
+  let to_string ?(unroll = false) c =
     let ps, ty, pp_data = data c in
-    if not !Settings.unroll_coherences then Printing.pp_data_to_string pp_data
+    if not (unroll || !Settings.unroll_coherences) then
+      Printing.pp_data_to_string pp_data
     else Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 
   let noninv_srctgt c =

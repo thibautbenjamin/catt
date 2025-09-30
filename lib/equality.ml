@@ -12,7 +12,7 @@ struct
 
   module Make (Coh : sig
     val forget : CohT.t -> ps * Unchecked_types(CohT)(TmT).ty * pp_data
-    val to_string : CohT.t -> string
+    val to_string : ?unroll:bool -> CohT.t -> string
     val func_data : CohT.t -> (Var.t * int) list list
     val is_equal : CohT.t -> CohT.t -> bool
     val check : ps -> ty -> pp_data -> CohT.t
@@ -20,6 +20,9 @@ struct
     val func_data : TmT.t -> (Var.t * int) list list option
     val develop : TmT.t -> Unchecked_types(CohT)(TmT).tm
     val name : TmT.t -> string option
+    val full_name : TmT.t -> string option
+    val ctx : TmT.t -> ctx
+    val is_equal : TmT.t -> TmT.t -> bool
 
     val apply :
       (Unchecked_types(CohT)(TmT).ctx -> Unchecked_types(CohT)(TmT).ctx) ->
@@ -37,8 +40,10 @@ struct
     let rec is_equal_ps ps1 ps2 =
       match (ps1, ps2) with
       | Br [], Br [] -> true
-      | Br (ps1 :: l1), Br (ps2 :: l2) ->
-          is_equal_ps ps1 ps2 && List.for_all2 is_equal_ps l1 l2
+      | Br (ps1 :: l1), Br (ps2 :: l2) -> (
+          is_equal_ps ps1 ps2
+          &&
+          try List.for_all2 is_equal_ps l1 l2 with Invalid_argument _ -> true)
       | Br [], Br (_ :: _) | Br (_ :: _), Br [] -> false
 
     let rec is_equal_ty ty1 ty2 =
