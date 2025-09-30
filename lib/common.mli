@@ -15,7 +15,7 @@ module Var : sig
 
   val to_string : t -> string
   val make_var : string -> t
-  val check_equal : t -> t -> unit
+  val is_equal : t -> t -> bool
   val suspend : t -> t
   val suspend_n : t -> int -> t
   val fresh : unit -> t
