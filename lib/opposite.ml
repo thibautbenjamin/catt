@@ -31,7 +31,7 @@ let equiv_op_ps ps op_data =
   level 0 ps
 
 let op_pp_data pp_data op_data =
-  let name = Unchecked.full_name pp_data in
+  let name = Printing.full_name pp_data in
   let name = Printf.sprintf "%s_op{%s}" name (op_data_to_string op_data) in
   (name, 0, [])
 
@@ -96,9 +96,9 @@ let coh c op_data =
   coh c op_data equiv
 
 let tm t op_data =
-  Io.info ~v:3 (lazy ("computing opposite of term " ^ Unchecked.tm_to_string t));
+  Io.info ~v:3 (lazy ("computing opposite of term " ^ Printing.tm_to_string t));
   let t = tm t op_data in
-  Io.info ~v:4 (lazy ("opposite computed: " ^ Unchecked.tm_to_string t));
+  Io.info ~v:4 (lazy ("opposite computed: " ^ Printing.tm_to_string t));
   t
 
 let checked_tm t op_data =

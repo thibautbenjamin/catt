@@ -380,7 +380,7 @@ let bridge_ps ps_inter l_inter d =
 let bridge_coh coh ps_bridge =
   let _, _, name = Coh.forget coh in
   let src, tgt, _ = Coh.noninv_srctgt coh in
-  let name_red = (Unchecked.full_name name ^ "_red", 0, []) in
+  let name_red = (Printing.full_name name ^ "_red", 0, []) in
   let coh_bridge = Coh.check_noninv ps_bridge src tgt name_red in
   coh_bridge
 

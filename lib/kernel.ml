@@ -2,6 +2,7 @@ open Std
 open Common
 open Unchecked_types
 open Unchecked
+open Printing
 
 exception IsObj
 exception IsCoh
@@ -32,6 +33,8 @@ end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
+  open Printing (Coh) (Tm)
+  module Printing = Make (Coh) (Tm)
 
   let tbl : (Ctx.t * PS.t * Types.sub_ps, Sub.t) Hashtbl.t = Hashtbl.create 7829
   let free_vars s = List.concat (List.map Tm.free_vars s.list)
@@ -42,11 +45,9 @@ end = struct
         (Printf.sprintf
            "building kernel substitution : source = %s; substitution = %s; \
             target = %s"
-           (Ctx.to_string src)
-           (Unchecked.sub_to_string s)
-           (Ctx.to_string tgt)));
+           (Ctx.to_string src) (Printing.sub_to_string s) (Ctx.to_string tgt)));
     let sub_exn =
-      InvalidSubTarget (Unchecked.sub_to_string_debug s, Ctx.to_string tgt)
+      InvalidSubTarget (Printing.sub_to_string_debug s, Ctx.to_string tgt)
     in
     let rec aux src s tgt =
       let expr s tgt =
@@ -102,6 +103,8 @@ end = struct
   open Unchecked_types (Coh) (Tm)
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
+  open Printing (Coh) (Tm)
+  module Printing = Make (Coh) (Tm)
 
   let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
 
@@ -119,7 +122,7 @@ end = struct
   let domain ctx = List.map fst ctx.c
   let value ctx = ctx.c
   let forget c = c.unchecked
-  let to_string ctx = Unchecked.ctx_to_string (forget ctx)
+  let to_string ctx = Printing.ctx_to_string (forget ctx)
 
   let check_equal ctx1 ctx2 =
     if ctx1 == ctx2 then ()
@@ -171,6 +174,8 @@ end = struct
 
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
+  open Printing (Coh) (Tm)
+  module Printing = Make (Coh) (Tm)
 
   (** A pasting scheme. *)
   type ps_derivation =
@@ -287,7 +292,7 @@ end = struct
         ps
 
   let forget ps = ps.tree
-  let to_string ps = Unchecked.ps_to_string (forget ps)
+  let to_string ps = Printing.ps_to_string (forget ps)
 
   (** Create a context from a pasting scheme. *)
   let to_ctx ps = ps.ctx
@@ -327,6 +332,8 @@ end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
+  open Printing (Coh) (Tm)
+  module Printing = Make (Coh) (Tm)
 
   (** A type exepression. *)
   type expr = Obj | Arr of t * Tm.t * Tm.t
@@ -347,7 +354,7 @@ end = struct
     Io.info ~v:5
       (lazy
         (Printf.sprintf "building kernel type %s in context %s"
-           (Unchecked.ty_to_string t) (Ctx.to_string c)));
+           (Printing.ty_to_string t) (Ctx.to_string c)));
     match Hashtbl.find_opt tbl (c, t) with
     | Some ty -> ty
     | None ->
@@ -374,7 +381,7 @@ end = struct
 
   let is_full t = List.included (Ctx.domain t.c) (free_vars t)
   let forget t = t.unchecked
-  let to_string ty = Unchecked.ty_to_string (forget ty)
+  let to_string ty = Printing.ty_to_string (forget ty)
 
   (** Test for equality. *)
   let check_equal ty1 ty2 =
@@ -442,6 +449,8 @@ end = struct
   module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
   module Display_maps = Unchecked.Display_maps
+  open Printing (Coh) (Tm)
+  module Printing = Make (Coh) (Tm)
 
   type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
 
@@ -471,7 +480,7 @@ end = struct
     Io.info ~v:5
       (lazy
         (Printf.sprintf "building kernel term %s in context %s"
-           (Unchecked.tm_to_string t) (Ctx.to_string c)));
+           (Printing.tm_to_string t) (Ctx.to_string c)));
     let tm =
       match Hashtbl.find_opt tbl (c, t) with
       | Some tm -> tm
@@ -555,15 +564,15 @@ end = struct
 
   let bdry t = (Ty.source (typ t), Ty.target (typ t))
   let ctx t = Ctx.forget (Ty.ctx (typ t))
-  let name t = Option.map Unchecked.pp_data_to_string t.name
-  let full_name t = Option.map Unchecked.full_name t.name
+  let name t = Option.map Printing.pp_data_to_string t.name
+  let full_name t = Option.map Printing.full_name t.name
   let func_data t = Option.map (fun (_, _, f) -> f) t.name
   let pp_data t = t.name
 
   let to_string t =
     match full_name t with
     | Some name -> name
-    | None -> Unchecked.tm_to_string (forget t)
+    | None -> Printing.tm_to_string (forget t)
 
   let of_coh coh =
     let ps, _, pp_data = Coh.forget coh in
@@ -643,6 +652,8 @@ end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
   module Display_maps = Unchecked.Display_maps
+  open Printing (Coh) (Tm)
+  module Printing = Make (Coh) (Tm)
 
   let ps = function Inv (data, _) -> data.ps | NonInv (data, _) -> data.ps
 
@@ -677,8 +688,8 @@ end = struct
     Io.info ~v:5
       (lazy
         (Printf.sprintf "checking coherence (%s,%s)"
-           (Unchecked.ps_to_string ps_unchkd)
-           (Unchecked.ty_to_string t_unchkd)));
+           (Printing.ps_to_string ps_unchkd)
+           (Printing.ty_to_string t_unchkd)));
     match Hashtbl.find_opt tbl (ps_unchkd, t_unchkd) with
     | Some coh -> coh
     | None -> (
@@ -693,8 +704,8 @@ end = struct
         | NotAlgebraic ->
             Error.not_valid_coherence name
               (Printf.sprintf "type %s not algebraic in pasting scheme %s"
-                 (Unchecked.ty_to_string t_unchkd)
-                 Unchecked.(ctx_to_string (ps_to_ctx ps_unchkd)))
+                 (Printing.ty_to_string t_unchkd)
+                 (Printing.ctx_to_string (Unchecked.ps_to_ctx ps_unchkd)))
         | DoubledVar s ->
             Error.not_valid_coherence name
               (Printf.sprintf "variable %s appears twice in the context" s))
@@ -745,7 +756,7 @@ end = struct
 
   let to_string c =
     let ps, ty, pp_data = data c in
-    if not !Settings.unroll_coherences then Unchecked.pp_data_to_string pp_data
+    if not !Settings.unroll_coherences then Printing.pp_data_to_string pp_data
     else Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
 
   let noninv_srctgt c =
@@ -798,6 +809,8 @@ end
 module U = Unchecked (Coh) (Tm)
 module Unchecked = U.Make (Coh) (Tm)
 module Display_maps = Unchecked.Display_maps
+module P = Printing (Coh) (Tm)
+module Printing = P.Make (Coh) (Tm)
 
 let check check_fn name =
   let v = 2 in
@@ -821,12 +834,12 @@ let check check_fn name =
         (if !Settings.verbosity >= v then fname else Lazy.force name)
 
 let check_type ctx a =
-  let ty = lazy ("type: " ^ Unchecked.ty_to_string a) in
+  let ty = lazy ("type: " ^ Printing.ty_to_string a) in
   check (fun () -> Ty.check ctx a) ty
 
 let check_term ctx ?ty ?name t =
   let ty = Option.map (check_type ctx) ty in
-  let tm = lazy ("term: " ^ Unchecked.tm_to_string t) in
+  let tm = lazy ("term: " ^ Printing.tm_to_string t) in
   check (fun () -> Tm.check ctx ?ty ?name t) tm
 
 let check_constr ?name ctx constr =
@@ -836,7 +849,7 @@ let check_constr ?name ctx constr =
   check_term ctx ?ty ?name t
 
 let check_coh ps ty pp_data =
-  let c = lazy ("coherence: " ^ Unchecked.pp_data_to_string pp_data) in
+  let c = lazy ("coherence: " ^ Printing.pp_data_to_string pp_data) in
   check (fun () -> Coh.check ps ty pp_data) c
 
 let check_sub src s tgt = ignore @@ Sub.check (Ctx.check src) s (Ctx.check tgt)
