@@ -100,10 +100,6 @@ end
 module Unchecked : sig
   type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
-  val check_equal_ctx : ctx -> ctx -> unit
-  val check_equal_ps : ps -> ps -> unit
-  val check_equal_ty : ty -> ty -> unit
-  val check_equal_tm : tm -> tm -> unit
   val dim_ctx : ctx -> int
   val dim_ty : ty -> int
   val dim_ps : ps -> int
@@ -175,6 +171,13 @@ module Printing : sig
   val meta_ctx_to_string : meta_ctx -> string
   val pp_data_to_string : ?print_func:bool -> pp_data -> string
   val full_name : pp_data -> string
+end
+
+module Equality : sig
+  val check_equal_ctx : ctx -> ctx -> unit
+  val check_equal_ps : ps -> ps -> unit
+  val check_equal_ty : ty -> ty -> unit
+  val check_equal_tm : tm -> tm -> unit
 end
 
 module Display_maps : sig

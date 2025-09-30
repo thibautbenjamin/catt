@@ -10,13 +10,8 @@ end) : sig
 
   module Make (_ : sig
     val forget : Coh.t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
-    val to_string : Coh.t -> string
-    val func_data : Coh.t -> (Var.t * int) list list
-    val check_equal : Coh.t -> Coh.t -> unit
     val check : ps -> ty -> pp_data -> Coh.t
   end) (_ : sig
-    val name : Tm.t -> string option
-    val func_data : Tm.t -> (Var.t * int) list list option
     val develop : Tm.t -> Unchecked_types(Coh)(Tm).tm
 
     val apply :
@@ -28,11 +23,6 @@ end) : sig
   end) : sig
     type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
-    val check_equal_ctx : ctx -> ctx -> unit
-    val check_equal_ps : ps -> ps -> unit
-    val check_equal_ty : ty -> ty -> unit
-    val check_equal_tm : tm -> tm -> unit
-    val check_equal_sub_ps : sub_ps -> sub_ps -> unit
     val dim_ctx : ctx -> int
     val dim_ty : ty -> int
     val dim_ps : ps -> int
