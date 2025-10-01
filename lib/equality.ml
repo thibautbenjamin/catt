@@ -32,10 +32,10 @@ struct
       TmT.t * Unchecked_types(CohT)(TmT).sub
   end) =
   struct
-    module P = Printing.Printing (CohT) (TmT)
-    module Printing = P.Make (Coh) (Tm)
     module U = Unchecked.Unchecked (CohT) (TmT)
     module Unchecked = U.Make (Coh) (Tm)
+    module P = Printing.Printing (CohT) (TmT) (Unchecked)
+    module Printing = P.Make (Coh) (Tm)
 
     let rec is_equal_ps ps1 ps2 =
       match (ps1, ps2) with

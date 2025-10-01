@@ -5,6 +5,11 @@ module Printing (Coh : sig
   type t
 end) (Tm : sig
   type t
+end) (_ : sig
+  val tm_apply_sub :
+    Unchecked_types(Coh)(Tm).tm ->
+    Unchecked_types(Coh)(Tm).sub ->
+    Unchecked_types(Coh)(Tm).tm
 end) : sig
   open Unchecked_types(Coh)(Tm)
 

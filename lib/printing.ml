@@ -5,6 +5,11 @@ module Printing (CohT : sig
   type t
 end) (TmT : sig
   type t
+end) (App : sig
+  val tm_apply_sub :
+    Unchecked_types(CohT)(TmT).tm ->
+    Unchecked_types(CohT)(TmT).sub ->
+    Unchecked_types(CohT)(TmT).tm
 end) =
 struct
   open Unchecked_types (CohT) (TmT)
@@ -65,14 +70,14 @@ struct
               let func = Coh.func_data c in
               Printf.sprintf "(%s%s)" (Coh.to_string c)
                 (sub_ps_to_string ~func s)
-        | App (t, s) ->
-            let name =
-              match Tm.name t with Some name -> name | None -> "anonymous_tm"
-            in
-            let func = Tm.func_data t in
-            let str_s, expl = sub_to_string ?func s in
-            let expl_str = if expl then "@" else "" in
-            Printf.sprintf "(%s%s%s)" expl_str name str_s
+        | App (t, s) -> (
+            match Tm.name t with
+            | Some name ->
+                let func = Tm.func_data t in
+                let str_s, expl = sub_to_string ?func s in
+                let expl_str = if expl then "@" else "" in
+                Printf.sprintf "(%s%s%s)" expl_str name str_s
+            | None -> tm_to_string (App.tm_apply_sub (Tm.develop t) s))
 
       and sub_ps_to_string ?(func = []) s =
         match func with

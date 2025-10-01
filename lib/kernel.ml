@@ -34,7 +34,7 @@ end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
-  open Printing (Coh) (Tm)
+  open Printing (Coh) (Tm) (Unchecked)
   module Printing = Make (Coh) (Tm)
 
   let tbl : (Ctx.t * PS.t * Types.sub_ps, Sub.t) Hashtbl.t = Hashtbl.create 7829
@@ -105,7 +105,7 @@ end = struct
   open Unchecked_types (Coh) (Tm)
   module U = Unchecked (Coh) (Tm)
   module Unchecked = U.Make (Coh) (Tm)
-  module P = Printing (Coh) (Tm)
+  module P = Printing (Coh) (Tm) (Unchecked)
   module Printing = P.Make (Coh) (Tm)
   module E = Equality (Coh) (Tm)
   module Equality = E.Make (Coh) (Tm)
@@ -184,7 +184,7 @@ end = struct
 
   module U = Unchecked (Coh) (Tm)
   module Unchecked = U.Make (Coh) (Tm)
-  module P = Printing (Coh) (Tm)
+  module P = Printing (Coh) (Tm) (Unchecked)
   module Printing = P.Make (Coh) (Tm)
   module E = Equality (Coh) (Tm)
   module Equality = E.Make (Coh) (Tm)
@@ -344,7 +344,7 @@ end = struct
   module Types = Unchecked_types (Coh) (Tm)
   module U = Unchecked (Coh) (Tm)
   module Unchecked = U.Make (Coh) (Tm)
-  module P = Printing (Coh) (Tm)
+  module P = Printing (Coh) (Tm) (Unchecked)
   module Printing = P.Make (Coh) (Tm)
   module E = Equality (Coh) (Tm)
   module Equality = E.Make (Coh) (Tm)
@@ -470,7 +470,7 @@ end = struct
   module Unchecked = U.Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
   module Display_maps = Unchecked.Display_maps
-  module P = Printing (Coh) (Tm)
+  module P = Printing (Coh) (Tm) (Unchecked)
   module Printing = P.Make (Coh) (Tm)
   module E = Equality (Coh) (Tm)
   module Equality = E.Make (Coh) (Tm)
@@ -680,7 +680,7 @@ end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
   module Display_maps = Unchecked.Display_maps
-  open Printing (Coh) (Tm)
+  open Printing (Coh) (Tm) (Unchecked)
   module Printing = Make (Coh) (Tm)
 
   let ps = function Inv (data, _) -> data.ps | NonInv (data, _) -> data.ps
@@ -839,7 +839,7 @@ end
 module U = Unchecked (Coh) (Tm)
 module Unchecked = U.Make (Coh) (Tm)
 module Display_maps = Unchecked.Display_maps
-module P = Printing (Coh) (Tm)
+module P = Printing (Coh) (Tm) (Unchecked)
 module Printing = P.Make (Coh) (Tm)
 module E = Equality (Coh) (Tm)
 module Equality = E.Make (Coh) (Tm)
