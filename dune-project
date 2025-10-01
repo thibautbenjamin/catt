@@ -1,4 +1,4 @@
-(lang dune 3.16)
+(lang dune 3.20)
 
 (name catt)
 (generate_opam_files true)
@@ -10,7 +10,7 @@
 (license MIT)
 (using menhir 2.0)
 (cram enable)
-(using coq 0.9)
+(using coq 0.10)
 
 (package
   (name catt)
@@ -26,11 +26,11 @@
 
 (package
   (name coq-catt-plugin)
-  (synopsis "A Coq plugin for the catt proof-assistant")
-  (description "A Coq plugin to interpret terms built in the catt proof assistant as functions computing on higher dimensional identity types")
+  (synopsis "A Rocq plugin for the catt proof-assistant")
+  (description "A Rocq plugin to interpret terms built in the catt proof assistant as functions computing on higher dimensional identity types")
   (depends
       catt
-      (coq (>= 8.20)))
+      (coq (>= 9.0)))
   (tags
     (higher-categories dependent-type-theory)))
 

@@ -7,8 +7,16 @@
     nix-filter.url = "github:numtide/nix-filter";
   };
 
-  outputs = { self, nixpkgs, flake-utils, nix-filter, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      nix-filter,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = (import nixpkgs { inherit system; });
         ocamlPackages = pkgs.ocaml-ng.ocamlPackages_4_14;
@@ -33,12 +41,12 @@
             ];
           };
 
-          coq-plugin = nix-filter.lib {
+          rocq-plugin = nix-filter.lib {
             root = ./.;
             include = [
               ".ocamlformat"
               "dune-project"
-              (nix-filter.lib.inDirectory "coq_plugin")
+              (nix-filter.lib.inDirectory "rocq_plugin")
               (nix-filter.lib.inDirectory "test.t")
             ];
           };
@@ -52,8 +60,8 @@
               (nix-filter.lib.inDirectory "lib")
               (nix-filter.lib.inDirectory "test.t")
               (nix-filter.lib.inDirectory "web")
-              (nix-filter.lib.inDirectory "coq_plugin/src/")
-              "coq_plugin/theories/dune"
+              (nix-filter.lib.inDirectory "rocq_plugin/src/")
+              "rocq_plugin/theories/dune"
             ];
           };
 
@@ -65,7 +73,8 @@
           elisp = ./share/site-lisp;
         };
 
-      in {
+      in
+      {
         packages = {
           default = self.packages.${system}.catt;
 
@@ -85,7 +94,10 @@
               description = "A proof assistant for weak omega-categories";
               homepage = "https://www.github.com/thibautbenjamin/catt";
               license = nixpkgs.lib.licenses.mit;
-              maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
+              maintainers = [
+                "Thibaut Benjamin"
+                "Chiara Sarti"
+              ];
               mainProgram = "catt";
             };
           };
@@ -107,18 +119,20 @@
             ];
 
             meta = {
-              description =
-                "Browser embedded version of the catt proof-assistant";
+              description = "Browser embedded version of the catt proof-assistant";
               homepage = "https://www.github.com/thibautbenjamin/catt";
               license = nixpkgs.lib.licenses.mit;
-              maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
+              maintainers = [
+                "Thibaut Benjamin"
+                "Chiara Sarti"
+              ];
             };
           };
 
-          catt-coq-plugin = pkgs.coqPackages.mkCoqDerivation {
+          catt-rocq-plugin = pkgs.coqPackages.mkCoqDerivation {
             pname = "catt-plugin";
             version = "1.0";
-            src = sources.coq-plugin;
+            src = sources.rocq-plugin;
             nativeBuildInputs = [ ];
 
             buildInputs = [
@@ -131,10 +145,13 @@
             useDune = true;
 
             meta = {
-              description = "Coq plugin for the catt proof-assistant";
+              description = "Rocq plugin for the catt proof-assistant";
               homepage = "https://www.github.com/thibautbenjamin/catt";
               license = nixpkgs.lib.licenses.mit;
-              maintainers = [ "Thibaut Benjamin" "Chiara Sarti" ];
+              maintainers = [
+                "Thibaut Benjamin"
+                "Chiara Sarti"
+              ];
             };
           };
 
@@ -152,30 +169,36 @@
           };
         };
 
-        formatter = pkgs.nixfmt-classic;
+        formatter = pkgs.nixfmt;
 
         checks = {
-          lint-nix = pkgs.runCommand "check-flake-format" {
-            nativeBuildInputs = [ pkgs.nixfmt-classic ];
-          } ''
-            echo "checking nix formatting"
-            nixfmt --check ${sources.nix}
-            touch $out
-          '';
+          lint-nix =
+            pkgs.runCommand "check-flake-format"
+              {
+                nativeBuildInputs = [ pkgs.nixfmt ];
+              }
+              ''
+                echo "checking nix formatting"
+                nixfmt --check ${sources.nix}
+                touch $out
+              '';
 
-          dune-fmt = pkgs.runCommand "check-ocaml-fmt" {
-            nativeBuildInputs = [
-              ocamlPackages.dune_3
-              ocamlPackages.ocaml
-              ocamlPackages.ocamlformat
-            ];
-          } ''
-            echo "checking dune and ocaml formatting for catt"
-            dune fmt \
-                  --display=short \
-                  --root=$(pwd)
-                  touch $out
-          '';
+          dune-fmt =
+            pkgs.runCommand "check-ocaml-fmt"
+              {
+                nativeBuildInputs = [
+                  ocamlPackages.dune_3
+                  ocamlPackages.ocaml
+                  ocamlPackages.ocamlformat
+                ];
+              }
+              ''
+                echo "checking dune and ocaml formatting for catt"
+                dune fmt \
+                      --display=short \
+                      --root=$(pwd)
+                      touch $out
+              '';
 
           default = self.packages.${system}.catt.overrideAttrs (oldAttrs: {
             name = "check-${oldAttrs.name}";
@@ -185,7 +208,11 @@
         };
 
         devShells.default = pkgs.mkShell {
-          packages = (with pkgs; [ nixfmt-classic fswatch ])
+          packages =
+            (with pkgs; [
+              nixfmt
+              fswatch
+            ])
             ++ (with ocamlPackages; [
               odoc
               ocaml-lsp
@@ -201,10 +228,11 @@
           inputsFrom = [
             self.packages.${system}.catt
             self.packages.${system}.catt-web
-            self.packages.${system}.catt-coq-plugin
+            self.packages.${system}.catt-rocq-plugin
           ];
         };
 
         devShells.web = self.packages.${system}.catt-web;
-      });
+      }
+    );
 }
