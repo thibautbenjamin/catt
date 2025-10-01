@@ -23,16 +23,13 @@ module Var = struct
 
   let make_var s = Name s
 
-  let rec check_equal v1 v2 =
+  let rec is_equal v1 v2 =
     match (v1, v2) with
-    | Name s1, Name s2 ->
-        if not (String.equal s1 s2) then raise (NotEqual (s1, s2)) else ()
-    | New i, New j ->
-        if i != j then raise (NotEqual (to_string v1, to_string v2)) else ()
-    | Db i, Db j ->
-        if i != j then raise (NotEqual (to_string v1, to_string v2)) else ()
-    | Plus v1, Plus v2 | Bridge v1, Bridge v2 -> check_equal v1 v2
-    | _, _ -> raise (NotEqual (to_string v1, to_string v2))
+    | Name s1, Name s2 -> String.equal s1 s2
+    | New i, New j -> i = j
+    | Db i, Db j -> i = j
+    | Plus v1, Plus v2 | Bridge v1, Bridge v2 -> is_equal v1 v2
+    | _, _ -> false
 
   let rec suspend_n v n =
     match v with

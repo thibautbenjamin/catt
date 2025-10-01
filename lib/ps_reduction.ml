@@ -28,7 +28,7 @@ let reduction_sub ps =
 
 let coh c =
   let ps, _, name = Coh.forget c in
-  let name = Unchecked.full_name name in
+  let name = Printing.full_name name in
   let ps = reduce (Unchecked.dim_ps ps - 1) ps in
   if Coh.is_inv c then Error.fatal "cannot reduce invertible coherences"
   else

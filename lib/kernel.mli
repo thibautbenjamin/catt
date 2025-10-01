@@ -7,7 +7,7 @@ module rec Coh : sig
   val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
   val check_equal : t -> t -> unit
   val is_inv : t -> bool
-  val to_string : t -> string
+  val to_string : ?unroll:bool -> t -> string
   val dim : t -> int
   val src : t -> Unchecked_types(Coh)(Tm).tm
   val tgt : t -> Unchecked_types(Coh)(Tm).tm
@@ -100,20 +100,6 @@ end
 module Unchecked : sig
   type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
-  val ps_to_string : ps -> string
-  val ty_to_string : ty -> string
-  val tm_to_string : tm -> string
-  val sub_ps_to_string : ?func:(Var.t * int) list list -> sub_ps -> string
-  val ctx_to_string : ctx -> string
-  val sub_to_string : ?func:(Var.t * int) list list -> sub -> string
-  val sub_to_string_debug : sub -> string
-  val meta_ctx_to_string : meta_ctx -> string
-  val pp_data_to_string : ?print_func:bool -> pp_data -> string
-  val full_name : pp_data -> string
-  val check_equal_ctx : ctx -> ctx -> unit
-  val check_equal_ps : ps -> ps -> unit
-  val check_equal_ty : ty -> ty -> unit
-  val check_equal_tm : tm -> tm -> unit
   val dim_ctx : ctx -> int
   val dim_ty : ty -> int
   val dim_ps : ps -> int
@@ -172,6 +158,27 @@ module Unchecked : sig
   val disc_tgt : int -> sub_ps
   val develop_tm : tm -> tm
   val develop_ty : ty -> ty
+end
+
+module Printing : sig
+  val ps_to_string : ps -> string
+  val ty_to_string : ty -> string
+  val tm_to_string : tm -> string
+  val sub_ps_to_string : ?func:(Var.t * int) list list -> sub_ps -> string
+  val ctx_to_string : ctx -> string
+  val sub_to_string : ?func:(Var.t * int) list list -> sub -> string
+  val sub_to_string_debug : sub -> string
+  val meta_ctx_to_string : meta_ctx -> string
+  val pp_data_to_string : ?print_func:bool -> pp_data -> string
+  val full_name : pp_data -> string
+  val print_kolmogorov : tm -> string
+end
+
+module Equality : sig
+  val check_equal_ctx : ctx -> ctx -> unit
+  val check_equal_ps : ps -> ps -> unit
+  val check_equal_ty : ty -> ty -> unit
+  val check_equal_tm : tm -> tm -> unit
 end
 
 module Display_maps : sig

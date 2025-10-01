@@ -12,6 +12,8 @@ let builtin_to_value b =
   | Conecomp (n, k, m) -> Tm (Cones.compose n m k)
   | Cylcomp (n, k, m) -> Tm (Cylinders.compose n m k)
   | Cylstack n -> Tm (Cylinders.stacking n)
+  | Eh_half (n, k, l) -> Tm (Eh.eh n k l)
+  | Eh_full (n, k, l) -> Tm (Eh.full_eh n k l)
 
 let value_ty v =
   match v with
@@ -47,11 +49,10 @@ let add_let v c ?ty t =
     Io.info ~v:4
       (lazy
         (Printf.sprintf "term %s of type %s added to environment"
-           (Unchecked.tm_to_string t)
-           (Unchecked.ty_to_string ty)));
+           (Printing.tm_to_string t) (Printing.ty_to_string ty)));
     Hashtbl.add env v { value = Tm tm; dim_input; dim_output };
     (t, ty)
-  with DoubledVar x -> Error.doubled_var (Unchecked.ctx_to_string c) x
+  with DoubledVar x -> Error.doubled_var (Printing.ctx_to_string c) x
 
 let add_coh v ps ty =
   let coh = check_coh ps ty (Var.to_string v, 0, []) in
@@ -74,8 +75,7 @@ let add_value v value =
   Io.info ~v:4
     (lazy
       (Printf.sprintf "term %s of type %s added to environment"
-         (value_to_string value)
-         (Unchecked.ty_to_string ty)));
+         (value_to_string value) (Printing.ty_to_string ty)));
   Hashtbl.add env v { value; dim_input; dim_output };
   (value, ty)
 

@@ -15,6 +15,8 @@ type cmd =
   | Decl of Var.t * (Var.t * tyR) list * tmR * tyR option
   | Decl_builtin of Var.t * builtin
   | Set of string * string
+  | Benchmark of (Var.t * tyR) list * tmR
+  | Benchmark_builtin of builtin
 
 type prog = cmd list
 
@@ -103,16 +105,15 @@ let exec_cmd cmd =
       let e, ty = check l e t in
       Io.info
         (lazy
-          (Printf.sprintf "valid term %s of type %s" (Unchecked.tm_to_string e)
-             (Unchecked.ty_to_string ty)))
+          (Printf.sprintf "valid term %s of type %s" (Printing.tm_to_string e)
+             (Printing.ty_to_string ty)))
   | Decl (v, l, e, t) ->
       Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_tm e);
       let tm, ty = exec_decl v l e t in
       Io.info
         (lazy
           (Printf.sprintf "successfully defined term %s of type %s"
-             (Unchecked.tm_to_string tm)
-             (Unchecked.ty_to_string ty)))
+             (Printing.tm_to_string tm) (Printing.ty_to_string ty)))
   | Set (o, v) -> (
       try exec_set o v with
       | UnknownOption o -> Error.unknown_option o
@@ -125,7 +126,7 @@ let exec_cmd cmd =
         (lazy
           (Printf.sprintf "valid term %s of type %s"
              (Environment.value_to_string e)
-             (Unchecked.ty_to_string ty)))
+             (Printing.ty_to_string ty)))
   | Decl_builtin (v, b) ->
       Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_builtin b);
       let e, ty = exec_decl_builtin v b in
@@ -133,7 +134,25 @@ let exec_cmd cmd =
         (lazy
           (Printf.sprintf "successfully defined term %s of type %s"
              (Environment.value_to_string e)
-             (Unchecked.ty_to_string ty)))
+             (Printing.ty_to_string ty)))
+  | Benchmark (l, e) ->
+      let e, _ = check l e None in
+      Io.info
+        (lazy
+          (Printf.sprintf "term computes to:\n %s"
+             (Printing.print_kolmogorov e)))
+  | Benchmark_builtin b ->
+      let e, _ = exec_check_builtin b in
+      let e =
+        match e with
+        | Environment.Coh _ ->
+            Error.fatal "bechmarking a builtin resolving to a coherence"
+        | Environment.Tm e -> Tm.develop e
+      in
+      Io.info
+        (lazy
+          (Printf.sprintf "term computes to:\n %s"
+             (Printing.print_kolmogorov e)))
 
 type next = Abort | KeepGoing | Interactive
 

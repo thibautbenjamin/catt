@@ -1,0 +1,245 @@
+let 1paddedL (x : *) (y : *)
+    	     (f : x -> x) (g : x -> y)
+	     = comp f g
+
+coh 2padL (x(f)y) : f -> 1paddedL (id x) f
+
+let 1paddedU (x : *)
+    	     (f : x -> x) (g : x -> x)
+    	     = comp f g
+
+coh 2padU (x) : id x -> 1paddedU (id x) (id x)
+
+coh bias (x) : 2padU x -> 2padL (id x)
+
+coh Ibias (x) : I (2padU x) -> I (2padL (id x))
+
+let 2paddedL (x : *) (y : *)
+    	     (f : x -> y) (g : x -> y)
+	     (a : id x -> id x) (b : f -> g)
+	     = comp (2padL f) (1paddedL [a] [b]) (I (2padL g))
+
+coh 3padL (x(f(a)g)y) : a -> 2paddedL (id (id x)) a
+
+let 2paddedU (x : *)
+    	     (a : id x -> id x) (b : id x -> id x)
+    	     = comp (2padU x) (1paddedU [a] [b]) (I (2padU x))
+
+coh 3padU (x) : id (id x) -> 2paddedU (id (id x)) (id (id x))
+
+let 3paddedL (x : *) (y : *)
+    	     (f : x -> y) (g : x -> y)
+	     (a : f -> g) (b : f -> g)
+	     (p : id (id x) -> id (id x)) (q : a -> b)
+	     = comp (3padL a) (2paddedL [p] [q]) (I (3padL b))
+	     
+coh 4padL (x(f(a(p)b)g)y) : p -> 3paddedL (id (id (id x))) p
+
+
+let 3paddedU (x : *)
+    	     (p : id (id x) -> id (id x)) (q : (id (id x)) -> (id (id x)))
+    	     = comp (3padU x) (2paddedU [p] [q]) (I (3padU x))
+
+coh 4padU (x) : id (id (id x)) -> 3paddedU (id (id (id x))) (id (id (id x)))
+
+let 4paddedL (x : *) (y : *)
+    	     (f : x -> y) (g : x -> y)
+	     (a : f -> g) (b : f -> g)
+	     (p : a -> b) (q : a -> b)
+	     (m : id (id (id x)) -> id (id (id x))) (n : p -> q)
+	     = comp (4padL p) (3paddedL [m] [n]) (I (4padL q))
+
+coh 5padL (x(f(a(p(m)q)b)g)y) : m -> 4paddedL (id (id (id (id x)))) m
+
+let 4paddedU (x : *)
+    	     (m : id (id (id x)) -> id (id (id x))) (n : id (id (id x)) -> id (id (id x)))
+	     = comp (4padU x) (3paddedU [m] [n]) (I (4padU x))
+
+coh 5padU (x) : id (id (id (id x))) -> 4paddedU (id (id (id (id x)))) (id (id (id (id x))))
+
+
+coh focus-33-to-middle2 (x0(f1)x1(f2)x2(f3)x3(f4)x4(f5)x5(f6)x6) :
+    comp (comp f1 f2 f3) (comp f4 f5 f6) -> comp f1 f2 (comp f3 f4) f5 f6
+
+coh factor3padL (x) : 3padL (id (id x)) -> comp (3padU x) (comp [bias x] (comp [id (id x)] [id (id x)]) [Ibias x])
+
+coh unfactor3padU (x) : comp (comp [bias x] (comp [id (id x)] [id (id x)]) [Ibias x])
+    		      	     (I (3padL (id (id x))))
+			     -> I (3padU x)
+
+coh burger (x(f(a)g)y(h)z(j(b)k)w) : comp f h j -> comp g h k
+
+let nat-of-id-WRT-bias (x : *) (y : *) (z : *) (w : *)
+    		       (f1 : x -> y) (f2 : x -> y) (g1 : y -> z) (g2 : y -> z) (h1 : z -> w) (h2 : z -> w)
+		       (a : f1 -> f2) (b : g1 -> g2) (c : h1 -> h2) 
+		       = burger a [b] c
+
+let middlestep1 (x : *) = comp [factor3padL x] (2paddedL [id (id (id x))] [id (id (id x))]) (I (3padL (id (id x))))
+
+coh focus-first2-to-middle2 (x0(f1)x1(f2)x2(f3)x3(f4)x4) : comp (comp f1 f2) f3 f4 -> comp f1 (comp f2 f3) f4
+
+let middlestep2 (x : *) 
+    		= focus-first2-to-middle2 (3padU x)
+		  			  (burger (bias x) (comp [id (id x)] [id (id x)]) (Ibias x))
+					  (2paddedL [id (id (id x))] [id (id (id x))])
+					  (I (3padL (id (id x))))
+
+let middlestep3 (x : *)
+    		= comp (3padU x) [nat-of-id-WRT-bias (bias x) (comp [[id (id (id x))]] [[id (id (id x))]]) (Ibias x)]  (I (3padL (id (id x))))
+
+coh focus-middle2-to-last2 (x0(f1)x1(f2)x2(f3)x3(f4)x4) : comp f1 (comp f2 f3) f4 -> comp f1 f2 (comp f3 f4)
+
+let middlestep4 (x : *)
+    		= focus-middle2-to-last2 (3padU x)
+		  			 (2paddedU [id (id (id x))] [id (id (id x))])
+		  		 	 (burger (bias x) (comp [id (id x)] [id (id x)]) (Ibias x))
+					 (I (3padL (id (id x))))
+
+let middlestep5 (x : *)
+    		= comp (3padU x) (2paddedU [id (id (id x))] [id (id (id x))]) [unfactor3padU x]
+
+let middle (x : *)
+    	   = comp (middlestep1 x)
+	     	  (middlestep2 x)
+		  (middlestep3 x)
+		  (middlestep4 x)
+		  (middlestep5 x)
+		  (I (op { 1 } (middlestep5 x)))
+		  (I (op { 1 } (middlestep4 x)))
+		  (I (op { 1 } (middlestep3 x)))
+		  (I (op { 1 } (middlestep2 x)))
+		  (I (op { 1 } (middlestep1 x)))
+
+coh middlereplace (x) : comp (I (4padL (id (id (id x))))) (op { 1 } (4padL (id (id (id x))))) -> middle x
+
+let step1 (x : *)
+    	  (m : id (id (id x)) -> id (id (id x)))
+	  (n : id (id (id x)) -> id (id (id x)))
+	  = comp [5padL m] [op { 1 } (5padL n)]
+
+let step2 (x : *)
+    	  (m : id (id (id x)) -> id (id (id x)))
+	  (n : id (id (id x)) -> id (id (id x)))
+	  = focus-33-to-middle2 (4padL (id (id (id x))))
+	    		    	(3paddedL [id (id (id (id x)))] [m])
+			    	(I (4padL (id (id (id x)))))
+			   	(op { 1 } (4padL (id (id (id x)))))
+			    	(op { 1 } (3paddedL [id (id (id (id x)))] [n]))
+			    	(op { 1 } (I (4padL (id (id (id x))))))
+let step3 (x : *)
+    	  (m : id (id (id x)) -> id (id (id x)))
+	  (n : id (id (id x)) -> id (id (id x)))
+	  = comp  (4padL (id (id (id x))))
+	    	  (3paddedL [id (id (id (id x)))] [m])
+		  [middlereplace x]
+		  (op { 1 } (3paddedL [id (id (id (id x)))] [n]))
+		  (op { 1 } (I (4padL (id (id (id x))))))
+		  
+coh focus-2-3-and-12-13 (x0(f1)x1(f2)x2(f3)x3(f4)x4(f5)x5(f6)x6(f7)x7(f8)x8(f9)x9(f10)x10(f11)x11(f12)x12(f13)x13(f14)x14)
+    : comp f1 f2 (comp f3 f4 f5 f6 f7 f8 f9 f10 f11 f12) f13 f14 -> comp f1 (comp f2 f3) f4 f5 f6 f7 f8 f9 f10 f11 (comp f12 f13) f14
+
+let step4 (x : *)
+    	  (m : id (id (id x)) -> id (id (id x)))
+	  (n : id (id (id x)) -> id (id (id x)))
+	  = focus-2-3-and-12-13
+	  (4padL (id (id (id x))))
+	  (3paddedL [id (id (id (id x)))] [m])
+	  (middlestep1 x)
+	  (middlestep2 x)
+	  (middlestep3 x)
+	  (middlestep4 x)
+	  (middlestep5 x)
+	  (I (op { 1 } (middlestep5 x)))
+	  (I (op { 1 } (middlestep4 x)))
+	  (I (op { 1 } (middlestep3 x)))
+	  (I (op { 1 } (middlestep2 x)))
+	  (I (op { 1 } (middlestep1 x)))
+	  (op { 1 } (3paddedL [id (id (id (id x)))] [n]))
+	  (op { 1 } (I (4padL (id (id (id x))))))
+
+coh sandwisk (x(f)y(g(a)h)z(k)w) : comp f g k -> comp f h k
+
+let nat-middletoleft (x : *) (y : *) (z : *) (w : *)
+    			(f1 : x -> y) (f2 : x -> y) (g1 : y -> z) (g2 : y -> z) 
+			(a : f1 -> f2) (b : g1 -> g2) (h : z -> w)
+			= sandwisk [a] b h
+
+let nat-factoring-WRT-m  (x : *)
+    	  (m : id (id (id x)) -> id (id (id x)))
+	  = nat-middletoleft (factor3padL x) (2paddedL [[id (id (id (id x)))]] [[m]] ) (I (3padL (id (id x))))
+
+let nat-factoring-WRT-n  (x : *)
+    	  (n : id (id (id x)) -> id (id (id x)))
+	  = I (nat-middletoleft (I (op { 1 } (factor3padL x))) (op { 1 } (2paddedL [[id (id (id (id x)))]] [[n]])) (I (op { 1 } (3padL (id (id x))))))
+	  
+let step5 (x : *)
+    	  (m : id (id (id x)) -> id (id (id x)))
+	  (n : id (id (id x)) -> id (id (id x)))
+	  = comp
+	  (4padL (id (id (id x))))
+	  [nat-factoring-WRT-m m]
+	  (middlestep2 x)
+	  (middlestep3 x)
+	  (middlestep4 x)
+	  (middlestep5 x)
+	  (I (op { 1 } (middlestep5 x)))
+	  (I (op { 1 } (middlestep4 x)))
+	  (I (op { 1 } (middlestep3 x)))
+	  (I (op { 1 } (middlestep2 x)))
+	  [nat-factoring-WRT-n n]
+	  (op { 1 } (I (4padL (id (id (id x))))))
+
+coh focus-3-4-and-11-12 (x0(f1)x1(f2)x2(f3)x3(f4)x4(f5)x5(f6)x6(f7)x7(f8)x8(f9)x9(f10)x10(f11)x11(f12)x12(f13)x13(f14)x14)
+    : comp f1 (comp f2 f3) f4 f5 f6 f7 f8 f9 f10 f11 (comp f12 f13) f14 -> comp f1 f2 (comp f3 f4) f5 f6 f7 f8 f9 f10 (comp f11 f12) f13 f14
+
+let step6 (x : *)
+    	  (m : id (id (id x)) -> id (id (id x)))
+	  (n : id (id (id x)) -> id (id (id x)))
+	  = focus-3-4-and-11-12
+	  (4padL (id (id (id x))))
+	  (middlestep1 x)
+	  (comp (comp (3padU x) (comp [bias x] (comp [id (id x)] [id (id x)]) [Ibias x])) [2paddedL [[id (id (id (id x)))]] [[m]]] (I (3padL (id (id x)))))
+	  (middlestep2 x)
+	  (middlestep3 x)
+	  (middlestep4 x)
+	  (middlestep5 x)
+	  (I (op { 1 } (middlestep5 x)))
+	  (I (op { 1 } (middlestep4 x)))
+	  (I (op { 1 } (middlestep3 x)))
+	  (I (op { 1 } (middlestep2 x)))
+	  (comp (op { 1 } (comp (3padU x) (comp [bias x] (comp [id (id x)] [id (id x)]) [Ibias x]))) [op { 1 } (2paddedL [[id (id (id (id x)))]] [[n]])] (I (op { 1 } (3padL (id (id x))))))
+	  (I (op { 1 } (middlestep1 x)))
+	  (op { 1 } (I (4padL (id (id (id x))))))
+
+let nat-assoc-WRT-m (x : *)
+    		    (m : id (id (id x)) -> id (id (id x)))
+		    = focus-first2-to-middle2 (3padU x) (comp [bias x] (comp [id (id x)] [id (id x)]) [Ibias x]) [2paddedL [[id (id (id (id x)))]] [[m]]] (I (3padL (id (id x))))
+
+coh focus-middle2-to-first2 (x0(f1)x1(f2)x2(f3)x3(f4)x4) : comp f1 (comp f2 f3) f4 -> comp (comp f1 f2) f3 f4
+
+let nat-assoc-WRT-n (x : *)
+    		    (n : id (id (id x)) -> id (id (id x)))
+		    = I (focus-middle2-to-first2 (3padU x) (op { 1 } (comp [bias x] (comp [id (id x)] [id (id x)]) [Ibias x])) [op { 1 } (2paddedL [[id (id (id (id x)))]] [[n]])] (I (op { 1 } (3padL (id (id x))))))
+
+let step7 (x : *)
+    	  (m : id (id (id x)) -> id (id (id x)))
+	  (n : id (id (id x)) -> id (id (id x)))
+	  = comp
+	  (4padL (id (id (id x))))
+	  (middlestep1 x)
+	  [nat-assoc-WRT-m m]
+	  (middlestep3 x)
+	  (middlestep4 x)
+	  (middlestep5 x)
+	  (I (op { 1 } (middlestep5 x)))
+	  (I (op { 1 } (middlestep4 x)))
+	  (I (op { 1 } (middlestep3 x)))
+	  [nat-assoc-WRT-n n]
+	  (I (op { 1 } (middlestep1 x)))
+	  (op { 1 } (I (4padL (id (id (id x))))))
+
+let test  (x : *)
+    	  (m : id (id (id x)) -> id (id (id x)))
+	  (n : id (id (id x)) -> id (id (id x)))
+	  = comp (step1 m n) (step2 m n) (step3 m n) (step4 m n) (step5 m n) (step6 m n) (step7 m n)
+
