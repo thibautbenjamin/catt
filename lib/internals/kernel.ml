@@ -1,9 +1,6 @@
 open Std
 open Common
 open Unchecked_types
-open Unchecked
-open Printing
-open Equality
 
 exception IsObj
 exception IsCoh
@@ -31,13 +28,10 @@ end = struct
   let src s = s.src
   let tgt s = s.tgt
 
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
-  module Types = Unchecked_types (Coh) (Tm)
-  open Printing (Coh) (Tm) (Unchecked)
-  module Printing = Make (Coh) (Tm)
+  module Syntax = Syntax.Syntax (Coh) (Tm)
+  open Syntax.Make (Coh) (Tm)
 
-  let tbl : (Ctx.t * PS.t * Types.sub_ps, Sub.t) Hashtbl.t = Hashtbl.create 7829
+  let tbl : (Ctx.t * PS.t * sub_ps, Sub.t) Hashtbl.t = Hashtbl.create 7829
   let free_vars s = List.concat (List.map Tm.free_vars s.list)
 
   let check src s tgt =
@@ -102,13 +96,8 @@ and Ctx : sig
 end = struct
   type t = { c : (Var.t * Ty.t) list; unchecked : Unchecked_types(Coh)(Tm).ctx }
 
-  open Unchecked_types (Coh) (Tm)
-  module U = Unchecked (Coh) (Tm)
-  module Unchecked = U.Make (Coh) (Tm)
-  module P = Printing (Coh) (Tm) (Unchecked)
-  module Printing = P.Make (Coh) (Tm)
-  module E = Equality (Coh) (Tm)
-  module Equality = E.Make (Coh) (Tm)
+  module Syntax = Syntax.Syntax (Coh) (Tm)
+  open Syntax.Make (Coh) (Tm)
 
   let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
 
@@ -182,12 +171,8 @@ and PS : sig
 end = struct
   exception Invalid
 
-  module U = Unchecked (Coh) (Tm)
-  module Unchecked = U.Make (Coh) (Tm)
-  module P = Printing (Coh) (Tm) (Unchecked)
-  module Printing = P.Make (Coh) (Tm)
-  module E = Equality (Coh) (Tm)
-  module Equality = E.Make (Coh) (Tm)
+  module Syntax = Syntax.Syntax (Coh) (Tm)
+  open Syntax.Make (Coh) (Tm)
 
   (** A pasting scheme. *)
   type ps_derivation =
@@ -341,20 +326,15 @@ and Ty : sig
   val ctx : t -> Ctx.t
   val dim : t -> int
 end = struct
-  module Types = Unchecked_types (Coh) (Tm)
-  module U = Unchecked (Coh) (Tm)
-  module Unchecked = U.Make (Coh) (Tm)
-  module P = Printing (Coh) (Tm) (Unchecked)
-  module Printing = P.Make (Coh) (Tm)
-  module E = Equality (Coh) (Tm)
-  module Equality = E.Make (Coh) (Tm)
+  module Syntax = Syntax.Syntax (Coh) (Tm)
+  open Syntax.Make (Coh) (Tm)
 
   (** A type exepression. *)
   type expr = Obj | Arr of t * Tm.t * Tm.t
 
-  and t = { c : Ctx.t; e : expr; unchecked : Types.ty }
+  and t = { c : Ctx.t; e : expr; unchecked : ty }
 
-  let tbl : (Ctx.t * Types.ty, Ty.t) Hashtbl.t = Hashtbl.create 7829
+  let tbl : (Ctx.t * ty, Ty.t) Hashtbl.t = Hashtbl.create 7829
   let is_obj t = t.e = Obj
 
   let retrieve_arrow ty =
@@ -466,28 +446,22 @@ and Tm : sig
 
   val is_equal : t -> t -> bool
 end = struct
-  module U = Unchecked (Coh) (Tm)
-  module Unchecked = U.Make (Coh) (Tm)
-  module Types = Unchecked_types (Coh) (Tm)
-  module Display_maps = Unchecked.Display_maps
-  module P = Printing (Coh) (Tm) (Unchecked)
-  module Printing = P.Make (Coh) (Tm)
-  module E = Equality (Coh) (Tm)
-  module Equality = E.Make (Coh) (Tm)
+  module Syntax = Syntax.Syntax (Coh) (Tm)
+  open Syntax.Make (Coh) (Tm)
 
   type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
 
   and t = {
     ty : Ty.t;
     e : expr;
-    unchecked : Types.tm;
-    mutable developped : Types.tm option;
+    unchecked : tm;
+    mutable developped : tm option;
     name : pp_data option;
   }
 
   let typ t = t.ty
   let ty t = Ty.forget t.ty
-  let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
+  let tbl : (Ctx.t * tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
 
   let free_vars tm =
     let fvty = Ty.free_vars tm.ty in
@@ -665,23 +639,14 @@ end = struct
   type cohNonInv = { ps : PS.t; src : Tm.t; tgt : Tm.t; total_ty : Ty.t }
   type t = Inv of cohInv * pp_data | NonInv of cohNonInv * pp_data
 
-  module Types = Unchecked_types (Coh) (Tm)
+  module Syntax = Syntax.Syntax (Coh) (Tm)
+  open Syntax.Make (Coh) (Tm)
 
-  let tbl : (ps * Types.ty, Coh.t) Hashtbl.t = Hashtbl.create 7829
-
-  let tbl_inv : (ps * Types.tm * Types.tm, Coh.t) Hashtbl.t =
-    Hashtbl.create 7829
-
-  let tbl_noninv : (ps * Types.tm * Types.tm, Coh.t) Hashtbl.t =
-    Hashtbl.create 7829
+  let tbl : (ps * ty, Coh.t) Hashtbl.t = Hashtbl.create 7829
+  let tbl_inv : (ps * tm * tm, Coh.t) Hashtbl.t = Hashtbl.create 7829
+  let tbl_noninv : (ps * tm * tm, Coh.t) Hashtbl.t = Hashtbl.create 7829
 
   exception NotAlgebraic
-
-  open Unchecked (Coh) (Tm)
-  module Unchecked = Make (Coh) (Tm)
-  module Display_maps = Unchecked.Display_maps
-  open Printing (Coh) (Tm) (Unchecked)
-  module Printing = Make (Coh) (Tm)
 
   let ps = function Inv (data, _) -> data.ps | NonInv (data, _) -> data.ps
 
@@ -836,13 +801,8 @@ end = struct
     (check ps ty pp_data, db_sub)
 end
 
-module U = Unchecked (Coh) (Tm)
-module Unchecked = U.Make (Coh) (Tm)
-module Display_maps = Unchecked.Display_maps
-module P = Printing (Coh) (Tm) (Unchecked)
-module Printing = P.Make (Coh) (Tm)
-module E = Equality (Coh) (Tm)
-module Equality = E.Make (Coh) (Tm)
+module Syntax = Syntax.Syntax (Coh) (Tm)
+include Syntax.Make (Coh) (Tm)
 
 let check check_fn name =
   let v = 2 in
