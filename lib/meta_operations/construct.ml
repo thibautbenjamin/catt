@@ -1,6 +1,5 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 let to_tm (tm, _) = tm
 let to_ty (_, ty) = ty

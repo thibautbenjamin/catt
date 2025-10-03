@@ -1,7 +1,6 @@
 open Raw_types
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types(Coh)(Tm)
 
 module Comp : sig
   val tree : int -> ps

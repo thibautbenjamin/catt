@@ -1,6 +1,5 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 (* returns the associator pairing up the middle two cells of a composite of
     (2*k) 1-cells. The argument is the integer k *)

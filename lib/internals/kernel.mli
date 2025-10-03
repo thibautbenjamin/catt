@@ -1,17 +1,18 @@
 open Common
 open Unchecked_types
-open Signatures
 
 module rec Coh : sig
   type t
 
   val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
+  val is_equal : t -> t -> bool
   val check_equal : t -> t -> unit
   val is_inv : t -> bool
   val to_string : ?unroll:bool -> t -> string
   val dim : t -> int
   val src : t -> Unchecked_types(Coh)(Tm).tm
   val tgt : t -> Unchecked_types(Coh)(Tm).tm
+  val check : ps -> Unchecked_types(Coh)(Tm).ty -> pp_data -> t
 
   val check_noninv :
     ps ->
@@ -72,6 +73,7 @@ and Tm : sig
   val develop : t -> Unchecked_types(Coh)(Tm).tm
   val pp_data : t -> pp_data option
   val to_string : t -> string
+  val is_equal : t -> t -> bool
 
   val apply :
     (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
@@ -81,7 +83,8 @@ and Tm : sig
     t * Unchecked_types(Coh)(Tm).sub
 end
 
-open Unchecked_types(Coh)(Tm)
+open Syntax.Syntax(Coh)(Tm)
+include module type of Make (Coh) (Tm)
 
 module Ctx : sig
   type t
@@ -97,12 +100,6 @@ module PS : sig
   val mk : Ctx.t -> t
   val forget : t -> ps
 end
-
-open Signatures(Coh)(Tm)
-module Unchecked : UncheckedS
-module Printing : PrintingS
-module Equality : EqualityS
-module Display_maps : DisplayMapsS
 
 val check_term : Ctx.t -> ?ty:ty -> ?name:pp_data -> tm -> Tm.t
 val check_constr : ?name:pp_data -> ctx -> constr -> Tm.t

@@ -1,5 +1,4 @@
 open Kernel
-open Unchecked_types.Unchecked_types (Coh) (Tm)
 open Raw_types
 
 exception WrongNumberOfArguments

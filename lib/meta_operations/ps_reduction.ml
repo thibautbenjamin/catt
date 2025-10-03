@@ -1,6 +1,5 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 let tdb i = Var (Var.Db i)
 

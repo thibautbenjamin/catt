@@ -4,7 +4,6 @@ open Evd
 open Catt
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 let run_catt_on_file f =
   Prover.reset ();

@@ -1,6 +1,5 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types(Coh)(Tm)
 
 val coh_depth1 : (Coh.t -> Var.t list -> Tm.t) ref
 val preimage : ctx -> sub_ps -> Var.t list -> Var.t list

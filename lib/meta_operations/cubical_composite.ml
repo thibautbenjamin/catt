@@ -1,6 +1,5 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh) (Tm)
 module F = Functorialisation
 
 module LinearComp = struct

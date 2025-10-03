@@ -1,7 +1,6 @@
 open Std
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types (Coh) (Tm)
 
 exception NotUnifiable of string * string
 

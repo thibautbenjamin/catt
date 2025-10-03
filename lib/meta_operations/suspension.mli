@@ -1,6 +1,5 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types(Coh)(Tm)
 
 val ps : int option -> ps -> ps
 val ty : int option -> ty -> ty

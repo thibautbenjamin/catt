@@ -1,6 +1,5 @@
 open Common
 open Kernel
-open Unchecked_types.Unchecked_types(Coh)(Tm)
 
 val to_tm : constr -> tm
 val to_ty : constr -> ty
