@@ -12,11 +12,11 @@ module type BiasedPaddingArgsS = sig
   val n : int
 end
 
-let memo_args = Hashtbl.create 97
-let memo_args_biased = Hashtbl.create 97
+let memo_nkl = Hashtbl.create 97
+let memo_n = Hashtbl.create 97
 
-let args n k l =
-  match Hashtbl.find_opt memo_args (n, k, l) with
+let nkl_module n k l =
+  match Hashtbl.find_opt memo_nkl (n, k, l) with
   | Some m -> m
   | None ->
       let res =
@@ -26,11 +26,11 @@ let args n k l =
           let l = l
         end : EHArgsS)
       in
-      Hashtbl.add memo_args (n, k, l) res;
+      Hashtbl.add memo_nkl (n, k, l) res;
       res
 
-let args_biased n =
-  match Hashtbl.find_opt memo_args_biased n with
+let n_module n =
+  match Hashtbl.find_opt memo_n n with
   | Some m -> m
   | None ->
       let res =
@@ -38,10 +38,10 @@ let args_biased n =
           let n = n
         end : BiasedPaddingArgsS)
       in
-      Hashtbl.add memo_args_biased n res;
+      Hashtbl.add memo_n n res;
       res
 
-module UnbiasedPadding (Args : EHArgsS) = Padding.Padding.MakeCanonical (struct
+module UnbiasedPadding (NKL : EHArgsS) = Padding.Padding.MakeCanonical (struct
   let name = "UBPad"
   let x = Var.Db 0
   let x_constr = (Var x, Obj)
@@ -50,11 +50,11 @@ module UnbiasedPadding (Args : EHArgsS) = Padding.Padding.MakeCanonical (struct
     let id = Construct.id_n i (Var x, Obj) in
     if j < i then Construct.wcomp id j id else id
 
-  let id_l_id i = id2 i Args.l
+  let id_l_id i = id2 i NKL.l
 
   module F = Padding.Filtration.Make (struct
-    let min = Int.min Args.k Args.l + 1
-    let max = Args.n
+    let min = Int.min NKL.k NKL.l + 1
+    let max = NKL.n
     let v _ = Var.Db 1
     let ty i = Construct.arr (id_l_id i) (id_l_id i)
     let ctx i = [ (v i, (ty (i - 1), true)); (x, (Obj, false)) ]
@@ -62,8 +62,8 @@ module UnbiasedPadding (Args : EHArgsS) = Padding.Padding.MakeCanonical (struct
 
   module D = struct
     let ps _ = Unchecked.disc 0
-    let p_src i = id2 i Args.k
-    let q_tgt i = id2 i Args.k
+    let p_src i = id2 i NKL.k
+    let q_tgt i = id2 i NKL.k
     let p_inc _ = [ x_constr ]
     let q_inc _ = [ x_constr ]
 
@@ -72,27 +72,22 @@ module UnbiasedPadding (Args : EHArgsS) = Padding.Padding.MakeCanonical (struct
   end
 end)
 
-(* Find a good place for these *)
-let d_src i = (Var (Var.Db (2 * i)), Unchecked.disc_type i)
-let d_tgt i = (Var (Var.Db ((2 * i) + 1)), Unchecked.disc_type i)
+let t_comp_id d t x = if d = 0 then t else Construct.(wcomp t 0 (id_n d x))
 
-let t_comp_id d t =
-  if d = 0 then t else Construct.(wcomp t 0 (id_n d (d_tgt 0)))
-
-module ForwardBiasedPadding (Args : BiasedPaddingArgsS) =
+module ForwardBiasedPadding (N : BiasedPaddingArgsS) =
 Padding.Padding.MakeCanonical (struct
   let name = "FPad"
 
   module F = Padding.Filtration.Make (struct
     let min = 1
-    let max = Args.n
+    let max = N.n
     let ctx i = Unchecked.ps_to_ctx (Unchecked.disc i)
     let v i = Var.Db (2 * i)
   end)
 
   module D = struct
     let ps i = Unchecked.disc i
-    let p_src i = t_comp_id i (F.src_v (i + 1))
+    let p_src i = t_comp_id i (F.src_v (i + 1)) (Var (Var.Db 1), Obj)
     let q_tgt i = p_src i
     let p_inc i = [ (Var (Var.Db (2 * i)), Unchecked.disc_type i) ]
     let q_inc i = [ (Var (Var.Db ((2 * i) + 1)), Unchecked.disc_type i) ]
@@ -100,14 +95,21 @@ Padding.Padding.MakeCanonical (struct
   end
 end)
 
-module BackwardBiasedPadding (Args : BiasedPaddingArgsS) =
+module BackwardBiasedPadding (N : BiasedPaddingArgsS) =
 Padding.Padding.MakeCanonical (struct
+  let d_src i = (Var (Var.Db (2 * i)), Unchecked.disc_type i)
+  let d_tgt i = (Var (Var.Db ((2 * i) + 1)), Unchecked.disc_type i)
   let name = "BPad"
 
   module F = Padding.Filtration.Make (struct
     let min = 1
-    let max = Args.n
-    let ty_v i = Construct.arr (t_comp_id i (d_src i)) (t_comp_id i (d_tgt i))
+    let max = N.n
+
+    let ty_v i =
+      Construct.arr
+        (t_comp_id i (d_src i) (d_tgt 0))
+        (t_comp_id i (d_tgt i) (d_tgt 0))
+
     let v i = Var.Db (2 * i)
     let ctx i = (v i, (ty_v (i - 1), true)) :: Unchecked.sphere (i - 1)
   end)
@@ -125,13 +127,13 @@ Padding.Padding.MakeCanonical (struct
   end
 end)
 
-module ForwardToUnbiasedRepadding (Args : BiasedPaddingArgsS) =
+module ForwardToUnbiasedRepadding (N : BiasedPaddingArgsS) =
 Padding.Repadding.MakeCanonical (struct
   let name = "FToURepad"
 
-  module EHArgs = (val args Args.n 0 (Args.n - 1) : EHArgsS)
-  module P2 = UnbiasedPadding (EHArgs)
-  module FP = ForwardBiasedPadding (Args)
+  module NKL = (val nkl_module N.n 0 (N.n - 1) : EHArgsS)
+  module P2 = UnbiasedPadding (NKL)
+  module FP = ForwardBiasedPadding (N)
 
   module M : Padding.FiltrationMorphismS = struct
     let name = "id"
@@ -149,13 +151,13 @@ Padding.Repadding.MakeCanonical (struct
   end
 end)
 
-module BackwardToUnbiasedRepadding (Args : BiasedPaddingArgsS) =
+module BackwardToUnbiasedRepadding (N : BiasedPaddingArgsS) =
 Padding.Repadding.MakeCanonical (struct
   let name = "BToURepad"
 
-  module EHArgs = (val args Args.n (Args.n - 1) 0)
-  module P2 = UnbiasedPadding (EHArgs)
-  module BP = BackwardBiasedPadding (Args)
+  module NKL = (val nkl_module N.n (N.n - 1) 0)
+  module P2 = UnbiasedPadding (NKL)
+  module BP = BackwardBiasedPadding (N)
 
   module M : Padding.FiltrationMorphismS = struct
     let name = "id"
@@ -181,18 +183,17 @@ Padding.Repadding.MakeCanonical (struct
   end
 end)
 
-module SuspUnbiasedToUnbiasedRepadding (Args : EHArgsS) =
+module SuspUnbiasedToUnbiasedRepadding (NKL : EHArgsS) =
 Padding.Repadding.MakeCanonical (struct
-  let name = "ΣUToURepad"
+  let name = "SuspUToURepad"
 
-  module PrevArgs = (val args (Args.n - 1) (Args.k - 1) (Args.l - 1))
+  module PrevNKL = (val nkl_module (NKL.n - 1) (NKL.k - 1) (NKL.l - 1))
 
   let x = Var.Db 0
   let x_constr = (Var x, Obj)
 
-  module P2 = UnbiasedPadding (Args)
-  module PrevA = UnbiasedPadding (PrevArgs)
-  module Prev = Padding.Suspend (UnbiasedPadding (PrevArgs))
+  module P2 = UnbiasedPadding (NKL)
+  module Prev = Padding.Suspend (UnbiasedPadding (PrevNKL))
 
   module M : Padding.FiltrationMorphismS = struct
     let name = "Susp"
@@ -210,8 +211,8 @@ Padding.Repadding.MakeCanonical (struct
   end
 end)
 
-module PseudoFunctorialityUnbiasedPadding (Args : EHArgsS) = struct
-  module UP = UnbiasedPadding (Args)
+module PseudoFunctorialityUnbiasedPadding (NKL : EHArgsS) = struct
+  module UP = UnbiasedPadding (NKL)
 
   let x = Var.Db 0
   let w = Var.Db 2
@@ -317,14 +318,14 @@ module PseudoFunctorialityUnbiasedPadding (Args : EHArgsS) = struct
     in
     check_constr ctx witness_constr
 
-  let psfpad = psfpad_aux Args.n
+  let psfpad = psfpad_aux NKL.n
 end
 
-module EHCtx (EHArgs : EHArgsS) = struct
+module EHCtx (NKL : EHArgsS) = struct
   let x = Var.Db 0
   let a = Var.Db 1
   let b = Var.Db 2
-  let id = Construct.id_n (EHArgs.n - 1) (Var x, Obj)
+  let id = Construct.id_n (NKL.n - 1) (Var x, Obj)
   let ty = Construct.arr id id
   let ctx = [ (b, (ty, true)); (a, (ty, true)); (x, (Obj, false)) ]
   let x_constr = (Var x, Obj)
@@ -332,20 +333,20 @@ module EHCtx (EHArgs : EHArgsS) = struct
   let b_constr = (Var b, ty)
 
   let a_comp_id =
-    if EHArgs.l = EHArgs.n - 1 then a_constr
-    else Construct.wcomp a_constr EHArgs.l (Construct.id_n 1 id)
+    if NKL.l = NKL.n - 1 then a_constr
+    else Construct.wcomp a_constr NKL.l (Construct.id_n 1 id)
 
   let id_comp_b =
-    if EHArgs.l = EHArgs.n - 1 then b_constr
-    else Construct.wcomp (Construct.id_n 1 id) EHArgs.l b_constr
+    if NKL.l = NKL.n - 1 then b_constr
+    else Construct.wcomp (Construct.id_n 1 id) NKL.l b_constr
 
-  module UP = UnbiasedPadding (EHArgs)
+  module UP = UnbiasedPadding (NKL)
 
   let a_comp_id_sub = [ a_comp_id; x_constr ]
   let id_comp_b_sub = [ id_comp_b; x_constr ]
 end
 
-module BaseCases (EHArgs : EHArgsS) = struct
+module BaseCases (NKL : EHArgsS) = struct
   let intch n =
     let ps = Br [ Unchecked.disc (n - 1); Unchecked.disc (n - 1) ] in
     let rec disc_type_r = function
@@ -370,13 +371,13 @@ module BaseCases (EHArgs : EHArgsS) = struct
     let name = (Printf.sprintf "intch(%d,%d)" n 0, 0, []) in
     check_coh ps ty name
 
-  module GT (Args : BiasedPaddingArgsS) = struct
-    module BP = BackwardBiasedPadding (Args)
-    module BToU = BackwardToUnbiasedRepadding (Args)
-    module PSU = PseudoFunctorialityUnbiasedPadding (EHArgs)
+  module GT (N : BiasedPaddingArgsS) = struct
+    module BP = BackwardBiasedPadding (N)
+    module BToU = BackwardToUnbiasedRepadding (N)
+    module PSU = PseudoFunctorialityUnbiasedPadding (NKL)
 
     let eh =
-      let open EHCtx (EHArgs) in
+      let open EHCtx (NKL) in
       let step1 =
         let p = BP.p in
         let a_padded =
@@ -390,21 +391,20 @@ module BaseCases (EHArgs : EHArgsS) = struct
               (Opposite.checked_tm p [ 1 ])
               (Unchecked.sub_ps_to_sub (characteristic_sub_ps b_constr)))
         in
-        (* TODO: there should be a fix here so that there is no need for the develop *)
-        Construct.(develop (wcomp a_padded (Args.n - 1) b_padded))
+        Construct.(develop (wcomp a_padded (NKL.n - 1) b_padded))
       in
       let step2 =
         let r = BToU.repadded in
         let r_op = Opposite.checked_tm r [ 1 ] in
         let repad_a = Construct.tm_app r a_comp_id_sub in
         let repad_b = Construct.tm_app r_op id_comp_b_sub in
-        Construct.wcomp repad_a (Args.n - 1) repad_b
+        Construct.wcomp repad_a (NKL.n - 1) repad_b
       in
       let step3 =
         Construct.tm_app PSU.psfpad [ id_comp_b; a_comp_id; x_constr ]
       in
       let step4 =
-        let intch = Construct.coh_app (intch Args.n) [ a_constr; b_constr ] in
+        let intch = Construct.coh_app (intch NKL.n) [ a_constr; b_constr ] in
         Construct.tm_app
           (Functorialisation.tm UP.padded [ (UP.v, 1) ])
           [ intch; Construct.tgt 1 intch; Construct.src 1 intch; x_constr ]
@@ -412,13 +412,13 @@ module BaseCases (EHArgs : EHArgsS) = struct
       Construct.comp_n [ step1; step2; step3; step4 ]
   end
 
-  module LT (Args : BiasedPaddingArgsS) = struct
-    module FP = ForwardBiasedPadding (Args)
-    module FToU = ForwardToUnbiasedRepadding (Args)
-    module PSU = PseudoFunctorialityUnbiasedPadding (EHArgs)
+  module LT (N : BiasedPaddingArgsS) = struct
+    module FP = ForwardBiasedPadding (N)
+    module FToU = ForwardToUnbiasedRepadding (N)
+    module PSU = PseudoFunctorialityUnbiasedPadding (NKL)
 
     let eh =
-      let open EHCtx (EHArgs) in
+      let open EHCtx (NKL) in
       let a_sub =
         Unchecked.sub_ps_to_sub (Construct.characteristic_sub_ps a_constr)
       in
@@ -427,7 +427,7 @@ module BaseCases (EHArgs : EHArgsS) = struct
       in
       let step1 =
         Construct.inverse
-          (Construct.coh_app (intch Args.n) [ a_constr; b_constr ])
+          (Construct.coh_app (intch NKL.n) [ a_constr; b_constr ])
       in
       let step2 =
         let p = FP.p in
@@ -435,14 +435,14 @@ module BaseCases (EHArgs : EHArgsS) = struct
         let b_padded =
           Construct.(tm_app_sub (Opposite.checked_tm p [ 1 ]) b_sub)
         in
-        Construct.(develop (wcomp a_padded (Args.n - 1) b_padded))
+        Construct.(develop (wcomp a_padded (NKL.n - 1) b_padded))
       in
       let step3 =
         let r = FToU.repadded in
         let r_op = Opposite.checked_tm r [ 1 ] in
         let repad_a = Construct.tm_app r [ a_constr; x_constr ] in
         let repad_b = Construct.tm_app r_op [ b_constr; x_constr ] in
-        Construct.wcomp repad_a (Args.n - 1) repad_b
+        Construct.wcomp repad_a (NKL.n - 1) repad_b
       in
       let step4 =
         Construct.tm_app PSU.psfpad [ b_constr; a_constr; x_constr ]
@@ -451,17 +451,17 @@ module BaseCases (EHArgs : EHArgsS) = struct
   end
 end
 
-let suspend eh_prev curargs =
-  let module EHArgs = (val curargs : EHArgsS) in
-  let open EHCtx (EHArgs) in
-  let module R = SuspUnbiasedToUnbiasedRepadding (EHArgs) in
+let suspend eh_prev nkl =
+  let module NKL = (val nkl : EHArgsS) in
+  let open EHCtx (NKL) in
+  let module R = SuspUnbiasedToUnbiasedRepadding (NKL) in
   let suspended_eh = Suspension.checked_tm (Some 1) eh_prev in
   Construct.comp_n
     [
       Construct.tm_app suspended_eh
         [ b_constr; a_constr; Construct.id x_constr; x_constr; x_constr ];
       Construct.tm_app R.repadded
-        [ Construct.wcomp a_constr EHArgs.l b_constr; x_constr ];
+        [ Construct.wcomp a_constr NKL.l b_constr; x_constr ];
     ]
 
 module Naturality = struct
@@ -479,18 +479,18 @@ module Naturality = struct
     ( Coh (Suspension.coh (Some (d - 1)) runit, sub),
       Unchecked.ty_apply_sub_ps (Suspension.ty (Some (d - 1)) cohty) sub )
 
-  let nat_factor eh_id_id ehargs =
-    let module EHArgs = (val ehargs : EHArgsS) in
-    let open EHCtx (EHArgs) in
+  let nat_factor eh_id_id nkl =
+    let module NKL = (val nkl : EHArgsS) in
+    let open EHCtx (NKL) in
     let idn = Construct.id id in
     let ty =
       Construct.arr
-        (Construct.id (Construct.wcomp idn EHArgs.k idn))
+        (Construct.id (Construct.wcomp idn NKL.k idn))
         (Construct.comp_n [ eh_id_id; Tm.constr UP.q ])
     in
 
     let name =
-      (Printf.sprintf "_factor_id(%d,%d,%d)" EHArgs.n EHArgs.k EHArgs.l, 0, [])
+      (Printf.sprintf "_factor_id(%d,%d,%d)" NKL.n NKL.k NKL.l, 0, [])
     in
     let coh = check_coh (Unchecked.disc 0) ty name in
     Construct.of_coh coh
@@ -517,25 +517,23 @@ module Naturality = struct
     let d = Construct.dim c1 in
     Construct.coh_app (Suspension.coh (Some (d - 1)) coh) [ c1; c2; c3 ]
 
-  let nat_finalcoh eh_id_id ehargs =
-    let module EHArgs = (val ehargs : EHArgsS) in
-    let open EHCtx (EHArgs) in
-    let module UP = UnbiasedPadding (EHArgs) in
+  let nat_finalcoh eh_id_id nkl =
+    let module NKL = (val nkl : EHArgsS) in
+    let open EHCtx (NKL) in
+    let module UP = UnbiasedPadding (NKL) in
     let p = Tm.constr UP.p in
     let ty = Construct.arr eh_id_id p in
-    let name =
-      (Printf.sprintf "_eh_to_p(%d,%d,%d)" EHArgs.n EHArgs.k EHArgs.l, 0, [])
-    in
+    let name = (Printf.sprintf "_eh_to_p(%d,%d,%d)" NKL.n NKL.k NKL.l, 0, []) in
     let coh = check_coh (Unchecked.disc 0) ty name in
     Construct.of_coh coh
 
-  let compute eh_prev prev_args args =
-    let module PrevArgs = (val prev_args : EHArgsS) in
-    let open PrevArgs in
-    let module NextArgs = (val args : EHArgsS) in
-    let open EHCtx (NextArgs) in
-    let module Prev = EHCtx (PrevArgs) in
-    let module UP = UnbiasedPadding (PrevArgs) in
+  let compute eh_prev prev_nkl nkl =
+    let module PrevNKL = (val prev_nkl : EHArgsS) in
+    let open PrevNKL in
+    let module NKL = (val nkl : EHArgsS) in
+    let open EHCtx (NKL) in
+    let module Prev = EHCtx (PrevNKL) in
+    let module UP = UnbiasedPadding (PrevNKL) in
     let q = Tm.constr UP.q in
     let a_k_b = Construct.wcomp a_constr k b_constr in
     let nat =
@@ -558,35 +556,35 @@ module Naturality = struct
     Construct.comp_n
       [
         nat_unitor a_k_b;
-        Construct.wcomp a_k_b n (nat_factor eh_id_id prev_args);
+        Construct.wcomp a_k_b n (nat_factor eh_id_id prev_nkl);
         nat_associator1 a_k_b eh_id_id q;
         Construct.wcomp nat n q;
         nat_associator2 eh_id_id paddedfunc q;
-        Construct.wcomp3 (nat_finalcoh eh_id_id prev_args) n paddedfunc n q;
+        Construct.wcomp3 (nat_finalcoh eh_id_id prev_nkl) n paddedfunc n q;
       ]
 end
 
 let rec eh nkl =
-  let module EHArgs = (val nkl : EHArgsS) in
-  let open EHArgs in
-  let module BArgs = (val args_biased n) in
+  let module NKL = (val nkl : EHArgsS) in
+  let open NKL in
+  let module N = (val n_module n) in
   let eh_constr =
     if k = 0 && l = n - 1 then
-      let module BaseCases = BaseCases (EHArgs) in
-      let module BaseCase = BaseCases.LT (BArgs) in
+      let module BaseCases = BaseCases (NKL) in
+      let module BaseCase = BaseCases.LT (N) in
       BaseCase.eh
     else if k = n - 1 && l = 0 then
-      let module BaseCases = BaseCases (EHArgs) in
-      let module BaseCase = BaseCases.GT (BArgs) in
+      let module BaseCases = BaseCases (NKL) in
+      let module BaseCase = BaseCases.GT (N) in
       BaseCase.eh
     else if max k l = n - 1 then
-      let prevargs = args (n - 1) (k - 1) (l - 1) in
+      let prevargs = nkl_module (n - 1) (k - 1) (l - 1) in
       suspend (eh prevargs) nkl
     else
-      let prevargs = args (n - 1) k l in
+      let prevargs = nkl_module (n - 1) k l in
       Naturality.compute (eh prevargs) prevargs nkl
   in
-  let module C = EHCtx (EHArgs) in
+  let module C = EHCtx (NKL) in
   check_constr C.ctx
     ~name:(Printf.sprintf "eh^%d_(%d,%d)" n k l, 0, [])
     eh_constr
@@ -606,5 +604,5 @@ let full_eh nkl =
   in
   check_constr ctx constr
 
-let eh n k l = eh (args n k l)
-let full_eh n k l = full_eh (args n k l)
+let eh n k l = eh (nkl_module n k l)
+let full_eh n k l = full_eh (nkl_module n k l)
