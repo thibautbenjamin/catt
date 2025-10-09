@@ -1,5 +1,6 @@
 open Kernel
 open Raw_types
+open Common
 
 exception WrongNumberOfArguments
 

@@ -1,46 +1,16 @@
-open Unchecked_types
-open Signatures
-open Common
+module Make : functor (Core : Core.S) -> sig
+  open Core
 
-module Syntax : functor
-  (CohT : sig
-     type t
-   end)
-  (TmT : sig
-     type t
-   end)
-  -> sig
-  open Unchecked_types(CohT)(TmT)
-  open Signatures(CohT)(TmT)
+  type ty = (Coh.t, Tm.t) Common.ty
+  type tm = (Coh.t, Tm.t) Common.tm
+  type sub_ps = (Coh.t, Tm.t) Common.sub_ps
+  type sub = (Coh.t, Tm.t) Common.sub
+  type ctx = (Coh.t, Tm.t) Common.ctx
+  type meta_ctx = (Coh.t, Tm.t) Common.meta_ctx
+  type constr = (Coh.t, Tm.t) Common.constr
 
-  module Make : functor
-    (_ : sig
-       val forget : CohT.t -> ps * ty * pp_data
-       val check : ps -> ty -> pp_data -> CohT.t
-       val to_string : ?unroll:bool -> CohT.t -> string
-       val func_data : CohT.t -> (Var.t * int) list list
-       val is_equal : CohT.t -> CohT.t -> bool
-     end)
-    (_ : sig
-       val develop : TmT.t -> tm
-       val func_data : TmT.t -> (Var.t * int) list list option
-       val name : TmT.t -> string option
-       val full_name : TmT.t -> string option
-       val ctx : TmT.t -> ctx
-       val is_equal : TmT.t -> TmT.t -> bool
-
-       val apply :
-         (ctx -> ctx) ->
-         (tm -> tm) ->
-         (pp_data -> pp_data) ->
-         TmT.t ->
-         TmT.t * sub
-     end)
-    -> sig
-    include module type of Unchecked_types (CohT) (TmT)
-    module Unchecked : UncheckedS
-    module Display_maps : DisplayMapsS
-    module Printing : PrintingS
-    module Equality : EqualityS
-  end
+  module Unchecked : module type of Unchecked.Make (Core)
+  module Display_maps : module type of Display_maps.Make (Core)
+  module Printing : module type of Printing.Make (Core)
+  module Equality : module type of Equality.Make (Core)
 end

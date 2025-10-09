@@ -1,6 +1,5 @@
 open Std
 open Common
-open Unchecked_types
 
 exception IsObj
 exception IsCoh
@@ -11,9 +10,9 @@ exception MetaVariable
 module rec Sub : sig
   type t
 
-  val check : Ctx.t -> Unchecked_types(Coh)(Tm).sub -> Ctx.t -> t
-  val check_to_ps : Ctx.t -> Unchecked_types(Coh)(Tm).sub_ps -> PS.t -> t
-  val forget : t -> Unchecked_types(Coh)(Tm).sub
+  val check : Ctx.t -> (Coh.t, Tm.t) sub -> Ctx.t -> t
+  val check_to_ps : Ctx.t -> (Coh.t, Tm.t) sub_ps -> PS.t -> t
+  val forget : t -> (Coh.t, Tm.t) sub
   val free_vars : t -> Var.t list
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
@@ -22,14 +21,18 @@ end = struct
     list : Tm.t list;
     src : Ctx.t;
     tgt : Ctx.t;
-    unchecked : Unchecked_types(Coh)(Tm).sub;
+    unchecked : (Coh.t, Tm.t) sub;
   }
 
   let src s = s.src
   let tgt s = s.tgt
 
-  module Syntax = Syntax.Syntax (Coh) (Tm)
-  open Syntax.Make (Coh) (Tm)
+  module Core = struct
+    module Coh = Coh
+    module Tm = Tm
+  end
+
+  open Syntax.Make (Core)
 
   let tbl : (Ctx.t * PS.t * sub_ps, Sub.t) Hashtbl.t = Hashtbl.create 7829
   let free_vars s = List.concat (List.map Tm.free_vars s.list)
@@ -87,17 +90,21 @@ and Ctx : sig
   val ty_var : t -> Var.t -> Ty.t
   val domain : t -> Var.t list
   val value : t -> (Var.t * Ty.t) list
-  val extend : t -> expl:bool -> Var.t -> Unchecked_types(Coh)(Tm).ty -> t
-  val forget : t -> Unchecked_types(Coh)(Tm).ctx
-  val check : Unchecked_types(Coh)(Tm).ctx -> t
+  val extend : t -> expl:bool -> Var.t -> (Coh.t, Tm.t) ty -> t
+  val forget : t -> (Coh.t, Tm.t) ctx
+  val check : (Coh.t, Tm.t) ctx -> t
   val check_notin : t -> Var.t -> unit
   val is_equal : t -> t -> bool
   val check_equal : t -> t -> unit
 end = struct
-  type t = { c : (Var.t * Ty.t) list; unchecked : Unchecked_types(Coh)(Tm).ctx }
+  type t = { c : (Var.t * Ty.t) list; unchecked : (Coh.t, Tm.t) ctx }
 
-  module Syntax = Syntax.Syntax (Coh) (Tm)
-  open Syntax.Make (Coh) (Tm)
+  module Core = struct
+    module Coh = Coh
+    module Tm = Tm
+  end
+
+  open Syntax.Make (Core)
 
   let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
 
@@ -171,8 +178,12 @@ and PS : sig
 end = struct
   exception Invalid
 
-  module Syntax = Syntax.Syntax (Coh) (Tm)
-  open Syntax.Make (Coh) (Tm)
+  module Core = struct
+    module Coh = Coh
+    module Tm = Tm
+  end
+
+  open Syntax.Make (Core)
 
   (** A pasting scheme. *)
   type ps_derivation =
@@ -316,8 +327,8 @@ and Ty : sig
   val is_equal : t -> t -> bool
   val check_equal : t -> t -> unit
   val morphism : Tm.t -> Tm.t -> Ty.t
-  val forget : t -> Unchecked_types(Coh)(Tm).ty
-  val check : Ctx.t -> Unchecked_types(Coh)(Tm).ty -> t
+  val forget : t -> (Coh.t, Tm.t) ty
+  val check : Ctx.t -> (Coh.t, Tm.t) ty -> t
   val apply_sub : t -> Sub.t -> t
   val retrieve_arrow : t -> t * Tm.t * Tm.t
   val under_type : t -> t
@@ -326,8 +337,12 @@ and Ty : sig
   val ctx : t -> Ctx.t
   val dim : t -> int
 end = struct
-  module Syntax = Syntax.Syntax (Coh) (Tm)
-  open Syntax.Make (Coh) (Tm)
+  module Core = struct
+    module Coh = Coh
+    module Tm = Tm
+  end
+
+  open Syntax.Make (Core)
 
   (** A type exepression. *)
   type expr = Obj | Arr of t * Tm.t * Tm.t
@@ -412,11 +427,11 @@ and Tm : sig
   (* Data extraction *)
   val to_var : t -> Var.t
   val typ : t -> Ty.t
-  val ty : t -> Unchecked_types(Coh)(Tm).ty
+  val ty : t -> (Coh.t, Tm.t) ty
   val bdry : t -> t * t
-  val ctx : t -> Unchecked_types(Coh)(Tm).ctx
-  val forget : t -> Unchecked_types(Coh)(Tm).tm
-  val constr : t -> Unchecked_types(Coh)(Tm).constr
+  val ctx : t -> (Coh.t, Tm.t) ctx
+  val forget : t -> (Coh.t, Tm.t) tm
+  val constr : t -> (Coh.t, Tm.t) constr
   val name : t -> string option
   val full_name : t -> string option
   val func_data : t -> (Var.t * int) list list option
@@ -429,25 +444,26 @@ and Tm : sig
 
   (* Production of terms *)
   val of_coh : Coh.t -> t
-
-  val check :
-    Ctx.t -> ?ty:Ty.t -> ?name:pp_data -> Unchecked_types(Coh)(Tm).tm -> t
-
+  val check : Ctx.t -> ?ty:Ty.t -> ?name:pp_data -> (Coh.t, Tm.t) tm -> t
   val apply_sub : t -> Sub.t -> t
   val preimage : t -> Sub.t -> t
-  val develop : t -> Unchecked_types(Coh)(Tm).tm
+  val develop : t -> (Coh.t, Tm.t) tm
 
   val apply :
-    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
-    (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
+    ((Coh.t, Tm.t) ctx -> (Coh.t, Tm.t) ctx) ->
+    ((Coh.t, Tm.t) tm -> (Coh.t, Tm.t) tm) ->
     (pp_data -> pp_data) ->
     t ->
-    t * Unchecked_types(Coh)(Tm).sub
+    t * (Coh.t, Tm.t) sub
 
   val is_equal : t -> t -> bool
 end = struct
-  module Syntax = Syntax.Syntax (Coh) (Tm)
-  open Syntax.Make (Coh) (Tm)
+  module Core = struct
+    module Coh = Coh
+    module Tm = Tm
+  end
+
+  open Syntax.Make (Core)
 
   type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
 
@@ -588,34 +604,15 @@ and Coh : sig
 
   val ps : t -> PS.t
   val ty : t -> Ty.t
-  val src : t -> Unchecked_types(Coh)(Tm).tm
-  val tgt : t -> Unchecked_types(Coh)(Tm).tm
-  val check : ps -> Unchecked_types(Coh)(Tm).ty -> pp_data -> t
-
-  val check_noninv :
-    ps ->
-    Unchecked_types(Coh)(Tm).tm ->
-    Unchecked_types(Coh)(Tm).tm ->
-    pp_data ->
-    t
-
-  val check_inv :
-    ps ->
-    Unchecked_types(Coh)(Tm).tm ->
-    Unchecked_types(Coh)(Tm).tm ->
-    pp_data ->
-    t
-
+  val src : t -> (t, Tm.t) tm
+  val tgt : t -> (t, Tm.t) tm
+  val check : ps -> (t, Tm.t) ty -> pp_data -> t
+  val check_noninv : ps -> (t, Tm.t) tm -> (t, Tm.t) tm -> pp_data -> t
+  val check_inv : ps -> (t, Tm.t) tm -> (t, Tm.t) tm -> pp_data -> t
   val to_string : ?unroll:bool -> t -> string
   val is_inv : t -> bool
-
-  val noninv_srctgt :
-    t ->
-    Unchecked_types(Coh)(Tm).tm
-    * Unchecked_types(Coh)(Tm).tm
-    * Unchecked_types(Coh)(Tm).ty
-
-  val forget : t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
+  val noninv_srctgt : t -> (t, Tm.t) tm * (t, Tm.t) tm * (t, Tm.t) ty
+  val forget : t -> ps * (t, Tm.t) ty * pp_data
   val func_data : t -> (Var.t * int) list list
   val is_equal : t -> t -> bool
   val check_equal : t -> t -> unit
@@ -623,24 +620,28 @@ and Coh : sig
 
   val apply_ps :
     (ps -> ps) ->
-    (Unchecked_types(Coh)(Tm).ty -> Unchecked_types(Coh)(Tm).ty) ->
+    ((t, Tm.t) ty -> (t, Tm.t) ty) ->
     (pp_data -> pp_data) ->
     t ->
     t
 
   val apply :
-    (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
-    (Unchecked_types(Coh)(Tm).ty -> Unchecked_types(Coh)(Tm).ty) ->
+    ((t, Tm.t) ctx -> (t, Tm.t) ctx) ->
+    ((t, Tm.t) ty -> (t, Tm.t) ty) ->
     (pp_data -> pp_data) ->
     t ->
-    t * Unchecked_types(Coh)(Tm).sub
+    t * (t, Tm.t) sub
 end = struct
   type cohInv = { ps : PS.t; ty : Ty.t }
   type cohNonInv = { ps : PS.t; src : Tm.t; tgt : Tm.t; total_ty : Ty.t }
   type t = Inv of cohInv * pp_data | NonInv of cohNonInv * pp_data
 
-  module Syntax = Syntax.Syntax (Coh) (Tm)
-  open Syntax.Make (Coh) (Tm)
+  module Core = struct
+    module Coh = Coh
+    module Tm = Tm
+  end
+
+  open Syntax.Make (Core)
 
   let tbl : (ps * ty, Coh.t) Hashtbl.t = Hashtbl.create 7829
   let tbl_inv : (ps * tm * tm, Coh.t) Hashtbl.t = Hashtbl.create 7829
@@ -801,8 +802,12 @@ end = struct
     (check ps ty pp_data, db_sub)
 end
 
-module Syntax = Syntax.Syntax (Coh) (Tm)
-include Syntax.Make (Coh) (Tm)
+module Core = struct
+  module Coh = Coh
+  module Tm = Tm
+end
+
+include Syntax.Make (Core)
 
 let check check_fn name =
   let v = 2 in

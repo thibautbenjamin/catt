@@ -1,25 +1,23 @@
-open Common
-open Unchecked_types
+module Make (Core : Core.S) : sig
+  open Core
+  open Common
 
-module DisplayMaps (Coh : sig
-  type t
-end) (Tm : sig
-  type t
-end) : sig
-  open Unchecked_types(Coh)(Tm)
-  open Signatures.Signatures(Coh)(Tm)
+  val var_apply_sub : Var.t -> (Coh.t, Tm.t) sub -> Var.t
 
-  module Make (_ : sig
-    val forget : Coh.t -> ps * Unchecked_types(Coh)(Tm).ty * pp_data
-    val check : ps -> ty -> pp_data -> Coh.t
-  end) (_ : sig
-    val develop : Tm.t -> Unchecked_types(Coh)(Tm).tm
+  val pullback :
+    (Coh.t, Tm.t) ctx ->
+    (Coh.t, Tm.t) sub ->
+    (Coh.t, Tm.t) ctx ->
+    (Coh.t, Tm.t) sub ->
+    (Coh.t, Tm.t) ctx * (Coh.t, Tm.t) sub
 
-    val apply :
-      (Unchecked_types(Coh)(Tm).ctx -> Unchecked_types(Coh)(Tm).ctx) ->
-      (Unchecked_types(Coh)(Tm).tm -> Unchecked_types(Coh)(Tm).tm) ->
-      (pp_data -> pp_data) ->
-      Tm.t ->
-      Tm.t * Unchecked_types(Coh)(Tm).sub
-  end) : DisplayMapsS
+  val glue :
+    (Coh.t, Tm.t) sub ->
+    (Coh.t, Tm.t) sub ->
+    (Coh.t, Tm.t) sub ->
+    (Coh.t, Tm.t) ctx ->
+    (Coh.t, Tm.t) sub ->
+    (Coh.t, Tm.t) sub
+
+  val pp_data_rename : pp_data -> (Coh.t, Tm.t) sub -> pp_data
 end

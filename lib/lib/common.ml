@@ -47,6 +47,24 @@ module Var = struct
     fresh
 end
 
+type ('a, 'b) ty =
+  | Meta_ty of int
+  | Obj
+  | Arr of ('a, 'b) ty * ('a, 'b) tm * ('a, 'b) tm
+
+and ('a, 'b) tm =
+  | Var of Var.t
+  | Meta_tm of int
+  | Coh of 'a * ('a, 'b) sub_ps
+  | App of 'b * ('a, 'b) sub
+
+and ('a, 'b) sub_ps = (('a, 'b) tm * bool) list
+and ('a, 'b) sub = (Var.t * (('a, 'b) tm * bool)) list
+
+type ('a, 'b) ctx = (Var.t * (('a, 'b) ty * bool)) list
+type ('a, 'b) meta_ctx = (int * ('a, 'b) ty) list
+type ('a, 'b) constr = ('a, 'b) tm * ('a, 'b) ty
+
 (* For application *)
 type pp_data = string * int * (Var.t * int) list list
 

@@ -1,30 +1,22 @@
-open Common
-open Unchecked_types
+module Make (Core : Core.S) : sig
+  open Core
+  open Common
 
-module Printing (Coh : sig
-  type t
-end) (Tm : sig
-  type t
-end) (_ : sig
-  val tm_apply_sub :
-    Unchecked_types(Coh)(Tm).tm ->
-    Unchecked_types(Coh)(Tm).sub ->
-    Unchecked_types(Coh)(Tm).tm
-end) : sig
-  open Unchecked_types(Coh)(Tm)
-  open Signatures.Signatures(Coh)(Tm)
+  val ps_to_string : ps -> string
+  val ty_to_string : (Coh.t, Tm.t) ty -> string
+  val tm_to_string : (Coh.t, Tm.t) tm -> string
 
-  module Make (_ : sig
-    val to_string : ?unroll:bool -> Coh.t -> string
-    val func_data : Coh.t -> (Var.t * int) list list
-    val forget : Coh.t -> ps * ty * pp_data
-    val is_equal : Coh.t -> Coh.t -> bool
-  end) (_ : sig
-    val func_data : Tm.t -> (Var.t * int) list list option
-    val name : Tm.t -> string option
-    val full_name : Tm.t -> string option
-    val develop : Tm.t -> tm
-    val ctx : Tm.t -> ctx
-    val is_equal : Tm.t -> Tm.t -> bool
-  end) : PrintingS
+  val sub_ps_to_string :
+    ?func:(Var.t * int) list list -> (Coh.t, Tm.t) sub_ps -> string
+
+  val ctx_to_string : (Coh.t, Tm.t) ctx -> string
+
+  val sub_to_string :
+    ?func:(Var.t * int) list list -> (Coh.t, Tm.t) sub -> string
+
+  val sub_to_string_debug : (Coh.t, Tm.t) sub -> string
+  val meta_ctx_to_string : (Coh.t, Tm.t) meta_ctx -> string
+  val full_name : pp_data -> string
+  val pp_data_to_string : ?print_func:bool -> pp_data -> string
+  val print_kolmogorov : (Coh.t, Tm.t) tm -> string
 end

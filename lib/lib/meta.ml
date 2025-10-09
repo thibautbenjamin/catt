@@ -1,4 +1,4 @@
-open Kernel
+open Common
 
 let meta_namer_ty = ref 0
 let meta_namer_tm = ref 0
