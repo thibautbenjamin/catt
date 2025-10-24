@@ -42,7 +42,7 @@
 %token <int> CYLSTACK
 %token <string> IDENT
 %token <string> INT
-%token CHECK EQUAL LET IN SET INV UNIT DECLARE BENCHMARK
+%token CHECK EQUAL LET IN SET INV UNIT DECLARE BENCHMARK THEORY INVERTIBILITY
 %token EOF
 
 %start prog
@@ -79,6 +79,8 @@ cmd:
   | DECLARE IDENT EQUAL builtin { Decl_builtin (Var.make_var $2,$4) }
   | BENCHMARK args_or_ps EQUAL tmexpr { Benchmark ($2,$4) }
   | BENCHMARK builtin { Benchmark_builtin ($2) }
+  | THEORY INVERTIBILITY IDENT {SetTheory (Invertibility $3)}
+  | THEORY INVERTIBILITY INT {SetTheory (Invertibility $3)}
 
 args_of_same_ty :
   | IDENT COL tyexpr { [Var.make_var $1, $3], $3 }

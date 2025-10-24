@@ -36,6 +36,8 @@ rule token = parse
                                                                             EH_HALF(n,k,l) }
   | "declare" { DECLARE }
   | "benchmark" { BENCHMARK }
+  | "theory" { THEORY }
+  | "invertibility" { INVERTIBILITY }
   | "I" { INV }
   | "U" { UNIT }
   | "(" { LPAR }

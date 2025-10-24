@@ -5,6 +5,8 @@ exception UnknownOption of string
 exception NotAnInt of string
 exception NotABoolean of string
 
+type theory_setting = Invertibility of string
+
 (**toplevel commands. *)
 type cmd =
   | Coh of Var.t * (Var.t * tyR) list * tyR
@@ -13,26 +15,27 @@ type cmd =
   | Decl of Var.t * (Var.t * tyR) list * tmR * tyR option
   | Decl_builtin of Var.t * builtin
   | Set of string * string
+  | SetTheory of theory_setting
   | Benchmark of (Var.t * tyR) list * tmR
   | Benchmark_builtin of builtin
 
 type prog = cmd list
 type next = Abort | KeepGoing | Interactive | ChangeTheory of theory
 
+let parse_bool v =
+  match v with
+  | _ when String.equal v "t" -> true
+  | _ when String.equal v "true" -> true
+  | _ when String.equal v "1" -> true
+  | _ when String.equal v "f" -> false
+  | _ when String.equal v "false" -> false
+  | _ when String.equal v "0" -> false
+  | _ -> raise (NotABoolean v)
+
+let parse_int v =
+  match int_of_string_opt v with Some s -> s | None -> raise (NotAnInt v)
+
 let exec_set o v =
-  let parse_bool v =
-    match v with
-    | _ when String.equal v "t" -> true
-    | _ when String.equal v "true" -> true
-    | _ when String.equal v "1" -> true
-    | _ when String.equal v "f" -> false
-    | _ when String.equal v "false" -> false
-    | _ when String.equal v "0" -> false
-    | _ -> raise (NotABoolean v)
-  in
-  let parse_int v =
-    match int_of_string_opt v with Some s -> s | None -> raise (NotAnInt v)
-  in
   let _ =
     match o with
     | _ when String.equal o "explicit_substitutions" ->
@@ -57,9 +60,25 @@ let exec_set o v =
   in
   KeepGoing
 
-let _exec_set_theory d =
-  let t = { strictness = Weak; invertibility = d; postulates = [] } in
-  ChangeTheory t
+let exec_set_theory t setting =
+  match setting with
+  | Invertibility degree ->
+      let invertibility =
+        match degree with
+        | _ when String.equal degree "infinity" -> None
+        | _ ->
+            let d =
+              try parse_int degree
+              with NotAnInt degree ->
+                Error.wrong_option_argument ~expected:"an int or infinity"
+                  "invertibility" degree
+            in
+            Some d
+      in
+      let t =
+        { strictness = t.strictness; invertibility; postulates = t.postulates }
+      in
+      ChangeTheory t
 
 let show_menu () =
   Io.eprintf
@@ -170,6 +189,7 @@ functor
           | NotAnInt v -> Error.wrong_option_argument ~expected:"int" o v
           | NotABoolean v -> Error.wrong_option_argument ~expected:"boolean" o v
           )
+      | SetTheory s -> exec_set_theory CurrentTheory.theory s
       | Check_builtin b ->
           Io.command "check %s" (Raw.string_of_builtin b);
           let e, ty = exec_check_builtin b in

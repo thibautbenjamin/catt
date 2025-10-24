@@ -1,0 +1,4 @@
+theory invertibility 1
+
+coh comp_test (x(f)y(g)z) : x -> z
+coh inv (x(f(a)g)y) : g -> f

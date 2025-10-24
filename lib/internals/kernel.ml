@@ -6,7 +6,7 @@ exception IsCoh
 exception InvalidSubTarget of string * string
 exception MetaVariable
 
-module Make (_ : Theory.S) = struct
+module Make (Theory : Theory.S) = struct
   (** Operations on substitutions. *)
   module rec Sub : sig
     type t
@@ -247,7 +247,7 @@ module Make (_ : Theory.S) = struct
         in
         let rec aux ps = function
           | (y, ty) :: (f, tf) :: l as l1 ->
-              let _, u, v =
+              let u, v =
                 try Ty.retrieve_arrow tf with IsObj -> raise Invalid
               in
               let fx, fy =
@@ -324,6 +324,7 @@ module Make (_ : Theory.S) = struct
 
     val to_string : t -> string
     val free_vars : t -> Var.t list
+    val contains_all_vars : t -> bool
     val is_full : t -> bool
     val is_obj : t -> bool
     val is_equal : t -> t -> bool
@@ -332,7 +333,7 @@ module Make (_ : Theory.S) = struct
     val forget : t -> (Coh.t, Tm.t) ty
     val check : Ctx.t -> (Coh.t, Tm.t) ty -> t
     val apply_sub : t -> Sub.t -> t
-    val retrieve_arrow : t -> t * Tm.t * Tm.t
+    val retrieve_arrow : t -> Tm.t * Tm.t
     val under_type : t -> t
     val source : t -> Tm.t
     val target : t -> Tm.t
@@ -355,7 +356,11 @@ module Make (_ : Theory.S) = struct
     let is_obj t = t.e = Obj
 
     let retrieve_arrow ty =
-      match ty.e with Obj -> raise IsObj | Arr (a, u, v) -> (a, u, v)
+      match ty.e with
+      | Obj ->
+          Error.fatal
+            "calling source and target on a type that is not an arrow type"
+      | Arr (_, u, v) -> (u, v)
 
     let under_type ty =
       match ty.e with Obj -> raise IsObj | Arr (a, _, _) -> a
@@ -392,7 +397,9 @@ module Make (_ : Theory.S) = struct
       | Arr (t, u, v) ->
           List.unions [ free_vars t; Tm.free_vars u; Tm.free_vars v ]
 
-    let is_full t = List.included (Ctx.domain t.c) (free_vars t)
+    (* TODO: remove is_full *)
+    let contains_all_vars t = List.included (Ctx.domain t.c) (free_vars t)
+    let is_full t = contains_all_vars t
     let forget t = t.unchecked
     let to_string ty = Printing.ty_to_string (forget ty)
 
@@ -444,6 +451,7 @@ module Make (_ : Theory.S) = struct
 
     (* Variable uses *)
     val free_vars : t -> Var.t list
+    val contains_all_vars : t -> bool
     val is_full : t -> bool
 
     (* Production of terms *)
@@ -489,7 +497,11 @@ module Make (_ : Theory.S) = struct
       | Var x -> x :: fvty
       | Coh (_, sub) | App (_, sub) -> Sub.free_vars sub
 
-    let is_full tm = List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
+    (* TODO: remove is_full *)
+    let contains_all_vars tm =
+      List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
+
+    let is_full tm = contains_all_vars tm
     let forget tm = tm.unchecked
     let constr tm = (forget tm, ty tm)
 
@@ -664,23 +676,15 @@ module Make (_ : Theory.S) = struct
     let is_inv = function Inv (_, _) -> true | NonInv (_, _) -> false
 
     let algebraic ps ty name =
-      if Ty.is_full ty then (
-        Ctx.check_equal (PS.to_ctx ps) (Ty.ctx ty);
-        Inv ({ ps; ty }, name))
-      else
-        let _, src, tgt =
-          try Ty.retrieve_arrow ty with IsObj -> raise NotAlgebraic
-        in
-        try
-          let src_inclusion = PS.source ps in
-          let src = Tm.preimage src src_inclusion in
-          if not (Tm.is_full src) then raise NotAlgebraic
-          else
-            let tgt_inclusion = PS.target ps in
-            let tgt = Tm.preimage tgt tgt_inclusion in
-            if not (Tm.is_full tgt) then raise NotAlgebraic
-            else NonInv ({ ps; src; tgt; total_ty = ty }, name)
-        with NotInImage -> raise NotAlgebraic
+      let module Fullness = Fullness.Make (Theory) (Sub) (PS) (Tm) (Ty) in
+      match Fullness.check ps ty with
+      | Inv ->
+          Ctx.check_equal (PS.to_ctx ps) (Ty.ctx ty);
+          Inv ({ ps; ty }, name)
+      | NonInv (src, tgt) ->
+          Ctx.check_equal (PS.to_ctx ps) (Ty.ctx ty);
+          NonInv ({ ps; src; tgt; total_ty = ty }, name)
+      | No -> raise NotAlgebraic
 
     let check ps_unchkd t_unchkd ((name, _, _) as pp_data) =
       Io.info ~v:5

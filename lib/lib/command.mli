@@ -1,6 +1,8 @@
 open Common
 open Raw_types
 
+type theory_setting = Invertibility of string
+
 type cmd =
   | Coh of Var.t * (Var.t * tyR) list * tyR
   | Check of (Var.t * tyR) list * tmR * tyR option
@@ -8,6 +10,7 @@ type cmd =
   | Decl of Var.t * (Var.t * tyR) list * tmR * tyR option
   | Decl_builtin of Var.t * builtin
   | Set of string * string
+  | SetTheory of theory_setting
   | Benchmark of (Var.t * tyR) list * tmR
   | Benchmark_builtin of builtin
 

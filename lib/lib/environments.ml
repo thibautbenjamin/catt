@@ -57,15 +57,10 @@ let update_known_environments (v : Var.t) env =
       Hashtbl.replace known_environments v (replace list)
 
 let store_environment environment =
-  Io.debug "updating the known environments";
   let open (val environment : S) in
   Environment.forall (fun v -> update_known_environments v environment)
 
-let find_environment v =
-  Io.debug "trying to find the variable %s" (Var.to_string v);
-  let res = Hashtbl.find known_environments v in
-  Io.debug "found environment";
-  res
+let find_environment v = Hashtbl.find known_environments v
 
 module Make (CurrentTheory : Theory.S) = struct
   module CurrentTheory = CurrentTheory
