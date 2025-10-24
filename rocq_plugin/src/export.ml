@@ -1,9 +1,7 @@
 open Names
 open EConstr
-open Evd
 open Catt
 open Common
-open Kernel
 
 let run_catt_on_file f =
   Prover.reset ();
@@ -45,35 +43,37 @@ let clean_name s =
       | c -> c)
     s
 
-module Translate : sig
-  val tm : Environ.env -> evar_map -> Tm.t -> unit
-  val coh : Environ.env -> evar_map -> Coh.t -> unit
-end = struct
-  let tbl : (Environment.value, string) Hashtbl.t = Hashtbl.create 97
+module type TranslateS = sig
+  val catt_tm : string -> unit
+end
 
-  let retrieve_lambda value sigma =
+let tbl : (string, string) Hashtbl.t = Hashtbl.create 97
+
+module Translate (Environment : Environments.S) : TranslateS = struct
+  open Environment
+
+  let retrieve_lambda catt_name sigma =
     let build_econstr name =
-      let gr = Rocqlib.lib_ref ("catt_" ^ name) in
+      let gr = Rocqlib.lib_ref name in
       let env = Global.env () in
       let sigma, econstr = Evd.fresh_global env sigma gr in
       (env, sigma, econstr)
     in
-    Option.map build_econstr (Hashtbl.find_opt tbl value)
+    Option.map build_econstr (Hashtbl.find_opt tbl catt_name)
 
-  let register name env sigma body value =
+  let register catt_name env sigma body value =
     let sigma, body = Typing.solve_evars env sigma body in
     let body = Evarutil.nf_evar sigma body in
     let info = Declare.Info.make () in
-    let cinfo =
-      Declare.CInfo.make ~name:(Id.of_string ("catt_" ^ name)) ~typ:None ()
-    in
+    let name = "catt_" ^ catt_name in
+    let cinfo = Declare.CInfo.make ~name:(Id.of_string name) ~typ:None () in
     let gr =
       Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
     in
-    Rocqlib.register_ref Local ("catt_" ^ name) gr;
+    Rocqlib.register_ref Local name gr;
     let env = Global.env () in
     let sigma, econstr = Evd.fresh_global env sigma gr in
-    let _ = Hashtbl.add tbl value name in
+    let _ = Hashtbl.add tbl catt_name name in
     (env, sigma, econstr)
 
   let catt_to_coq_db ctx var =
@@ -214,12 +214,12 @@ end = struct
 
   (* translate a coherence into a coq function term *)
   and coh_to_lambda env sigma obj_type eq_type refl coh =
+    let ps, ty, name = Coh.forget coh in
+    let catt_name = "coh_" ^ clean_name (Printing.full_name name) in
     let value = Environment.Coh coh in
-    match retrieve_lambda value sigma with
+    match retrieve_lambda catt_name sigma with
     | Some res -> res
     | None ->
-        let ps, ty, name = Coh.forget coh in
-        let name = clean_name (Printing.full_name name) in
         let ctx = Unchecked.ps_to_ctx ps in
         let l_ind = induction_vars ps in
         let l_ind = induction_data l_ind ctx in
@@ -266,18 +266,19 @@ end = struct
         let sigma, body =
           ctx_to_lambda env sigma obj_type eq_type refl ctx (body l_ind ty)
         in
-        register ("coh_" ^ name) env sigma body value
+        register catt_name env sigma body value
 
   and tm_to_lambda ?name env sigma obj_type eq_type refl tm =
+    let name =
+      match Tm.full_name tm with
+      | Some name -> clean_name name
+      | None -> anon ()
+    in
+    let catt_name = "tm_" ^ name in
     let value = Environment.Tm tm in
-    match retrieve_lambda value sigma with
+    match retrieve_lambda catt_name sigma with
     | Some res -> res
     | None ->
-        let name =
-          match Tm.full_name tm with
-          | Some name -> clean_name name
-          | None -> anon ()
-        in
         let ctx = Tm.ctx tm in
         let tm = Tm.develop tm in
         let env, sigma, tm =
@@ -286,7 +287,7 @@ end = struct
         let sigma, body =
           ctx_to_lambda env sigma obj_type eq_type refl ctx tm
         in
-        register ("tm_" ^ name) env sigma body value
+        register catt_name env sigma body value
 
   let tm env sigma tm =
     let sigma, obj_type = Evarutil.new_Type sigma in
@@ -299,15 +300,21 @@ end = struct
     let sigma, eq_type = c_Q env sigma in
     let sigma, refl = c_R env sigma in
     ignore (coh_to_lambda env sigma obj_type eq_type refl coh)
+
+  let catt_tm tm_name =
+    let env = Global.env () in
+    let sigma = Evd.from_env env in
+    match Environment.val_var (Var.Name tm_name) with
+    | Coh c -> coh env sigma c
+    | Tm t -> tm env sigma t
 end
 
 let catt_tm file tm_names =
   run_catt_on_file file;
-  let register_tm tm_name =
-    let env = Global.env () in
-    let sigma = Evd.from_env env in
-    match Environment.val_var (Var.Name tm_name) with
-    | Coh c -> Translate.coh env sigma c
-    | Tm tm -> Translate.tm env sigma tm
+  let env =
+    List.hd (Environments.find_environment (Var.Name (List.hd tm_names)))
   in
+  let module Env = (val env : Environments.S) in
+  let module Translate = Translate (Env) in
+  let register_tm tm_name = Translate.catt_tm tm_name in
   List.iter register_tm tm_names

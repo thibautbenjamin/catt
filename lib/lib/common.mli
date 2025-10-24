@@ -43,3 +43,16 @@ type pp_data = string * int * (Var.t * int) list list
 val take : int -> 'a list -> 'a list
 
 type op_data = int list
+
+(* For managing theories *)
+type strictness = Weak | Idempotent | Units | UAssociators
+type invertibility = int option
+type postulates = TerminalObject
+
+type theory = {
+  strictness : strictness;
+  invertibility : invertibility;
+  postulates : postulates list;
+}
+
+val vanilla_theory : theory

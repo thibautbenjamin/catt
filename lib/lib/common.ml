@@ -72,3 +72,17 @@ let rec take n l =
   match l with h :: t when n > 0 -> h :: take (n - 1) t | _ -> []
 
 type op_data = int list
+
+(* For managing theories *)
+type strictness = Weak | Idempotent | Units | UAssociators
+type invertibility = int option
+type postulates = TerminalObject
+
+type theory = {
+  strictness : strictness;
+  invertibility : invertibility;
+  postulates : postulates list;
+}
+
+let vanilla_theory =
+  { strictness = Weak; invertibility = None; postulates = [] }

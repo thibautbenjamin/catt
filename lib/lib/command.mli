@@ -1,5 +1,4 @@
 open Common
-open Kernel
 open Raw_types
 
 type cmd =
@@ -14,5 +13,4 @@ type cmd =
 
 type prog = cmd list
 
-val postprocess_fn : (ctx -> tm -> ctx * tm) ref
-val exec : loop_fn:(unit -> unit) -> prog -> unit
+val exec : ?theory:theory -> loop_fn:(unit -> unit) -> prog -> unit

@@ -1,4 +1,4 @@
-open Kernel
+open Common
 
-val new_ty : unit -> ty
-val new_tm : unit -> tm * (int * ty)
+val new_ty : unit -> ('a, 'b) ty
+val new_tm : unit -> ('a, 'b) tm * (int * ('a, 'b) ty)

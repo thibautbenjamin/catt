@@ -1,5 +1,7 @@
-open Kernel
+module Make (Theory : Theory.S) : sig
+  open Kernel.Make(Theory)
 
-val ctx : int -> ctx
-val telescope : int -> tm
-val checked : int -> Tm.t
+  val ctx : int -> ctx
+  val telescope : int -> tm
+  val checked : int -> Tm.t
+end
