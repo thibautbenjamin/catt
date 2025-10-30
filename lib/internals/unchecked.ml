@@ -135,16 +135,12 @@ module Make (Core : Core.S) = struct
 
   and suspend_tm = function
     | Var v -> Var (Var.suspend v)
-    | Coh (c, s) -> Coh (suspend_coh c, suspend_sub_ps s)
+    | Coh (c, s) -> Coh (Coh.suspend c, suspend_sub_ps s)
     | App (t, s) ->
         let t, _ = Tm.apply suspend_ctx suspend_tm suspend_pp_data t in
         let s = sub_ps_to_sub (sub_to_sub_ps s) in
         App (t, suspend_sub s)
     | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
-
-  and suspend_coh c =
-    let p, t, pp_data = Coh.forget c in
-    Coh.check (suspend_ps p) (suspend_ty t) (suspend_pp_data pp_data)
 
   and suspend_sub_ps = function
     | [] -> [ (Var (Var.Db 1), false); (Var (Var.Db 0), false) ]

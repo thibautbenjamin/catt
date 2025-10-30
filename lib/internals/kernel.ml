@@ -29,6 +29,7 @@ module Make (Theory : Theory.S) = struct
     let tgt s = s.tgt
 
     module Core = struct
+      module InnerTm = Tm
       module Coh = Coh
       module Tm = Tm
     end
@@ -101,6 +102,7 @@ module Make (Theory : Theory.S) = struct
     type t = { c : (Var.t * Ty.t) list; unchecked : (Coh.t, Tm.t) ctx }
 
     module Core = struct
+      module InnerTm = Tm
       module Coh = Coh
       module Tm = Tm
     end
@@ -180,6 +182,7 @@ module Make (Theory : Theory.S) = struct
     exception Invalid
 
     module Core = struct
+      module InnerTm = Tm
       module Coh = Coh
       module Tm = Tm
     end
@@ -341,6 +344,7 @@ module Make (Theory : Theory.S) = struct
     val dim : t -> int
   end = struct
     module Core = struct
+      module InnerTm = Tm
       module Coh = Coh
       module Tm = Tm
     end
@@ -471,6 +475,7 @@ module Make (Theory : Theory.S) = struct
     val is_equal : t -> t -> bool
   end = struct
     module Core = struct
+      module InnerTm = Tm
       module Coh = Coh
       module Tm = Tm
     end
@@ -622,6 +627,7 @@ module Make (Theory : Theory.S) = struct
     val ty : t -> Ty.t
     val src : t -> (t, Tm.t) tm
     val tgt : t -> (t, Tm.t) tm
+    val suspend : t -> t
     val check : ps -> (t, Tm.t) ty -> pp_data -> t
     val check_noninv : ps -> (t, Tm.t) tm -> (t, Tm.t) tm -> pp_data -> t
     val check_inv : ps -> (t, Tm.t) tm -> (t, Tm.t) tm -> pp_data -> t
@@ -653,6 +659,7 @@ module Make (Theory : Theory.S) = struct
     type t = Inv of cohInv * pp_data | NonInv of cohNonInv * pp_data
 
     module Core = struct
+      module InnerTm = Tm
       module Coh = Coh
       module Tm = Tm
     end
@@ -758,9 +765,9 @@ module Make (Theory : Theory.S) = struct
 
     let to_string ?(unroll = false) c =
       let ps, ty, pp_data = data c in
-      if not (unroll || !Settings.unroll_coherences) then
-        Printing.pp_data_to_string pp_data
-      else Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
+      if unroll || !Settings.unroll_coherences then
+        Printf.sprintf "Coh(%s,%s)" (PS.to_string ps) (Ty.to_string ty)
+      else Printing.pp_data_to_string pp_data
 
     let noninv_srctgt c =
       match c with
@@ -791,6 +798,11 @@ module Make (Theory : Theory.S) = struct
           PS.is_equal d1.ps d2.ps && Ty.is_equal d1.total_ty d2.total_ty
       | Inv _, NonInv _ | NonInv _, Inv _ -> false
 
+    let suspend coh =
+      let ps, ty, pp_data = forget coh in
+      check (Unchecked.suspend_ps ps) (Unchecked.suspend_ty ty)
+        (Unchecked.suspend_pp_data pp_data)
+
     let check_equal coh1 coh2 =
       if not (is_equal coh1 coh2) then
         raise (NotEqual (to_string coh1, to_string coh2))
@@ -813,6 +825,7 @@ module Make (Theory : Theory.S) = struct
   end
 
   module Core = struct
+    module InnerTm = Tm
     module Coh = Coh
     module Tm = Tm
   end

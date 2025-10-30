@@ -1,11 +1,10 @@
 open Common
 
-module Make (_ : Theory.S) : sig
+module type S = sig
   module rec Coh : sig
     type t
 
     val forget : t -> ps * (Coh.t, Tm.t) ty * pp_data
-    val suspend : t -> t
     val is_equal : t -> t -> bool
     val check_equal : t -> t -> unit
     val is_inv : t -> bool
@@ -44,6 +43,7 @@ module Make (_ : Theory.S) : sig
     type t
 
     val forget : t -> (Coh.t, Tm.t) ty
+    val check : Ctx.t -> (Coh.t, Tm.t) ty -> t
   end
 
   and Tm : sig
@@ -72,19 +72,14 @@ module Make (_ : Theory.S) : sig
       t * (Coh.t, Tm.t) sub
   end
 
-  module Core : sig
-    module InnerTm = Tm
-    module Coh = Coh
-    module Tm = Tm
-  end
-
-  include module type of Syntax.Make (Core)
-
-  module Ctx : sig
+  and Ctx : sig
     type t
 
-    val check : ctx -> t
+    val check : (Coh.t, Tm.t) ctx -> t
   end
+
+  module Core : Core.S
+  include module type of Syntax.Make (Core)
 
   module PS : sig
     exception Invalid
@@ -94,9 +89,4 @@ module Make (_ : Theory.S) : sig
     val mk : Ctx.t -> t
     val forget : t -> ps
   end
-
-  val check_term : Ctx.t -> ?ty:ty -> ?name:pp_data -> tm -> Tm.t
-  val check_constr : ?name:pp_data -> ctx -> constr -> Tm.t
-  val check_coh : ps -> ty -> pp_data -> Coh.t
-  val check_sub : ctx -> sub -> ctx -> unit
 end

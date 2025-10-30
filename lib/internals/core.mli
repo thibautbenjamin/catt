@@ -1,17 +1,24 @@
 open Common
 
 module type S = sig
-  module rec Coh : sig
+  module InnerTm : sig
+    type t
+  end
+
+  module Coh : sig
     type t
 
-    val forget : t -> ps * (t, Tm.t) ty * pp_data
-    val check : ps -> (t, Tm.t) ty -> pp_data -> t
+    val suspend : t -> t
+
+    (* val collect_decls : t -> (t, InnerTm.t) decls -> (t, InnerTm.t) decls *)
+    (* val to_string_kolmogorov : t -> (t, InnerTm.t) decls -> string *)
+    val forget : t -> ps * (t, InnerTm.t) ty * pp_data
     val to_string : ?unroll:bool -> t -> string
     val func_data : t -> (Var.t * int) list list
     val is_equal : t -> t -> bool
   end
 
-  and Tm : sig
+  module Tm : sig
     type t
 
     val develop : t -> (Coh.t, t) tm
@@ -22,7 +29,7 @@ module type S = sig
     val is_equal : t -> t -> bool
 
     val apply :
-      ((Coh.t, Tm.t) ctx -> (Coh.t, t) ctx) ->
+      ((Coh.t, t) ctx -> (Coh.t, t) ctx) ->
       ((Coh.t, t) tm -> (Coh.t, t) tm) ->
       (pp_data -> pp_data) ->
       t ->

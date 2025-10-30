@@ -64,6 +64,8 @@ and ('a, 'b) sub = (Var.t * (('a, 'b) tm * bool)) list
 type ('a, 'b) ctx = (Var.t * (('a, 'b) ty * bool)) list
 type ('a, 'b) meta_ctx = (int * ('a, 'b) ty) list
 type ('a, 'b) constr = ('a, 'b) tm * ('a, 'b) ty
+type ('a, 'b) value = VCoh of 'a | VTm of 'b
+type ('a, 'b) decls = (('a, 'b) value * string) list
 
 (* For application *)
 type pp_data = string * int * (Var.t * int) list list
