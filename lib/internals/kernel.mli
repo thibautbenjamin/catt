@@ -3,6 +3,7 @@ open Common
 module Make (_ : Theory.S) : sig
   module rec Coh : sig
     type t
+    type innertm = Tm.t
 
     val forget : t -> ps * (Coh.t, Tm.t) ty * pp_data
     val suspend : t -> t
@@ -64,6 +65,9 @@ module Make (_ : Theory.S) : sig
     val to_string : t -> string
     val is_equal : t -> t -> bool
 
+    val check :
+      (Coh.t, t) ctx -> ?ty:(Coh.t, t) ty -> ?name:pp_data -> (Coh.t, t) tm -> t
+
     val apply :
       ((Coh.t, Tm.t) ctx -> (Coh.t, Tm.t) ctx) ->
       ((Coh.t, Tm.t) tm -> (Coh.t, Tm.t) tm) ->
@@ -72,18 +76,10 @@ module Make (_ : Theory.S) : sig
       t * (Coh.t, Tm.t) sub
   end
 
-  module Core : sig
-    module InnerTm = Tm
-    module Coh = Coh
-    module Tm = Tm
-  end
-
-  include module type of Syntax.Make (Core)
-
   module Ctx : sig
     type t
 
-    val check : ctx -> t
+    val check : (Coh.t, Tm.t) ctx -> t
   end
 
   module PS : sig
@@ -94,6 +90,11 @@ module Make (_ : Theory.S) : sig
     val mk : Ctx.t -> t
     val forget : t -> ps
   end
+
+  module Core :
+    Core.S with type PS.t = PS.t with type Coh.t = Coh.t with type Tm.t = Tm.t
+
+  include module type of Syntax.Make (Core)
 
   val check_term : Ctx.t -> ?ty:ty -> ?name:pp_data -> tm -> Tm.t
   val check_constr : ?name:pp_data -> ctx -> constr -> Tm.t

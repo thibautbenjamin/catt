@@ -84,7 +84,7 @@ module Make (Core : Core.S) : sig
 
   val canonical_inclusions : ps list -> (Coh.t, Tm.t) sub_ps list
   val ty_to_sub_ps : (Coh.t, Tm.t) ty -> (Coh.t, Tm.t) sub_ps
-  val coh_to_sub_ps : (Coh.t, InnerTm.t) tm -> (Coh.t, InnerTm.t) sub_ps
+  val coh_to_sub_ps : (Coh.t, Coh.innertm) tm -> (Coh.t, Coh.innertm) sub_ps
 
   val ps_compose :
     int -> ps -> ps -> ps * (Coh.t, Tm.t) sub_ps * (Coh.t, Tm.t) sub_ps
