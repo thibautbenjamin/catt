@@ -347,17 +347,23 @@ module Make (Theory : Theory.S) = struct
        enforce this more statically *)
       Construct.tm_app hex sub
 
-    let repad_one_step p_0 p_1 f q_0 q_1 g previous iota_minus iota_plus v sub =
-      let padding_0, padding_1 = Tm.bdry previous in
-      hexcomp (Tm.constr p_0) (Tm.constr p_1)
-        Construct.(apply_sub (tm_app_sub previous iota_minus) sub)
-        (Tm.constr f)
-        Construct.(tm_app_sub (Functorialisation.tm padding_0 [ (v, 1) ]) sub)
-        Construct.(tm_app_sub (Functorialisation.tm padding_1 [ (v, 1) ]) sub)
-        Construct.(
-          inverse (tm_app_sub (Functorialisation.tm previous [ (v, 1) ]) sub))
-        Construct.(apply_sub (tm_app_sub previous iota_plus) sub)
-        (Tm.constr q_0) (Tm.constr q_1) (Tm.constr g)
+    let repad_one_step p_0 p_1 f q_0 q_1 g (previous : Tm.t) iota_minus
+        iota_plus v sub =
+      match previous.ty.e with
+      | Obj -> assert false
+      | Arr (_, padding_0, padding_1) ->
+          hexcomp (Tm.constr p_0) (Tm.constr p_1)
+            Construct.(apply_sub (tm_app_sub previous iota_minus) sub)
+            (Tm.constr f)
+            Construct.(
+              tm_app_sub (Functorialisation.tm padding_0 [ (v, 1) ]) sub)
+            Construct.(
+              tm_app_sub (Functorialisation.tm padding_1 [ (v, 1) ]) sub)
+            Construct.(
+              inverse
+                (tm_app_sub (Functorialisation.tm previous [ (v, 1) ]) sub))
+            Construct.(apply_sub (tm_app_sub previous iota_plus) sub)
+            (Tm.constr q_0) (Tm.constr q_1) (Tm.constr g)
 
     module type RepaddingDataS = sig
       val f : int -> Tm.t

@@ -42,19 +42,24 @@ module Make (_ : Theory.S) : sig
   end
 
   and Ty : sig
-    type t
-
-    val forget : t -> (Coh.t, Tm.t) ty
+    type t = private { c : Ctx.t; e : expr; unchecked : (Coh.t, Tm.t) ty }
+    and expr = Obj | Arr of t * Tm.t * Tm.t
   end
 
   and Tm : sig
-    type t
+    type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
 
-    val typ : t -> Ty.t
+    and t = private {
+      ty : Ty.t;
+      e : expr;
+      unchecked : (Coh.t, t) tm;
+      mutable developped : (Coh.t, t) tm option;
+      name : pp_data option;
+    }
+
     val ty : t -> (Coh.t, Tm.t) ty
     val forget : t -> (Coh.t, Tm.t) tm
     val constr : t -> (Coh.t, Tm.t) constr
-    val bdry : t -> t * t
     val ctx : t -> (Coh.t, Tm.t) ctx
     val name : t -> string option
     val full_name : t -> string option
@@ -76,7 +81,11 @@ module Make (_ : Theory.S) : sig
       t * (Coh.t, Tm.t) sub
   end
 
-  module Ctx : sig
+  and Sub : sig
+    type t
+  end
+
+  and Ctx : sig
     type t
 
     val check : (Coh.t, Tm.t) ctx -> t
@@ -85,10 +94,9 @@ module Make (_ : Theory.S) : sig
   module PS : sig
     exception Invalid
 
-    type t
+    type t = private { tree : ps; ctx : Ctx.t }
 
     val mk : Ctx.t -> t
-    val forget : t -> ps
   end
 
   module Core :

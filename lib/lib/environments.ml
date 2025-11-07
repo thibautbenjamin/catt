@@ -120,7 +120,7 @@ module Make (CurrentTheory : Theory.S) = struct
         let pp_data = (Var.to_string v, 0, []) in
         let kc = Ctx.check c in
         let tm = check_term kc ?ty ~name:pp_data t in
-        let ty = Ty.forget (Tm.typ tm) in
+        let ty = tm.ty.unchecked in
         let dim_input = Unchecked.dim_ctx c in
         let dim_output = Unchecked.dim_ty ty in
         Io.info ~v:4

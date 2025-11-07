@@ -354,7 +354,7 @@ module Make (Theory : Theory.S) = struct
   let ps p l =
     let c = ctx (Unchecked.ps_to_ctx p) l in
     let _, names, _ = Unchecked.db_levels c in
-    (PS.(forget (mk (Ctx.check c))), names)
+    ((PS.mk (Ctx.check c)).tree, names)
 
   let sub_w_tgt p s l =
     let s_f = sub_ps s l in

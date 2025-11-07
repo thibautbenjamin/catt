@@ -223,7 +223,7 @@ module Make (Environment : Environments.S) = struct
             Unchecked.ty_apply_sub ty s1 )
       | App (t, s) ->
           let tgt = Tm.ctx t in
-          let ty = Ty.forget (Tm.typ t) in
+          let ty = t.ty.unchecked in
           let s = sub ctx meta_ctx s tgt cst in
           (App (t, s), Unchecked.ty_apply_sub ty s)
 
@@ -362,7 +362,7 @@ module Make (Environment : Environments.S) = struct
       in
       try
         let _, names, _ = Unchecked.db_levels ps in
-        (PS.(forget (mk (Ctx.check ps))), Unchecked.rename_ty t names)
+        ((PS.mk (Ctx.check ps)).tree, Unchecked.rename_ty t names)
       with
       | PS.Invalid -> raise (Error.invalid_ps (Printing.ctx_to_string ps))
       | DoubledVar x -> raise (Error.doubled_var (Printing.ctx_to_string ps) x)

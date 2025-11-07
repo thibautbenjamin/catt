@@ -3,6 +3,7 @@ open Common
 module CoreSignature = Core
 
 exception IsCoh
+exception IsObj
 exception MetaVariable
 
 module Make (Theory : Theory.S) = struct
@@ -12,57 +13,36 @@ module Make (Theory : Theory.S) = struct
 
     val check : B.Ctx.t -> (Coh.t, Tm.t) sub -> B.Ctx.t -> B.Sub.t
     val check_to_ps : B.Ctx.t -> (Coh.t, Tm.t) sub_ps -> PS.t -> B.Sub.t
-    val forget : B.Sub.t -> (Coh.t, Tm.t) sub
-    val free_vars : B.Sub.t -> Var.t list
-    val src : B.Sub.t -> B.Ctx.t
-    val tgt : B.Sub.t -> B.Ctx.t
   end = struct
     include B.Sub
 
-    let free_vars s = List.concat (List.map Tm.free_vars (to_list s))
-
-    let check_to_ps src s tgt_ps =
-      let tgt = PS.to_ctx tgt_ps in
+    let check_to_ps src s (tgt_ps : PS.t) =
+      let tgt = tgt_ps.ctx in
       let s_assoc =
-        try List.map2 (fun (x, _) (t, e) -> (x, (t, e))) (Ctx.value tgt) s
+        try List.map2 (fun (x, _) (t, e) -> (x, (t, e))) tgt.c s
         with Invalid_argument _ ->
           Error.fatal "uncaught wrong number of arguments"
       in
       check src s_assoc tgt
   end
 
-  (** A context, associating a type to each context variable. *)
-  and Ctx : sig
-    type t = B.Ctx.t
-
-    val to_string : t -> string
-    val ty_var : t -> Var.t -> B.Ty.t
-    val domain : t -> Var.t list
-    val value : t -> (Var.t * B.Ty.t) list
-    val forget : t -> (Coh.t, Tm.t) ctx
-    val check : (Coh.t, Tm.t) ctx -> t
-    val is_equal : t -> t -> bool
-    val check_equal : t -> t -> unit
-  end =
-    B.Ctx
-
   (** Operations on pasting schemes. *)
   and PS : sig
     exception Invalid
 
-    type t
+    type t = private { tree : ps; ctx : B.Ctx.t }
 
     val to_string : t -> string
-    val mk : Ctx.t -> t
-    val to_ctx : t -> Ctx.t
+    val mk : B.Ctx.t -> t
     val bdry : t -> t
     val source : t -> B.Sub.t
     val target : t -> B.Sub.t
-    val forget : t -> ps
     val is_equal : t -> t -> bool
   end = struct
     exception Invalid
 
+    module Ctx = B.Ctx
+    module Ty = B.Ty
     open Syntax.Make (Core)
 
     (** A pasting scheme. *)
@@ -81,8 +61,8 @@ module Make (Theory : Theory.S) = struct
         match ps with
         | PDrop ps -> list ps
         | PCons (ps, (x1, t1), (x2, t2)) ->
-            (x2, (Ty.forget t2, true)) :: (x1, (Ty.forget t1, true)) :: list ps
-        | PNil (x, t) -> [ (x, (Ty.forget t, true)) ]
+            (x2, (t2.unchecked, true)) :: (x1, (t1.unchecked, true)) :: list ps
+        | PNil (x, t) -> [ (x, (t.unchecked, true)) ]
       in
       Ctx.check (list ps)
 
@@ -93,7 +73,7 @@ module Make (Theory : Theory.S) = struct
       | PCons (_, _, f) -> f
       | PDrop ps ->
           let _, tf = marker ps in
-          let v = try Ty.target tf with B.IsObj -> raise Invalid in
+          let v = match tf.e with Obj -> raise Invalid | Arr (_, _, v) -> v in
           let y = try Tm.to_var v with B.IsCoh -> raise Invalid in
           let t =
             let rec aux = function
@@ -110,23 +90,18 @@ module Make (Theory : Theory.S) = struct
 
     (** Create a pasting scheme from a context. *)
     let make_old (l : Ctx.t) =
-      let rec close ps tx =
-        if Ty.is_obj tx then ps
-        else
-          let tx = Ty.under_type tx in
-          close (PDrop ps) tx
+      let rec close ps (tx : Ty.t) =
+        match tx.e with Obj -> ps | Arr (tx, _, _) -> close (PDrop ps) tx
       in
       let build l =
         let x0, ty, l =
-          match l with
-          | (x, ty) :: l when Ty.is_obj ty -> (x, ty, l)
+          match (l : (Var.t * Ty.t) list) with
+          | (x, ({ e = Obj; _ } as ty)) :: l -> (x, ty, l)
           | _ -> raise Invalid
         in
-        let rec aux ps = function
-          | (y, ty) :: (f, tf) :: l as l1 ->
-              let u, v =
-                try Ty.retrieve_arrow tf with B.IsObj -> raise Invalid
-              in
+        let rec aux ps (l : (Var.t * Ty.t) list) =
+          match l with
+          | (y, ty) :: (f, ({ e = Arr (_, u, v); _ } as tf)) :: l as l1 ->
               let fx, fy =
                 try (Tm.to_var u, Tm.to_var v) with B.IsCoh -> raise Invalid
               in
@@ -139,14 +114,14 @@ module Make (Theory : Theory.S) = struct
                 let ps = PCons (ps, (y, ty), (f, tf)) in
                 aux ps l)
               else aux (PDrop ps) l1
-          | [ (_, _) ] -> raise Invalid
+          | _ :: _ :: _ | [ (_, _) ] -> raise Invalid
           | [] ->
               let _, tx = marker ps in
               close ps tx
         in
         aux (PNil (x0, ty)) l
       in
-      build (List.rev (Ctx.value l))
+      build (List.rev l.c)
 
     (* assumes that all ps are completed with enough PDrop in the end *)
     let make_tree ps =
@@ -177,70 +152,33 @@ module Make (Theory : Theory.S) = struct
           Hashtbl.add tbl l ps;
           ps
 
-    let forget ps = ps.tree
-    let to_string ps = Printing.ps_to_string (forget ps)
-
-    (** Create a context from a pasting scheme. *)
-    let to_ctx ps = ps.ctx
+    let to_string ps = Printing.ps_to_string ps.tree
 
     let bdry ps =
       mk (Ctx.check (Unchecked.ps_to_ctx (Unchecked.ps_bdry ps.tree)))
 
-    let source ps =
-      Sub.check_to_ps (to_ctx ps) (Unchecked.ps_src ps.tree) (bdry ps)
-
-    let target ps =
-      Sub.check_to_ps (to_ctx ps) (Unchecked.ps_tgt ps.tree) (bdry ps)
+    let source ps = Sub.check_to_ps ps.ctx (Unchecked.ps_src ps.tree) (bdry ps)
+    let target ps = Sub.check_to_ps ps.ctx (Unchecked.ps_tgt ps.tree) (bdry ps)
 
     let is_equal ps1 ps2 =
       ps1.tree == ps2.tree || Equality.is_equal_ps ps1.tree ps2.tree
   end
 
-  and Ty : sig
-    type t = B.Ty.t
-
-    val to_string : t -> string
-    val free_vars : t -> Var.t list
-    val contains_all_vars : t -> bool
-    val is_full : t -> bool
-    val is_obj : t -> bool
-    val is_equal : t -> t -> bool
-    val check_equal : t -> t -> unit
-    val morphism : Tm.t -> Tm.t -> t
-    val forget : t -> (Coh.t, Tm.t) ty
-    val check : B.Ctx.t -> (Coh.t, Tm.t) ty -> t
-    val apply_sub : t -> B.Sub.t -> t
-    val retrieve_arrow : t -> Tm.t * Tm.t
-    val under_type : t -> t
-    val source : t -> Tm.t
-    val target : t -> Tm.t
-    val ctx : t -> B.Ctx.t
-    val dim : t -> int
-  end = struct
-    include B.Ty
-
-    let rec free_vars (ty : t) =
-      if Ty.is_obj ty then []
-      else
-        let t, u, v = (Ty.under_type ty, Ty.source ty, Ty.target ty) in
-        List.unions [ free_vars t; Tm.free_vars u; Tm.free_vars v ]
-
-    (* TODO: remove is_full *)
-    let contains_all_vars (t : t) =
-      List.included (Ctx.domain (Ty.ctx t)) (free_vars t)
-
-    let is_full t = contains_all_vars t
-  end
-
   (** Operations on terms. *)
   and Tm : sig
-    type t
+    type expr = Var of Var.t | Coh of Coh.t * B.Sub.t | App of Tm.t * B.Sub.t
+
+    and t = private {
+      ty : B.Ty.t;
+      e : expr;
+      unchecked : (Coh.t, t) tm;
+      mutable developped : (Coh.t, t) tm option;
+      name : pp_data option;
+    }
 
     (* Data extraction *)
     val to_var : t -> Var.t
-    val typ : t -> Ty.t
     val ty : t -> (Coh.t, Tm.t) ty
-    val bdry : t -> t * t
     val ctx : t -> (Coh.t, Tm.t) ctx
     val forget : t -> (Coh.t, Tm.t) tm
     val constr : t -> (Coh.t, Tm.t) constr
@@ -250,16 +188,11 @@ module Make (Theory : Theory.S) = struct
     val pp_data : t -> pp_data option
     val to_string : t -> string
 
-    (* Variable uses *)
-    val free_vars : t -> Var.t list
-    val contains_all_vars : t -> bool
-    val is_full : t -> bool
-
     (* Production of terms *)
     val of_coh : Coh.t -> t
 
     val check_in_ctx :
-      Ctx.t -> ?ty:Ty.t -> ?name:pp_data -> (Coh.t, Tm.t) tm -> t
+      B.Ctx.t -> ?ty:B.Ty.t -> ?name:pp_data -> (Coh.t, Tm.t) tm -> t
 
     val check :
       (Coh.t, Tm.t) ctx ->
@@ -282,10 +215,12 @@ module Make (Theory : Theory.S) = struct
     val is_equal : t -> t -> bool
   end = struct
     open Syntax.Make (Core)
+    module Ty = B.Ty
+    module Ctx = B.Ctx
 
     type expr = Var of Var.t | Coh of Coh.t * B.Sub.t | App of Tm.t * B.Sub.t
 
-    and t = {
+    type t = {
       ty : Ty.t;
       e : expr;
       unchecked : tm;
@@ -293,21 +228,8 @@ module Make (Theory : Theory.S) = struct
       name : pp_data option;
     }
 
-    let typ t = t.ty
-    let ty t = Ty.forget t.ty
-    let tbl : (Ctx.t * tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
-
-    let free_vars tm =
-      let fvty = Ty.free_vars tm.ty in
-      match tm.e with
-      | Var x -> x :: fvty
-      | Coh (_, sub) | App (_, sub) -> Sub.free_vars sub
-
-    (* TODO: remove is_full *)
-    let contains_all_vars tm =
-      List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
-
-    let is_full tm = contains_all_vars tm
+    let ty t = t.ty.unchecked
+    let tbl : (B.Ctx.t * tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
     let forget tm = tm.unchecked
     let constr tm = (forget tm, ty tm)
 
@@ -322,7 +244,7 @@ module Make (Theory : Theory.S) = struct
         | None -> (
             match t with
             | Var x ->
-                let e, ty = (Var x, Ty.check c (Ty.forget (Ctx.ty_var c x))) in
+                let e, ty = (Var x, Ty.check c (Ctx.ty_var c x).unchecked) in
                 { ty; e; unchecked = t; developped = Some t; name }
             | Meta_tm _ -> raise MetaVariable
             | Coh (coh, s) ->
@@ -332,8 +254,8 @@ module Make (Theory : Theory.S) = struct
                 Hashtbl.add tbl (c, t) tm;
                 tm
             | App (u, s) ->
-                let ty = Tm.typ u in
-                let sub = Sub.check c s (Ty.ctx ty) in
+                let ty = u.ty in
+                let sub = Sub.check c s ty.c in
                 let e, ty = (App (u, sub), Ty.apply_sub ty sub) in
                 let tm = { ty; e; unchecked = t; developped = None; name } in
                 Hashtbl.add tbl (c, t) tm;
@@ -359,7 +281,7 @@ module Make (Theory : Theory.S) = struct
             | Var _ | Coh (_, _) -> tm.unchecked
             | App (t, s) ->
                 let dt = Tm.develop t in
-                let s = Sub.forget s in
+                let s = s.unchecked in
                 Unchecked.tm_apply_sub dt s
           in
           tm.developped <- Some dev;
@@ -375,25 +297,25 @@ module Make (Theory : Theory.S) = struct
           | Coh _ -> raise IsCoh
           | App _ | Meta_tm _ -> assert false)
 
-    let apply_sub t sub =
-      Ctx.check_equal (Sub.tgt sub) (Ty.ctx t.ty);
-      let c = Sub.src sub in
+    let apply_sub t (sub : B.Sub.t) =
+      Ctx.check_equal sub.tgt t.ty.c;
+      let c = sub.src in
       let ty = Ty.apply_sub t.ty sub in
-      let t = Unchecked.tm_apply_sub (forget t) (Sub.forget sub) in
+      let t = Unchecked.tm_apply_sub (forget t) sub.unchecked in
       check_in_ctx c ~ty t
 
-    let preimage t sub =
-      Ctx.check_equal (Sub.src sub) (Ty.ctx t.ty);
-      let c = Sub.tgt sub in
-      let t = Unchecked.tm_sub_preimage (forget t) (Sub.forget sub) in
+    let preimage t (sub : B.Sub.t) =
+      Ctx.check_equal sub.src t.ty.c;
+      let c = sub.tgt in
+      let t = Unchecked.tm_sub_preimage (forget t) sub.unchecked in
       check_in_ctx c t
 
     let is_equal t1 t2 =
-      Ctx.is_equal (Ty.ctx t1.ty) (Ty.ctx t2.ty)
+      Ctx.is_equal t1.ty.c t2.ty.c
       && Equality.is_equal_tm t1.unchecked t2.unchecked
 
     let apply fun_ctx fun_tm fun_pp_data tm =
-      let c = fun_ctx (Ctx.forget (Ty.ctx (typ tm))) in
+      let c = fun_ctx (Ctx.forget tm.ty.c) in
       let db_sub = Unchecked.db_level_sub_inv c in
       let c, _, _ = Unchecked.db_levels c in
       let c = Ctx.check c in
@@ -406,8 +328,7 @@ module Make (Theory : Theory.S) = struct
       in
       (check_in_ctx c ?name newexp, db_sub)
 
-    let bdry t = (Ty.source (typ t), Ty.target (typ t))
-    let ctx t = Ctx.forget (Ty.ctx (typ t))
+    let ctx t = Ctx.forget t.ty.c
     let name t = Option.map Printing.pp_data_to_string t.name
     let full_name t = Option.map Printing.full_name t.name
     let func_data t = Option.map (fun (_, _, f) -> f) t.name
@@ -431,7 +352,7 @@ module Make (Theory : Theory.S) = struct
     type innertm = Tm.t
 
     val ps : t -> PS.t
-    val ty : t -> Ty.t
+    val ty : t -> B.Ty.t
     val src : t -> (t, Tm.t) tm
     val tgt : t -> (t, Tm.t) tm
     val suspend : t -> t
@@ -461,6 +382,8 @@ module Make (Theory : Theory.S) = struct
       t ->
       t * (t, Tm.t) sub
   end = struct
+    module Ty = B.Ty
+
     type innertm = Tm.t
     type cohInv = { ps : PS.t; ty : Ty.t }
     type cohNonInv = { ps : PS.t; src : Tm.t; tgt : Tm.t; total_ty : Ty.t }
@@ -472,6 +395,19 @@ module Make (Theory : Theory.S) = struct
     let tbl_inv : (ps * tm * tm, Coh.t) Hashtbl.t = Hashtbl.create 7829
     let tbl_noninv : (ps * tm * tm, Coh.t) Hashtbl.t = Hashtbl.create 7829
 
+    module A = struct
+      module Theory = Theory
+      module PS = PS
+      module Sub = B.Sub
+      module Coh = Coh
+      module Tm = Tm
+      module Ctx = B.Ctx
+      module Ty = B.Ty
+    end
+
+    module Fullness = Fullness.Make (A)
+    module Ctx = B.Ctx
+
     exception NotAlgebraic
 
     let ps = function Inv (data, _) -> data.ps | NonInv (data, _) -> data.ps
@@ -480,22 +416,40 @@ module Make (Theory : Theory.S) = struct
       | Inv (data, _) -> data.ty
       | NonInv (data, _) -> data.total_ty
 
-    let src c = Tm.forget (Ty.source (ty c))
-    let tgt c = Tm.forget (Ty.target (ty c))
+    let src c =
+      match (ty c).e with Obj -> raise IsObj | Arr (_, s, _) -> Tm.forget s
+
+    let tgt c =
+      match (ty c).e with Obj -> raise IsObj | Arr (_, _, t) -> Tm.forget t
+
     let is_inv = function Inv (_, _) -> true | NonInv (_, _) -> false
 
     let algebraic ps ty name =
-      let module Fullness = Fullness.Make (Theory) (Sub) (PS) (Tm) (Ty) in
       match Fullness.check ps ty with
       | Inv ->
-          Ctx.check_equal (PS.to_ctx ps) (Ty.ctx ty);
+          Ctx.check_equal ps.ctx ty.c;
           Inv ({ ps; ty }, name)
       | NonInv (src, tgt) ->
-          Ctx.check_equal (PS.to_ctx ps) (Ty.ctx ty);
+          Ctx.check_equal ps.ctx ty.c;
           NonInv ({ ps; src; tgt; total_ty = ty }, name)
       | No -> raise NotAlgebraic
 
-    let check ps_unchkd t_unchkd ((name, _, _) as pp_data) =
+    let register ps t ((name, _, _) as pp_data) =
+      try
+        let coh = algebraic ps t pp_data in
+        Hashtbl.add tbl (ps.tree, t.unchecked) coh;
+        coh
+      with
+      | NotAlgebraic ->
+          Error.not_valid_coherence name
+            (Printf.sprintf "type %s not algebraic in pasting scheme %s"
+               (Printing.ty_to_string t.unchecked)
+               (Printing.ctx_to_string (Unchecked.ps_to_ctx ps.tree)))
+      | DoubledVar s ->
+          Error.not_valid_coherence name
+            (Printf.sprintf "variable %s appears twice in the context" s)
+
+    let check ps_unchkd t_unchkd name =
       Io.info ~v:5
         (lazy
           (Printf.sprintf "checking coherence (%s,%s)"
@@ -503,23 +457,11 @@ module Make (Theory : Theory.S) = struct
              (Printing.ty_to_string t_unchkd)));
       match Hashtbl.find_opt tbl (ps_unchkd, t_unchkd) with
       | Some coh -> coh
-      | None -> (
-          try
-            let cps = Ctx.check (Unchecked.ps_to_ctx ps_unchkd) in
-            let ps = PS.mk cps in
-            let t = Ty.check cps t_unchkd in
-            let coh = algebraic ps t pp_data in
-            Hashtbl.add tbl (ps_unchkd, t_unchkd) coh;
-            coh
-          with
-          | NotAlgebraic ->
-              Error.not_valid_coherence name
-                (Printf.sprintf "type %s not algebraic in pasting scheme %s"
-                   (Printing.ty_to_string t_unchkd)
-                   (Printing.ctx_to_string (Unchecked.ps_to_ctx ps_unchkd)))
-          | DoubledVar s ->
-              Error.not_valid_coherence name
-                (Printf.sprintf "variable %s appears twice in the context" s))
+      | None ->
+          let cps = Ctx.check (Unchecked.ps_to_ctx ps_unchkd) in
+          let ps = PS.mk cps in
+          let t = Ty.check cps t_unchkd in
+          register ps t name
 
     let check_noninv ps_unchkd src_unchkd tgt_unchkd name =
       match Hashtbl.find_opt tbl_noninv (ps_unchkd, src_unchkd, tgt_unchkd) with
@@ -529,21 +471,14 @@ module Make (Theory : Theory.S) = struct
           let src_inclusion = PS.source ps in
           let tgt_inclusion = PS.target ps in
           let bdry = PS.bdry ps in
-          let cbdry = PS.to_ctx bdry in
-          let src = Tm.check_in_ctx cbdry src_unchkd in
-          if not (Tm.is_full src) then raise NotAlgebraic
-          else
-            let tgt = Tm.check_in_ctx cbdry tgt_unchkd in
-            if not (Tm.is_full tgt) then raise NotAlgebraic
-            else
-              let total_ty =
-                Ty.morphism
-                  (Tm.apply_sub src src_inclusion)
-                  (Tm.apply_sub tgt tgt_inclusion)
-              in
-              let coh = NonInv ({ ps; src; tgt; total_ty }, name) in
-              Hashtbl.add tbl_noninv (ps_unchkd, src_unchkd, tgt_unchkd) coh;
-              coh
+          let src = Tm.check_in_ctx bdry.ctx src_unchkd in
+          let tgt = Tm.check_in_ctx bdry.ctx tgt_unchkd in
+          let total_ty =
+            Ty.morphism
+              (Tm.apply_sub src src_inclusion)
+              (Tm.apply_sub tgt tgt_inclusion)
+          in
+          register ps total_ty name
 
     let check_inv ps_unchkd src_unchkd tgt_unchkd name =
       match Hashtbl.find_opt tbl_inv (ps_unchkd, src_unchkd, tgt_unchkd) with
@@ -554,11 +489,7 @@ module Make (Theory : Theory.S) = struct
           let src = Tm.check_in_ctx ctx src_unchkd in
           let tgt = Tm.check_in_ctx ctx tgt_unchkd in
           let ty = Ty.morphism src tgt in
-          if Ty.is_full ty then (
-            let coh = Inv ({ ps; ty }, name) in
-            Hashtbl.add tbl_inv (ps_unchkd, src_unchkd, tgt_unchkd) coh;
-            coh)
-          else raise NotAlgebraic
+          register ps ty name
 
     let data c =
       match c with
@@ -574,8 +505,7 @@ module Make (Theory : Theory.S) = struct
     let noninv_srctgt c =
       match c with
       | Inv (_, _) -> Error.fatal "non-invertible data of an invertible coh"
-      | NonInv (d, _) ->
-          (Tm.forget d.src, Tm.forget d.tgt, Ty.forget (Tm.typ d.src))
+      | NonInv (d, _) -> (Tm.forget d.src, Tm.forget d.tgt, d.src.ty.unchecked)
 
     let dim c =
       let ty =
@@ -588,7 +518,7 @@ module Make (Theory : Theory.S) = struct
 
     let forget c =
       let ps, ty, pp_data = data c in
-      (PS.forget ps, Ty.forget ty, pp_data)
+      (ps.tree, ty.unchecked, pp_data)
 
     let is_equal coh1 coh2 =
       coh1 == coh2
@@ -619,7 +549,7 @@ module Make (Theory : Theory.S) = struct
     let apply fun_ctx fun_ty fun_pp_data coh =
       let ps, ty, pp = forget coh in
       let ctx = fun_ctx (Unchecked.ps_to_ctx ps) in
-      let ps = PS.forget (PS.mk (Ctx.check ctx)) in
+      let ps = (PS.mk (Ctx.check ctx)).tree in
       let db_sub = Unchecked.db_level_sub_inv ctx in
       let pp_data = Display_maps.pp_data_rename (fun_pp_data pp) db_sub in
       let ty = Unchecked.ty_apply_sub (fun_ty ty) db_sub in
@@ -630,6 +560,7 @@ module Make (Theory : Theory.S) = struct
     (CoreSignature.S
       with type PS.t = PS.t
       with type Coh.t = Coh.t
+      with type Coh.innertm = Tm.t
       with type Tm.t = Tm.t) = struct
     module PS = PS
     module Tm = Tm
@@ -643,22 +574,25 @@ module Make (Theory : Theory.S) = struct
     exception MetaVariable
 
     module rec Sub : sig
-      type t
+      type t = private {
+        list : Tm.t list;
+        src : Ctx.t;
+        tgt : Ctx.t;
+        unchecked : (Coh.t, Tm.t) sub;
+      }
 
-      val to_list : t -> Tm.t list
       val check : Ctx.t -> (Coh.t, Tm.t) sub -> Ctx.t -> t
-      val forget : t -> (Coh.t, Tm.t) sub
-      val src : t -> Ctx.t
-      val tgt : t -> Ctx.t
     end
 
     and Ctx : sig
-      type t
+      type t = private {
+        c : (Var.t * Ty.t) list;
+        unchecked : (Coh.t, Tm.t) ctx;
+      }
 
       val to_string : t -> string
       val ty_var : t -> Var.t -> Ty.t
       val domain : t -> Var.t list
-      val value : t -> (Var.t * Ty.t) list
       val forget : t -> (Coh.t, Tm.t) ctx
       val check : (Coh.t, Tm.t) ctx -> t
       val is_equal : t -> t -> bool
@@ -666,26 +600,22 @@ module Make (Theory : Theory.S) = struct
     end
 
     and Ty : sig
-      type t
+      type t = private { c : Ctx.t; e : expr; unchecked : (Coh.t, Tm.t) ty }
+      and expr = Obj | Arr of t * Tm.t * Tm.t
 
       val to_string : t -> string
-      val is_obj : t -> bool
       val is_equal : t -> t -> bool
       val check_equal : t -> t -> unit
       val morphism : Tm.t -> Tm.t -> Ty.t
-      val forget : t -> (Coh.t, Tm.t) ty
       val check : Ctx.t -> (Coh.t, Tm.t) ty -> t
       val apply_sub : t -> Sub.t -> t
-      val retrieve_arrow : t -> Tm.t * Tm.t
-      val under_type : t -> t
-      val source : t -> Tm.t
-      val target : t -> Tm.t
-      val ctx : t -> Ctx.t
       val dim : t -> int
     end
   end =
     Builder.Make (Core)
 
+  module Ty = B.Ty
+  module Ctx = B.Ctx
   include Syntax.Make (Core)
 
   let check check_fn name =

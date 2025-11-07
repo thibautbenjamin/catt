@@ -384,7 +384,7 @@ https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVyc
     else
       let ps_f_c = F.ctx (Unchecked.ps_to_ctx ps) l_d0 in
       let _, names, _ = Unchecked.db_levels ps_f_c in
-      let ps_f = PS.(forget (mk (Ctx.check ps_f_c))) in
+      let ps_f = PS.((mk (Ctx.check ps_f_c)).tree) in
       let l_psf = List.map (fun x -> Var.Db (fst (List.assoc x names))) l_d1 in
       let names = List.map (fun (x, (n, e)) -> (Var.Db n, (Var x, e))) names in
       (ps_f, l_psf, names)
