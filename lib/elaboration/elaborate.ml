@@ -362,7 +362,7 @@ module Make (Environment : Environments.S) = struct
       in
       try
         let _, names, _ = Unchecked.db_levels ps in
-        ((PS.mk (Ctx.check ps)).tree, Unchecked.rename_ty t names)
+        (PS.mk (Ctx.check ps), Unchecked.rename_ty t names)
       with
       | PS.Invalid -> raise (Error.invalid_ps (Printing.ctx_to_string ps))
       | DoubledVar x -> raise (Error.doubled_var (Printing.ctx_to_string ps) x)

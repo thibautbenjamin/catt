@@ -2,7 +2,7 @@ open Common
 
 module type S = sig
   module PS : sig
-    type t
+    type t = ps
   end
 
   module Coh : sig
@@ -25,6 +25,7 @@ module type S = sig
     val full_name : t -> string option
     val ctx : t -> (Coh.t, t) ctx
     val is_equal : t -> t -> bool
+    val to_var : t -> Var.t
 
     val check :
       (Coh.t, t) ctx -> ?ty:(Coh.t, t) ty -> ?name:pp_data -> (Coh.t, t) tm -> t
@@ -38,5 +39,15 @@ module type S = sig
       (pp_data -> pp_data) ->
       t ->
       t * (Coh.t, t) sub
+  end
+
+  module Ty : sig
+    type t
+
+    val to_string : t -> string
+    val is_equal : t -> t -> bool
+    val check_equal : t -> t -> unit
+    val forget : t -> (Coh.t, Tm.t) ty
+    val check_with_ctx : (Coh.t, Tm.t) ctx -> (Coh.t, Tm.t) ty -> t
   end
 end

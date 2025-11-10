@@ -5,6 +5,7 @@ module Make (_ : Theory.S) : sig
     type t
     type innertm = Tm.t
 
+    val ps : t -> PS.t
     val forget : t -> ps * (Coh.t, Tm.t) ty * pp_data
     val suspend : t -> t
     val is_equal : t -> t -> bool
@@ -15,6 +16,7 @@ module Make (_ : Theory.S) : sig
     val src : t -> (Coh.t, Tm.t) tm
     val tgt : t -> (Coh.t, Tm.t) tm
     val check : ps -> (Coh.t, Tm.t) ty -> pp_data -> t
+    val ty : t -> Ty.t
 
     val check_noninv :
       ps -> (Coh.t, Tm.t) tm -> (Coh.t, Tm.t) tm -> pp_data -> t
@@ -91,17 +93,15 @@ module Make (_ : Theory.S) : sig
     val check : (Coh.t, Tm.t) ctx -> t
   end
 
-  module PS : sig
+  and PS : sig
     exception Invalid
 
-    type t = private { tree : ps; ctx : Ctx.t }
+    type t = ps
 
     val mk : Ctx.t -> t
   end
 
-  module Core :
-    Core.S with type PS.t = PS.t with type Coh.t = Coh.t with type Tm.t = Tm.t
-
+  module Core : Core.S with type Coh.t = Coh.t with type Tm.t = Tm.t
   include module type of Syntax.Make (Core)
 
   val check_term : Ctx.t -> ?ty:ty -> ?name:pp_data -> tm -> Tm.t

@@ -11,17 +11,22 @@ module Make (Core : Core.S) = struct
 
   (** Operations on substitutions. *)
   module rec Sub : sig
+    type expr = Tm.t list
+
     type t = private {
-      list : Tm.t list;
+      list : expr;
       src : Ctx.t;
       tgt : Ctx.t;
       unchecked : (Coh.t, Tm.t) sub;
     }
 
     val check : Ctx.t -> (Coh.t, Tm.t) sub -> Ctx.t -> t
+    val check_to_ps : Ctx.t -> (Coh.t, Tm.t) sub_ps -> PS.t -> Sub.t
   end = struct
+    type expr = Tm.t list
+
     type t = {
-      list : Tm.t list;
+      list : expr;
       src : Ctx.t;
       tgt : Ctx.t;
       unchecked : (Coh.t, Tm.t) sub;
@@ -48,7 +53,7 @@ module Make (Core : Core.S) = struct
           | (_, (t, _)) :: s, (_, a) :: tgt_tail ->
               let sub_checked = list s tgt_tail in
               let t = Tm.check (Ctx.forget src) t in
-              let asub = Unchecked.ty_apply_sub a.unchecked s in
+              let asub = Unchecked.ty_apply_sub (Ty.forget a) s in
               if not (Equality.is_equal_ty (Tm.ty t) asub) then
                 raise
                   (NotEqual
@@ -60,6 +65,15 @@ module Make (Core : Core.S) = struct
         { list = list s tgt.c; src; tgt; unchecked = s }
       in
       aux src s tgt
+
+    let check_to_ps src s (tgt_ps : PS.t) =
+      let tgt = Ctx.of_ps tgt_ps in
+      let s_assoc =
+        try List.map2 (fun (x, _) (t, e) -> (x, (t, e))) tgt.c s
+        with Invalid_argument _ ->
+          Error.fatal "uncaught wrong number of arguments"
+      in
+      check src s_assoc tgt
   end
 
   (** A context, associating a type to each context variable. *)
@@ -76,6 +90,7 @@ module Make (Core : Core.S) = struct
     val check_notin : t -> Var.t -> unit
     val is_equal : t -> t -> bool
     val check_equal : t -> t -> unit
+    val of_ps : PS.t -> t
   end = struct
     type t = { c : (Var.t * Ty.t) list; unchecked : (Coh.t, Tm.t) ctx }
 
@@ -109,7 +124,7 @@ module Make (Core : Core.S) = struct
       with Not_found -> ()
 
     let extend ctx ~expl x t =
-      let ty = Ty.check ctx t in
+      let ty = Ty.check_with_ctx ctx.unchecked t in
       Ctx.check_notin ctx x;
       { c = (x, ty) :: ctx.c; unchecked = (x, (t, expl)) :: Ctx.forget ctx }
 
@@ -124,88 +139,7 @@ module Make (Core : Core.S) = struct
           in
           Hashtbl.add tbl c ctx;
           ctx
-  end
 
-  and Ty : sig
-    type t = private { c : Ctx.t; e : expr; unchecked : (Coh.t, Tm.t) ty }
-    and expr = Obj | Arr of t * Tm.t * Tm.t
-
-    val to_string : t -> string
-    val is_equal : t -> t -> bool
-    val check_equal : t -> t -> unit
-    val morphism : Tm.t -> Tm.t -> Ty.t
-    val check : Ctx.t -> (Coh.t, Tm.t) ty -> t
-    val apply_sub : t -> Sub.t -> t
-    val ctx : t -> Ctx.t
-    val dim : t -> int
-  end = struct
-    open Syntax.Make (Core)
-
-    (** A type exepression. *)
-    type expr = Obj | Arr of t * Tm.t * Tm.t
-
-    and t = { c : Ctx.t; e : expr; unchecked : ty }
-
-    let tbl : (Ctx.t * ty, Ty.t) Hashtbl.t = Hashtbl.create 7829
-
-    let rec check c t =
-      Io.info ~v:5
-        (lazy
-          (Printf.sprintf "building kernel type %s in context %s"
-             (Printing.ty_to_string t) (Ctx.to_string c)));
-      match Hashtbl.find_opt tbl (c, t) with
-      | Some ty -> ty
-      | None ->
-          let e =
-            match t with
-            | Obj -> Obj
-            | Arr (a, u, v) ->
-                let achecked = check c a in
-                let u = Tm.check (Ctx.forget c) ~ty:a u in
-                let v = Tm.check (Ctx.forget c) ~ty:a v in
-                Arr (achecked, u, v)
-            | Meta_ty _ -> raise MetaVariable
-          in
-          let ty = { c; e; unchecked = t } in
-          Hashtbl.add tbl (c, t) ty;
-          ty
-
-    let to_string ty = Printing.ty_to_string ty.unchecked
-
-    let is_equal ty1 ty2 =
-      Ctx.is_equal ty1.c ty2.c
-      && Equality.is_equal_ty ty1.unchecked ty2.unchecked
-
-    let check_equal ty1 ty2 =
-      if not (is_equal ty1 ty2) then
-        raise
-          (NotEqual
-             ( Printing.ty_to_string ty1.unchecked,
-               Printing.ty_to_string ty2.unchecked ))
-
-    let morphism t1 t2 =
-      let a = Tm.ty t1 in
-      let c = Tm.ctx t1 in
-      if
-        not
-          (Equality.is_equal_ctx c (Tm.ctx t2)
-          && Equality.is_equal_ty a (Tm.ty t2))
-      then
-        raise
-          (NotEqual (Printing.ty_to_string a, Printing.ty_to_string (Tm.ty t2)));
-      let c = Ctx.check c in
-      let a_checked = check c a in
-      {
-        c;
-        e = Arr (a_checked, t1, t2);
-        unchecked = Arr (a, Tm.forget t1, Tm.forget t2);
-      }
-
-    let apply_sub t (s : Sub.t) =
-      Ctx.check_equal t.c s.tgt;
-      check s.src (Unchecked.ty_apply_sub t.unchecked s.unchecked)
-
-    let ctx t = t.c
-    let rec dim t = match t.e with Obj -> 0 | Arr (a, _, _) -> 1 + dim a
+    let of_ps ps = check (Unchecked.ps_to_ctx ps)
   end
 end
