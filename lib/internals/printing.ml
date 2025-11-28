@@ -1,8 +1,15 @@
 open Common
 
-module Make (Core : Core.S) = struct
-  open Core
-  module Unchecked = Unchecked.Make (Core)
+module Make (C : Core.S) = struct
+  module Unchecked = Unchecked.Make (C)
+  open C
+
+  let rec ps_to_string = function
+    | Br l ->
+        Printf.sprintf "[%s]"
+          (List.fold_left
+             (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s)
+             "" l)
 
   module Regular = struct
     let rec func_to_string func =
@@ -20,14 +27,8 @@ module Make (Core : Core.S) = struct
     let rec bracket i s =
       if i <= 0 then s else Printf.sprintf "[%s]" (bracket (i - 1) s)
 
-    let rec ps_to_string = function
-      | Br l ->
-          Printf.sprintf "[%s]"
-            (List.fold_left
-               (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s)
-               "" l)
-
-    let rec ty_to_string = function
+    let rec ty_to_string ty =
+      match ty with
       | Meta_ty i -> Printf.sprintf "_ty%i" i
       | Obj -> "*"
       | Arr (a, u, v) ->
@@ -36,7 +37,8 @@ module Make (Core : Core.S) = struct
               (tm_to_string v)
           else Printf.sprintf "%s -> %s" (tm_to_string u) (tm_to_string v)
 
-    and tm_to_string = function
+    and tm_to_string x =
+      match x with
       | Var v -> Var.to_string v
       | Meta_tm i -> Printf.sprintf "_tm%i" i
       | Coh (c, s) ->
@@ -355,7 +357,6 @@ module Make (Core : Core.S) = struct
   (*     print_decls decls res *)
   (* end *)
 
-  let ps_to_string = Regular.ps_to_string
   let ty_to_string = Regular.ty_to_string
   let tm_to_string = Regular.tm_to_string
   let ctx_to_string = Regular.ctx_to_string

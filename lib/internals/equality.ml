@@ -1,10 +1,10 @@
 open Std
 open Common
 
-module Make (Core : Core.S) = struct
-  open Core
-  module Unchecked = Unchecked.Make (Core)
-  module Printing = Printing.Make (Core)
+module Make (C : Core.S) = struct
+  module Unchecked = Unchecked.Make (C)
+  module Printing = Printing.Make (C)
+  open C
 
   let rec is_equal_ps ps1 ps2 =
     match (ps1, ps2) with
@@ -35,7 +35,7 @@ module Make (Core : Core.S) = struct
     | Coh (coh1, s1), Coh (coh2, s2) ->
         Coh.is_equal coh1 coh2 && is_equal_sub_ps s1 s2
     | App (t1, s1), App (t2, s2) when t1 == t2 ->
-        is_equal_sub_on_support t1 s1 s2
+        is_equal_sub_on_support (Tm.develop t1) s1 s2
     | App (t, s), ((Coh _ | App _ | Var _) as tm2)
     | ((Coh _ | Var _) as tm2), App (t, s) ->
         let c = Tm.develop t in
@@ -57,8 +57,7 @@ module Make (Core : Core.S) = struct
     List.for_all2
       (fun (x, (t1, _)) (y, (t2, _)) ->
         Var.is_equal x y
-        && ((not (Unchecked.tm_contains_var (Tm.develop t) x))
-           || is_equal_tm t1 t2))
+        && ((not (Unchecked.tm_contains_var t x)) || is_equal_tm t1 t2))
       s1 s2
 
   let rec is_equal_ctx ctx1 ctx2 =

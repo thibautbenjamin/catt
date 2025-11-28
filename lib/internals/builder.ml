@@ -1,38 +1,31 @@
 open Std
 open Common
+module CoreSignature = Core
+
+exception IsObj
+exception IsCoh
+exception InvalidSubTarget of string * string
+exception MetaVariable
 
 module Make (Core : Core.S) = struct
-  exception IsObj
-  exception IsCoh
-  exception InvalidSubTarget of string * string
-  exception MetaVariable
-
+  open Syntax.Make (Core)
   open Core
 
   (** Operations on substitutions. *)
-  module rec Sub : sig
+  module rec Sub :
+    (KernelSignature.SubS
+      with type checked_tm = Tm.t
+       and type checked_coh = Coh.t
+       and type checked_ctx = Ctx.t) = struct
+    type checked_tm = Tm.t
+    type checked_coh = Coh.t
+    type checked_ctx = Ctx.t
     type expr = Tm.t list
+    type t = { list : expr; src : Ctx.t; tgt : Ctx.t; unchecked : sub }
 
-    type t = private {
-      list : expr;
-      src : Ctx.t;
-      tgt : Ctx.t;
-      unchecked : (Coh.t, Tm.t) sub;
-    }
-
-    val check : Ctx.t -> (Coh.t, Tm.t) sub -> Ctx.t -> t
-    val check_to_ps : Ctx.t -> (Coh.t, Tm.t) sub_ps -> PS.t -> Sub.t
-  end = struct
-    type expr = Tm.t list
-
-    type t = {
-      list : expr;
-      src : Ctx.t;
-      tgt : Ctx.t;
-      unchecked : (Coh.t, Tm.t) sub;
-    }
-
-    open Syntax.Make (Core)
+    let forget s = s.unchecked
+    let src s = s.src
+    let tgt s = s.tgt
 
     let check src s tgt =
       Io.info ~v:5
@@ -77,24 +70,17 @@ module Make (Core : Core.S) = struct
   end
 
   (** A context, associating a type to each context variable. *)
-  and Ctx : sig
-    type t = private { c : (Var.t * Ty.t) list; unchecked : (Coh.t, Tm.t) ctx }
-
-    val empty : unit -> t
-    val to_string : t -> string
-    val ty_var : t -> Var.t -> Ty.t
-    val domain : t -> Var.t list
-    val extend : t -> expl:bool -> Var.t -> (Coh.t, Tm.t) ty -> t
-    val forget : t -> (Coh.t, Tm.t) ctx
-    val check : (Coh.t, Tm.t) ctx -> t
-    val check_notin : t -> Var.t -> unit
-    val is_equal : t -> t -> bool
-    val check_equal : t -> t -> unit
-    val of_ps : PS.t -> t
-  end = struct
-    type t = { c : (Var.t * Ty.t) list; unchecked : (Coh.t, Tm.t) ctx }
-
-    open Syntax.Make (Core)
+  and Ctx :
+    (KernelSignature.CtxS
+      with type checked_ty = Ty.t
+       and type checked_tm = Tm.t
+       and type checked_coh = Coh.t
+       and type checked_ps = PS.t) = struct
+    type checked_ty = Ty.t
+    type checked_tm = Tm.t
+    type checked_coh = Coh.t
+    type checked_ps = PS.t
+    type t = { c : (Var.t * Ty.t) list; unchecked : ctx }
 
     let tbl : (ctx, Ctx.t) Hashtbl.t = Hashtbl.create 7829
 

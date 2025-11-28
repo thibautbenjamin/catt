@@ -158,13 +158,13 @@ module Translate (Environment : Environments.S) : TranslateS = struct
   and tm_to_econstr env sigma obj_type eq_type refl ctx tm =
     match tm with
     | Var x -> (env, sigma, EConstr.mkRel (find_db ctx x))
-    | Coh (c, s) ->
+    | Coh (_, c, s) ->
         let env, sigma, c = coh_to_lambda env sigma obj_type eq_type refl c in
         let env, sigma, s =
           sub_ps_to_econstr_array env sigma obj_type eq_type refl ctx s
         in
         (env, sigma, EConstr.mkApp (c, s))
-    | App (tm, s) ->
+    | App (_, tm, s) ->
         let env, sigma, tm = tm_to_lambda env sigma obj_type eq_type refl tm in
         let env, sigma, s =
           sub_to_econstr_array env sigma obj_type eq_type refl ctx s

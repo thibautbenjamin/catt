@@ -1,23 +1,10 @@
-module Make (Core : Core.S) : sig
-  open Core
-  open Common
+open Common
 
-  val var_apply_sub : Var.t -> (Coh.t, Tm.t) sub -> Var.t
+module Make (C : Core.S) : sig
+  open C
 
-  val pullback :
-    (Coh.t, Tm.t) ctx ->
-    (Coh.t, Tm.t) sub ->
-    (Coh.t, Tm.t) ctx ->
-    (Coh.t, Tm.t) sub ->
-    (Coh.t, Tm.t) ctx * (Coh.t, Tm.t) sub
-
-  val glue :
-    (Coh.t, Tm.t) sub ->
-    (Coh.t, Tm.t) sub ->
-    (Coh.t, Tm.t) sub ->
-    (Coh.t, Tm.t) ctx ->
-    (Coh.t, Tm.t) sub ->
-    (Coh.t, Tm.t) sub
-
-  val pp_data_rename : pp_data -> (Coh.t, Tm.t) sub -> pp_data
+  val var_apply_sub : Var.t -> sub -> Var.t
+  val pullback : ctx -> sub -> ctx -> sub -> ctx * sub
+  val glue : sub -> sub -> sub -> ctx -> sub -> sub
+  val pp_data_rename : pp_data -> sub -> pp_data
 end

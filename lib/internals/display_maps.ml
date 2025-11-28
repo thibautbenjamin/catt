@@ -1,8 +1,8 @@
 open Std
 open Common
 
-module Make (Core : Core.S) = struct
-  module Unchecked = Unchecked.Make (Core)
+module Make (C : Core.S) = struct
+  module Unchecked = Unchecked.Make (C)
 
   let var_apply_sub v s =
     match Unchecked.tm_apply_sub (Var v) s with

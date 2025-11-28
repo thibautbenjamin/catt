@@ -13,6 +13,7 @@ module Make (Theory : Theory.S) = struct
     | i, Br l -> Br (List.map (reduce (i - 1)) l)
 
   let reduction_sub ps =
+    let mod_coh = assert false in
     let rec aux i ps =
       match (i, ps) with
       | _, Br [] -> [ (tdb 0, true) ]
@@ -20,7 +21,8 @@ module Make (Theory : Theory.S) = struct
       | 0, Br l ->
           let k = List.length l in
           [
-            (Coh (Builtin.comp_n k, Unchecked.(identity_ps (Br l))), true);
+            ( Coh (mod_coh, Builtin.comp_n k, Unchecked.(identity_ps (Br l))),
+              true );
             (tdb ((2 * k) - 1), false);
             (tdb 0, false);
           ]

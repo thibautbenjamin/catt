@@ -8,6 +8,8 @@ module Make (Theory : Theory.S) = struct
   module Suspension = Suspension.Make (Theory)
   module Functorialisation = Functorialisation.Make (Theory)
 
+  let mod_coh = assert false
+  let mod_tm = assert false
   let wcomp = Construct.wcomp
 
   (* Cone contexts *)
@@ -215,7 +217,7 @@ module Make (Theory : Theory.S) = struct
       let assoc = Builtin.assoc in
       let _, assoc_ty, _ = Coh.forget assoc in
       let tm_2 =
-        ( Coh (Builtin.assoc, sub_ps),
+        ( Coh (mod_coh, Builtin.assoc, sub_ps),
           Unchecked.ty_apply_sub assoc_ty (Unchecked.sub_ps_to_sub sub_ps) )
       in
       let tm, _ = wcomp tm_1 1 tm_2 in
@@ -278,7 +280,7 @@ module Make (Theory : Theory.S) = struct
                    (Opposite.sub (Cone.bdry_left (n - 1) (n - 2)) op_data))
             in
             check_term (Ctx.check ctx_comp) ~name:(name, 0, [])
-              (App (comp, sub))
+              (App (mod_tm, comp, sub))
           in
           let intch = intch n in
           let socomp = (Tm.develop suspopcomp, Tm.ty suspopcomp) in

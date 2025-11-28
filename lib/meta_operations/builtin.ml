@@ -6,6 +6,8 @@ module Make (Theory : Theory.S) = struct
   module Suspension = Suspension.Make (Theory)
   module Functorialisation = Functorialisation.Make (Theory)
 
+  let mod_coh = assert false
+
   let id _ =
     check_coh (Br []) (Arr (Obj, Var (Db 0), Var (Db 0))) ("builtin_id", 0, [])
 
@@ -22,7 +24,7 @@ module Make (Theory : Theory.S) = struct
       match l with
       | [] -> [ (t, false) ]
       | Br [] :: l ->
-          (Coh (id (), [ (t, true) ]), true) :: (t, false) :: id_map l
+          (Coh (mod_coh, id (), [ (t, true) ]), true) :: (t, false) :: id_map l
       | _ -> Error.fatal "identity must be inserted on maximal argument"
     in
     let rec aux i ps =
@@ -53,12 +55,14 @@ module Make (Theory : Theory.S) = struct
     let bdry = Unchecked.ps_bdry ps in
     let src =
       let coh = Coh.check_noninv ps t t ("endo", 0, []) in
-      Coh (coh, id_all_max ps)
+      Coh (mod_coh, coh, id_all_max ps)
     in
     let a = Tm.ty (check_term (Ctx.check (Unchecked.ps_to_ctx bdry)) t) in
     let da = Unchecked.dim_ty a in
     let sub_base = Unchecked.ty_to_sub_ps a in
-    let tgt = Coh (Suspension.coh (Some da) (id ()), (t, true) :: sub_base) in
+    let tgt =
+      Coh (mod_coh, Suspension.coh (Some da) (id ()), (t, true) :: sub_base)
+    in
     Coh.check_inv bdry src tgt ("unbiased_unitor", 0, [])
 
   let tdb i = Var (Var.Db i)

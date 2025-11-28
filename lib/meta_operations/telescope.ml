@@ -6,11 +6,15 @@ module Make (Theory : Theory.S) = struct
   module Suspension = Suspension.Make (Theory)
   module Functorialisation = Functorialisation.Make (Theory)
 
+  let mod_coh = assert false
+
   (* returns the associator pairing up the middle two cells of a composite of
     (2*k) 1-cells. The argument is the integer k *)
   let middle_associator k =
     let ps = Builtin.ps_comp (2 * k) in
-    let src = Coh (Builtin.comp_n (2 * k), Unchecked.(identity_ps ps)) in
+    let src =
+      Coh (mod_coh, Builtin.comp_n (2 * k), Unchecked.(identity_ps ps))
+    in
     let tgt =
       let sub_assoc_middle =
         let rec compute_sub i =
@@ -30,7 +34,7 @@ module Make (Theory : Theory.S) = struct
                   (Var (Db ((2 * k) - 3)), false);
                 ]
               in
-              let comp = Coh (Builtin.comp_n 2, sub_comp) in
+              let comp = Coh (mod_coh, Builtin.comp_n 2, sub_comp) in
               (comp, true)
               :: (Var (Db ((2 * k) + 1)), false)
               :: compute_sub (k - 1)
@@ -41,7 +45,7 @@ module Make (Theory : Theory.S) = struct
         in
         compute_sub ((2 * k) - 1)
       in
-      Coh (Builtin.comp_n ((2 * k) - 1), sub_assoc_middle)
+      Coh (mod_coh, Builtin.comp_n ((2 * k) - 1), sub_assoc_middle)
     in
     Coh.check_inv ps src tgt ("focus", 0, [])
 
@@ -60,7 +64,7 @@ module Make (Theory : Theory.S) = struct
               :: compute_sub (i - 1)
           | i when i = k + 1 ->
               let id =
-                Coh (Builtin.id (), [ (Var (Db ((2 * k) - 1)), false) ])
+                Coh (mod_coh, Builtin.id (), [ (Var (Db ((2 * k) - 1)), false) ])
               in
               (id, true) :: (Var (Db ((2 * k) - 1)), false) :: compute_sub k
           | i ->
@@ -70,9 +74,11 @@ module Make (Theory : Theory.S) = struct
         in
         compute_sub ((2 * k) + 1)
       in
-      Coh (Builtin.comp_n ((2 * k) + 1), sub_id_middle)
+      Coh (mod_coh, Builtin.comp_n ((2 * k) + 1), sub_id_middle)
     in
-    let tgt = Coh (Builtin.comp_n (2 * k), Unchecked.(identity_ps ps)) in
+    let tgt =
+      Coh (mod_coh, Builtin.comp_n (2 * k), Unchecked.(identity_ps ps))
+    in
     Coh.check_inv ps src tgt ("unit", 0, [])
 
   (* returns the whiskering rewriting the middle term of a composite of (2*k+1)
@@ -94,7 +100,8 @@ module Make (Theory : Theory.S) = struct
     Arr
       ( Arr (Obj, Var (obj (k - 1)), Var (obj (k - 1))),
         Coh
-          ( Builtin.comp_n 2,
+          ( mod_coh,
+            Builtin.comp_n 2,
             [
               (Var (cell_backward k), true);
               (Var (obj (k - 1)), false);
@@ -102,7 +109,7 @@ module Make (Theory : Theory.S) = struct
               (Var (obj k), false);
               (Var (obj (k - 1)), false);
             ] ),
-        Coh (Builtin.id (), [ (Var (obj (k - 1)), true) ]) )
+        Coh (mod_coh, Builtin.id (), [ (Var (obj (k - 1)), true) ]) )
 
   let rec ctx k =
     match k with
@@ -126,7 +133,8 @@ module Make (Theory : Theory.S) = struct
         if whisk then
           let src_max_var =
             Coh
-              ( Builtin.comp_n 2,
+              ( mod_coh,
+                Builtin.comp_n 2,
                 [
                   (Var (cell_backward k), true);
                   (Var (obj (k - 1)), false);
@@ -139,7 +147,8 @@ module Make (Theory : Theory.S) = struct
             List.append left
               [
                 (Var (cell_max k), true);
-                (Coh (Builtin.id (), [ (Var (obj (k - 1)), true) ]), false);
+                ( Coh (mod_coh, Builtin.id (), [ (Var (obj (k - 1)), true) ]),
+                  false );
                 (src_max_var, false);
                 (Var (obj (k - 1)), false);
               ] )
@@ -163,13 +172,16 @@ module Make (Theory : Theory.S) = struct
           let sub = Unchecked.sub_ps_to_sub sub_ps in
           let t = Unchecked.tm_apply_sub t sub in
           let u = Unchecked.tm_apply_sub u sub in
-          (Coh (coh, sub_ps), t, u)
+          (Coh (mod_coh, coh, sub_ps), t, u)
         in
         let m3, src_m3, tgt_m3 =
           tm_src_tgt (middle_unitor (k - 1)) (sub_ps_telescope_bdry (k - 1))
         in
         let m2 =
-          Coh (middle_rewrite (k - 1), sub_ps_telescope_bdry ~whisk:true k)
+          Coh
+            ( mod_coh,
+              middle_rewrite (k - 1),
+              sub_ps_telescope_bdry ~whisk:true k )
         in
         let m1, src_m1, tgt_m1 =
           tm_src_tgt (middle_associator k) (sub_ps_telescope_bdry k)
@@ -177,7 +189,7 @@ module Make (Theory : Theory.S) = struct
         let sub_telescope =
           [
             (telescope (k - 1), true);
-            (Coh (Builtin.id (), [ (tdb 0, true) ]), false);
+            (Coh (mod_coh, Builtin.id (), [ (tdb 0, true) ]), false);
             (m3, true);
             (tgt_m3, false);
             (m2, true);
@@ -189,7 +201,7 @@ module Make (Theory : Theory.S) = struct
             (tdb 0, false);
           ]
         in
-        Coh (comp, sub_telescope)
+        Coh (mod_coh, comp, sub_telescope)
 
   let checked k =
     let name = "builtin_telescope" ^ string_of_int k in

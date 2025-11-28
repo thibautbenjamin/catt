@@ -38,5 +38,7 @@ module Make (Theory : Theory.S) = struct
   let bcomp x y f z g =
     let comp = comp_n 2 in
     let sub = [ (g, true); (z, false); (f, true); (y, false); (x, false) ] in
-    Coh (comp, sub)
+    (* TODO *)
+    let mod_coh = assert false in
+    Coh (mod_coh, comp, sub)
 end

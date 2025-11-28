@@ -47,15 +47,15 @@ module Make (Environment : Environments.S) = struct
       | Meta_tm _, Meta_tm _ when tm1 = tm2 -> ()
       | Meta_tm _, _ | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
       | Var v1, Var v2 when v1 = v2 -> ()
-      | Coh (coh1, s1), Coh (coh2, s2) -> (
+      | Coh (_, coh1, s1), Coh (_, coh2, s2) -> (
           try
             Coh.check_equal coh1 coh2;
             unify_sub_ps cst s1 s2
           with Invalid_argument _ ->
             raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2)))
-      | App (t1, s1), App (t2, s2) when t1 == t2 -> unify_sub cst s1 s2
-      | App (t, s), ((App _ | Coh _ | Var _) as tm2)
-      | ((Coh _ | Var _) as tm2), App (t, s) ->
+      | App (_, t1, s1), App (_, t2, s2) when t1 == t2 -> unify_sub cst s1 s2
+      | App (_, t, s), ((App _ | Coh _ | Var _) as tm2)
+      | ((Coh _ | Var _) as tm2), App (_, t, s) ->
           unify_tm cst (Unchecked.tm_apply_sub (Tm.develop t) s) tm2
       | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
           raise
@@ -99,15 +99,17 @@ module Make (Environment : Environments.S) = struct
       | Meta_tm j when i = j -> tm'
       | Meta_tm _ -> tm
       | Var v -> Var v
-      | Coh (c, s) ->
+      | Coh (mod_coh, c, s) ->
           Coh
-            ( c,
+            ( mod_coh,
+              c,
               List.map
                 (fun (t, expl) -> (tm_replace_meta_tm (i, tm') t, expl))
                 s )
-      | App (t, s) ->
+      | App (mod_tm, t, s) ->
           App
-            ( t,
+            ( mod_tm,
+              t,
               List.map
                 (fun (x, (t, e)) -> (x, (tm_replace_meta_tm (i, tm') t, e)))
                 s )
@@ -214,18 +216,18 @@ module Make (Environment : Environments.S) = struct
               (Printf.sprintf "variable %s not found in context"
                  (Var.to_string v)))
       | Meta_tm i -> (t, List.assoc i meta_ctx)
-      | Coh (c, s) ->
+      | Coh (mod_coh, c, s) ->
           let ps, ty, _ = Coh.forget c in
           let tgt = Unchecked.ps_to_ctx ps in
           let s1 = Unchecked.sub_ps_to_sub s in
           let s1 = sub ctx meta_ctx s1 tgt cst in
-          ( Coh (c, List.map (fun (_, (t, expl)) -> (t, expl)) s1),
+          ( Coh (mod_coh, c, List.map (fun (_, (t, expl)) -> (t, expl)) s1),
             Unchecked.ty_apply_sub ty s1 )
-      | App (t, s) ->
+      | App (mod_tm, t, s) ->
           let tgt = Tm.ctx t in
           let ty = t.ty.unchecked in
           let s = sub ctx meta_ctx s tgt cst in
-          (App (t, s), Unchecked.ty_apply_sub ty s)
+          (App (mod_tm, t, s), Unchecked.ty_apply_sub ty s)
 
     and sub src meta_ctx s tgt cst =
       Io.info ~v:5

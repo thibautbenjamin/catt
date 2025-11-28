@@ -1,8 +1,8 @@
 open Std
 open Common
 
-module Make (Core : Core.S) = struct
-  open Core
+module Make (C : Core.S) = struct
+  open C
 
   let sub_ps_to_sub s =
     let rec aux s =
@@ -112,13 +112,8 @@ module Make (Core : Core.S) = struct
          maximal variable.
     *)
 
-  type ctx_bp = { ctx : (Coh.t, Tm.t) ctx; max : int; rp : int }
-
-  type sub_ps_bp = {
-    sub_ps : (Coh.t, Tm.t) sub_ps;
-    l : (Coh.t, Tm.t) tm;
-    r : (Coh.t, Tm.t) tm;
-  }
+  type ctx_bp = { ctx : ctx; max : int; rp : int }
+  type sub_ps_bp = { sub_ps : sub_ps; l : tm; r : tm }
 
   let suspend_ps ps = Br [ ps ]
 
@@ -259,7 +254,7 @@ module Make (Core : Core.S) = struct
     let incls, _ = canonical_inclusions l in
     incls
 
-  let tbl_ps_to_ctx : (ps, (Coh.t, Tm.t) ctx) Hashtbl.t = Hashtbl.create 7829
+  let tbl_ps_to_ctx : (ps, ctx) Hashtbl.t = Hashtbl.create 7829
 
   let ps_to_ctx ps =
     match Hashtbl.find_opt tbl_ps_to_ctx ps with

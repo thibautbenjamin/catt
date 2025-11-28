@@ -7,6 +7,8 @@ module Make (Environment : Environments.S) = struct
   module RawElab = Raw.Make (Environment)
   open Environment
 
+  let mod_tm = assert false
+
   let rec head_susp = function
     | VarR _ -> 0
     | Sub (_, _, None, _) -> 0
@@ -23,7 +25,7 @@ module Make (Environment : Environments.S) = struct
       let t = Functorialisation.coh_successively coh func in
       let ctx = Tm.ctx t in
       let s, meta_types = sub s ctx expl in
-      (App (t, s), meta_types)
+      (App (mod_tm, t, s), meta_types)
     in
     let make_app tm s susp expl =
       let tm = Suspension.checked_tm susp tm in
@@ -32,7 +34,7 @@ module Make (Environment : Environments.S) = struct
       let t = Functorialisation.tm tm func in
       let ctx = Tm.ctx t in
       let s, meta_types = sub s ctx expl in
-      (App (t, s), meta_types)
+      (App (mod_tm, t, s), meta_types)
     in
     match t with
     | VarR v -> (Var v, [])
@@ -46,7 +48,7 @@ module Make (Environment : Environments.S) = struct
             let t = Functorialisation.tm t func in
             let c = Tm.ctx t in
             let s, meta_types = sub s c expl in
-            (App (t, s), meta_types))
+            (App (mod_tm, t, s), meta_types))
     | Sub (BuiltinR b, s, susp, expl) -> (
         match b with
         | Comp ->

@@ -11,6 +11,8 @@ module Make (Theory : Theory.S) = struct
   module Functorialisation = Functorialisation.Make (Theory)
   module Inverse = Inverse.Make (Theory)
 
+  let mod_coh = assert false
+
   module type EHArgsS = sig
     val n : int
     val k : int
@@ -486,7 +488,7 @@ module Make (Theory : Theory.S) = struct
       let runit = check_coh (Unchecked.disc 1) cohty ("_ehnat_step1", 0, []) in
       let d = Construct.dim constr in
       let sub = Construct.characteristic_sub_ps constr in
-      ( Coh (Suspension.coh (Some (d - 1)) runit, sub),
+      ( Coh (mod_coh, Suspension.coh (Some (d - 1)) runit, sub),
         Unchecked.ty_apply_sub_ps (Suspension.ty (Some (d - 1)) cohty) sub )
 
     let nat_factor eh_id_id ehargs =

@@ -8,6 +8,8 @@ module Make (Theory : Theory.S) = struct
   module Opposite = Opposite.Make (Theory)
   module Inverse = Inverse.Make (Theory)
 
+  let mod_coh = assert false
+  let mod_tm = assert false
   let to_tm (tm, _) = tm
   let to_ty (_, ty) = ty
   let characteristic_sub_ps (tm, ty) = (tm, true) :: Unchecked.ty_to_sub_ps ty
@@ -44,19 +46,21 @@ module Make (Theory : Theory.S) = struct
     in
     let ps, ty, _ = Coh.forget coh in
     let sub = elaborate ps tms in
-    (Coh (coh, sub), Unchecked.ty_apply_sub_ps ty sub)
+    (* TODO *)
+    let mod_coh = assert false in
+    (Coh (mod_coh, coh, sub), Unchecked.ty_apply_sub_ps ty sub)
 
   let of_coh coh =
     let ps, ty, _ = Coh.forget coh in
     let id = Unchecked.identity_ps ps in
-    (Coh (coh, id), ty)
+    (Coh (mod_coh, coh, id), ty)
 
   let make_sub ctx list =
     List.map2 (fun (x, (_, b)) t -> (x, (fst t, b))) ctx list
 
   let tm_app_sub tm sub =
     let ty = Tm.ty tm in
-    (App (tm, sub), Unchecked.ty_apply_sub ty sub)
+    (App (mod_tm, tm, sub), Unchecked.ty_apply_sub ty sub)
 
   let of_tm tm =
     let c = Tm.ctx tm in
@@ -101,7 +105,7 @@ module Make (Theory : Theory.S) = struct
     let whisk = whisk3 n j k l in
     let whisk_sub_ps = whisk3_sub_ps k f fty g gty l h hty in
     let whisk_sub = Unchecked.sub_ps_to_sub whisk_sub_ps in
-    ( App (whisk, whisk_sub),
+    ( App (mod_tm, whisk, whisk_sub),
       Unchecked.ty_apply_sub_ps (Tm.ty whisk) whisk_sub_ps )
 
   let intch_comp_nm a b c =
@@ -119,7 +123,7 @@ module Make (Theory : Theory.S) = struct
     let coh = Builtin.intch_comp_nm_coh n m in
     let sub = sub_right @ sub_left in
     let _, ty, _ = Coh.forget coh in
-    (Coh (coh, sub), Unchecked.ty_apply_sub_ps ty sub)
+    (Coh (mod_coh, coh, sub), Unchecked.ty_apply_sub_ps ty sub)
 
   let intch_comp_mn a b c =
     let m = Unchecked.dim_ty (snd a) in
@@ -135,14 +139,17 @@ module Make (Theory : Theory.S) = struct
     let coh = Opposite.coh coh [ 1 ] in
     let sub = sub_right @ sub_left in
     let _, ty, _ = Coh.forget coh in
-    (Coh (coh, sub), Unchecked.ty_apply_sub_ps ty sub)
+    (Coh (mod_coh, coh, sub), Unchecked.ty_apply_sub_ps ty sub)
 
   let opposite (t, ty) op_data = (Opposite.tm t op_data, Opposite.ty ty op_data)
   let inv (t, ty) = (Inverse.compute_inverse t, Inverse.ty ty)
 
   let id constr =
     let d = dim constr in
-    ( Coh (Suspension.coh (Some d) (Builtin.id ()), characteristic_sub_ps constr),
+    ( Coh
+        ( mod_coh,
+          Suspension.coh (Some d) (Builtin.id ()),
+          characteristic_sub_ps constr ),
       arr constr constr )
 
   let rec id_n n constr =
@@ -180,7 +187,9 @@ module Make (Theory : Theory.S) = struct
     let c = first constrs in
     let d = dim c in
     ( Coh
-        (Suspension.coh (Some (d - 1)) (Builtin.comp_n l), glue_subs constrs_rev),
+        ( mod_tm,
+          Suspension.coh (Some (d - 1)) (Builtin.comp_n l),
+          glue_subs constrs_rev ),
       arr (src 1 c) (tgt 1 (first constrs_rev)) )
 
   let comp c1 c2 = comp_n [ c1; c2 ]
@@ -229,7 +238,7 @@ module Make (Theory : Theory.S) = struct
       glue_subs_along k (List.map characteristic_sub_ps constrs)
     in
     let whisk_sub = Unchecked.sub_ps_to_sub whisk_sub_ps in
-    ( App (whisk, whisk_sub),
+    ( App (mod_tm, whisk, whisk_sub),
       Unchecked.ty_apply_sub_ps (Tm.ty whisk) whisk_sub_ps )
 
   let witness constr =
