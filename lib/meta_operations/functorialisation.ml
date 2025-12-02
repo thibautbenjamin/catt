@@ -1,16 +1,13 @@
 open Common
 
-module Make (Theory : Theory.S) = struct
-  open Kernel.Make (Theory)
-  module Comp = Comp.Make (Theory)
-  module Suspension = Suspension.Make (Theory)
+module Make (K : KernelExt.S) = struct
+  open K
+  module Comp = Comp.Make (K)
+  module Suspension = Suspension.Make (K)
 
   exception FunctorialiseMeta
   exception NotClosed
   exception Unsupported
-
-  let mod_tm = assert false
-  let mod_coh = assert false
 
   let coh_depth1 =
     ref (fun _ -> Error.fatal "Uninitialised forward reference coh_depth1")
@@ -155,7 +152,7 @@ module Make (Theory : Theory.S) = struct
     let whisk = whisk n j k in
     let whisk_sub_ps = whisk_sub_ps k f fty g gty in
     let whisk_sub = Unchecked.sub_ps_to_sub whisk_sub_ps in
-    ( App (mod_tm, whisk, whisk_sub),
+    ( App (whisk, whisk_sub),
       Unchecked.ty_apply_sub_ps (Tm.ty whisk) whisk_sub_ps )
 
   (* Invariant maintained:
@@ -208,7 +205,7 @@ module Make (Theory : Theory.S) = struct
     let ps, _, _ = Coh.forget coh in
     Coh.apply
       (fun c -> ctx c l)
-      (fun t -> ty t l (Coh (mod_coh, coh, Unchecked.identity_ps ps)))
+      (fun t -> ty t l (Coh (coh, Unchecked.identity_ps ps)))
       (fun pp -> pp_data l pp)
       coh
 
@@ -229,10 +226,7 @@ module Make (Theory : Theory.S) = struct
     if l = [] then
       let ps, _, name = Coh.forget c in
       let id = Unchecked.identity_ps ps in
-      check_term
-        (Ctx.check (Unchecked.ps_to_ctx ps))
-        ~name
-        (Coh (mod_coh, c, id))
+      check_term (Ctx.check (Unchecked.ps_to_ctx ps)) ~name (Coh (c, id))
     else
       let cohf, names = coh c l in
       let next =
@@ -251,7 +245,7 @@ module Make (Theory : Theory.S) = struct
         [
           (Var (Var.Bridge v), expl); (Var (Var.Plus v), false); (Var v, false);
         ]
-    | Coh (_, c, s) ->
+    | Coh (c, s) ->
         let t' = Unchecked.tm_rename t (tgt_renaming l) in
         let sf = sub_ps s l in
         let ps, _, _ = Coh.forget c in
@@ -259,9 +253,9 @@ module Make (Theory : Theory.S) = struct
         let places = preimage psc s l in
         let cohf, _ = coh c places in
         let subf = Unchecked.list_to_sub (List.map fst sf) (Tm.ctx cohf) in
-        let tm = App (mod_tm, cohf, subf) in
+        let tm = App (cohf, subf) in
         [ (tm, expl); (t', false); (t, false) ]
-    | App (_, t, s) ->
+    | App (t, s) ->
         let total_t = Unchecked.tm_apply_sub (Tm.develop t) s in
         tm_one_step total_t l expl
     | Meta_tm _ -> raise FunctorialiseMeta

@@ -2,163 +2,157 @@ open Common
 open Raw_types
 
 module type S = sig
-  module CurrentTheory : Theory.S
-  include module type of Kernel.Make (CurrentTheory)
+  module K : KernelExt.S
+  open K
 
-  module Environment : sig
-    type value = Coh of Coh.t | Tm of Tm.t
-    type t
+  val builtin_to_value : Raw_types.builtin -> value
+  val value_ty : value -> ty
+  val value_to_string : value -> string
+  val add_let : Var.t -> ctx -> ?ty:ty -> tm -> tm * ty
+  val add_value : Var.t -> value -> value * ty
+  val add_coh : Var.t -> ps -> ty -> Coh.t
+  val val_var : Var.t -> value
+  val dim_output : Var.t -> int
+  val dim_input : Var.t -> int
 
-    val builtin_to_value : Raw_types.builtin -> value
-    val value_ty : value -> ty
-    val value_to_string : value -> string
-    val add_let : Var.t -> ctx -> ?ty:ty -> tm -> tm * ty
-    val add_value : Var.t -> value -> value * ty
-    val add_coh : Var.t -> ps -> ty -> Coh.t
-    val val_var : Var.t -> value
-    val dim_output : Var.t -> int
-    val dim_input : Var.t -> int
-    val forall : (Var.t -> unit) -> unit
-  end
-
-  module Suspension : module type of Suspension.Make (CurrentTheory)
-
-  module Functorialisation :
-      module type of Functorialisation.Make (CurrentTheory)
-
-  module Opposite : module type of Opposite.Make (CurrentTheory)
-  module Inverse : module type of Inverse.Make (CurrentTheory)
-  module Builtin : module type of Builtin.Make (CurrentTheory)
-  module Cones : module type of Cones.Make (CurrentTheory)
-  module Cylinders : module type of Cylinders.Make (CurrentTheory)
-  module Eh : module type of Eh.Make (CurrentTheory)
-
-  module Cubical_composite :
-      module type of Cubical_composite.Make (CurrentTheory)
+  module Suspension : module type of Suspension.Make (K)
+  module Functorialisation : module type of Functorialisation.Make (K)
+  module Opposite : module type of Opposite.Make (K)
+  module Inverse : module type of Inverse.Make (K)
+  module Builtin : module type of Builtin.Make (K)
+  module Cones : module type of Cones.Make (K)
+  module Cylinders : module type of Cylinders.Make (K)
+  module Eh : module type of Eh.Make (K)
+  module Cubical_composite : module type of Cubical_composite.Make (K)
 end
 
-let known_environments : (Var.t, (module S) list) Hashtbl.t = Hashtbl.create 77
+type envValue =
+  | Val :
+      (module KernelExt.S with type Coh.t = 'a and type Tm.t = 'b)
+      * ('a, 'b) pvalue
+      -> envValue
 
-let update_known_environments (v : Var.t) env =
-  let module Env = (val env : S) in
-  let list = Hashtbl.find_opt known_environments v in
-  match list with
-  | None -> Hashtbl.add known_environments v [ env ]
-  | Some list ->
-      let rec replace list =
-        match list with
-        | [] -> [ env ]
-        | known_env :: list ->
-            let module KnownEnv = (val known_env : S) in
-            if KnownEnv.CurrentTheory.theory == Env.CurrentTheory.theory then
-              env :: list
-            else known_env :: replace list
-      in
-      Hashtbl.replace known_environments v (replace list)
+module Value (K : KernelExt.S) = struct
+  open K
+  module Builtin = Builtin.Make (K)
+  module Cones = Cones.Make (K)
+  module Cylinders = Cylinders.Make (K)
+  module Eh = Eh.Make (K)
 
-let store_environment environment =
-  let open (val environment : S) in
-  Environment.forall (fun v -> update_known_environments v environment)
+  let value_ty v =
+    match v with
+    | VCoh c ->
+        let _, ty, _ = Coh.forget c in
+        ty
+    | VTm t -> Tm.ty t
 
-let find_environment v = Hashtbl.find known_environments v
+  let value_to_string v =
+    match v with VCoh c -> Coh.to_string c | VTm t -> Tm.to_string t
+end
 
-module Make (CurrentTheory : Theory.S) = struct
-  module CurrentTheory = CurrentTheory
-  include Kernel.Make (CurrentTheory)
-  module Suspension = Suspension.Make (CurrentTheory)
-  module Functorialisation = Functorialisation.Make (CurrentTheory)
-  module Opposite = Opposite.Make (CurrentTheory)
-  module Inverse = Inverse.Make (CurrentTheory)
-  module Builtin = Builtin.Make (CurrentTheory)
-  module Cones = Cones.Make (CurrentTheory)
-  module Cylinders = Cylinders.Make (CurrentTheory)
-  module Eh = Eh.Make (CurrentTheory)
-  module Cubical_composite = Cubical_composite.Make (CurrentTheory)
+type v = { value : envValue; dim_input : int; dim_output : int }
+type t = (Var.t, v) Hashtbl.t
 
-  let () =
-    if !CurrentTheory.environment_created then
-      Error.fatal "Environment already created for the theory"
-    else CurrentTheory.environment_created := true
+let env : t = Hashtbl.create 70
 
-  module Environment = struct
-    type value = Coh of Coh.t | Tm of Tm.t
+let add v value =
+  let dim_input, dim_output =
+    match value with
+    | Val ((module K), VTm t) ->
+        (K.Unchecked.dim_ctx (K.Tm.ctx t), K.Unchecked.dim_ty (K.Tm.ty t))
+    | Val ((module K), VCoh c) ->
+        let ps, ty, _ = K.Coh.forget c in
+        (K.Unchecked.dim_ps ps, K.Unchecked.dim_ty ty)
+  in
+  Io.info ~v:4
+    (lazy (Printf.sprintf "Value %s added to environment" (Var.to_string v)));
+  Hashtbl.add env v { value; dim_input; dim_output }
 
-    let builtin_to_value b =
-      match b with
-      | Comp -> Coh (Builtin.comp_n 1)
-      | Id -> Coh (Builtin.id ())
-      | Conecomp (n, k, m) -> Tm (Cones.compose n m k)
-      | Cylcomp (n, k, m) -> Tm (Cylinders.compose n m k)
-      | Cylstack n -> Tm (Cylinders.stacking n)
-      | Eh_half (n, k, l) -> Tm (Eh.eh n k l)
-      | Eh_full (n, k, l) -> Tm (Eh.full_eh n k l)
+let find_infos v =
+  try Hashtbl.find_all env v
+  with Not_found -> raise (Error.UnknownId (Var.to_string v))
 
-    let value_ty v =
-      match v with
-      | Coh c ->
-          let _, ty, _ = Coh.forget c in
-          ty
-      | Tm t -> Tm.ty t
+let find v = List.map (fun v -> v.value) (find_infos v)
 
-    let value_ctx v =
-      match v with
-      | Coh c ->
-          let ps, _, _ = Coh.forget c in
-          Unchecked.ps_to_ctx ps
-      | Tm t -> Tm.ctx t
+module Make (K : KernelExt.S) = struct
+  module K = K
+  open K
+  module Suspension = Suspension.Make (K)
+  module Functorialisation = Functorialisation.Make (K)
+  module Opposite = Opposite.Make (K)
+  module Inverse = Inverse.Make (K)
+  module Builtin = Builtin.Make (K)
+  module Cones = Cones.Make (K)
+  module Cylinders = Cylinders.Make (K)
+  module Eh = Eh.Make (K)
+  module Cubical_composite = Cubical_composite.Make (K)
+  module Value = Value (K)
 
-    let value_to_string v =
-      match v with Coh c -> Coh.to_string c | Tm t -> Tm.to_string t
+  let builtin_to_value b =
+    match b with
+    | Comp -> VCoh (Builtin.comp_n 1)
+    | Id -> VCoh (Builtin.id ())
+    | Conecomp (n, k, m) -> VTm (Cones.compose n m k)
+    | Cylcomp (n, k, m) -> VTm (Cylinders.compose n m k)
+    | Cylstack n -> VTm (Cylinders.stacking n)
+    | Eh_half (n, k, l) -> VTm (Eh.eh n k l)
+    | Eh_full (n, k, l) -> VTm (Eh.full_eh n k l)
 
-    type v = { value : value; dim_input : int; dim_output : int }
-    type t = (Var.t, v) Hashtbl.t
+  let value_ty = Value.value_ty
+  let value_to_string = Value.value_to_string
 
-    let env : t = Hashtbl.create 70
+  let add_let v c ?ty t =
+    try
+      let pp_data = (Var.to_string v, 0, []) in
+      let kc = Ctx.check c in
+      let tm = check_term kc ?ty ~name:pp_data t in
+      let ty = Tm.ty tm in
+      add v
+        (Val
+           ( (module K : KernelExt.S with type Coh.t = Coh.t and type Tm.t = Tm.t),
+             VTm tm ));
+      (t, ty)
+    with DoubledVar x -> Error.doubled_var (Printing.ctx_to_string c) x
 
-    let add_let v c ?ty t =
-      try
-        let pp_data = (Var.to_string v, 0, []) in
-        let kc = Ctx.check c in
-        let tm = check_term kc ?ty ~name:pp_data t in
-        let ty = tm.ty.unchecked in
-        let dim_input = Unchecked.dim_ctx c in
-        let dim_output = Unchecked.dim_ty ty in
-        Io.info ~v:4
-          (lazy
-            (Printf.sprintf "term %s of type %s added to environment"
-               (Printing.tm_to_string t) (Printing.ty_to_string ty)));
-        Hashtbl.add env v { value = Tm tm; dim_input; dim_output };
-        (t, ty)
-      with DoubledVar x -> Error.doubled_var (Printing.ctx_to_string c) x
+  let add_coh v ps ty =
+    let coh = check_coh ps ty (Var.to_string v, 0, []) in
+    add v
+      (Val
+         ( (module K : KernelExt.S with type Coh.t = Coh.t and type Tm.t = Tm.t),
+           VCoh coh ));
+    coh
 
-    let add_coh v ps ty =
-      let coh = check_coh ps ty (Var.to_string v, 0, []) in
-      let dim_input = Unchecked.dim_ps ps in
-      let dim_output = Unchecked.dim_ty ty in
-      Io.info ~v:4
-        (lazy
-          (Printf.sprintf "coherence %s added to environment" (Var.to_string v)));
-      Hashtbl.add env v { value = Coh coh; dim_input; dim_output };
-      coh
+  let add_value v value =
+    let ty = Value.value_ty value in
+    add v
+      (Val
+         ( (module K : KernelExt.S with type Coh.t = Coh.t and type Tm.t = Tm.t),
+           value ));
+    (value, ty)
 
-    let find v =
-      try Hashtbl.find env v
-      with Not_found -> raise (Error.UnknownId (Var.to_string v))
+  (* INVARIANT: There is always at most one kernel for a single theory, so if
+  we find in the environment a kernel with the same theory as the ambient one,
+  it is the same, hence the use of Obj.magic *)
+  let find v =
+    let rec find_theory l =
+      match l with
+      | [] -> raise (Error.UnknownId (Var.to_string v))
+      | [ { value = Val ((module K'), value); dim_output; dim_input } ]
+        when K'.theory = K.theory ->
+          (Obj.magic value, dim_output, dim_input)
+      | _ :: l -> find_theory l
+    in
+    find_theory (find_infos v)
 
-    let add_value v value =
-      let ty = value_ty value in
-      let dim_input = Unchecked.dim_ctx (value_ctx value) in
-      let dim_output = Unchecked.dim_ty ty in
-      Io.info ~v:4
-        (lazy
-          (Printf.sprintf "term %s of type %s added to environment"
-             (value_to_string value) (Printing.ty_to_string ty)));
-      Hashtbl.add env v { value; dim_input; dim_output };
-      (value, ty)
+  let val_var v =
+    let value, _, _ = find v in
+    value
 
-    let val_var v = (find v).value
-    let dim_output v = (find v).dim_output
-    let dim_input v = (find v).dim_input
-    let forall f = Hashtbl.iter (fun x _ -> f x) env
-  end
+  let dim_output v =
+    let _, d, _ = find v in
+    d
+
+  let dim_input v =
+    let _, _, d = find v in
+    d
 end

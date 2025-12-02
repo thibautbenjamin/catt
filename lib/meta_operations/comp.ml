@@ -1,7 +1,7 @@
 open Common
 
-module Make (Theory : Theory.S) = struct
-  open Kernel.Make (Theory)
+module Make (K : KernelExt.S) = struct
+  open K
 
   module Memo = struct
     let tbl = Hashtbl.create 97
@@ -38,7 +38,5 @@ module Make (Theory : Theory.S) = struct
   let bcomp x y f z g =
     let comp = comp_n 2 in
     let sub = [ (g, true); (z, false); (f, true); (y, false); (x, false) ] in
-    (* TODO *)
-    let mod_coh = assert false in
-    Coh (mod_coh, comp, sub)
+    Coh (comp, sub)
 end

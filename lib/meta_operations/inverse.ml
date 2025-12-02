@@ -1,14 +1,14 @@
 open Common
 open Std
 
-module Make (Theory : Theory.S) = struct
-  open Kernel.Make (Theory)
-  module Opposite = Opposite.Make (Theory)
-  module Ps_reduction = Ps_reduction.Make (Theory)
-  module Telescope = Telescope.Make (Theory)
-  module Suspension = Suspension.Make (Theory)
-  module Builtin = Builtin.Make (Theory)
-  module Functorialisation = Functorialisation.Make (Theory)
+module Make (K : KernelExt.S) = struct
+  open K
+  module Opposite = Opposite.Make (K)
+  module Ps_reduction = Ps_reduction.Make (K)
+  module Telescope = Telescope.Make (K)
+  module Suspension = Suspension.Make (K)
+  module Builtin = Builtin.Make (K)
+  module Functorialisation = Functorialisation.Make (K)
 
   exception NotInvertible of string
   exception CohNonInv
@@ -30,8 +30,8 @@ module Make (Theory : Theory.S) = struct
     match t with
     | Var x -> raise (NotInvertible (Var.to_string x))
     | Meta_tm _ -> t
-    | Coh (mod_coh, c, sub) -> (
-        try Coh (mod_coh, coh c, sub)
+    | Coh (c, sub) -> (
+        try Coh (coh c, sub)
         with CohNonInv ->
           let ps, _, _ = Coh.forget c in
           let d = Unchecked.dim_ps ps in
@@ -40,8 +40,8 @@ module Make (Theory : Theory.S) = struct
           let sub_inv = sub_inv sub pctx d in
           let equiv = Opposite.equiv_op_ps ps [ d ] in
           let coh = Opposite.coh c [ d ] in
-          Coh (mod_coh, coh, Unchecked.sub_ps_apply_sub equiv sub_inv))
-    | App (_, t, s) ->
+          Coh (coh, Unchecked.sub_ps_apply_sub equiv sub_inv))
+    | App (t, s) ->
         let t = Tm.develop t in
         let total_t = Unchecked.tm_apply_sub t s in
         compute_inverse total_t
@@ -67,8 +67,7 @@ module Make (Theory : Theory.S) = struct
     in
     let coh_vertically_grouped = Ps_reduction.coh coh_unbiased in
     let reduce = Ps_reduction.reduction_sub ps in
-    let mod_coh = assert false in
-    let t_vertically_grouped = Coh (mod_coh, coh_vertically_grouped, reduce) in
+    let t_vertically_grouped = Coh (coh_vertically_grouped, reduce) in
     Coh.check_inv ps t t_vertically_grouped ("vertical_grouping", 0, [])
 
   type lin_comp = { arity : int; dim : int; sub_ps : sub_ps }
@@ -76,7 +75,7 @@ module Make (Theory : Theory.S) = struct
   let tm_to_lin_comp t =
     let ps, sub_ps =
       match t with
-      | Coh (_, c, s) ->
+      | Coh (c, s) ->
           let ps, _, _ = Coh.forget c in
           (ps, s)
       | _ -> Error.fatal "term must be a linear composite"
@@ -109,14 +108,11 @@ module Make (Theory : Theory.S) = struct
         (sub_to_telescope (2 * k) lc.sub_ps [])
         (Suspension.ctx (Some (lc.dim - 1)) ctel)
     in
-    let mod_tm = assert false in
-    App (mod_tm, Suspension.checked_tm (Some (lc.dim - 1)) tel, stel)
+    App (Suspension.checked_tm (Some (lc.dim - 1)) tel, stel)
 
   and cancel_all_linear_comp t =
-    let mod_coh, c, sub =
-      match t with
-      | Coh (mod_coh, c, sub) -> (mod_coh, c, sub)
-      | _ -> Error.fatal ""
+    let c, sub =
+      match t with Coh (c, sub) -> (c, sub) | _ -> Error.fatal ""
     in
     let ps, _, _ = Coh.forget c in
     let d = Unchecked.dim_ps ps in
@@ -130,7 +126,7 @@ module Make (Theory : Theory.S) = struct
             let id =
               Suspension.coh (Some (Unchecked.dim_ty ty_base)) (Builtin.id ())
             in
-            Coh (mod_coh, id, (src_t, true) :: sub_base)
+            Coh (id, (src_t, true) :: sub_base)
           in
           (t_wit, true) :: (id_src_t, false) :: (t, false) :: (src_t, false)
           :: (src_t, false) :: sub
@@ -153,14 +149,14 @@ module Make (Theory : Theory.S) = struct
           in
           Unchecked.wedge_sub_ps_bp lsubs
     in
-    Coh (mod_coh, Functorialisation.coh_all_depth0 c, compute_sub 0 ps sub Obj)
+    Coh (Functorialisation.coh_all_depth0 c, compute_sub 0 ps sub Obj)
 
   and compute_witness t =
     match t with
     | Var x -> raise (NotInvertible (Var.to_string x))
     | Meta_tm _ ->
         raise (NotInvertible "Meta_variable not allowed in witness generation")
-    | Coh (_, c, s) ->
+    | Coh (c, s) ->
         let ps, ty, pp_data = Coh.forget c in
         let d = Coh.dim c in
         let sub_base, u, v =
@@ -171,48 +167,45 @@ module Make (Theory : Theory.S) = struct
         if Coh.is_inv c then
           compute_witness_coh_inv c s ~ps ~d ~pp_data ~sub_base ~u ~v
         else compute_witness_comp c s ~ps ~d ~sub_base ~u ~v
-    | App (_, t, s) ->
+    | App (t, s) ->
         let t = Tm.develop t in
         let total_t = Unchecked.tm_apply_sub t s in
         compute_witness total_t
 
   and compute_witness_coh_inv c s ~ps ~pp_data ~d ~sub_base ~u ~v =
     let name, susp, func = pp_data in
-    let mod_coh = assert false in
     let src_wit =
       let id_ps = Unchecked.identity_ps ps in
       let c_inv = coh c in
       let comp = Suspension.coh (Some (d - 1)) (Builtin.comp_n 2) in
       let c_c_inv =
-        (Coh (mod_coh, c_inv, id_ps), true)
+        (Coh (c_inv, id_ps), true)
         :: (u, false)
-        :: (Coh (mod_coh, c, id_ps), true)
+        :: (Coh (c, id_ps), true)
         :: (v, true) :: (u, true) :: sub_base
       in
-      Coh (mod_coh, comp, c_c_inv)
+      Coh (comp, c_c_inv)
     in
     let tgt_wit =
       let id = Suspension.coh (Some (d - 1)) (Builtin.id ()) in
       let sub_id_u = (u, true) :: sub_base in
-      Coh (mod_coh, id, sub_id_u)
+      Coh (id, sub_id_u)
     in
     let c_wit = Coh.check_inv ps src_wit tgt_wit (name ^ "_Unit", susp, func) in
-    Coh (mod_coh, c_wit, s)
+    Coh (c_wit, s)
 
   and compute_witness_comp c s ~ps ~d ~sub_base ~u ~v =
-    let mod_coh = assert false in
     let ps_doubled, inl, inr = Unchecked.ps_compose (d - 1) ps ps in
     let t =
-      let tm1 = Coh (mod_coh, c, inl) in
+      let tm1 = Coh (c, inl) in
       let c_op = Opposite.coh c [ d ] in
-      let tm2 = Coh (mod_coh, c_op, inr) in
+      let tm2 = Coh (c_op, inr) in
       let sub_inr = Unchecked.sub_ps_to_sub inr in
       let sub_inl = Unchecked.sub_ps_to_sub inl in
       let w = Unchecked.tm_apply_sub (Coh.tgt c_op) sub_inr in
       let comp = Suspension.coh (Some (d - 1)) (Builtin.comp_n 2) in
       Coh
-        ( mod_coh,
-          comp,
+        ( comp,
           (tm2, true) :: (w, false) :: (tm1, true)
           :: Unchecked.sub_ps_apply_sub
                ((v, false) :: (u, false) :: sub_base)
@@ -234,7 +227,7 @@ module Make (Theory : Theory.S) = struct
       in
       let ssinv = Unchecked.pullback_up (d - 1) ps ps s sinv in
       let subsinv = Unchecked.sub_ps_to_sub ssinv in
-      ( Coh (mod_coh, coh, ssinv),
+      ( Coh (coh, ssinv),
         Unchecked.tm_apply_sub src subsinv,
         Unchecked.tm_apply_sub tgt subsinv )
     in
@@ -244,7 +237,7 @@ module Make (Theory : Theory.S) = struct
       let src, tgt = (Coh.src coh, Coh.tgt coh) in
       let s = Unchecked.sub_ps_apply_sub (Unchecked.ps_src ps) sub in
       let sub = Unchecked.sub_ps_to_sub s in
-      ( Coh (mod_coh, coh, s),
+      ( Coh (coh, s),
         Unchecked.tm_apply_sub src sub,
         Unchecked.tm_apply_sub tgt sub )
     in
@@ -253,7 +246,7 @@ module Make (Theory : Theory.S) = struct
       :: (m1, true) :: (tgt_m1, false) :: (src_m1, false)
       :: Unchecked.sub_ps_apply_sub ((u, false) :: (u, false) :: sub_base) sub
     in
-    Coh (mod_coh, Suspension.coh (Some d) (Builtin.comp_n 3), sub_total)
+    Coh (Suspension.coh (Some d) (Builtin.comp_n 3), sub_total)
 
   let compute_witness t =
     try

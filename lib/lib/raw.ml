@@ -53,8 +53,6 @@ and string_of_functed_tm t n =
   else Printf.sprintf "[%s]" (string_of_functed_tm t (n - 1))
 
 module Make (Environment : Environments.S) = struct
-  open Environment
-
   (** remove the let in in a term *)
   let rec replace_tm l e =
     match e with

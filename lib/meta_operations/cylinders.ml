@@ -1,14 +1,13 @@
 open Common
 
-module Make (Theory : Theory.S) = struct
-  open Kernel.Make (Theory)
-  module Construct = Construct.Make (Theory)
-  module Functorialisation = Functorialisation.Make (Theory)
-  module Opposite = Opposite.Make (Theory)
-  module Suspension = Suspension.Make (Theory)
-  module Builtin = Builtin.Make (Theory)
+module Make (K : KernelExt.S) = struct
+  open K
+  module Construct = Construct.Make (K)
+  module Functorialisation = Functorialisation.Make (K)
+  module Opposite = Opposite.Make (K)
+  module Suspension = Suspension.Make (K)
+  module Builtin = Builtin.Make (K)
 
-  let mod_tm = assert false
   let wcomp = Construct.wcomp
 
   (* Cylinder contexts *)
@@ -274,7 +273,7 @@ module Make (Theory : Theory.S) = struct
       in
       let c = Tm.ctx cubcomp in
       let sub = List.map2 (fun (x, _) y -> (x, y)) c sub_ps in
-      let tm = App (mod_tm, cubcomp, sub) in
+      let tm = App (cubcomp, sub) in
       check_term (Ctx.check (ctx 2)) ~name:("cylcomp(2,1,2)", 0, []) tm
 
     let intch n =
@@ -337,7 +336,7 @@ module Make (Theory : Theory.S) = struct
                 (Suspension.sub (Some 1) (Cylinder.bdry_left (n - 1) (n - 2)))
             in
             check_term (Ctx.check ctx_comp) ~name:(name, 0, [])
-              (App (mod_tm, comp, sub))
+              (App (comp, sub))
           in
           let intch_lower, intch_upper = intch n in
           let scomp = (Tm.develop suspcomp, Tm.ty suspcomp) in
@@ -637,7 +636,7 @@ module Make (Theory : Theory.S) = struct
             let sub = List.map2 (fun (x, _) y -> (x, y)) c sub_ps in
             check_term (Ctx.check ctx)
               ~name:("builtin_cylstack", 0, [])
-              (App (mod_tm, tm, sub))
+              (App (tm, sub))
         | n ->
             let _, upper_incl = ctx (n - 1) in
             let lb = Cylinder.base_lower (n - 1) in

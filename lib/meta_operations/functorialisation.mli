@@ -1,7 +1,7 @@
 open Common
 
-module Make (Theory : Theory.S) : sig
-  open Kernel.Make(Theory)
+module Make (K : KernelExt.S) : sig
+  open K
 
   val coh_depth1 : (Coh.t -> Var.t list -> Tm.t) ref
   val preimage : ctx -> sub_ps -> Var.t list -> Var.t list

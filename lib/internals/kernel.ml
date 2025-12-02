@@ -5,9 +5,12 @@ exception IsCoh
 exception IsObj
 exception MetaVariable
 
-module Make (Theory : Theory.S) = struct
+module Make (Theory : sig
+  val theory : theory
+end) =
+struct
   module rec RTy :
-    (KernelSignature.TyS
+    (Signature.TyS
       with type checked_tm = K.Tm.t
        and type checked_coh = K.Coh.t
        and type checked_sub = K.Sub.t
@@ -91,7 +94,7 @@ module Make (Theory : Theory.S) = struct
 
   (** Operations on terms. *)
   and RTm :
-    (KernelSignature.TmS
+    (Signature.TmS
       with type checked_coh = K.Coh.t
        and type checked_sub = K.Sub.t
        and type checked_ty = K.Ty.t
@@ -113,6 +116,7 @@ module Make (Theory : Theory.S) = struct
       name : pp_data option;
     }
 
+    let typ t = t.ty
     let ty t = Ty.forget t.ty
     let checked_ty t = t.ty
     let expr t = t.e
@@ -235,7 +239,7 @@ module Make (Theory : Theory.S) = struct
 
   (** A coherence. *)
   and RCoh :
-    (KernelSignature.CohS
+    (Signature.CohS
       with type innertm = K.Tm.t
        and type checked_ps = K.PS.t
        and type checked_tm = K.Tm.t
@@ -412,9 +416,8 @@ module Make (Theory : Theory.S) = struct
 
   (** Operations on pasting schemes. *)
   and RPS :
-    (KernelSignature.PSS
-      with type inner_ctx = K.Ctx.t
-       and type checked_sub = K.Sub.t) = struct
+    (Signature.PSS with type inner_ctx = K.Ctx.t and type checked_sub = K.Sub.t) =
+  struct
     open K
     open Syntax.Make (Core)
 
@@ -568,7 +571,7 @@ module Make (Theory : Theory.S) = struct
     type ctx = (Coh.t, Tm.t) pctx
     type constr = (Coh.t, Tm.t) pconstr
     type meta_ctx = (int * ty) list
-    type value = VCoh of Coh.t | VTm of Tm.t
+    type value = (Coh.t, Tm.t) pvalue
     type decls = (value * string) list
   end
 
@@ -579,20 +582,20 @@ module Make (Theory : Theory.S) = struct
        and type Tm.t = RTm.t) = struct
     exception InvalidPS
 
-    module Theory = Theory
+    let theory = Theory.theory
 
     module B : sig
       open Core
 
       module Ctx :
-        KernelSignature.CtxS
+        Signature.CtxS
           with type checked_ty = Ty.t
            and type checked_tm = Tm.t
            and type checked_coh = Coh.t
            and type checked_ps = PS.t
 
       module Sub :
-        KernelSignature.SubS
+        Signature.SubS
           with type checked_tm = Tm.t
            and type checked_coh = Coh.t
            and type checked_ctx = Ctx.t
@@ -613,7 +616,7 @@ module Make (Theory : Theory.S) = struct
     type ctx = Core.ctx
     type constr = Core.constr
     type meta_ctx = Core.meta_ctx
-    type value = VCoh of Coh.t | VTm of Tm.t
+    type value = (Coh.t, Tm.t) pvalue
     type decls = (value * string) list
   end
 
@@ -663,3 +666,16 @@ module Make (Theory : Theory.S) = struct
   let check_sub src s tgt =
     ignore @@ Sub.check (Ctx.check src) s (Ctx.check tgt)
 end
+
+let known_kernels : (theory, (module KernelExt.S)) Hashtbl.t = Hashtbl.create 7
+
+let make theory =
+  match Hashtbl.find_opt known_kernels theory with
+  | Some k -> k
+  | None ->
+      let module K = Make (struct
+        let theory = theory
+      end) in
+      let k = (module K : KernelExt.S) in
+      Hashtbl.add known_kernels theory k;
+      k

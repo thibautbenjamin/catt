@@ -102,21 +102,21 @@ module rec Toplevel : sig
   val exec : ?theory:theory -> loop_fn:(unit -> unit) -> prog -> unit
 end = struct
   let exec ?(theory = vanilla_theory) ~loop_fn prog =
-    let module Theory = (val Theory.make theory : Theory.S) in
-    let module Command = Make (Theory) in
+    let k = Kernel.make theory in
+    let module Command = Make ((val k : KernelExt.S)) in
     Command.exec ~loop_fn prog
 end
 
-and Make : functor (CurrentTheory : Theory.S) -> sig
+and Make : functor (K : KernelExt.S) -> sig
   val exec : loop_fn:(unit -> unit) -> prog -> unit
 end =
 functor
-  (CurrentTheory : Theory.S)
+  (K : KernelExt.S)
   ->
   struct
-    module CurrentEnvironment = Environments.Make (CurrentTheory)
-    module Elaborate = Elaborate.Make (CurrentEnvironment)
-    open CurrentEnvironment
+    module Environment = Environments.Make (K)
+    module Elaborate = Elaborate.Make (Environment)
+    open Environment.K
 
     let postprocess_fn : (ctx -> tm -> ctx * tm) ref = ref (fun c e -> (c, e))
 
@@ -189,7 +189,7 @@ functor
           | NotAnInt v -> Error.wrong_option_argument ~expected:"int" o v
           | NotABoolean v -> Error.wrong_option_argument ~expected:"boolean" o v
           )
-      | SetTheory s -> exec_set_theory CurrentTheory.theory s
+      | SetTheory s -> exec_set_theory K.theory s
       | Check_builtin b ->
           Io.command "check %s" (Raw.string_of_builtin b);
           let e, ty = exec_check_builtin b in
@@ -219,9 +219,9 @@ functor
           let e, _ = exec_check_builtin b in
           let e =
             match e with
-            | Environment.Coh _ ->
+            | VCoh _ ->
                 Error.fatal "bechmarking a builtin resolving to a coherence"
-            | Environment.Tm e -> Tm.develop e
+            | VTm e -> Tm.develop e
           in
           Io.info
             (lazy
@@ -229,14 +229,12 @@ functor
                  (Printing.print_kolmogorov e)));
           KeepGoing
 
-    let initialise () = Cubical_composite.init ()
+    let initialise () = Environment.Cubical_composite.init ()
 
     let exec ~loop_fn prog =
       initialise ();
       let rec aux = function
-        | [] ->
-            Environments.store_environment
-              (module CurrentEnvironment : Environments.S)
+        | [] -> ()
         | t :: l -> (
             let next =
               try exec_cmd t with
@@ -252,10 +250,7 @@ functor
             | KeepGoing -> aux l
             | Abort -> exit 1
             | Interactive -> loop_fn ()
-            | ChangeTheory t ->
-                Environments.store_environment
-                  (module CurrentEnvironment : Environments.S);
-                Toplevel.exec ~theory:t ~loop_fn l)
+            | ChangeTheory t -> Toplevel.exec ~theory:t ~loop_fn l)
       in
       aux prog
   end

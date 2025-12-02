@@ -1,7 +1,7 @@
 open Common
 
-module Make (Theory : Theory.S) : sig
-  open Kernel.Make(Theory)
+module Make (K : KernelExt.S) : sig
+  open K
 
   module type StringS = sig
     val value : string

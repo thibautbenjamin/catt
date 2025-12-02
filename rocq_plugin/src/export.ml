@@ -43,14 +43,10 @@ let clean_name s =
       | c -> c)
     s
 
-module type TranslateS = sig
-  val catt_tm : string -> unit
-end
-
 let tbl : (string, string) Hashtbl.t = Hashtbl.create 97
 
-module Translate (Environment : Environments.S) : TranslateS = struct
-  open Environment
+module Translate (K : KernelExt.S) = struct
+  open K
 
   let retrieve_lambda catt_name sigma =
     let build_econstr name =
@@ -158,13 +154,13 @@ module Translate (Environment : Environments.S) : TranslateS = struct
   and tm_to_econstr env sigma obj_type eq_type refl ctx tm =
     match tm with
     | Var x -> (env, sigma, EConstr.mkRel (find_db ctx x))
-    | Coh (_, c, s) ->
+    | Coh (c, s) ->
         let env, sigma, c = coh_to_lambda env sigma obj_type eq_type refl c in
         let env, sigma, s =
           sub_ps_to_econstr_array env sigma obj_type eq_type refl ctx s
         in
         (env, sigma, EConstr.mkApp (c, s))
-    | App (_, tm, s) ->
+    | App (tm, s) ->
         let env, sigma, tm = tm_to_lambda env sigma obj_type eq_type refl tm in
         let env, sigma, s =
           sub_to_econstr_array env sigma obj_type eq_type refl ctx s
@@ -216,7 +212,7 @@ module Translate (Environment : Environments.S) : TranslateS = struct
   and coh_to_lambda env sigma obj_type eq_type refl coh =
     let ps, ty, name = Coh.forget coh in
     let catt_name = "coh_" ^ clean_name (Printing.full_name name) in
-    let value = Environment.Coh coh in
+    let value = VCoh coh in
     match retrieve_lambda catt_name sigma with
     | Some res -> res
     | None ->
@@ -275,7 +271,7 @@ module Translate (Environment : Environments.S) : TranslateS = struct
       | None -> anon ()
     in
     let catt_name = "tm_" ^ name in
-    let value = Environment.Tm tm in
+    let value = VTm tm in
     match retrieve_lambda catt_name sigma with
     | Some res -> res
     | None ->
@@ -300,21 +296,20 @@ module Translate (Environment : Environments.S) : TranslateS = struct
     let sigma, eq_type = c_Q env sigma in
     let sigma, refl = c_R env sigma in
     ignore (coh_to_lambda env sigma obj_type eq_type refl coh)
-
-  let catt_tm tm_name =
-    let env = Global.env () in
-    let sigma = Evd.from_env env in
-    match Environment.val_var (Var.Name tm_name) with
-    | Coh c -> coh env sigma c
-    | Tm t -> tm env sigma t
 end
 
 let catt_tm file tm_names =
   run_catt_on_file file;
-  let env =
-    List.hd (Environments.find_environment (Var.Name (List.hd tm_names)))
+  let register_tm tm_name =
+    match Environments.find (Var.Name tm_name) with
+    | [ Val ((module K), value) ] -> (
+        let module Translate = Translate (K) in
+        let env = Global.env () in
+        let sigma = Evd.from_env env in
+        match value with
+        | VCoh c -> Translate.coh env sigma c
+        | VTm t -> Translate.tm env sigma t)
+    | [] -> assert false
+    | _ -> Error.fatal "rocq export does not support multiple theories"
   in
-  let module Env = (val env : Environments.S) in
-  let module Translate = Translate (Env) in
-  let register_tm tm_name = Translate.catt_tm tm_name in
   List.iter register_tm tm_names

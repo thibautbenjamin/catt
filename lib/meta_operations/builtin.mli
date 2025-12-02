@@ -1,8 +1,8 @@
 open Common
 open Raw_types
 
-module Make (Theory : Theory.S) : sig
-  open Kernel.Make(Theory)
+module Make (K : KernelExt.S) : sig
+  open K
 
   val wcomp : tm * ty -> int -> tm * ty -> tm * ty
   val ps_comp : int -> ps

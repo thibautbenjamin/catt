@@ -1,8 +1,8 @@
 open Common
 open Raw_types
 
-module Make (Theory : Theory.S) : sig
-  open Kernel.Make(Theory)
+module Make (K : KernelExt.S) : sig
+  open K
 
   val tree : int -> ps
   val x : int -> constr

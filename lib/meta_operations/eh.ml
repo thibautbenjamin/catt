@@ -1,17 +1,15 @@
 open Common
 
-module Make (Theory : Theory.S) = struct
-  open Kernel.Make (Theory)
-  module Construct = Construct.Make (Theory)
-  module Padding = Padding.Make (Theory)
-  module Builtin = Builtin.Make (Theory)
-  module Comp = Comp.Make (Theory)
-  module Suspension = Suspension.Make (Theory)
-  module Opposite = Opposite.Make (Theory)
-  module Functorialisation = Functorialisation.Make (Theory)
-  module Inverse = Inverse.Make (Theory)
-
-  let mod_coh = assert false
+module Make (K : KernelExt.S) = struct
+  open K
+  module Construct = Construct.Make (K)
+  module Padding = Padding.Make (K)
+  module Builtin = Builtin.Make (K)
+  module Comp = Comp.Make (K)
+  module Suspension = Suspension.Make (K)
+  module Opposite = Opposite.Make (K)
+  module Functorialisation = Functorialisation.Make (K)
+  module Inverse = Inverse.Make (K)
 
   module type EHArgsS = sig
     val n : int
@@ -488,7 +486,7 @@ module Make (Theory : Theory.S) = struct
       let runit = check_coh (Unchecked.disc 1) cohty ("_ehnat_step1", 0, []) in
       let d = Construct.dim constr in
       let sub = Construct.characteristic_sub_ps constr in
-      ( Coh (mod_coh, Suspension.coh (Some (d - 1)) runit, sub),
+      ( Coh (Suspension.coh (Some (d - 1)) runit, sub),
         Unchecked.ty_apply_sub_ps (Suspension.ty (Some (d - 1)) cohty) sub )
 
     let nat_factor eh_id_id ehargs =

@@ -1,13 +1,11 @@
 open Common
 
-module Make (Theory : Theory.S) = struct
-  open Kernel.Make (Theory)
-  module F = Functorialisation.Make (Theory)
-  module Builtin = Builtin.Make (Theory)
-  module Suspension = Suspension.Make (Theory)
-  module Ps_reduction = Ps_reduction.Make (Theory)
-
-  let mod_coh = assert false
+module Make (K : KernelExt.S) = struct
+  open K
+  module F = Functorialisation.Make (K)
+  module Builtin = Builtin.Make (K)
+  module Suspension = Suspension.Make (K)
+  module Ps_reduction = Ps_reduction.Make (K)
 
   module LinearComp = struct
     module Memo = struct
@@ -40,8 +38,7 @@ module Make (Theory : Theory.S) = struct
     let bcomp x y f z g =
       let comp = Builtin.comp_n 2 in
       let sub = [ (g, true); (z, false); (f, true); (y, false); (x, false) ] in
-      let mod_coh = assert false in
-      Coh (mod_coh, comp, sub)
+      Coh (comp, sub)
 
     let idx_src i = if i = 2 then 0 else i - 3
     let plus i l = if List.mem (Var.Db i) l then tpl i else tdb i
@@ -71,14 +68,12 @@ module Make (Theory : Theory.S) = struct
         in
         sub (2 * arity)
       in
-      let mod_coh = assert false in
-      let lin_comp = Coh (mod_coh, Builtin.comp_n arity, lin_incl) in
+      let lin_comp = Coh (Builtin.comp_n arity, lin_incl) in
       bcomp (tdb 0) (tdb 1) (tdb 2) (tdb ((2 * arity) + 1)) lin_comp
 
     let comp_biased_end arity =
       let lin_incl = Unchecked.identity_ps (Builtin.ps_comp arity) in
-      let mod_coh = assert false in
-      let lin_comp = Coh (mod_coh, Builtin.comp_n arity, lin_incl) in
+      let lin_comp = Coh (Builtin.comp_n arity, lin_incl) in
       bcomp (tdb 0)
         (tdb ((2 * arity) - 1))
         lin_comp
@@ -105,8 +100,7 @@ module Make (Theory : Theory.S) = struct
             (tdb (k + 2), true) :: (tdb (k + 1), false) :: sub (k - 2)
         | _ -> assert false
       in
-      let mod_coh = assert false in
-      Coh (mod_coh, comp, sub (2 * arity))
+      Coh (comp, sub (2 * arity))
 
     let comp_biased arity pos =
       match pos with
@@ -159,8 +153,7 @@ module Make (Theory : Theory.S) = struct
       let assc = Coh.check_inv ps src tgt ("builtin_assc", 0, []) in
       let sub = sub_assc_i i arity l in
       let _, ty, _ = Coh.forget assc in
-      let mod_coh = assert false in
-      (Coh (mod_coh, assc, sub), Unchecked.ty_apply_sub_ps ty sub)
+      (Coh (assc, sub), Unchecked.ty_apply_sub_ps ty sub)
 
     let whsk i arity l =
       let src = src_i_f i (List.mem (Var.Db (i - 1)) l) in
@@ -169,8 +162,7 @@ module Make (Theory : Theory.S) = struct
       let comp = Builtin.comp_n arity in
       let whsk = F.coh_depth0 comp [ Db i ] in
       let _, ty, _ = Coh.forget whsk in
-      let mod_coh = assert false in
-      (Coh (mod_coh, whsk, sub), Unchecked.ty_apply_sub_ps ty sub)
+      (Coh (whsk, sub), Unchecked.ty_apply_sub_ps ty sub)
 
     let move_at v l arity =
       let mv, ty =
@@ -212,8 +204,7 @@ module Make (Theory : Theory.S) = struct
       let ctx_comp = Unchecked.ps_to_ctx (Builtin.ps_comp arity) in
       let s = sub ctx_comp ~add_src:true base in
       let _, ty, _ = Coh.forget comp in
-      let mod_coh = assert false in
-      (Coh (mod_coh, comp, s), Unchecked.ty_apply_sub_ps ty s)
+      (Coh (comp, s), Unchecked.ty_apply_sub_ps ty s)
 
     let build_cubical arity list =
       match arity with
@@ -256,8 +247,7 @@ module Make (Theory : Theory.S) = struct
 
   (* Construct source (t[i1]) * (tgt_f[i2]) *)
   let naturality_src coh ty tgt ty_base dim l i1 i2 names =
-    let mod_coh = assert false in
-    let t = Coh (mod_coh, coh, i1) in
+    let t = Coh (coh, i1) in
     if l = [] then t
     else
       let tgt_f_ty = Unchecked.rename_ty (F.ty ty_base l tgt) names in
@@ -267,12 +257,11 @@ module Make (Theory : Theory.S) = struct
       let ty = Unchecked.ty_apply_sub_ps ty i1 in
       let coh_src_sub_ps = F.whisk_sub_ps 0 t ty tgt_f tgt_f_ty in
       let comp = Suspension.coh (Some (dim - 1)) (Builtin.comp_n 2) in
-      Coh (mod_coh, comp, coh_src_sub_ps)
+      Coh (comp, coh_src_sub_ps)
 
   (* Construct target (src_f[i1]) * (t[i2]) *)
   let naturality_tgt coh ty src ty_base dim l i1 i2 names =
-    let mod_coh = assert false in
-    let t = Coh (mod_coh, coh, i2) in
+    let t = Coh (coh, i2) in
     if l = [] then t
     else
       let src_f_ty = Unchecked.rename_ty (F.ty ty_base l src) names in
@@ -282,7 +271,7 @@ module Make (Theory : Theory.S) = struct
       let ty = Unchecked.ty_apply_sub_ps ty i2 in
       let coh_tgt_sub_ps = F.whisk_sub_ps 0 src_f src_f_ty t ty in
       let comp = Suspension.coh (Some (dim - 1)) (Builtin.comp_n 2) in
-      Coh (mod_coh, comp, coh_tgt_sub_ps)
+      Coh (comp, coh_tgt_sub_ps)
 
   let biasor_sub_intch_src ps bdry_f i1 i2 d =
     let ps_red = Ps_reduction.reduce (d - 1) ps in
@@ -314,14 +303,12 @@ https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVyc
     let d = Unchecked.dim_ps gamma in
     let src_ctx, src_incl, i1, i2, bdry_f, l_tgt, names = ctx_src gamma l in
     let coh_src = naturality_src coh coh_ty tgt ty_base d l_tgt i1 i2 names in
-    let coh_tgt =
-      Coh (mod_coh, coh_bridge, biasor_sub_intch_src gamma bdry_f i1 i2 d)
-    in
+    let coh_tgt = Coh (coh_bridge, biasor_sub_intch_src gamma bdry_f i1 i2 d) in
     let intch_coh =
       Coh.check_inv src_ctx coh_src coh_tgt ("intch_src", 0, [])
     in
     let _, ty, _ = Coh.forget intch_coh in
-    let intch = Coh (mod_coh, intch_coh, src_incl) in
+    let intch = Coh (intch_coh, src_incl) in
     let ty = Unchecked.ty_apply_sub_ps ty src_incl in
     (intch, ty)
 
@@ -331,14 +318,12 @@ https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVyc
     let d = Unchecked.dim_ps gamma in
     let tgt_ctx, tgt_incl, i1, i2, bdry_f, l_src, names = ctx_tgt gamma l in
     let coh_tgt = naturality_tgt coh coh_ty src ty_base d l_src i1 i2 names in
-    let coh_src =
-      Coh (mod_coh, coh_bridge, biasor_sub_intch_tgt gamma bdry_f i1 i2 d)
-    in
+    let coh_src = Coh (coh_bridge, biasor_sub_intch_tgt gamma bdry_f i1 i2 d) in
     let intch_coh =
       Coh.check_inv tgt_ctx coh_src coh_tgt ("intch_tgt", 0, [])
     in
     let _, ty, _ = Coh.forget intch_coh in
-    let intch = Coh (mod_coh, intch_coh, tgt_incl) in
+    let intch = Coh (intch_coh, tgt_incl) in
     let ty = Unchecked.ty_apply_sub_ps ty tgt_incl in
     (intch, ty)
 
@@ -354,7 +339,7 @@ https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVyc
       | (t, true) :: (w, false) :: red ->
           let ps_comp, s =
             match t with
-            | Coh (_, comp, s) ->
+            | Coh (comp, s) ->
                 let ps_comp, _, _ = Coh.forget comp in
                 (ps_comp, s)
             | Var v ->
@@ -430,7 +415,7 @@ https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVyc
     let bridge = depth1_bridge_sub ps_inter l_inter d in
     let bridge = Unchecked.sub_ps_apply_sub bridge (F.sub names l_inter) in
     let coh_bridge_f = F.coh_depth0 coh_bridge l_bridge in
-    let middle = Coh (mod_coh, coh_bridge_f, bridge) in
+    let middle = Coh (coh_bridge_f, bridge) in
     let inner_tgt, final_tgt =
       match intch_tgt_ty with Arr (_, t, t') -> (t, t') | _ -> assert false
     in
@@ -448,7 +433,7 @@ https://q.uiver.app/#q=WzAsOCxbMSwwLCJcXHBhcnRpYWxcXEdhbW1hIl0sWzIsMSwiXFxvdmVyc
     let comp = Suspension.coh (Some d) (Builtin.comp_n 3) in
     let ctx = F.ctx (Unchecked.ps_to_ctx ps) l in
     let name = F.pp_data l pp_data in
-    check_term (Ctx.check ctx) ~name (Coh (mod_coh, comp, comp_sub_ps))
+    check_term (Ctx.check ctx) ~name (Coh (comp, comp_sub_ps))
 
   let init () = F.coh_depth1 := coh_depth1
 end

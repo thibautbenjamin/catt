@@ -2,7 +2,7 @@ open Common
 open Raw_types
 
 module Make (Environment : Environments.S) : sig
-  open Environment
+  open Environment.K
 
   val ctx : (Var.t * tyR) list -> ctx
   val ty : (Var.t * tyR) list -> tyR -> ctx * ty

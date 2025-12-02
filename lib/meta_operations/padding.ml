@@ -1,11 +1,11 @@
 open Common
 
-module Make (Theory : Theory.S) = struct
-  open Kernel.Make (Theory)
-  module Construct = Construct.Make (Theory)
-  module Functorialisation = Functorialisation.Make (Theory)
-  module Suspension = Suspension.Make (Theory)
-  module Builtin = Builtin.Make (Theory)
+module Make (K : KernelExt.S) = struct
+  open K
+  module Construct = Construct.Make (K)
+  module Functorialisation = Functorialisation.Make (K)
+  module Suspension = Suspension.Make (K)
+  module Builtin = Builtin.Make (K)
 
   module type StringS = sig
     val value : string
@@ -349,7 +349,7 @@ module Make (Theory : Theory.S) = struct
 
     let repad_one_step p_0 p_1 f q_0 q_1 g (previous : Tm.t) iota_minus
         iota_plus v sub =
-      match previous.ty.e with
+      match Ty.expr (Tm.typ previous) with
       | Obj -> assert false
       | Arr (_, padding_0, padding_1) ->
           hexcomp (Tm.constr p_0) (Tm.constr p_1)

@@ -1,5 +1,5 @@
-module Make (Theory : Theory.S) = struct
-  open Kernel.Make (Theory)
+module Make (K : KernelExt.S) = struct
+  open K
 
   let rec iter_n_times n f base =
     if n <= 0 then base else f (iter_n_times (n - 1) f base)

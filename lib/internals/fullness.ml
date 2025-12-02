@@ -1,4 +1,5 @@
 open Std
+open Common
 
 module Make (K : KernelSignature.S) = struct
   open K
@@ -26,7 +27,7 @@ module Make (K : KernelSignature.S) = struct
     List.included (Ctx.domain (Ty.ctx (Tm.checked_ty t))) (tm_free_vars t)
 
   let is_inv_dim t =
-    match Theory.theory.invertibility with
+    match theory.invertibility with
     | None -> false
     | Some d when d >= Ty.dim t -> false
     | _ -> true

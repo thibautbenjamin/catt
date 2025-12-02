@@ -2,7 +2,7 @@ open Common
 open Raw_types
 
 module Make (Environment : Environments.S) : sig
-  open Environment
+  open Environment.K
 
   val tm : tmR -> tm * meta_ctx
   val ty : tyR -> ty * meta_ctx

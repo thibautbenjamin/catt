@@ -1,5 +1,5 @@
-module Make (Theory : Theory.S) : sig
-  open Kernel.Make(Theory)
+module Make (K : KernelExt.S) : sig
+  open K
 
   val compose : int -> int -> int -> Tm.t
   val stacking : int -> Tm.t

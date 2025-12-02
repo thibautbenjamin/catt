@@ -13,7 +13,7 @@ module Make (Core : Core.S) = struct
 
   (** Operations on substitutions. *)
   module rec Sub :
-    (KernelSignature.SubS
+    (Signature.SubS
       with type checked_tm = Tm.t
        and type checked_coh = Coh.t
        and type checked_ctx = Ctx.t) = struct
@@ -71,7 +71,7 @@ module Make (Core : Core.S) = struct
 
   (** A context, associating a type to each context variable. *)
   and Ctx :
-    (KernelSignature.CtxS
+    (Signature.CtxS
       with type checked_ty = Ty.t
        and type checked_tm = Tm.t
        and type checked_coh = Coh.t
