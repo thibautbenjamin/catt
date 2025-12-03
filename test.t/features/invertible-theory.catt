@@ -1,0 +1,7 @@
+theory invertibility 1
+
+coh inv2 (x(f(a)g)y) : g -> f
+
+theory invertibility 0
+coh inv1 (x(f)y) : y -> x
+coh compinv (x(f)y(g)z) : z -> x

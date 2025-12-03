@@ -1,12 +1,9 @@
-(menhir
- (modules parser))
-
-(ocamllex lexer)
+(include_subdirs unqualified)
 
 (library
  (name catt)
  (public_name catt)
- (modules_without_implementation raw_types)
+ (modules_without_implementation raw_types core kernelSignature kernelExt signature)
  (libraries base)
  (instrumentation
   (backend landmarks --auto)))

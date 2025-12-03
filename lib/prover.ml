@@ -33,10 +33,7 @@ let read_file_to_string path =
   String.concat "\n" (read_stream stream)
 
 let parse_file f = parse (read_file_to_string f)
-
-let reset () =
-  Environment.reset ();
-  Settings.reset ()
+let reset () = Settings.reset ()
 
 (** Initialize the prover. *)
 let init () = Printf.printf "=^.^= "

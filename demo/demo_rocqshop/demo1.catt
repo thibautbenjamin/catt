@@ -1,0 +1,5 @@
+coh trans (x(p)y(q)z) : x -> z
+# (x(p)y(q)z) : x ==p== y ==q== z,
+# result x == z
+
+coh whisk (x(p(a)q)y(r)z) : trans p r -> trans q r

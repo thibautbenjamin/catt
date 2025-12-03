@@ -121,8 +121,12 @@
             src = sources.coq-plugin;
             nativeBuildInputs = [ ];
 
-            buildInputs =
-              [ self.packages.${system}.catt pkgs.dune_3 pkgs.opam pkgs.coq ];
+            buildInputs = [
+              self.packages.${system}.catt
+              pkgs.dune_3
+              pkgs.opam
+              pkgs.rocq-core
+            ];
             mlPlugin = true;
             useDune = true;
 

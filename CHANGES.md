@@ -1,4 +1,5 @@
 ## Catt
+- Computation of Eckmann-Hilton cells as a builtin
 - Improve efficiency by storing partially checked terms
 - Computation of cylinder compositions as a builtin
 - Computation of cone compositions as a builtin
