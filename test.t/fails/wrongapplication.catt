@@ -1,8 +1,0 @@
-let fail1 (x : *) (y : *) (f : x -> y) (g : x -> y) = comp f g
-coh whisk (x(f(a)g)y(h)z) : comp  f h -> comp g h
-let fail2 (x : *) (y : *) (f : x -> y)
-          (z : *) (g : y -> z) (h : y -> z) (b : g -> h) = whisk f b
-let fail3 (x : *) (y : *) (f : x -> y)
-          (z : *) (g : y -> z) (h : y -> z) (b : g -> h) = comp [f] b
-let fail4 (x : *) (y : *) (f : x -> y)
-          (z : *) (g : y -> z) = comp [f] g

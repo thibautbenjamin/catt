@@ -1,4 +1,0 @@
-coh id (x : *) : x -> x
-coh comp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) : x -> z
-coh unitr (x : *) (y : *) (f : x -> y) : comp f (id _) -> f
-coh unitl (x : *) (y : *) (f : x -> y) : comp (id _) f -> f

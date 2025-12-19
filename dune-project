@@ -1,15 +1,10 @@
 (lang dune 3.16)
 
 (name catt)
-(generate_opam_files true)
-(source (github thibautbenjamin/catt))
-(authors "Thibaut Benjamin <thibaut.benjamin@gmail.com>"
-         "Chiara Sarti <cs2197@cam.ac.uk>")
-(maintainers "Thibaut Benjamin <thibaut.benjamin@gmail.com>"
-             "Chiara Sarti  <cs2197@cam.ac.uk>")
+(authors "Anonymized")
+(maintainers "Anonymized")
 (license MIT)
 (using menhir 2.0)
-(cram enable)
 (using coq 0.9)
 
 (package
@@ -31,13 +26,5 @@
   (depends
       catt
       (coq (>= 8.20)))
-  (tags
-    (higher-categories dependent-type-theory)))
-
-(package
-  (name catt-web)
-  (synopsis "Browser embedded version of the catt theorem prover")
-  (description "Browser embedded version of the catt theorem prover")
-  (allow_empty)
   (tags
     (higher-categories dependent-type-theory)))

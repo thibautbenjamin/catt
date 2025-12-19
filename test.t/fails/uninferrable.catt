@@ -1,2 +1,0 @@
-let fail1 (x : *) (y : *) = comp (id _) (id _)
-coh fail2 (x(f)y) :  comp (id _) _ -> f

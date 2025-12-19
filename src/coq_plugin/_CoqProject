@@ -1,0 +1,3 @@
+-generate-meta-for-package catt
+-R ../_build/default/coq_plugin/theories/ Catt
+-I ../_build/install/default/lib/

@@ -1,0 +1,45 @@
+# Lines starting with `#` are comments
+
+# Tree representation of pasting contexts: A variable is always surrounded by
+# parentheses. If the parentheses surrounding the variables are not nested, then
+# the variable is of type *, otherwise it is of the form x(..f..)y, and f is a
+# cell of type x -> y.
+
+# Example
+# The representation (x(f)y(g)z) corresponds to the diagram x --f--> y --g--> z
+
+# Coherences representing binary and ternary composition
+coh binarycomp (x(f)y(g)z) : x -> z
+coh ternarycomp (x(f)y(g)z(h)w) : x -> w
+
+# Coherences can be used to define terms. When applying a coherence or a term,
+# only the image of the variables of depth 0 must be provided. The other ones
+# can be inferred by typing. For instance the square and the cube of an
+# endomorphism
+let square (x : *) (f : x -> x) = binarycomp f f
+let cube (x : *) (f : x -> x) = ternarycomp f f f
+
+# A builtin composition is provided with the keyword `comp`. It gives the
+# composition of 1-cells, inferring the arity. For instance, the square and the
+# cube can also be defined as
+let sq (x : *) (f : x -> x) = comp f f
+let cb (x : *) (f : x -> x) = comp f f f
+
+# Suspension can be used implicitly. For instance, to define an associator on
+# 2-cells, one can use `comp` for the composition, and it will be inferred that
+# a suspension needs to be added
+coh assoc (x(f(a)g(b)h(c)k)y) : comp a (comp b c) -> comp (comp a b) c
+
+# Naturality with respect is obtain by marking the position of the argument at
+# which it should happen with square brackets. For instance, naturality of the
+# binary composition with respect to its first argument gives a whiskering, and
+# can be obtained as
+let whisk (x(f(a)g)y(h)z) = comp [a] h
+
+# To select positions of variables of depth 1, which usually are not specified
+# since they are automatically inferred, we can use the prefix @ in front of the
+# identifier, indicating that in this call, all the arguments are made explicit
+let triangle1_bis (x y y' z: *) (ym : y -> y')
+              (f : x -> y) (f' : x -> y') (fm : comp f ym -> f')
+              (g : y -> z) (g' : y' -> z) (gm : g -> comp ym g')
+              = @comp _ [_] [fm] _ [gm]

@@ -1,8 +1,0 @@
-set implicit_suspension = f
-let comp2 (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h) = !comp a b
-let id3 (x : *) = !!id (!id (id x))
-
-set implicit_suspension = t
-let c (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h) = comp a b
-coh whisk (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y -> z) : comp f h -> comp g h
-let test (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h) (z : *) (k : y -> z) = whisk (comp a b) k
