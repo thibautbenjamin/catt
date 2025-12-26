@@ -8,8 +8,10 @@ let rec head_susp = function
   | VarR _ -> 0
   | Sub (_, _, None, _) -> 0
   | Sub (_, _, Some susp, _) -> susp
-  | Op (_, t) | Inverse t | Unit t -> head_susp t
+  | Op (_, t) | Inverse t | Unit t | ISR (_, t) -> head_susp t
   | Meta | BuiltinR _ | Letin_tm _ -> Error.fatal "ill-formed term"
+  | CoindR _ | RecR _ | CanR _ ->
+      Error.fatal "no need to suspend invertibility structures"
 
 (* inductive translation on terms and types without let_in *)
 let rec tm t =
@@ -71,6 +73,32 @@ let rec tm t =
   | Unit t ->
       let t, meta_ctx = tm t in
       (Inverse.compute_witness t, meta_ctx)
+  | ISR (inv, t) ->
+      let t, meta_ctx = tm t in
+      (IS (inv, t), meta_ctx)
+  | CanR (_, _) -> Error.fatal "TODO"
+  | CoindR (t0, t1, t2, t3, t4, t5, t6) ->
+      let t0, meta_0 = tm t0 in
+      let t1, meta_1 = tm t1 in
+      let t2, meta_2 = tm t2 in
+      let t3, meta_3 = tm t3 in
+      let t4, meta_4 = tm t4 in
+      let t5, meta_5 = tm t5 in
+      let t6, meta_6 = tm t6 in
+      ( Coind (t0, t1, t2, t3, t4, t5, t6),
+        List.concat [ meta_0; meta_1; meta_2; meta_3; meta_4; meta_5; meta_6 ]
+      )
+  | RecR (t0, t1, t2, t3, t4, t5, t6) ->
+      let t0, meta_0 = tm t0 in
+      let t1, meta_1 = tm t1 in
+      let t2, meta_2 = tm t2 in
+      let t3, meta_3 = tm t3 in
+      let t4, meta_4 = tm t4 in
+      let t5, meta_5 = tm t5 in
+      let t6, meta_6 = tm t6 in
+      ( Rec (t0, t1, t2, t3, t4, t5, t6),
+        List.concat [ meta_0; meta_1; meta_2; meta_3; meta_4; meta_5; meta_6 ]
+      )
   | Meta ->
       let m, meta_type = Meta.new_tm () in
       (m, [ meta_type ])
@@ -80,6 +108,10 @@ let rec tm t =
   | Sub (Op _, _, _, _)
   | Sub (Inverse _, _, _, _)
   | Sub (Unit _, _, _, _)
+  | Sub (ISR _, _, _, _)
+  | Sub (CanR _, _, _, _)
+  | Sub (CoindR _, _, _, _)
+  | Sub (RecR _, _, _, _)
   | BuiltinR _ | Letin_tm _ ->
       Error.fatal "ill-formed term"
 
@@ -141,6 +173,9 @@ let ty ty =
       let (tu, meta_types_tu), (tv, meta_types_tv) = (tm u, tm v) in
       (Arr (Meta.new_ty (), tu, tv), List.append meta_types_tu meta_types_tv)
   | Letin_ty _ -> Error.fatal "letin_ty constructor cannot appear here"
+  | InvR u ->
+      let tu, meta_ctx = tm u in
+      (Inv tu, meta_ctx)
 
 let ty t =
   try ty t

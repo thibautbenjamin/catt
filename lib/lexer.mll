@@ -6,6 +6,16 @@ let space = ' ' | '\t' | '\r'
 
 rule token = parse
   | "coh" { COH }
+  | "Inv" { INVTY }
+  | "left" { LEFT }
+  | "right" { RIGHT }
+  | "Iε" { LWITNESS }
+  | "Iη" { RWITNESS }
+  | "ε" { LUNIT }
+  | "η" { RUNIT }
+  | "can" { CAN }
+  | "coind" { COIND }
+  | "rec" { REC }
   | "check" { CHECK }
   | "let" { LET }
   | "in" { IN }

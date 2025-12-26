@@ -251,6 +251,7 @@ and tm_one_step t l expl =
       let total_t = Unchecked.tm_apply_sub (Tm.develop t) s in
       tm_one_step total_t l expl
   | Meta_tm _ -> raise FunctorialiseMeta
+  | _ -> Error.fatal "Functorialisation of invertibility structures unsupported"
 
 and tm_one_step_tm t l = fst (List.hd (tm_one_step t l true))
 

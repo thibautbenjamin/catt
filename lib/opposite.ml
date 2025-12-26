@@ -45,6 +45,7 @@ let rec ty typ op_data =
       let u = tm u op_data in
       if List.mem d op_data then Arr (a, u, t) else Arr (a, t, u)
   | Meta_ty m -> Meta_ty m
+  | _ -> Error.fatal "Opposites of invertibility structures unsupported"
 
 and tm t op_data =
   match t with
@@ -68,6 +69,7 @@ and tm t op_data =
       let op_s = Unchecked.(sub_ps_to_sub (sub_to_sub_ps op_s)) in
       App (op_t, op_s)
   | Meta_tm m -> Meta_tm m
+  | _ -> Error.fatal "Opposites of invertibility structures unsupported"
 
 and sub s op_data =
   match s with

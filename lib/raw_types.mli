@@ -7,7 +7,11 @@ type builtin =
   | Cylcomp of (int * int * int)
   | Cylstack of int
 
-type tyR = Letin_ty of Var.t * tmR * tyR | ObjR | ArrR of tmR * tmR
+type tyR =
+  | Letin_ty of Var.t * tmR * tyR
+  | ObjR
+  | ArrR of tmR * tmR
+  | InvR of tmR
 
 and tmR =
   | Letin_tm of Var.t * tmR * tmR
@@ -18,5 +22,9 @@ and tmR =
   | Op of int list * tmR
   | Inverse of tmR
   | Unit of tmR
+  | ISR of inv * tmR
+  | CanR of tmR * tmR list
+  | CoindR of tmR * tmR * tmR * tmR * tmR * tmR * tmR
+  | RecR of tmR * tmR * tmR * tmR * tmR * tmR * tmR
 
 and subR = (tmR * int) list

@@ -10,6 +10,10 @@ type cmd =
   | Decl of Var.t * (Var.t * tyR) list * tmR * tyR option
   | Decl_builtin of Var.t * builtin
   | Set of string * string
+  | CoindDef of
+      Var.t * (Var.t * tyR) list * tmR * tmR * tmR * tmR * tmR * tmR * tmR
+  | RecDef of
+      Var.t * (Var.t * tyR) list * tmR * tmR * tmR * tmR * tmR * tmR * tmR
 
 type prog = cmd list
 

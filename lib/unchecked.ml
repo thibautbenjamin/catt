@@ -47,6 +47,29 @@ struct
       | Meta_tm i -> Meta_tm i
       | Coh (c, s) -> Coh (c, sub_ps_do_on_variables s f)
       | App (t, s) -> App (t, sub_do_on_variables s f)
+      | IS (inv, t) -> IS (inv, tm_do_on_variables t f)
+      | Can (tm, invs) ->
+          Can
+            ( tm_do_on_variables tm f,
+              List.map (fun tm -> tm_do_on_variables tm f) invs )
+      | Coind (t0, t1, t2, t3, t4, t5, t6) ->
+          Coind
+            ( tm_do_on_variables t0 f,
+              tm_do_on_variables t1 f,
+              tm_do_on_variables t2 f,
+              tm_do_on_variables t3 f,
+              tm_do_on_variables t4 f,
+              tm_do_on_variables t5 f,
+              tm_do_on_variables t6 f )
+      | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+          Rec
+            ( tm_do_on_variables t0 f,
+              tm_do_on_variables t1 f,
+              tm_do_on_variables t2 f,
+              tm_do_on_variables t3 f,
+              tm_do_on_variables t4 f,
+              tm_do_on_variables t5 f,
+              tm_do_on_variables t6 f )
 
     and sub_do_on_variables s f =
       List.map (fun (v, (t, e)) -> (v, (tm_do_on_variables t f, e))) s
@@ -63,6 +86,7 @@ struct
             ( ty_do_on_variables a f,
               tm_do_on_variables u f,
               tm_do_on_variables v f )
+      | Inv u -> Inv (tm_do_on_variables u f)
 
     let var_apply_sub v s =
       match List.assoc_opt v s with Some (t, _) -> t | None -> Var v
@@ -154,6 +178,7 @@ struct
       | Obj -> Arr (Obj, Var (Db 0), Var (Db 1))
       | Arr (a, v, u) -> Arr (suspend_ty a, suspend_tm v, suspend_tm u)
       | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
+      | Inv u -> Inv (suspend_tm u)
 
     and suspend_tm = function
       | Var v -> Var (Var.suspend v)
@@ -163,6 +188,26 @@ struct
           let s = sub_ps_to_sub (sub_to_sub_ps s) in
           App (t, suspend_sub s)
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
+      | IS (inv, t) -> IS (inv, suspend_tm t)
+      | Can (tm, invs) -> Can (suspend_tm tm, List.map suspend_tm invs)
+      | Coind (t0, t1, t2, t3, t4, t5, t6) ->
+          Coind
+            ( suspend_tm t0,
+              suspend_tm t1,
+              suspend_tm t2,
+              suspend_tm t3,
+              suspend_tm t4,
+              suspend_tm t5,
+              suspend_tm t6 )
+      | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+          Rec
+            ( suspend_tm t0,
+              suspend_tm t1,
+              suspend_tm t2,
+              suspend_tm t3,
+              suspend_tm t4,
+              suspend_tm t5,
+              suspend_tm t6 )
 
     and suspend_coh c =
       let p, t, pp_data = Coh.forget c in
@@ -416,6 +461,15 @@ struct
                  (fun s ps -> Printf.sprintf "%s%s" (ps_to_string ps) s)
                  "" l)
 
+      let inv_to_string inv =
+        match inv with
+        | LInv -> "left"
+        | RInv -> "right"
+        | Lunit -> "ε"
+        | Runit -> "η"
+        | Lwit -> "Iε"
+        | Rwit -> "Iη"
+
       let rec ty_to_string = function
         | Meta_ty i -> Printf.sprintf "_ty%i" i
         | Obj -> "*"
@@ -424,6 +478,7 @@ struct
               Printf.sprintf "%s | %s -> %s" (ty_to_string a) (tm_to_string u)
                 (tm_to_string v)
             else Printf.sprintf "%s -> %s" (tm_to_string u) (tm_to_string v)
+        | Inv u -> Printf.sprintf "Inv(%s)" (tm_to_string u)
 
       and tm_to_string = function
         | Var v -> Var.to_string v
@@ -443,6 +498,24 @@ struct
                 let expl_str = if expl then "@" else "" in
                 Printf.sprintf "(%s%s%s)" expl_str name str_s
             | None -> tm_to_string (tm_apply_sub (Tm.develop t) s))
+        | IS (inv, t) ->
+            Printf.sprintf "%s(%s)" (inv_to_string inv) (tm_to_string t)
+        | Can (tm, invs) ->
+            Printf.sprintf "can(%s,{%s})" (tm_to_string tm) (tms_to_string invs)
+        | Coind (t0, t1, t2, t3, t4, t5, t6) ->
+            Printf.sprintf "Coind(%s; %s, %s, %s, %s, %s, %s)" (tm_to_string t0)
+              (tm_to_string t1) (tm_to_string t2) (tm_to_string t3)
+              (tm_to_string t4) (tm_to_string t5) (tm_to_string t6)
+        | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+            Printf.sprintf "Rec(%s; %s, %s, %s, %s, %s, %s)" (tm_to_string t0)
+              (tm_to_string t1) (tm_to_string t2) (tm_to_string t3)
+              (tm_to_string t4) (tm_to_string t5) (tm_to_string t6)
+
+      and tms_to_string list =
+        match list with
+        | [] -> ""
+        | tm :: tms ->
+            Printf.sprintf "%s %s" (tm_to_string tm) (tms_to_string tms)
 
       and sub_ps_to_string ?(func = []) s =
         match func with
@@ -581,6 +654,11 @@ struct
               tm_contains_var (Tm.develop t) y && tm_contains_var u x)
             s
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
+      | IS (_, t)
+      | Can (t, _)
+      | Coind (t, _, _, _, _, _, _)
+      | Rec (t, _, _, _, _, _, _) ->
+          tm_contains_var t x
 
     let rec check_equal_ps ps1 ps2 =
       match (ps1, ps2) with
@@ -607,6 +685,8 @@ struct
       | Obj, Meta_ty _
       | Arr _, Meta_ty _ ->
           raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
+      | Inv u, Inv v -> check_equal_tm u v
+      | _ -> raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
 
     and check_equal_tm tm1 tm2 =
       match (tm1, tm2) with
@@ -631,6 +711,9 @@ struct
       | App _, Meta_tm _
       | Meta_tm _, App _ ->
           raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
+      | IS (inv, u), IS (inv', v) when inv = inv' -> check_equal_tm u v
+      | IS _, IS _ -> raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
+      | _, _ -> Error.fatal "Must compare only reduced terms"
 
     and check_equal_sub_ps s1 s2 =
       List.iter2 (fun (t1, _) (t2, _) -> check_equal_tm t1 t2) s1 s2
@@ -670,6 +753,7 @@ struct
       | Arr (a, t, u) ->
           tm_contains_var t x || tm_contains_var u x || ty_contains_var a x
       | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
+      | Inv u -> tm_contains_var u x
 
     let tm_contains_vars t l = List.exists (tm_contains_var t) l
 
@@ -693,6 +777,7 @@ struct
       | Obj -> 0
       | Arr (a, _, _) -> 1 + dim_ty a
       | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
+      | Inv _ -> Error.fatal "dim_ty on an invertibility structure"
 
     let rec dim_ctx = function
       | [] -> 0
@@ -705,6 +790,9 @@ struct
       | Meta_ty _ ->
           Error.fatal
             "substitution can only be computed after resolving the type"
+      | Inv _ ->
+          Error.fatal
+            "invertibility structure does correspond to bdry substitution"
 
     let coh_to_sub_ps t =
       match t with
@@ -750,6 +838,42 @@ struct
       | Meta_tm i -> Meta_tm i
       | Coh (coh, s) -> Coh (coh, develop_sub_ps s)
       | App (tm, s) -> tm_apply_sub (Tm.develop tm) (develop_sub s)
+      | IS (inv, tm) -> reduce_inv_structures inv tm
+      | Can (tm, tms) -> Can (develop_tm tm, List.map develop_tm tms)
+      | Coind (t0, t1, t2, t3, t4, t5, t6) ->
+          Coind
+            ( develop_tm t0,
+              develop_tm t1,
+              develop_tm t2,
+              develop_tm t3,
+              develop_tm t4,
+              develop_tm t5,
+              develop_tm t6 )
+      | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+          Rec
+            ( develop_tm t0,
+              develop_tm t1,
+              develop_tm t2,
+              develop_tm t3,
+              develop_tm t4,
+              develop_tm t5,
+              develop_tm t6 )
+
+    and reduce_inv_structures inv tm =
+      match (inv, tm) with
+      | LInv, (Coind (_, t1, _, _, _, _, _) | Rec (_, t1, _, _, _, _, _)) ->
+          develop_tm t1
+      | RInv, (Coind (_, _, t2, _, _, _, _) | Rec (_, _, t2, _, _, _, _)) ->
+          develop_tm t2
+      | Lunit, (Coind (_, _, _, t3, _, _, _) | Rec (_, _, _, t3, _, _, _)) ->
+          develop_tm t3
+      | Runit, (Coind (_, _, _, _, t4, _, _) | Rec (_, _, _, _, t4, _, _)) ->
+          develop_tm t4
+      | Lwit, Coind (_, _, _, _, _, t5, _) -> develop_tm t5
+      | Rwit, Coind (_, _, _, _, _, _, t6) -> develop_tm t6
+      | Lwit, Rec (_, _, _, _, _, t5, _) -> develop_tm t5 (* TODO: substitute *)
+      | Rwit, Rec (_, _, _, _, _, _, t6) -> develop_tm t6 (* TODO: substitute *)
+      | _, _ -> IS (inv, tm)
 
     and develop_sub_ps s = List.map (fun (t, b) -> (develop_tm t, b)) s
     and develop_sub s = List.map (fun (x, (t, b)) -> (x, (develop_tm t, b))) s
@@ -759,6 +883,7 @@ struct
       | Obj -> Obj
       | Meta_ty i -> Meta_ty i
       | Arr (a, t, u) -> Arr (develop_ty a, develop_tm t, develop_tm u)
+      | Inv u -> Inv (develop_tm u)
 
     module Display_maps = struct
       (* Construction related to display maps, i.e. var to var substitutions *)

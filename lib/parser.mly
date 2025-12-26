@@ -9,12 +9,12 @@
     let add_suspension = function
       | Sub (x,s,None,b) -> Sub (x,s,Some 1,b)
       | Sub (x,s,Some n,b) -> Sub (x,s,Some (n+1),b)
-      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _ | _
         -> Error.fatal "trying to generate an invalid suspension"
 
     let mark_explicit = function
       | Sub(x,s,i,_) -> Sub(x,s,i,true)
-      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _
+      | Letin_tm _ | VarR _ |Op _ | Meta | Inverse _ | Unit _ | BuiltinR _ | _
         -> Error.fatal "only substitution can be marked explicit"
 
     let context_of_annotated_ps ps =
@@ -33,6 +33,7 @@
 %}
 
 %token COH OBJ MOR WILD IGNORE
+%token INVTY LEFT RIGHT LUNIT RUNIT LWITNESS RWITNESS CAN COIND REC
 %token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP AT
 %token <string> BUILTIN
 %token <int*int*int> CONECOMP
@@ -75,6 +76,8 @@ cmd:
   | SET IDENT EQUAL IDENT { Set ($2,$4) }
   | SET IDENT EQUAL INT { Set ($2,$4) }
   | DECLARE IDENT EQUAL builtin { Decl_builtin (Var.make_var $2,$4) }
+  | COIND IDENT args_or_ps EQUAL tmexpr tmexpr tmexpr tmexpr tmexpr tmexpr tmexpr { CoindDef (Var.make_var $2, $3, $5, $6, $7, $8, $9, $10, $11) }
+  | REC IDENT args_or_ps EQUAL tmexpr tmexpr tmexpr tmexpr tmexpr tmexpr tmexpr { RecDef (Var.make_var $2, $3, $5, $6, $7, $8, $9, $10, $11) }
 
 args_of_same_ty :
   | IDENT COL tyexpr { [Var.make_var $1, $3], $3 }
@@ -115,13 +118,28 @@ builtin:
  | CYLCOMP { let (n,k,m) = $1 in Cylcomp(n,k,m) }
  | CYLSTACK { let n = $1 in Cylstack(n) }
 
+invertibility_destructor:
+ | LEFT { LInv }
+ | RIGHT { RInv }
+ | LUNIT { Lunit }
+ | RUNIT { Runit }
+ | LWITNESS { Lwit }
+ | RWITNESS { Rwit }
+
 simple_tmexpr:
   | LPAR tmexpr RPAR { $2 }
   | WILD { Meta }
   | INV LPAR tmexpr RPAR { Inverse $3 }
   | UNIT LPAR tmexpr RPAR { Unit $3 }
+  | invertibility_destructor LPAR tmexpr RPAR { ISR($1, $3) }
+  | CAN LPAR tmexpr LBRA tmexpr_list RBRA RPAR { CanR($3, $5) }
   | IDENT { VarR (Var.make_var $1) }
   | builtin_tm { $1 }
+
+tmexpr_list:
+  | tmexpr tmexpr_list { $1::$2 }
+  | { [] }
+
 
 functed_tmexpr:
   | LBRA maybe_functed_tmexpr RBRA { let t,n = $2 in t,n+1 }
@@ -133,6 +151,7 @@ maybe_functed_tmexpr:
 simple_tyexpr:
   | LPAR tyexpr RPAR { $2 }
   | OBJ { ObjR }
+  | INVTY LPAR tmexpr RPAR { InvR ($3) }
 
 susp_tmexpr:
   | simple_tmexpr { $1 }

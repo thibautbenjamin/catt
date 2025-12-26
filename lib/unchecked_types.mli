@@ -8,13 +8,17 @@ module type Unchecked_types_sig = functor
      type t
    end)
   -> sig
-  type ty = Meta_ty of int | Obj | Arr of ty * tm * tm
+  type ty = Meta_ty of int | Obj | Arr of ty * tm * tm | Inv of tm
 
   and tm =
     | Var of Var.t
     | Meta_tm of int
     | Coh of Coh.t * sub_ps
     | App of Tm.t * sub
+    | IS of inv * tm
+    | Can of tm * tm list
+    | Coind of tm * tm * tm * tm * tm * tm * tm
+    | Rec of tm * tm * tm * tm * tm * tm * tm
 
   and sub_ps = (tm * bool) list
   and sub = (Var.t * (tm * bool)) list

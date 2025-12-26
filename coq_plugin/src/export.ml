@@ -114,7 +114,9 @@ end = struct
       | Meta_ty _ -> Error.fatal "unresolved meta variable"
       | Arr (ty, s, _) -> (
           match s with Var s -> (var, s, ty) | _ -> assert false)
+      | _ -> Error.fatal "Rocq export of invertibility structures unsupported"
     in
+
     List.map find_data list_vars
 
   (* Abstract a locally maximal variable and its target. Crucially uses that a
@@ -166,6 +168,7 @@ end = struct
         in
         (env, sigma, EConstr.mkApp (eq_type, [| ty; u; v |]))
     | Meta_ty _ -> Error.fatal "unresolved type meta-variable"
+    | _ -> Error.fatal "Rocq export of invertibility structures unsupported"
 
   (* translate a catt term into a coq term *)
   and tm_to_econstr env sigma obj_type eq_type refl ctx tm =
@@ -184,6 +187,7 @@ end = struct
         in
         (env, sigma, EConstr.mkApp (tm, s))
     | Meta_tm _ -> Error.fatal "unresolved term meta-variable"
+    | _ -> Error.fatal "Rocq export of invertibility structures unsupported"
 
   (* translate a catt substitution into a list of function application
      arguments in coq *)

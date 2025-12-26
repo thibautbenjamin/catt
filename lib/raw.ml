@@ -9,6 +9,15 @@ let string_of_builtin = function
   | Cylcomp (n, k, m) -> Printf.sprintf "cylcomp(%d,%d,%d)" n k m
   | Cylstack n -> Printf.sprintf "cylstack(%d)" n
 
+let string_of_inv inv =
+  match inv with
+  | LInv -> "left"
+  | RInv -> "right"
+  | Lunit -> "ε"
+  | Runit -> "η"
+  | Lwit -> "Iε"
+  | Rwit -> "Iη"
+
 let rec string_of_ty e =
   match e with
   | Letin_ty (v, e, ty) ->
@@ -16,6 +25,7 @@ let rec string_of_ty e =
         (string_of_ty ty)
   | ObjR -> "*"
   | ArrR (u, v) -> Printf.sprintf "%s -> %s" (string_of_tm u) (string_of_tm v)
+  | InvR u -> Printf.sprintf "Inv(%s)" (string_of_tm u)
 
 and string_of_tm e =
   match e with
@@ -39,6 +49,36 @@ and string_of_tm e =
   | Inverse t -> Printf.sprintf "I(%s)" (string_of_tm t)
   | Unit t -> Printf.sprintf "U(%s)" (string_of_tm t)
   | Meta -> "_"
+  | ISR (inv, u) -> Printf.sprintf "%s(%s)" (string_of_inv inv) (string_of_tm u)
+  | CanR (tm, args) ->
+      Printf.sprintf "can(%s,{%s})" (string_of_tm tm) (string_of_tms args)
+  | CoindR (t0, t1, t2, t3, t4, t5, t6) ->
+      Printf.sprintf
+        "coind \n\
+         \t term: %s \n\
+         \t left: %s \n\
+         \t right:%s \n\
+         \t ε: %s \n\
+         \t η : %s \n\
+         \t Iε: %s \n\
+         \t Iη : %s" (string_of_tm t0) (string_of_tm t1) (string_of_tm t2)
+        (string_of_tm t3) (string_of_tm t4) (string_of_tm t5) (string_of_tm t6)
+  | RecR (t0, t1, t2, t3, t4, t5, t6) ->
+      Printf.sprintf
+        "rec \n\
+         \t term: %s \n\
+         \t left: %s \n\
+         \t right:%s \n\
+         \t ε: %s \n\
+         \t η : %s \n\
+         \t Iε: %s \n\
+         \t Iη : %s" (string_of_tm t0) (string_of_tm t1) (string_of_tm t2)
+        (string_of_tm t3) (string_of_tm t4) (string_of_tm t5) (string_of_tm t6)
+
+and string_of_tms list =
+  match list with
+  | [] -> ""
+  | tm :: tms -> Printf.sprintf "%s %s" (string_of_tm tm) (string_of_tms tms)
 
 and string_of_sub s =
   match s with
@@ -61,6 +101,26 @@ let rec replace_tm l e =
   | Unit t -> Unit (replace_tm l t)
   | Letin_tm (v, t, tm) -> replace_tm ((v, t) :: l) tm
   | Meta -> Meta
+  | ISR (inv, u) -> ISR (inv, replace_tm l u)
+  | CanR (tm, tms) -> CanR (replace_tm l tm, List.map (replace_tm l) tms)
+  | CoindR (t0, t1, t2, t3, t4, t5, t6) ->
+      CoindR
+        ( replace_tm l t0,
+          replace_tm l t1,
+          replace_tm l t2,
+          replace_tm l t3,
+          replace_tm l t4,
+          replace_tm l t5,
+          replace_tm l t6 )
+  | RecR (t0, t1, t2, t3, t4, t5, t6) ->
+      RecR
+        ( replace_tm l t0,
+          replace_tm l t1,
+          replace_tm l t2,
+          replace_tm l t3,
+          replace_tm l t4,
+          replace_tm l t5,
+          replace_tm l t6 )
 
 and replace_sub l s =
   match s with
@@ -72,6 +132,7 @@ and replace_ty l t =
   | ObjR -> t
   | ArrR (u, v) -> ArrR (replace_tm l u, replace_tm l v)
   | Letin_ty (v, t, ty) -> replace_ty ((v, t) :: l) ty
+  | InvR u -> InvR (replace_tm l u)
 
 let remove_let_tm e = replace_tm [] e
 let remove_let_ty e = replace_ty [] e
@@ -81,6 +142,7 @@ let rec var_in_ty x ty =
   | ObjR -> false
   | ArrR (u, v) -> var_in_tm x u || var_in_tm x v
   | Letin_ty _ -> Error.fatal "letin_ty constructors cannot appear here"
+  | InvR u -> var_in_tm x u
 
 and var_in_tm x tm =
   match tm with
@@ -92,11 +154,18 @@ and var_in_tm x tm =
   | Meta -> false
   | Op (_, t) -> var_in_tm x t
   | Letin_tm _ -> Error.fatal "letin_tm constructors cannot appear here"
+  | ISR (_, u) -> var_in_tm x u
+  | CoindR (t, _, _, _, _, _, _) | RecR (t, _, _, _, _, _, _) -> var_in_tm x t
+  | CanR _ ->
+      Error.fatal
+        "testing if a variable belongs to an invertibility structure is not \
+         defined"
 
 let rec dim_ty ctx = function
   | ObjR -> 0
   | ArrR (u, _) -> 1 + dim_tm ctx u
   | Letin_ty _ -> Error.fatal "letin_ty constructors cannot appear here"
+  | InvR _ -> Error.fatal "dimension of invertibility structure undefined"
 
 and dim_tm ctx = function
   | VarR v -> (
@@ -118,6 +187,14 @@ and dim_tm ctx = function
   | Inverse t -> dim_tm ctx t
   | Unit t -> dim_tm ctx t + 1
   | Letin_tm _ -> Error.fatal "letin_tm constructors cannot appear here"
+  | CanR _ | CoindR _ | RecR _ ->
+      Error.fatal "dimension of invertibility structure undefined"
+  | ISR (inv, t) -> (
+      match inv with
+      | LInv | RInv -> dim_tm ctx t
+      | Lunit | Runit -> dim_tm ctx t + 1
+      | Lwit | Rwit ->
+          Error.fatal "dimension of invertibility structure undefined")
 
 and dim_builtin = function
   | Comp -> 1
@@ -158,6 +235,26 @@ let rec infer_susp_tm ctx = function
   | Unit t -> Unit (infer_susp_tm ctx t)
   | Meta -> Meta
   | Letin_tm _ -> assert false
+  | ISR (inv, t) -> ISR (inv, infer_susp_tm ctx t)
+  | CanR (t, tms) -> CanR (infer_susp_tm ctx t, List.map (infer_susp_tm ctx) tms)
+  | CoindR (t0, t1, t2, t3, t4, t5, t6) ->
+      CoindR
+        ( infer_susp_tm ctx t0,
+          infer_susp_tm ctx t1,
+          infer_susp_tm ctx t2,
+          infer_susp_tm ctx t3,
+          infer_susp_tm ctx t4,
+          infer_susp_tm ctx t5,
+          infer_susp_tm ctx t6 )
+  | RecR (t0, t1, t2, t3, t4, t5, t6) ->
+      RecR
+        ( infer_susp_tm ctx t0,
+          infer_susp_tm ctx t1,
+          infer_susp_tm ctx t2,
+          infer_susp_tm ctx t3,
+          infer_susp_tm ctx t4,
+          infer_susp_tm ctx t5,
+          infer_susp_tm ctx t6 )
 
 and infer_susp_sub ctx = function
   | [] -> []
@@ -167,3 +264,4 @@ let infer_susp_ty ctx = function
   | ObjR -> ObjR
   | ArrR (u, v) -> ArrR (infer_susp_tm ctx u, infer_susp_tm ctx v)
   | Letin_ty _ -> assert false
+  | InvR u -> InvR (infer_susp_tm ctx u)

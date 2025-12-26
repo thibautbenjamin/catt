@@ -57,3 +57,4 @@ let rec take n l =
   match l with h :: t when n > 0 -> h :: take (n - 1) t | _ -> []
 
 type op_data = int list
+type inv = LInv | RInv | Lunit | Runit | Lwit | Rwit

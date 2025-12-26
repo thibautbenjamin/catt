@@ -35,7 +35,8 @@ module Constraints = struct
         unify_tm cst u1 u2;
         unify_tm cst v1 v2
     | Meta_ty _, _ | _, Meta_ty _ -> Queue.enqueue cst.ty (ty1, ty2)
-    | Arr (_, _, _), Obj | Obj, Arr (_, _, _) ->
+    | Inv u, Inv v -> unify_tm cst u v
+    | Arr (_, _, _), Obj | Obj, Arr (_, _, _) | _ ->
         raise
           (NotUnifiable (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
 
@@ -57,6 +58,8 @@ module Constraints = struct
     | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
         raise
           (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
+    | _, _ ->
+        Error.fatal "unification not implemented for invertibility structures"
 
   and unify_sub cst s1 s2 =
     match (s1, s2) with
@@ -90,6 +93,7 @@ module Constraints = struct
     | Meta_ty _ -> ty
     | Obj -> Obj
     | Arr (a, u, v) -> Arr (ty_replace_meta_ty (i, ty') a, u, v)
+    | Inv u -> Inv u
 
   let rec tm_replace_meta_tm (i, tm') tm =
     match tm with
@@ -107,6 +111,10 @@ module Constraints = struct
             List.map
               (fun (x, (t, e)) -> (x, (tm_replace_meta_tm (i, tm') t, e)))
               s )
+    | _ ->
+        Error.fatal
+          "resolution of meta_variables in invertibility\n\
+          \    structures not implemented"
 
   let rec ty_replace_meta_tm (i, tm') ty =
     match ty with
@@ -117,6 +125,7 @@ module Constraints = struct
           ( ty_replace_meta_tm (i, tm') a,
             tm_replace_meta_tm (i, tm') u,
             tm_replace_meta_tm (i, tm') v )
+    | Inv u -> Inv (tm_replace_meta_tm (i, tm') u)
 
   let queue_map_both f = Queue.map ~f:(fun (x, y) -> (f x, f y))
 
@@ -213,6 +222,7 @@ module Constraints_typing = struct
         let ty = Ty.forget (Tm.typ t) in
         let s = sub ctx meta_ctx s tgt cst in
         (App (t, s), Unchecked.ty_apply_sub ty s)
+    | _ -> Error.fatal "invertibility structures in constraint typing"
 
   and sub src meta_ctx s tgt cst =
     Io.info ~v:5
@@ -249,6 +259,9 @@ module Constraints_typing = struct
         Constraints.unify_ty cst a tv;
         Arr (a, u, v)
     | Meta_ty _ -> t
+    | Inv u ->
+        let u, _ = tm ctx meta_ctx u cst in
+        Inv u
 
   let tm ctx meta_ctx t cst = fst (tm ctx meta_ctx t cst)
 

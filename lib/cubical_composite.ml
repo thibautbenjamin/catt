@@ -331,6 +331,9 @@ let depth1_bridge_sub ps_inter l_inter d =
               (ps_comp, s)
           | App _ -> assert false
           | Meta_tm _ -> Error.fatal "meta_variables must have been resolved"
+          | _ ->
+              Error.fatal
+                "cubical composite of invertibility structures unsupported"
         in
         let l = F.preimage (Unchecked.ps_to_ctx ps_comp) s l_inter in
         if l <> [] then

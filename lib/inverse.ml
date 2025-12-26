@@ -7,7 +7,12 @@ exception NotInvertible of string
 exception CohNonInv
 
 let ty t =
-  match t with Obj | Meta_ty _ -> assert false | Arr (a, u, v) -> Arr (a, v, u)
+  match t with
+  | Obj | Meta_ty _ -> assert false
+  | Arr (a, u, v) -> Arr (a, v, u)
+  | _ ->
+      Error.fatal
+        "Inverses meta-operation of invertibility structures unsupported"
 
 let coh c =
   if not (Coh.is_inv c) then raise CohNonInv;
@@ -36,6 +41,9 @@ let rec compute_inverse t =
       let t = Tm.develop t in
       let total_t = Unchecked.tm_apply_sub t s in
       compute_inverse total_t
+  | _ ->
+      Error.fatal
+        "Inverses meta-operation of invertibility structures unsupported"
 
 and sub_inv s ps i =
   match (s, ps) with
@@ -157,6 +165,9 @@ and compute_witness t =
       let t = Tm.develop t in
       let total_t = Unchecked.tm_apply_sub t s in
       compute_witness total_t
+  | _ ->
+      Error.fatal
+        "Inverses meta-operation of invertibility structures unsupported"
 
 and compute_witness_coh_inv c s ~ps ~pp_data ~d ~sub_base ~u ~v =
   let name, susp, func = pp_data in

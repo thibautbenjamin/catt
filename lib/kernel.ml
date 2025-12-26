@@ -4,6 +4,8 @@ open Unchecked_types
 open Unchecked
 
 exception IsObj
+exception IsInv
+exception IsNotVar
 exception IsCoh
 exception InvalidSubTarget of string * string
 exception MetaVariable
@@ -323,25 +325,48 @@ and Ty : sig
   val target : t -> Tm.t
   val ctx : t -> Ctx.t
   val dim : t -> int
+  val base_inv : t -> Tm.t
 end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
   module Types = Unchecked_types (Coh) (Tm)
 
   (** A type exepression. *)
-  type expr = Obj | Arr of t * Tm.t * Tm.t
+  type expr = Obj | Arr of t * Tm.t * Tm.t | Inv of Tm.t
 
   and t = { c : Ctx.t; e : expr; unchecked : Types.ty }
 
   let tbl : (Ctx.t * Types.ty, Ty.t) Hashtbl.t = Hashtbl.create 7829
   let is_obj t = t.e = Obj
 
-  let retrieve_arrow ty =
-    match ty.e with Obj -> raise IsObj | Arr (a, u, v) -> (a, u, v)
+  let is_globular t =
+    match t.e with Obj | Arr (_, _, _) -> true | Inv _ -> false
 
-  let under_type ty = match ty.e with Obj -> raise IsObj | Arr (a, _, _) -> a
-  let source ty = match ty.e with Obj -> raise IsObj | Arr (_, u, _) -> u
-  let target ty = match ty.e with Obj -> raise IsObj | Arr (_, _, v) -> v
+  let base_inv t = match t.e with Inv u -> u | _ -> assert false
+
+  let retrieve_arrow ty =
+    match ty.e with
+    | Obj -> raise IsObj
+    | Arr (a, u, v) -> (a, u, v)
+    | Inv _ -> raise IsInv
+
+  let under_type ty =
+    match ty.e with
+    | Obj -> raise IsObj
+    | Arr (a, _, _) -> a
+    | Inv _ -> raise IsInv
+
+  let source ty =
+    match ty.e with
+    | Obj -> raise IsObj
+    | Arr (_, u, _) -> u
+    | Inv _ -> raise IsInv
+
+  let target ty =
+    match ty.e with
+    | Obj -> raise IsObj
+    | Arr (_, _, v) -> v
+    | Inv _ -> raise IsInv
 
   let rec check c t =
     Io.info ~v:5
@@ -356,10 +381,15 @@ end = struct
           | Obj -> Obj
           | Arr (a, u, v) ->
               let a = check c a in
+              assert (is_globular a);
               let u = Tm.check c ~ty:a u in
               let v = Tm.check c ~ty:a v in
               Arr (a, u, v)
           | Meta_ty _ -> raise MetaVariable
+          | Inv u ->
+              let u = Tm.check c u in
+              let _ = retrieve_arrow (Tm.typ u) in
+              Inv u
         in
         let ty = { c; e; unchecked = t } in
         Hashtbl.add tbl (c, t) ty;
@@ -371,6 +401,7 @@ end = struct
     | Obj -> []
     | Arr (t, u, v) ->
         List.unions [ free_vars t; Tm.free_vars u; Tm.free_vars v ]
+    | Inv u -> Tm.free_vars u
 
   let is_full t = List.included (Ctx.domain t.c) (free_vars t)
   let forget t = t.unchecked
@@ -396,7 +427,12 @@ end = struct
     check (Sub.src s) (Unchecked.ty_apply_sub (forget t) (Sub.forget s))
 
   let ctx t = t.c
-  let rec dim t = match t.e with Obj -> 0 | Arr (a, _, _) -> 1 + dim a
+
+  let rec dim t =
+    match t.e with
+    | Obj -> 0
+    | Arr (a, _, _) -> 1 + dim a
+    | Inv _ -> raise IsInv
 end
 
 (** Operations on terms. *)
@@ -443,7 +479,13 @@ end = struct
   module Types = Unchecked_types (Coh) (Tm)
   module Display_maps = Unchecked.Display_maps
 
-  type expr = Var of Var.t | Coh of Coh.t * Sub.t | App of Tm.t * Sub.t
+  type expr =
+    | Var of Var.t
+    | Coh of Coh.t * Sub.t
+    | App of Tm.t * Sub.t
+    | IS of inv * Tm.t
+    | Coind of Tm.t * Tm.t * Tm.t * Tm.t * Tm.t * Tm.t * Tm.t
+    | Rec of Tm.t * Tm.t * Tm.t * Tm.t * Tm.t * Tm.t * Tm.t
 
   and t = {
     ty : Ty.t;
@@ -457,23 +499,44 @@ end = struct
   let ty t = Ty.forget t.ty
   let tbl : (Ctx.t * Types.tm, Tm.t) Hashtbl.t = Hashtbl.create 7829
 
-  (* TODO: this is incorrect: an applied term can be a variable *)
-  let to_var tm = match tm.e with Var v -> v | Coh _ | App _ -> raise IsCoh
+  let to_var tm =
+    match tm.e with
+    | Var v -> v
+    | Coh _ | App _ -> raise IsCoh
+    | _ -> raise IsNotVar
 
-  let free_vars tm =
+  let rec free_vars tm =
     let fvty = Ty.free_vars tm.ty in
     match tm.e with
     | Var x -> x :: fvty
     | Coh (_, sub) | App (_, sub) -> Sub.free_vars sub
+    | IS (_, t) -> free_vars t
+    (* | Can (t, _) -> free_vars t *)
+    | Coind (t, _, _, _, _, _, _) -> free_vars t
+    | Rec (t, _, _, _, _, _, _) -> free_vars t
 
   let is_full tm = List.included (Ctx.domain (Ty.ctx tm.ty)) (free_vars tm)
   let forget tm = tm.unchecked
   let constr tm = (forget tm, ty tm)
 
-  let check c ?ty ?name t =
+  let lunit_ty c tm linv =
+    let t = constr tm in
+    let linv = constr linv in
+    let y = constr (Ty.target tm.ty) in
+    let ty = Constr.arr (Constr.comp linv t) (Constr.id y) in
+    Ty.check c ty
+
+  let runit_ty c tm rinv =
+    let t = constr tm in
+    let rinv = constr rinv in
+    let x = constr (Ty.source tm.ty) in
+    let ty = Constr.arr (Constr.comp t rinv) (Constr.id x) in
+    Ty.check c ty
+
+  let rec check c ?ty ?name t =
     Io.info ~v:5
       (lazy
-        (Printf.sprintf "building kernel term %s in context %s"
+        (Printf.sprintf "building\n    kernel term %s in context %s"
            (Unchecked.tm_to_string t) (Ctx.to_string c)));
     let tm =
       match Hashtbl.find_opt tbl (c, t) with
@@ -496,6 +559,84 @@ end = struct
               let e, ty = (App (u, sub), Ty.apply_sub ty sub) in
               let tm = { ty; e; unchecked = t; developped = None; name } in
               Hashtbl.add tbl (c, t) tm;
+              tm
+          | IS (inv, tm) ->
+              let tm_checked = check c tm in
+              let base_inv = Ty.base_inv tm_checked.ty in
+              let _, x, y = Ty.retrieve_arrow base_inv.ty in
+              let e = IS (inv, tm_checked) in
+              let ty =
+                match inv with
+                | LInv -> Ty.morphism y x
+                | RInv -> Ty.morphism y x
+                | Lunit ->
+                    let linv = check c (IS (LInv, tm)) in
+                    lunit_ty c base_inv linv
+                | Runit ->
+                    let rinv = check c (IS (LInv, tm)) in
+                    runit_ty c base_inv rinv
+                | Lwit -> Ty.check c (Inv (IS (Lunit, tm)))
+                | Rwit -> Ty.check c (Inv (IS (Runit, tm)))
+              in
+              let tm = { ty; e; unchecked = t; developped = Some t; name } in
+              Hashtbl.add tbl (c, t) tm;
+              tm
+          | Can (_, _) ->
+              Error.fatal
+                "canonical invertibility structures not yet implemented"
+          | Coind (t0, t1, t2, t3, t4, t5, t6) ->
+              let t0_checked = check c t0 in
+              let _, x, y = Ty.retrieve_arrow t0_checked.ty in
+              let t1_checked = check c ~ty:(Ty.morphism y x) t1 in
+              let t2_checked = check c ~ty:(Ty.morphism y x) t2 in
+              let t3_checked =
+                check c ~ty:(lunit_ty c t0_checked t1_checked) t3
+              in
+              let t4_checked =
+                check c ~ty:(runit_ty c t0_checked t1_checked) t4
+              in
+              let t5_checked = check c ~ty:(Ty.check c (Inv t3)) t5 in
+              let t6_checked = check c ~ty:(Ty.check c (Inv t4)) t6 in
+              let e =
+                Coind
+                  ( t0_checked,
+                    t1_checked,
+                    t2_checked,
+                    t3_checked,
+                    t4_checked,
+                    t5_checked,
+                    t6_checked )
+              in
+              let ty = Ty.check c (Inv t0) in
+              let tm = { ty; e; unchecked = t; developped = Some t; name } in
+              Hashtbl.add tbl (c, t) tm;
+              tm
+          | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+              let t0_checked = check c t0 in
+              let _, x, y = Ty.retrieve_arrow t0_checked.ty in
+              let t1_checked = check c ~ty:(Ty.morphism y x) t1 in
+              let t2_checked = check c ~ty:(Ty.morphism y x) t2 in
+              let t3_checked =
+                check c ~ty:(lunit_ty c t0_checked t1_checked) t3
+              in
+              let t4_checked =
+                check c ~ty:(runit_ty c t0_checked t1_checked) t4
+              in
+              let t5_checked = check c ~ty:(Ty.check c (Inv t3)) t5 in
+              let t6_checked = check c ~ty:(Ty.check c (Inv t4)) t6 in
+              let e =
+                Rec
+                  ( t0_checked,
+                    t1_checked,
+                    t2_checked,
+                    t3_checked,
+                    t4_checked,
+                    t5_checked,
+                    t6_checked )
+              in
+              let ty = Ty.check c (Inv t0) in
+              let tm = { ty; e; unchecked = t; developped = Some t; name } in
+              Hashtbl.add tbl (c, t) tm;
               tm)
     in
     match ty with
@@ -515,6 +656,7 @@ end = struct
               let dt = Tm.develop t in
               let s = Sub.forget s in
               Unchecked.tm_apply_sub dt s
+          | _ -> tm.unchecked
         in
         tm.developped <- Some dev;
         dev
@@ -786,6 +928,79 @@ end = struct
     let pp_data = Display_maps.pp_data_rename (fun_pp_data pp) db_sub in
     let ty = Unchecked.ty_apply_sub (fun_ty ty) db_sub in
     (check ps ty pp_data, db_sub)
+end
+
+and Constr : sig
+  val arr :
+    Unchecked_types(Coh)(Tm).constr ->
+    Unchecked_types(Coh)(Tm).constr ->
+    Unchecked_types(Coh)(Tm).ty
+
+  val comp :
+    Unchecked_types(Coh)(Tm).constr ->
+    Unchecked_types(Coh)(Tm).constr ->
+    Unchecked_types(Coh)(Tm).constr
+
+  val id : Unchecked_types(Coh)(Tm).constr -> Unchecked_types(Coh)(Tm).constr
+end = struct
+  open Unchecked_types (Coh) (Tm)
+  open Unchecked (Coh) (Tm)
+  module Unchecked = Make (Coh) (Tm)
+
+  let to_tm (tm, _) = tm
+  let characteristic_sub_ps (tm, ty) = (tm, true) :: Unchecked.ty_to_sub_ps ty
+  let dim (_, ty) = Unchecked.dim_ty ty
+  let arr (tm1, ty1) (tm2, _) = Arr (ty1, tm1, tm2)
+
+  let rec bdry n (t, ty) =
+    match (n, ty) with
+    | 0, _ -> ((t, ty), (t, ty))
+    | 1, Arr (b, s, t) -> ((s, b), (t, b))
+    | _, Arr (b, s, _) -> bdry (n - 1) (s, b)
+    | _, _ -> assert false
+
+  let src n t = fst (bdry n t)
+  let tgt n t = snd (bdry n t)
+  let rec iter n f base = if n <= 0 then base else f (iter (n - 1) f base)
+
+  let suspend_coh i coh =
+    iter i
+      (Coh.apply_ps Unchecked.suspend_ps Unchecked.suspend_ty
+         Unchecked.suspend_pp_data)
+      coh
+
+  let id_coh =
+    Coh.check (Br []) (Arr (Obj, Var (Db 0), Var (Db 0))) ("builtin_id", 0, [])
+
+  let tdb i = Var (Var.Db i)
+  let tree i = Br (List.init i (fun _ -> Br []))
+  let x i = if i = 0 then (tdb 0, Obj) else (tdb ((2 * i) - 1), Obj)
+
+  let comp_n i =
+    let ps = tree i in
+    let pp_data = (Printf.sprintf "builtin_comp%i" i, 0, []) in
+    Coh.check_noninv ps (fst (x 0)) (fst (x 0)) pp_data
+
+  let comp_n constrs =
+    let constrs_rev = List.rev constrs in
+    let first = function [] -> assert false | h :: _ -> h in
+    let rec glue_subs = function
+      | [ c ] -> characteristic_sub_ps c
+      | c :: constrs ->
+          (to_tm c, true) :: (to_tm (tgt 1 c), false) :: glue_subs constrs
+      | [] -> assert false
+    in
+    let l = List.length constrs in
+    let c = first constrs in
+    let d = dim c in
+    ( Coh (suspend_coh (d - 1) (comp_n l), glue_subs constrs_rev),
+      arr (src 1 c) (tgt 1 (first constrs_rev)) )
+
+  let comp c1 c2 = comp_n [ c1; c2 ]
+
+  let id constr =
+    let d = dim constr in
+    (Coh (suspend_coh d id_coh, characteristic_sub_ps constr), arr constr constr)
 end
 
 module U = Unchecked (Coh) (Tm)

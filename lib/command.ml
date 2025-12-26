@@ -15,6 +15,10 @@ type cmd =
   | Decl of Var.t * (Var.t * tyR) list * tmR * tyR option
   | Decl_builtin of Var.t * builtin
   | Set of string * string
+  | CoindDef of
+      Var.t * (Var.t * tyR) list * tmR * tmR * tmR * tmR * tmR * tmR * tmR
+  | RecDef of
+      Var.t * (Var.t * tyR) list * tmR * tmR * tmR * tmR * tmR * tmR * tmR
 
 type prog = cmd list
 
@@ -32,6 +36,16 @@ let exec_decl v l e t =
   | Some ty ->
       let _, ty = Elaborate.ty l ty in
       Environment.add_let v c ~ty e
+
+let exec_coind v l t0 t1 t2 t3 t4 t5 t6 =
+  let c, e = Elaborate.tm l (CoindR (t0, t1, t2, t3, t4, t5, t6)) in
+  let c, e = if !Settings.postprocess then !postprocess_fn c e else (c, e) in
+  Environment.add_let v c e
+
+let exec_rec v l t0 t1 t2 t3 t4 t5 t6 =
+  let c, e = Elaborate.tm l (RecR (t0, t1, t2, t3, t4, t5, t6)) in
+  let c, e = if !Settings.postprocess then !postprocess_fn c e else (c, e) in
+  Environment.add_let v c e
 
 let exec_decl_builtin v b =
   let value = Environment.builtin_to_value b in
@@ -108,6 +122,42 @@ let exec_cmd cmd =
   | Decl (v, l, e, t) ->
       Io.command "let %s = %s" (Var.to_string v) (Raw.string_of_tm e);
       let tm, ty = exec_decl v l e t in
+      Io.info
+        (lazy
+          (Printf.sprintf "successfully defined term %s of type %s"
+             (Unchecked.tm_to_string tm)
+             (Unchecked.ty_to_string ty)))
+  | CoindDef (v, l, t0, t1, t2, t3, t4, t5, t6) ->
+      Io.command
+        "coind %s = \n\
+         \t term: %s \n\
+         \t left: %s \n\
+         \t right:%s \n\
+         \t ε: %s \n\
+         \t η : %s \n\
+         \t Iε: %s \n\
+         \t Iη : %s" (Var.to_string v) (Raw.string_of_tm t0)
+        (Raw.string_of_tm t1) (Raw.string_of_tm t2) (Raw.string_of_tm t3)
+        (Raw.string_of_tm t4) (Raw.string_of_tm t5) (Raw.string_of_tm t6);
+      let tm, ty = exec_coind v l t0 t1 t2 t3 t4 t5 t6 in
+      Io.info
+        (lazy
+          (Printf.sprintf "successfully defined term %s of type %s"
+             (Unchecked.tm_to_string tm)
+             (Unchecked.ty_to_string ty)))
+  | RecDef (v, l, t0, t1, t2, t3, t4, t5, t6) ->
+      Io.command
+        "rec %s = \n\
+         \t term: %s \n\
+         \t left: %s \n\
+         \t right:%s \n\
+         \t ε: %s \n\
+         \t η : %s \n\
+         \t Iε: %s \n\
+         \t Iη : %s" (Var.to_string v) (Raw.string_of_tm t0)
+        (Raw.string_of_tm t1) (Raw.string_of_tm t2) (Raw.string_of_tm t3)
+        (Raw.string_of_tm t4) (Raw.string_of_tm t5) (Raw.string_of_tm t6);
+      let tm, ty = exec_rec v l t0 t1 t2 t3 t4 t5 t6 in
       Io.info
         (lazy
           (Printf.sprintf "successfully defined term %s of type %s"
