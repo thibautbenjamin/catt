@@ -20,6 +20,7 @@ module rec Sub : sig
   val free_vars : t -> Var.t list
   val src : t -> Ctx.t
   val tgt : t -> Ctx.t
+  val args_of_dim : int -> t -> Tm.t list
 end = struct
   type t = {
     list : Tm.t list;
@@ -81,6 +82,16 @@ end = struct
         sub
 
   let forget s = s.unchecked
+
+  let args_of_dim n s =
+    let rec provide s tgt =
+      match (s, tgt) with
+      | [], [] -> []
+      | tm :: s, (_, ty) :: tgt when Ty.dim ty == n -> tm :: provide s tgt
+      | _ :: s, _ :: tgt -> provide s tgt
+      | _, _ -> assert false
+    in
+    provide s.list (Ctx.value s.tgt)
 end
 
 (** A context, associating a type to each context variable. *)
@@ -326,6 +337,7 @@ and Ty : sig
   val ctx : t -> Ctx.t
   val dim : t -> int
   val base_inv : t -> Tm.t
+  val inv : Tm.t -> Ty.t
 end = struct
   open Unchecked (Coh) (Tm)
   module Unchecked = Make (Coh) (Tm)
@@ -407,6 +419,14 @@ end = struct
   let forget t = t.unchecked
   let to_string ty = Unchecked.ty_to_string (forget ty)
 
+  let inv t =
+    match (Tm.typ t).e with
+    | Obj | Inv _ -> assert false
+    | Arr (_, _, _) ->
+        let e = Inv t in
+        let c = (Tm.typ t).c in
+        { c; e; unchecked = Inv (Tm.forget t) }
+
   (** Test for equality. *)
   let check_equal ty1 ty2 =
     Ctx.check_equal ty1.c ty2.c;
@@ -432,7 +452,7 @@ end = struct
     match t.e with
     | Obj -> 0
     | Arr (a, _, _) -> 1 + dim a
-    | Inv _ -> raise IsInv
+    | Inv u -> dim (Tm.typ u)
 end
 
 (** Operations on terms. *)
@@ -484,6 +504,7 @@ end = struct
     | Coh of Coh.t * Sub.t
     | App of Tm.t * Sub.t
     | IS of inv * Tm.t
+    | Can of Tm.t * Tm.t list
     | Coind of Tm.t * Tm.t * Tm.t * Tm.t * Tm.t * Tm.t * Tm.t
     | Rec of Tm.t * Tm.t * Tm.t * Tm.t * Tm.t * Tm.t * Tm.t
 
@@ -511,7 +532,7 @@ end = struct
     | Var x -> x :: fvty
     | Coh (_, sub) | App (_, sub) -> Sub.free_vars sub
     | IS (_, t) -> free_vars t
-    (* | Can (t, _) -> free_vars t *)
+    | Can (t, _) -> free_vars t
     | Coind (t, _, _, _, _, _, _) -> free_vars t
     | Rec (t, _, _, _, _, _, _) -> free_vars t
 
@@ -533,7 +554,16 @@ end = struct
     let ty = Constr.arr (Constr.comp t rinv) (Constr.id x) in
     Ty.check c ty
 
-  let rec check c ?ty ?name t =
+  let rec args_max_coh c tm =
+    let tm = Tm.develop tm in
+    let tm = check c tm in
+    match tm.e with
+    | Var _ | App _ | Coind _ | Rec _ | Can _ | IS _ -> assert false
+    | Coh (c, sub) ->
+        let n = Coh.dim c in
+        Sub.args_of_dim n sub
+
+  and check c ?ty ?name t =
     Io.info ~v:5
       (lazy
         (Printf.sprintf "building\n    kernel term %s in context %s"
@@ -573,7 +603,7 @@ end = struct
                     let linv = check c (IS (LInv, tm)) in
                     lunit_ty c base_inv linv
                 | Runit ->
-                    let rinv = check c (IS (LInv, tm)) in
+                    let rinv = check c (IS (RInv, tm)) in
                     runit_ty c base_inv rinv
                 | Lwit -> Ty.check c (Inv (IS (Lunit, tm)))
                 | Rwit -> Ty.check c (Inv (IS (Runit, tm)))
@@ -581,9 +611,26 @@ end = struct
               let tm = { ty; e; unchecked = t; developped = Some t; name } in
               Hashtbl.add tbl (c, t) tm;
               tm
-          | Can (_, _) ->
-              Error.fatal
-                "canonical invertibility structures not yet implemented"
+          | Can (tm, tms) ->
+              let tm = check c tm in
+              let args = args_max_coh c tm in
+              let rec check_next args invs =
+                match (args, invs) with
+                | t :: args, e :: invs ->
+                    let e = Tm.check c ~ty:(Ty.inv t) e in
+                    let invs = check_next args invs in
+                    e :: invs
+                | [], [] -> []
+                | _ ->
+                    Error.fatal
+                      "wrong number of arguments in canonical structure"
+              in
+              let tms = check_next args tms in
+              let e = Can (tm, tms) in
+              let ty = Ty.inv tm in
+              let tm = { ty; e; unchecked = t; developped = Some t; name } in
+              Hashtbl.add tbl (c, t) tm;
+              tm
           | Coind (t0, t1, t2, t3, t4, t5, t6) ->
               let t0_checked = check c t0 in
               let _, x, y = Ty.retrieve_arrow t0_checked.ty in
@@ -593,7 +640,7 @@ end = struct
                 check c ~ty:(lunit_ty c t0_checked t1_checked) t3
               in
               let t4_checked =
-                check c ~ty:(runit_ty c t0_checked t1_checked) t4
+                check c ~ty:(runit_ty c t0_checked t2_checked) t4
               in
               let t5_checked = check c ~ty:(Ty.check c (Inv t3)) t5 in
               let t6_checked = check c ~ty:(Ty.check c (Inv t4)) t6 in

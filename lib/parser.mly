@@ -34,7 +34,7 @@
 
 %token COH OBJ MOR WILD IGNORE
 %token INVTY LEFT RIGHT LUNIT RUNIT LWITNESS RWITNESS CAN COIND REC
-%token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP AT
+%token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP AT COMMA
 %token <string> BUILTIN
 %token <int*int*int> CONECOMP
 %token <int*int*int> CYLCOMP
@@ -76,8 +76,8 @@ cmd:
   | SET IDENT EQUAL IDENT { Set ($2,$4) }
   | SET IDENT EQUAL INT { Set ($2,$4) }
   | DECLARE IDENT EQUAL builtin { Decl_builtin (Var.make_var $2,$4) }
-  | COIND IDENT args_or_ps EQUAL tmexpr tmexpr tmexpr tmexpr tmexpr tmexpr tmexpr { CoindDef (Var.make_var $2, $3, $5, $6, $7, $8, $9, $10, $11) }
-  | REC IDENT args_or_ps EQUAL tmexpr tmexpr tmexpr tmexpr tmexpr tmexpr tmexpr { RecDef (Var.make_var $2, $3, $5, $6, $7, $8, $9, $10, $11) }
+  | COIND IDENT args_or_ps EQUAL LCUR tmexpr COMMA tmexpr COMMA tmexpr COMMA tmexpr COMMA tmexpr COMMA tmexpr COMMA tmexpr RCUR { CoindDef (Var.make_var $2, $3, $6, $8, $10, $12, $14, $16, $18) }
+  | REC IDENT args_or_ps EQUAL LCUR tmexpr COMMA tmexpr COMMA tmexpr COMMA tmexpr COMMA tmexpr COMMA tmexpr COMMA tmexpr RCUR { RecDef (Var.make_var $2, $3, $6, $8, $10, $12, $14, $16, $18) }
 
 args_of_same_ty :
   | IDENT COL tyexpr { [Var.make_var $1, $3], $3 }
@@ -132,14 +132,17 @@ simple_tmexpr:
   | INV LPAR tmexpr RPAR { Inverse $3 }
   | UNIT LPAR tmexpr RPAR { Unit $3 }
   | invertibility_destructor LPAR tmexpr RPAR { ISR($1, $3) }
-  | CAN LPAR tmexpr LBRA tmexpr_list RBRA RPAR { CanR($3, $5) }
+  | CAN LPAR tmexpr LCUR tmexpr_list RCUR RPAR { CanR($3, $5) }
   | IDENT { VarR (Var.make_var $1) }
   | builtin_tm { $1 }
 
-tmexpr_list:
-  | tmexpr tmexpr_list { $1::$2 }
-  | { [] }
+nonempty_tmexpr_list:
+  | tmexpr_list COMMA  tmexpr { $3::$1 }
+  | tmexpr { [ $1 ] }
 
+tmexpr_list :
+  | nonempty_tmexpr_list { $1 }
+  | { [] }
 
 functed_tmexpr:
   | LBRA maybe_functed_tmexpr RBRA { let t,n = $2 in t,n+1 }

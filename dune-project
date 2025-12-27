@@ -8,7 +8,7 @@
 (maintainers "Thibaut Benjamin <thibaut.benjamin@gmail.com>"
              "Chiara Sarti  <cs2197@cam.ac.uk>")
 (license MIT)
-(using menhir 2.0)
+(using menhir 3.0)
 (cram enable)
 (using coq 0.9)
 

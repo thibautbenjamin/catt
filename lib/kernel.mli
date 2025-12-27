@@ -53,6 +53,7 @@ and Ty : sig
   type t
 
   val forget : t -> Unchecked_types(Coh)(Tm).ty
+  val dim : t -> int
 end
 
 and Tm : sig

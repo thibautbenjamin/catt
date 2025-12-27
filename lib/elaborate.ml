@@ -41,25 +41,33 @@ module Constraints = struct
           (NotUnifiable (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
 
   and unify_tm cst tm1 tm2 =
-    match (tm1, tm2) with
-    | Meta_tm _, Meta_tm _ when tm1 = tm2 -> ()
-    | Meta_tm _, _ | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
-    | Var v1, Var v2 when v1 = v2 -> ()
-    | Coh (coh1, s1), Coh (coh2, s2) -> (
-        try
-          Coh.check_equal coh1 coh2;
-          unify_sub_ps cst s1 s2
-        with Invalid_argument _ ->
-          raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2)))
-    | App (t1, s1), App (t2, s2) when t1 == t2 -> unify_sub cst s1 s2
-    | App (t, s), ((App _ | Coh _ | Var _) as tm2)
-    | ((Coh _ | Var _) as tm2), App (t, s) ->
-        unify_tm cst (Unchecked.tm_apply_sub (Tm.develop t) s) tm2
-    | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
-        raise
-          (NotUnifiable (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
-    | _, _ ->
-        Error.fatal "unification not implemented for invertibility structures"
+    (* Io.debug "unfiying tm %s and %s" *)
+    (*   (Unchecked.tm_to_string tm1) *)
+    (*   (Unchecked.tm_to_string tm2); *)
+    if tm1 = tm2 then ()
+    else
+      match (tm1, tm2) with
+      | Meta_tm _, _ | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
+      | Var v1, Var v2 when v1 = v2 -> ()
+      | Coh (coh1, s1), Coh (coh2, s2) -> (
+          try
+            Coh.check_equal coh1 coh2;
+            unify_sub_ps cst s1 s2
+          with Invalid_argument _ ->
+            raise (NotUnifiable (Coh.to_string coh1, Coh.to_string coh2)))
+      | App (t1, s1), App (t2, s2) when t1 == t2 -> unify_sub cst s1 s2
+      | App (t, s), ((App _ | Coh _ | Var _) as tm2)
+      | ((Coh _ | Var _) as tm2), App (t, s) ->
+          unify_tm cst (Unchecked.tm_apply_sub (Tm.develop t) s) tm2
+      | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
+          raise
+            (NotUnifiable
+               (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
+      | _, _ ->
+          Error.fatal
+            (Printf.sprintf "trying to unify %s and %s"
+               (Unchecked.tm_to_string tm1)
+               (Unchecked.tm_to_string tm2))
 
   and unify_sub cst s1 s2 =
     match (s1, s2) with
@@ -111,6 +119,20 @@ module Constraints = struct
             List.map
               (fun (x, (t, e)) -> (x, (tm_replace_meta_tm (i, tm') t, e)))
               s )
+    | Can (tm, tms) ->
+        Can
+          ( tm_replace_meta_tm (i, tm') tm,
+            List.map (tm_replace_meta_tm (i, tm')) tms )
+    | IS (inv, u) -> IS (inv, tm_replace_meta_tm (i, tm') u)
+    | Coind (t0, t1, t2, t3, t4, t5, t6) ->
+        Coind
+          ( tm_replace_meta_tm (i, tm') t0,
+            tm_replace_meta_tm (i, tm') t1,
+            tm_replace_meta_tm (i, tm') t2,
+            tm_replace_meta_tm (i, tm') t3,
+            tm_replace_meta_tm (i, tm') t4,
+            tm_replace_meta_tm (i, tm') t5,
+            tm_replace_meta_tm (i, tm') t6 )
     | _ ->
         Error.fatal
           "resolution of meta_variables in invertibility\n\
@@ -194,8 +216,26 @@ module Constraints = struct
     aux c { uty = []; utm = [] }
 end
 
+let inverse_ty ty =
+  match ty with
+  | Obj | Inv _ -> assert false
+  | Arr (ty, u, v) -> Arr (ty, v, u)
+  | Meta_ty _ -> Meta.new_ty ()
+
+let lunit_ty tm linv =
+  let y = Construct.tgt 1 tm in
+  Construct.arr (Construct.comp linv tm) (Construct.id y)
+
+let runit_ty tm rinv =
+  let x = Construct.src 1 tm in
+  Construct.arr (Construct.comp tm rinv) (Construct.id x)
+
 module Constraints_typing = struct
   let rec tm ctx meta_ctx t cst =
+    (* Io.debug "constraint typing term %s in ctx %s, meta_ctx %s" *)
+    (*   (Unchecked.tm_to_string t) *)
+    (*   (Unchecked.ctx_to_string ctx) *)
+    (*   (Unchecked.meta_ctx_to_string meta_ctx); *)
     Io.info ~v:5
       (lazy
         (Printf.sprintf "constraint typing term %s in ctx %s, meta_ctx %s"
@@ -222,6 +262,41 @@ module Constraints_typing = struct
         let ty = Ty.forget (Tm.typ t) in
         let s = sub ctx meta_ctx s tgt cst in
         (App (t, s), Unchecked.ty_apply_sub ty s)
+    | Can (t, tms) ->
+        let t, _ = tm ctx meta_ctx t cst in
+        let tms = List.map (fun t -> fst (tm ctx meta_ctx t cst)) tms in
+        (* ignore the constraints on tms : no elaboration *)
+        (Can (t, tms), Inv t)
+    | IS (inv, e) ->
+        let e, te = tm ctx meta_ctx e cst in
+        let u = match te with Inv u -> u | _ -> assert false in
+        let u, tu = tm ctx meta_ctx u cst in
+        let tui = inverse_ty tu in
+        let ty =
+          match inv with
+          | LInv -> tui
+          | RInv -> tui
+          | Lunit -> lunit_ty (u, tu) (IS (LInv, e), tui)
+          | Runit -> runit_ty (u, tu) (IS (RInv, e), tui)
+          | Lwit -> Inv (IS (Lunit, e))
+          | Rwit -> Inv (IS (Runit, e))
+        in
+        (IS (inv, e), ty)
+    | Coind (t0, t1, t2, t3, t4, t5, t6) ->
+        let t0, ty0 = tm ctx meta_ctx t0 cst in
+        let t1, ty1 = tm ctx meta_ctx t1 cst in
+        let t2, ty2 = tm ctx meta_ctx t2 cst in
+        let t3, ty3 = tm ctx meta_ctx t3 cst in
+        let t4, ty4 = tm ctx meta_ctx t4 cst in
+        let t5, ty5 = tm ctx meta_ctx t5 cst in
+        let t6, ty6 = tm ctx meta_ctx t6 cst in
+        Constraints.unify_ty cst (inverse_ty ty0) ty1;
+        Constraints.unify_ty cst (inverse_ty ty0) ty2;
+        Constraints.unify_ty cst (lunit_ty (t0, ty0) (t1, ty1)) ty3;
+        Constraints.unify_ty cst (runit_ty (t0, ty0) (t2, ty2)) ty4;
+        Constraints.unify_ty cst (Inv t3) ty5;
+        Constraints.unify_ty cst (Inv t4) ty6;
+        (Coind (t0, t1, t2, t3, t4, t5, t6), Inv t0)
     | _ -> Error.fatal "invertibility structures in constraint typing"
 
   and sub src meta_ctx s tgt cst =

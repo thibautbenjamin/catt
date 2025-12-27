@@ -16,6 +16,7 @@ rule token = parse
   | "can" { CAN }
   | "coind" { COIND }
   | "rec" { REC }
+  | "," { COMMA }
   | "check" { CHECK }
   | "let" { LET }
   | "in" { IN }

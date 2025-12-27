@@ -689,31 +689,33 @@ struct
       | _ -> raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
 
     and check_equal_tm tm1 tm2 =
-      match (tm1, tm2) with
-      | Var v1, Var v2 -> Var.check_equal v1 v2
-      | Meta_tm i, Meta_tm j ->
-          if i <> j then raise (NotEqual (string_of_int i, string_of_int j))
-      | Coh (coh1, s1), Coh (coh2, s2) ->
-          Coh.check_equal coh1 coh2;
-          check_equal_sub_ps s1 s2
-      | App (t1, s1), App (t2, s2) when t1 == t2 ->
-          check_equal_sub_on_support t1 s1 s2
-      | App (t, s), ((Coh _ | App _ | Var _) as tm2)
-      | ((Coh _ | Var _) as tm2), App (t, s) ->
-          let c = Tm.develop t in
-          check_equal_tm (tm_apply_sub c s) tm2
-      | Var _, Coh _
-      | Coh _, Var _
-      | Meta_tm _, Var _
-      | Meta_tm _, Coh _
-      | Var _, Meta_tm _
-      | Coh _, Meta_tm _
-      | App _, Meta_tm _
-      | Meta_tm _, App _ ->
-          raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
-      | IS (inv, u), IS (inv', v) when inv = inv' -> check_equal_tm u v
-      | IS _, IS _ -> raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
-      | _, _ -> Error.fatal "Must compare only reduced terms"
+      if tm1 == tm2 then ()
+      else
+        match (tm1, tm2) with
+        | Var v1, Var v2 -> Var.check_equal v1 v2
+        | Meta_tm i, Meta_tm j ->
+            if i <> j then raise (NotEqual (string_of_int i, string_of_int j))
+        | Coh (coh1, s1), Coh (coh2, s2) ->
+            Coh.check_equal coh1 coh2;
+            check_equal_sub_ps s1 s2
+        | App (t1, s1), App (t2, s2) when t1 == t2 ->
+            check_equal_sub_on_support t1 s1 s2
+        | App (t, s), ((Coh _ | App _ | Var _) as tm2)
+        | ((Coh _ | Var _) as tm2), App (t, s) ->
+            let c = Tm.develop t in
+            check_equal_tm (tm_apply_sub c s) tm2
+        | Var _, Coh _
+        | Coh _, Var _
+        | Meta_tm _, Var _
+        | Meta_tm _, Coh _
+        | Var _, Meta_tm _
+        | Coh _, Meta_tm _
+        | App _, Meta_tm _
+        | Meta_tm _, App _ ->
+            raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
+        | IS (inv, u), IS (inv', v) when inv = inv' -> check_equal_tm u v
+        | IS _, IS _ -> raise (NotEqual (tm_to_string tm1, tm_to_string tm2))
+        | _, _ -> Error.fatal "Must compare only reduced terms"
 
     and check_equal_sub_ps s1 s2 =
       List.iter2 (fun (t1, _) (t2, _) -> check_equal_tm t1 t2) s1 s2
@@ -781,7 +783,8 @@ struct
 
     let rec dim_ctx = function
       | [] -> 0
-      | (_, (t, _)) :: c -> max (dim_ctx c) (dim_ty t)
+      | (_, (t, _)) :: c -> (
+          match t with Inv _ -> dim_ctx c | _ -> max (dim_ctx c) (dim_ty t))
 
     let rec ty_to_sub_ps a =
       match a with

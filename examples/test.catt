@@ -1,0 +1,26 @@
+let idU (x : *) : Inv(id x) = can (id x {})
+
+let compididU (x : *) : Inv(comp (id x) (id x)) =
+    can ( (comp (id x) (id x)) { (idU x) , (idU x) })
+
+let compinv (x : *) (y : *) (z : *)
+            (f : x -> y) (g : y -> z)
+            (e : Inv (f)) (e' : Inv (g)) =
+    can ( (comp f g) { e , e' })
+
+coh assoc (x(f)y(g)z(h)w) : comp (comp f g) h -> comp f (comp g h)
+coh assoc- (x(f)y(g)z(h)w) : comp f (comp g h) -> comp (comp f g) h
+
+coind 2of6
+      (x : *) (y : *) (z : *) (w : *)
+      (f : x -> y) (g : y -> z) (h : z -> w)
+      (e : Inv(comp f g)) (e' : Inv(comp g h)) =
+      { g ,
+        comp (left (e)) f,
+        comp h (right (e')) ,
+        comp (assoc (left (e)) f g) (ε (e)) ,
+        comp (assoc- g h (right (e'))) (η (e')) ,
+        can (comp (assoc (left (e)) f g) (ε (e))  { can (assoc (left (e)) f g {}) , Iε (e) } ) ,
+        can (
+        comp (assoc- g h (right (e'))) (η (e')) { can (assoc- g h (right (e')) {}) , Iη (e') } )
+}

@@ -41,9 +41,10 @@ let add_let v c ?ty t =
     let pp_data = (Var.to_string v, 0, []) in
     let kc = Kernel.Ctx.check c in
     let tm = Kernel.check_term kc ?ty ~name:pp_data t in
-    let ty = Kernel.(Ty.forget (Tm.typ tm)) in
+    let ty = Kernel.Tm.typ tm in
+    let dim_output = Kernel.Ty.dim ty in
+    let ty = Kernel.Ty.forget ty in
     let dim_input = Unchecked.dim_ctx c in
-    let dim_output = Unchecked.dim_ty ty in
     Io.info ~v:4
       (lazy
         (Printf.sprintf "term %s of type %s added to environment"

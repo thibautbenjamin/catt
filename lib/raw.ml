@@ -165,7 +165,7 @@ let rec dim_ty ctx = function
   | ObjR -> 0
   | ArrR (u, _) -> 1 + dim_tm ctx u
   | Letin_ty _ -> Error.fatal "letin_ty constructors cannot appear here"
-  | InvR _ -> Error.fatal "dimension of invertibility structure undefined"
+  | InvR u -> dim_tm ctx u
 
 and dim_tm ctx = function
   | VarR v -> (

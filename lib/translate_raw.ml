@@ -76,7 +76,18 @@ let rec tm t =
   | ISR (inv, t) ->
       let t, meta_ctx = tm t in
       (IS (inv, t), meta_ctx)
-  | CanR (_, _) -> Error.fatal "TODO"
+  | CanR (t, tms) ->
+      let t, meta = tm t in
+      let rec translate_list meta tms =
+        match tms with
+        | [] -> ([], meta)
+        | t :: tms ->
+            let t, meta_t = tm t in
+            let tms, meta = translate_list (List.append meta_t meta) tms in
+            (t :: tms, meta)
+      in
+      let tms, meta = translate_list meta tms in
+      (Can (t, tms), meta)
   | CoindR (t0, t1, t2, t3, t4, t5, t6) ->
       let t0, meta_0 = tm t0 in
       let t1, meta_1 = tm t1 in
