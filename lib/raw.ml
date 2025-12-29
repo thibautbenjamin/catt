@@ -74,6 +74,8 @@ and string_of_tm e =
          \t Iε: %s \n\
          \t Iη : %s" (string_of_tm t0) (string_of_tm t1) (string_of_tm t2)
         (string_of_tm t3) (string_of_tm t4) (string_of_tm t5) (string_of_tm t6)
+  | LIH -> "IHε"
+  | RIH -> "IHη"
 
 and string_of_tms list =
   match list with
@@ -121,6 +123,8 @@ let rec replace_tm l e =
           replace_tm l t4,
           replace_tm l t5,
           replace_tm l t6 )
+  | LIH -> LIH
+  | RIH -> RIH
 
 and replace_sub l s =
   match s with
@@ -156,18 +160,22 @@ and var_in_tm x tm =
   | Letin_tm _ -> Error.fatal "letin_tm constructors cannot appear here"
   | ISR (_, u) -> var_in_tm x u
   | CoindR (t, _, _, _, _, _, _) | RecR (t, _, _, _, _, _, _) -> var_in_tm x t
+  | LIH | RIH -> false
   | CanR _ ->
       Error.fatal
         "testing if a variable belongs to an invertibility structure is not \
          defined"
 
-let rec dim_ty ctx = function
+let rec dim_ty ?dim_ih ctx ty =
+  match ty with
   | ObjR -> 0
-  | ArrR (u, _) -> 1 + dim_tm ctx u
+  | ArrR (u, _) -> 1 + dim_tm ?dim_ih ctx u
   | Letin_ty _ -> Error.fatal "letin_ty constructors cannot appear here"
-  | InvR u -> dim_tm ctx u
+  | InvR u -> dim_tm ?dim_ih ctx u
 
-and dim_tm ctx = function
+and dim_tm ?dim_ih ctx tm =
+  let dim_tm = dim_tm ?dim_ih in
+  match tm with
   | VarR v -> (
       try dim_ty ctx (List.assoc v ctx)
       with Not_found -> Error.unknown_id (Var.to_string v))
@@ -187,14 +195,18 @@ and dim_tm ctx = function
   | Inverse t -> dim_tm ctx t
   | Unit t -> dim_tm ctx t + 1
   | Letin_tm _ -> Error.fatal "letin_tm constructors cannot appear here"
+  | LIH | RIH -> (
+      match dim_ih with
+      | Some d -> d
+      | None ->
+          Error.fatal "inductive hypothesis outside of inductive definition")
   | CanR _ | CoindR _ | RecR _ ->
       Error.fatal "dimension of invertibility structure undefined"
   | ISR (inv, t) -> (
       match inv with
       | LInv | RInv -> dim_tm ctx t
       | Lunit | Runit -> dim_tm ctx t + 1
-      | Lwit | Rwit ->
-          Error.fatal "dimension of invertibility structure undefined")
+      | Lwit | Rwit -> dim_tm ctx t + 1)
 
 and dim_builtin = function
   | Comp -> 1
@@ -202,17 +214,25 @@ and dim_builtin = function
   | Conecomp (n, _, m) | Cylcomp (n, _, m) -> max n m
   | Cylstack n -> n
 
-let rec dim_sub ctx = function
+let rec dim_sub ?dim_ih ctx s =
+  let dim_sub = dim_sub ?dim_ih in
+  let dim_tm = dim_tm ?dim_ih in
+  match s with
   | [] -> (0, 0)
   | (t, f) :: s ->
       let d1, f1 = dim_sub ctx s in
       let d2 = dim_tm ctx t in
       (max d1 d2, max f f1)
 
-let rec infer_susp_tm ctx = function
+let rec dim_ctx ctx =
+  match ctx with [] -> 0 | (_, ty) :: ctx -> max (dim_ty ctx ty) (dim_ctx ctx)
+
+let rec infer_susp_tm ?dim_ih ctx t =
+  let infer = infer_susp_tm ?dim_ih ctx in
+  match t with
   | VarR v -> VarR v
   | Sub (tmR, s, i, b) -> (
-      let s = infer_susp_sub ctx s in
+      let s = infer_susp_sub ?dim_ih ctx s in
       match i with
       | None ->
           let inp =
@@ -225,43 +245,42 @@ let rec infer_susp_tm ctx = function
                 | Conecomp (n, _, _) | Cylcomp (n, _, _) | Cylstack n -> n)
             | _ -> assert false
           in
-          let d, func = dim_sub ctx s in
+          let d, func = dim_sub ?dim_ih ctx s in
           let newsusp = Some (d - inp - func) in
           Sub (tmR, s, newsusp, b)
       | Some _ -> Sub (tmR, s, i, b))
   | BuiltinR b -> BuiltinR b
-  | Op (l, tm) -> Op (l, infer_susp_tm ctx tm)
-  | Inverse t -> Inverse (infer_susp_tm ctx t)
-  | Unit t -> Unit (infer_susp_tm ctx t)
+  | Op (l, tm) -> Op (l, infer tm)
+  | Inverse t -> Inverse (infer t)
+  | Unit t -> Unit (infer t)
   | Meta -> Meta
   | Letin_tm _ -> assert false
-  | ISR (inv, t) -> ISR (inv, infer_susp_tm ctx t)
-  | CanR (t, tms) -> CanR (infer_susp_tm ctx t, List.map (infer_susp_tm ctx) tms)
+  | ISR (inv, t) -> ISR (inv, infer t)
+  | CanR (t, tms) -> CanR (infer t, List.map infer tms)
   | CoindR (t0, t1, t2, t3, t4, t5, t6) ->
       CoindR
-        ( infer_susp_tm ctx t0,
-          infer_susp_tm ctx t1,
-          infer_susp_tm ctx t2,
-          infer_susp_tm ctx t3,
-          infer_susp_tm ctx t4,
-          infer_susp_tm ctx t5,
-          infer_susp_tm ctx t6 )
+        (infer t0, infer t1, infer t2, infer t3, infer t4, infer t5, infer t6)
   | RecR (t0, t1, t2, t3, t4, t5, t6) ->
+      let d = dim_ctx ctx in
       RecR
-        ( infer_susp_tm ctx t0,
-          infer_susp_tm ctx t1,
-          infer_susp_tm ctx t2,
-          infer_susp_tm ctx t3,
-          infer_susp_tm ctx t4,
-          infer_susp_tm ctx t5,
-          infer_susp_tm ctx t6 )
+        ( infer t0,
+          infer t1,
+          infer t2,
+          infer t3,
+          infer t4,
+          infer_susp_tm ~dim_ih:(d + 1) ctx t5,
+          infer_susp_tm ~dim_ih:(d + 1) ctx t6 )
+  | LIH -> LIH
+  | RIH -> RIH
 
-and infer_susp_sub ctx = function
+and infer_susp_sub ?dim_ih ctx = function
   | [] -> []
-  | (tm, i) :: s -> (infer_susp_tm ctx tm, i) :: infer_susp_sub ctx s
+  | (tm, i) :: s ->
+      (infer_susp_tm ?dim_ih ctx tm, i) :: infer_susp_sub ?dim_ih ctx s
 
-let infer_susp_ty ctx = function
+let infer_susp_ty ?dim_ih ctx = function
   | ObjR -> ObjR
-  | ArrR (u, v) -> ArrR (infer_susp_tm ctx u, infer_susp_tm ctx v)
+  | ArrR (u, v) ->
+      ArrR (infer_susp_tm ?dim_ih ctx u, infer_susp_tm ?dim_ih ctx v)
   | Letin_ty _ -> assert false
-  | InvR u -> InvR (infer_susp_tm ctx u)
+  | InvR u -> InvR (infer_susp_tm ?dim_ih ctx u)

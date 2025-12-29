@@ -35,16 +35,15 @@ module Constraints = struct
         unify_tm cst u1 u2;
         unify_tm cst v1 v2
     | Meta_ty _, _ | _, Meta_ty _ -> Queue.enqueue cst.ty (ty1, ty2)
-    | Inv u, Inv v -> unify_tm cst u v
+    | Inv (a, u), Inv (b, v) ->
+        unify_ty cst a b;
+        unify_tm cst u v
     | Arr (_, _, _), Obj | Obj, Arr (_, _, _) | _ ->
         raise
           (NotUnifiable (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
 
   and unify_tm cst tm1 tm2 =
-    (* Io.debug "unfiying tm %s and %s" *)
-    (*   (Unchecked.tm_to_string tm1) *)
-    (*   (Unchecked.tm_to_string tm2); *)
-    if tm1 = tm2 then ()
+    if tm1 == tm2 then ()
     else
       match (tm1, tm2) with
       | Meta_tm _, _ | _, Meta_tm _ -> Queue.enqueue cst.tm (tm1, tm2)
@@ -59,15 +58,12 @@ module Constraints = struct
       | App (t, s), ((App _ | Coh _ | Var _) as tm2)
       | ((Coh _ | Var _) as tm2), App (t, s) ->
           unify_tm cst (Unchecked.tm_apply_sub (Tm.develop t) s) tm2
+      | IS (inv1, u), IS (inv2, v) when inv1 = inv2 -> unify_tm cst u v
       | Var _, Coh _ | Coh _, Var _ | Var _, Var _ ->
           raise
             (NotUnifiable
                (Unchecked.tm_to_string tm1, Unchecked.tm_to_string tm2))
-      | _, _ ->
-          Error.fatal
-            (Printf.sprintf "trying to unify %s and %s"
-               (Unchecked.tm_to_string tm1)
-               (Unchecked.tm_to_string tm2))
+      | _, _ -> ()
 
   and unify_sub cst s1 s2 =
     match (s1, s2) with
@@ -101,7 +97,7 @@ module Constraints = struct
     | Meta_ty _ -> ty
     | Obj -> Obj
     | Arr (a, u, v) -> Arr (ty_replace_meta_ty (i, ty') a, u, v)
-    | Inv u -> Inv u
+    | Inv (a, u) -> Inv (ty_replace_meta_ty (i, ty') a, u)
 
   let rec tm_replace_meta_tm (i, tm') tm =
     match tm with
@@ -133,10 +129,15 @@ module Constraints = struct
             tm_replace_meta_tm (i, tm') t4,
             tm_replace_meta_tm (i, tm') t5,
             tm_replace_meta_tm (i, tm') t6 )
-    | _ ->
-        Error.fatal
-          "resolution of meta_variables in invertibility\n\
-          \    structures not implemented"
+    | Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)) ->
+        Rec
+          ( tm_replace_meta_tm (i, tm') t0,
+            tm_replace_meta_tm (i, tm') t1,
+            tm_replace_meta_tm (i, tm') t2,
+            tm_replace_meta_tm (i, tm') t3,
+            tm_replace_meta_tm (i, tm') t4,
+            (v0, v1, tm_replace_meta_tm (i, tm') t5),
+            (v2, v3, tm_replace_meta_tm (i, tm') t6) )
 
   let rec ty_replace_meta_tm (i, tm') ty =
     match ty with
@@ -147,7 +148,7 @@ module Constraints = struct
           ( ty_replace_meta_tm (i, tm') a,
             tm_replace_meta_tm (i, tm') u,
             tm_replace_meta_tm (i, tm') v )
-    | Inv u -> Inv (tm_replace_meta_tm (i, tm') u)
+    | Inv (a, u) -> Inv (a, tm_replace_meta_tm (i, tm') u)
 
   let queue_map_both f = Queue.map ~f:(fun (x, y) -> (f x, f y))
 
@@ -230,12 +231,39 @@ let runit_ty tm rinv =
   let x = Construct.src 1 tm in
   Construct.arr (Construct.comp tm rinv) (Construct.id x)
 
+let l_equiv_incl ctx =
+  let sc = Unchecked.suspend_ctx ctx in
+  match ctx with
+  | (v, (Inv (a, u), _)) :: _ ->
+      let src = Construct.comp (IS (LInv, Var v), inverse_ty a) (u, a) in
+      let y = Construct.id (Construct.tgt 1 (u, a)) in
+      let l =
+        (IS (Lwit, Var v), true)
+        :: (IS (Lunit, Var v), false)
+        :: (fst y, false)
+        :: Construct.characteristic_sub_ps src
+      in
+      List.map2 (fun (x, (_, b)) (t, _) -> (x, (t, b))) sc l
+  | _ -> assert false
+
+let r_equiv_incl ctx =
+  let sc = Unchecked.suspend_ctx ctx in
+  match ctx with
+  | (v, (Inv (a, u), _)) :: _ ->
+      let x = Construct.id (Construct.src 1 (u, a)) in
+      let src = Construct.comp (u, a) (IS (RInv, Var v), inverse_ty a) in
+      let l =
+        (IS (Rwit, Var v), true)
+        :: (IS (Runit, Var v), false)
+        :: (fst x, false)
+        :: Construct.characteristic_sub_ps src
+      in
+      let res = List.map2 (fun (x, (_, b)) (t, _) -> (x, (t, b))) sc l in
+      res
+  | _ -> assert false
+
 module Constraints_typing = struct
   let rec tm ctx meta_ctx t cst =
-    (* Io.debug "constraint typing term %s in ctx %s, meta_ctx %s" *)
-    (*   (Unchecked.tm_to_string t) *)
-    (*   (Unchecked.ctx_to_string ctx) *)
-    (*   (Unchecked.meta_ctx_to_string meta_ctx); *)
     Io.info ~v:5
       (lazy
         (Printf.sprintf "constraint typing term %s in ctx %s, meta_ctx %s"
@@ -263,14 +291,13 @@ module Constraints_typing = struct
         let s = sub ctx meta_ctx s tgt cst in
         (App (t, s), Unchecked.ty_apply_sub ty s)
     | Can (t, tms) ->
-        let t, _ = tm ctx meta_ctx t cst in
+        let t, a = tm ctx meta_ctx t cst in
         let tms = List.map (fun t -> fst (tm ctx meta_ctx t cst)) tms in
         (* ignore the constraints on tms : no elaboration *)
-        (Can (t, tms), Inv t)
+        (Can (t, tms), Inv (a, t))
     | IS (inv, e) ->
         let e, te = tm ctx meta_ctx e cst in
-        let u = match te with Inv u -> u | _ -> assert false in
-        let u, tu = tm ctx meta_ctx u cst in
+        let u, tu = match te with Inv (a, u) -> (u, a) | _ -> assert false in
         let tui = inverse_ty tu in
         let ty =
           match inv with
@@ -278,8 +305,8 @@ module Constraints_typing = struct
           | RInv -> tui
           | Lunit -> lunit_ty (u, tu) (IS (LInv, e), tui)
           | Runit -> runit_ty (u, tu) (IS (RInv, e), tui)
-          | Lwit -> Inv (IS (Lunit, e))
-          | Rwit -> Inv (IS (Runit, e))
+          | Lwit -> Inv (lunit_ty (u, tu) (IS (LInv, e), tui), IS (Lunit, e))
+          | Rwit -> Inv (runit_ty (u, tu) (IS (RInv, e), tui), IS (Runit, e))
         in
         (IS (inv, e), ty)
     | Coind (t0, t1, t2, t3, t4, t5, t6) ->
@@ -294,10 +321,37 @@ module Constraints_typing = struct
         Constraints.unify_ty cst (inverse_ty ty0) ty2;
         Constraints.unify_ty cst (lunit_ty (t0, ty0) (t1, ty1)) ty3;
         Constraints.unify_ty cst (runit_ty (t0, ty0) (t2, ty2)) ty4;
-        Constraints.unify_ty cst (Inv t3) ty5;
-        Constraints.unify_ty cst (Inv t4) ty6;
-        (Coind (t0, t1, t2, t3, t4, t5, t6), Inv t0)
-    | _ -> Error.fatal "invertibility structures in constraint typing"
+        Constraints.unify_ty cst (Inv (ty3, t3)) ty5;
+        Constraints.unify_ty cst (Inv (ty4, t4)) ty6;
+        (Coind (t0, t1, t2, t3, t4, t5, t6), Inv (ty0, t0))
+    | Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)) ->
+        let t0, ty0 = tm ctx meta_ctx t0 cst in
+        let t1, ty1 = tm ctx meta_ctx t1 cst in
+        let t2, ty2 = tm ctx meta_ctx t2 cst in
+        let t3, ty3 = tm ctx meta_ctx t3 cst in
+        let t4, ty4 = tm ctx meta_ctx t4 cst in
+        let ih v w =
+          ( w,
+            ( Unchecked.ty_apply_sub
+                (Unchecked.suspend_ty (Inv (ty0, t0)))
+                (r_equiv_incl ctx),
+              true ) )
+          :: ( v,
+               ( Unchecked.ty_apply_sub
+                   (Unchecked.suspend_ty (Inv (ty0, t0)))
+                   (l_equiv_incl ctx),
+                 true ) )
+          :: ctx
+        in
+        let t5, ty5 = tm (ih v0 v1) meta_ctx t5 cst in
+        let t6, ty6 = tm (ih v2 v3) meta_ctx t6 cst in
+        Constraints.unify_ty cst (inverse_ty ty0) ty1;
+        Constraints.unify_ty cst (inverse_ty ty0) ty2;
+        Constraints.unify_ty cst (lunit_ty (t0, ty0) (t1, ty1)) ty3;
+        Constraints.unify_ty cst (runit_ty (t0, ty0) (t2, ty2)) ty4;
+        Constraints.unify_ty cst (Inv (ty3, t3)) ty5;
+        Constraints.unify_ty cst (Inv (ty4, t4)) ty6;
+        (Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)), Inv (ty0, t0))
 
   and sub src meta_ctx s tgt cst =
     Io.info ~v:5
@@ -334,9 +388,11 @@ module Constraints_typing = struct
         Constraints.unify_ty cst a tv;
         Arr (a, u, v)
     | Meta_ty _ -> t
-    | Inv u ->
-        let u, _ = tm ctx meta_ctx u cst in
-        Inv u
+    | Inv (a, u) ->
+        let a = ty ctx meta_ctx a cst in
+        let u, tu = tm ctx meta_ctx u cst in
+        Constraints.unify_ty cst a tu;
+        Inv (a, u)
 
   let tm ctx meta_ctx t cst = fst (tm ctx meta_ctx t cst)
 

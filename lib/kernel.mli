@@ -171,8 +171,8 @@ module Unchecked : sig
   val sphere_inc : int -> sub
   val disc_src : int -> sub_ps
   val disc_tgt : int -> sub_ps
-  val develop_tm : tm -> tm
-  val develop_ty : ty -> ty
+  val develop_tm : ctx -> tm -> tm
+  val develop_ty : ctx -> ty -> ty
 end
 
 module Display_maps : sig

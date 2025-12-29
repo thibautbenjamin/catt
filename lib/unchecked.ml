@@ -61,15 +61,15 @@ struct
               tm_do_on_variables t4 f,
               tm_do_on_variables t5 f,
               tm_do_on_variables t6 f )
-      | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+      | Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)) ->
           Rec
             ( tm_do_on_variables t0 f,
               tm_do_on_variables t1 f,
               tm_do_on_variables t2 f,
               tm_do_on_variables t3 f,
               tm_do_on_variables t4 f,
-              tm_do_on_variables t5 f,
-              tm_do_on_variables t6 f )
+              (v0, v1, tm_do_on_variables t5 f),
+              (v2, v3, tm_do_on_variables t6 f) )
 
     and sub_do_on_variables s f =
       List.map (fun (v, (t, e)) -> (v, (tm_do_on_variables t f, e))) s
@@ -86,7 +86,7 @@ struct
             ( ty_do_on_variables a f,
               tm_do_on_variables u f,
               tm_do_on_variables v f )
-      | Inv u -> Inv (tm_do_on_variables u f)
+      | Inv (a, u) -> Inv (ty_do_on_variables a f, tm_do_on_variables u f)
 
     let var_apply_sub v s =
       match List.assoc_opt v s with Some (t, _) -> t | None -> Var v
@@ -178,7 +178,7 @@ struct
       | Obj -> Arr (Obj, Var (Db 0), Var (Db 1))
       | Arr (a, v, u) -> Arr (suspend_ty a, suspend_tm v, suspend_tm u)
       | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
-      | Inv u -> Inv (suspend_tm u)
+      | Inv (a, u) -> Inv (suspend_ty a, suspend_tm u)
 
     and suspend_tm = function
       | Var v -> Var (Var.suspend v)
@@ -199,15 +199,15 @@ struct
               suspend_tm t4,
               suspend_tm t5,
               suspend_tm t6 )
-      | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+      | Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)) ->
           Rec
             ( suspend_tm t0,
               suspend_tm t1,
               suspend_tm t2,
               suspend_tm t3,
               suspend_tm t4,
-              suspend_tm t5,
-              suspend_tm t6 )
+              (v0, v1, suspend_tm t5),
+              (v2, v3, suspend_tm t6) )
 
     and suspend_coh c =
       let p, t, pp_data = Coh.forget c in
@@ -478,7 +478,7 @@ struct
               Printf.sprintf "%s | %s -> %s" (ty_to_string a) (tm_to_string u)
                 (tm_to_string v)
             else Printf.sprintf "%s -> %s" (tm_to_string u) (tm_to_string v)
-        | Inv u -> Printf.sprintf "Inv(%s)" (tm_to_string u)
+        | Inv (_, u) -> Printf.sprintf "Inv(%s)" (tm_to_string u)
 
       and tm_to_string = function
         | Var v -> Var.to_string v
@@ -506,7 +506,7 @@ struct
             Printf.sprintf "Coind(%s; %s, %s, %s, %s, %s, %s)" (tm_to_string t0)
               (tm_to_string t1) (tm_to_string t2) (tm_to_string t3)
               (tm_to_string t4) (tm_to_string t5) (tm_to_string t6)
-        | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+        | Rec (t0, t1, t2, t3, t4, (_, _, t5), (_, _, t6)) ->
             Printf.sprintf "Rec(%s; %s, %s, %s, %s, %s, %s)" (tm_to_string t0)
               (tm_to_string t1) (tm_to_string t2) (tm_to_string t3)
               (tm_to_string t4) (tm_to_string t5) (tm_to_string t6)
@@ -685,7 +685,9 @@ struct
       | Obj, Meta_ty _
       | Arr _, Meta_ty _ ->
           raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
-      | Inv u, Inv v -> check_equal_tm u v
+      | Inv (a, u), Inv (b, v) ->
+          check_equal_ty a b;
+          check_equal_tm u v
       | _ -> raise (NotEqual (ty_to_string ty1, ty_to_string ty2))
 
     and check_equal_tm tm1 tm2 =
@@ -755,7 +757,7 @@ struct
       | Arr (a, t, u) ->
           tm_contains_var t x || tm_contains_var u x || ty_contains_var a x
       | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
-      | Inv u -> tm_contains_var u x
+      | Inv (a, u) -> ty_contains_var a x || tm_contains_var u x
 
     let tm_contains_vars t l = List.exists (tm_contains_var t) l
 
@@ -779,12 +781,11 @@ struct
       | Obj -> 0
       | Arr (a, _, _) -> 1 + dim_ty a
       | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
-      | Inv _ -> Error.fatal "dim_ty on an invertibility structure"
+      | Inv (a, _) -> dim_ty a
 
     let rec dim_ctx = function
       | [] -> 0
-      | (_, (t, _)) :: c -> (
-          match t with Inv _ -> dim_ctx c | _ -> max (dim_ctx c) (dim_ty t))
+      | (_, (t, _)) :: c -> max (dim_ctx c) (dim_ty t)
 
     let rec ty_to_sub_ps a =
       match a with
@@ -835,58 +836,80 @@ struct
       :: (Var (Var.Db ((2 * n) - 1)), true)
       :: identity_ps (disc (n - 1))
 
-    let rec develop_tm tm =
+    let l_equiv_incl _c = assert false
+    (* match (c, suspend_ctx c) with *)
+    (* | (v, (Inv t, true)) :: c, (w, _) :: (w_tgt, _) :: (w_src, _) :: sc -> *)
+    (*     (w, (IS (Lunit, Var v), true)) :: (w_tgt, (id, false)) *)
+    (* | _ -> assert false *)
+
+    let r_equiv_incl _c = assert false
+
+    let rec develop_tm c tm =
       match tm with
       | Var v -> Var v
       | Meta_tm i -> Meta_tm i
-      | Coh (coh, s) -> Coh (coh, develop_sub_ps s)
-      | App (tm, s) -> tm_apply_sub (Tm.develop tm) (develop_sub s)
-      | IS (inv, tm) -> reduce_inv_structures inv tm
-      | Can (tm, tms) -> Can (develop_tm tm, List.map develop_tm tms)
+      | Coh (coh, s) -> Coh (coh, develop_sub_ps c s)
+      | App (tm, s) -> tm_apply_sub (Tm.develop tm) (develop_sub c s)
+      | IS (inv, tm) -> reduce_inv_structures c inv tm
+      | Can (tm, tms) -> Can (develop_tm c tm, List.map (develop_tm c) tms)
       | Coind (t0, t1, t2, t3, t4, t5, t6) ->
           Coind
-            ( develop_tm t0,
-              develop_tm t1,
-              develop_tm t2,
-              develop_tm t3,
-              develop_tm t4,
-              develop_tm t5,
-              develop_tm t6 )
-      | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+            ( develop_tm c t0,
+              develop_tm c t1,
+              develop_tm c t2,
+              develop_tm c t3,
+              develop_tm c t4,
+              develop_tm c t5,
+              develop_tm c t6 )
+      | Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)) ->
           Rec
-            ( develop_tm t0,
-              develop_tm t1,
-              develop_tm t2,
-              develop_tm t3,
-              develop_tm t4,
-              develop_tm t5,
-              develop_tm t6 )
+            ( develop_tm c t0,
+              develop_tm c t1,
+              develop_tm c t2,
+              develop_tm c t3,
+              develop_tm c t4,
+              (v0, v1, develop_tm c t5),
+              (v2, v3, develop_tm c t6) )
 
-    and reduce_inv_structures inv tm =
+    and reduce_inv_structures c inv tm =
       match (inv, tm) with
       | LInv, (Coind (_, t1, _, _, _, _, _) | Rec (_, t1, _, _, _, _, _)) ->
-          develop_tm t1
+          develop_tm c t1
       | RInv, (Coind (_, _, t2, _, _, _, _) | Rec (_, _, t2, _, _, _, _)) ->
-          develop_tm t2
+          develop_tm c t2
       | Lunit, (Coind (_, _, _, t3, _, _, _) | Rec (_, _, _, t3, _, _, _)) ->
-          develop_tm t3
+          develop_tm c t3
       | Runit, (Coind (_, _, _, _, t4, _, _) | Rec (_, _, _, _, t4, _, _)) ->
-          develop_tm t4
-      | Lwit, Coind (_, _, _, _, _, t5, _) -> develop_tm t5
-      | Rwit, Coind (_, _, _, _, _, _, t6) -> develop_tm t6
-      | Lwit, Rec (_, _, _, _, _, t5, _) -> develop_tm t5 (* TODO: substitute *)
-      | Rwit, Rec (_, _, _, _, _, _, t6) -> develop_tm t6 (* TODO: substitute *)
+          develop_tm c t4
+      | Lwit, Coind (_, _, _, _, _, t5, _) -> develop_tm c t5
+      | Rwit, Coind (_, _, _, _, _, _, t6) -> develop_tm c t6
+      | Lwit, Rec (_, _, _, _, _, (v0, v1, t5), _) ->
+          develop_tm c
+            (tm_rename t5
+               [
+                 (v0, tm_apply_sub (suspend_tm tm) (l_equiv_incl c));
+                 (v1, tm_apply_sub (suspend_tm tm) (r_equiv_incl c));
+               ])
+      | Rwit, Rec (_, _, _, _, _, _, (v0, v1, t6)) ->
+          develop_tm c
+            (tm_rename t6
+               [
+                 (v0, tm_apply_sub (suspend_tm tm) (l_equiv_incl c));
+                 (v1, tm_apply_sub (suspend_tm tm) (r_equiv_incl c));
+               ])
       | _, _ -> IS (inv, tm)
 
-    and develop_sub_ps s = List.map (fun (t, b) -> (develop_tm t, b)) s
-    and develop_sub s = List.map (fun (x, (t, b)) -> (x, (develop_tm t, b))) s
+    and develop_sub_ps c s = List.map (fun (t, b) -> (develop_tm c t, b)) s
 
-    let rec develop_ty ty =
+    and develop_sub c s =
+      List.map (fun (x, (t, b)) -> (x, (develop_tm c t, b))) s
+
+    let rec develop_ty c ty =
       match ty with
       | Obj -> Obj
       | Meta_ty i -> Meta_ty i
-      | Arr (a, t, u) -> Arr (develop_ty a, develop_tm t, develop_tm u)
-      | Inv u -> Inv (develop_tm u)
+      | Arr (a, t, u) -> Arr (develop_ty c a, develop_tm c t, develop_tm c u)
+      | Inv (a, u) -> Inv (develop_ty c a, develop_tm c u)
 
     module Display_maps = struct
       (* Construction related to display maps, i.e. var to var substitutions *)

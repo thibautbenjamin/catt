@@ -109,6 +109,9 @@ and Ctx : sig
   val check : Unchecked_types(Coh)(Tm).ctx -> t
   val check_notin : t -> Var.t -> unit
   val check_equal : t -> t -> unit
+  val check_walking_equiv : t -> unit
+  val l_equiv_incl : t -> Unchecked_types(Coh)(Tm).sub
+  val r_equiv_incl : t -> Unchecked_types(Coh)(Tm).sub
 end = struct
   type t = { c : (Var.t * Ty.t) list; unchecked : Unchecked_types(Coh)(Tm).ctx }
 
@@ -163,6 +166,69 @@ end = struct
         in
         Hashtbl.add tbl c ctx;
         ctx
+
+  let check_walking_equiv ctx =
+    let check c =
+      match c with
+      | [] | [ _ ] -> assert false
+      | (_, ty) :: ((x, _) :: _ as ctx) ->
+          let x' = Ty.base_inv ty in
+          let x' = Tm.to_var x' in
+          Var.check_equal x x';
+          let rec check_disk c =
+            match c with
+            | [] -> assert false
+            | [ (_, ty) ] -> if not (Ty.is_obj ty) then assert false
+            | (_, arr) :: (y, _) :: ((x, _) :: _ as ctx) ->
+                let _, x', y' = Ty.retrieve_arrow arr in
+                let x' = Tm.to_var x' in
+                let y' = Tm.to_var y' in
+                Var.check_equal x x';
+                Var.check_equal y y';
+                check_disk ctx
+            | _ -> assert false
+          in
+          check_disk ctx
+    in
+    check ctx.c
+
+  let inverse_ty ty =
+    match ty with
+    | Obj | Inv _ -> assert false
+    | Arr (ty, u, v) -> Arr (ty, v, u)
+    | Meta_ty _ -> assert false
+
+  let l_equiv_incl ctx =
+    let ctx = forget ctx in
+    let sc = Unchecked.suspend_ctx ctx in
+    match ctx with
+    | (v, (Inv (a, u), _)) :: _ ->
+        let src = Constr.comp (IS (LInv, Var v), inverse_ty a) (u, a) in
+        let y = Constr.id (Constr.tgt 1 (u, a)) in
+        let l =
+          (IS (Lwit, Var v), true)
+          :: (IS (Lunit, Var v), false)
+          :: (fst y, false)
+          :: Constr.characteristic_sub_ps src
+        in
+        List.map2 (fun (x, (_, b)) (t, _) -> (x, (t, b))) sc l
+    | _ -> assert false
+
+  let r_equiv_incl ctx =
+    let ctx = forget ctx in
+    let sc = Unchecked.suspend_ctx ctx in
+    match ctx with
+    | (v, (Inv (a, u), _)) :: _ ->
+        let x = Constr.id (Constr.src 1 (u, a)) in
+        let src = Constr.comp (u, a) (IS (RInv, Var v), inverse_ty a) in
+        let l =
+          (IS (Rwit, Var v), true)
+          :: (IS (Runit, Var v), false)
+          :: (fst x, false)
+          :: Constr.characteristic_sub_ps src
+        in
+        List.map2 (fun (x, (_, b)) (t, _) -> (x, (t, b))) sc l
+    | _ -> assert false
 end
 
 (** Operations on pasting schemes. *)
@@ -398,9 +464,10 @@ end = struct
               let v = Tm.check c ~ty:a v in
               Arr (a, u, v)
           | Meta_ty _ -> raise MetaVariable
-          | Inv u ->
-              let u = Tm.check c u in
-              let _ = retrieve_arrow (Tm.typ u) in
+          | Inv (a, u) ->
+              let a = Ty.check c a in
+              let u = Tm.check c ~ty:a u in
+              let _ = retrieve_arrow a in
               Inv u
         in
         let ty = { c; e; unchecked = t } in
@@ -425,7 +492,7 @@ end = struct
     | Arr (_, _, _) ->
         let e = Inv t in
         let c = (Tm.typ t).c in
-        { c; e; unchecked = Inv (Tm.forget t) }
+        { c; e; unchecked = Inv (Tm.ty t, Tm.forget t) }
 
   (** Test for equality. *)
   let check_equal ty1 ty2 =
@@ -605,8 +672,14 @@ end = struct
                 | Runit ->
                     let rinv = check c (IS (RInv, tm)) in
                     runit_ty c base_inv rinv
-                | Lwit -> Ty.check c (Inv (IS (Lunit, tm)))
-                | Rwit -> Ty.check c (Inv (IS (Runit, tm)))
+                | Lwit ->
+                    let linv = check c (IS (LInv, tm)) in
+                    let ty = lunit_ty c base_inv linv in
+                    Ty.check c (Inv (Ty.forget ty, IS (Lunit, tm)))
+                | Rwit ->
+                    let rinv = check c (IS (RInv, tm)) in
+                    let ty = runit_ty c base_inv rinv in
+                    Ty.check c (Inv (Ty.forget ty, IS (Runit, tm)))
               in
               let tm = { ty; e; unchecked = t; developped = Some t; name } in
               Hashtbl.add tbl (c, t) tm;
@@ -642,8 +715,8 @@ end = struct
               let t4_checked =
                 check c ~ty:(runit_ty c t0_checked t2_checked) t4
               in
-              let t5_checked = check c ~ty:(Ty.check c (Inv t3)) t5 in
-              let t6_checked = check c ~ty:(Ty.check c (Inv t4)) t6 in
+              let t5_checked = check c ~ty:(Ty.inv t3_checked) t5 in
+              let t6_checked = check c ~ty:(Ty.inv t4_checked) t6 in
               let e =
                 Coind
                   ( t0_checked,
@@ -654,11 +727,12 @@ end = struct
                     t5_checked,
                     t6_checked )
               in
-              let ty = Ty.check c (Inv t0) in
+              let ty = Ty.inv t0_checked in
               let tm = { ty; e; unchecked = t; developped = Some t; name } in
               Hashtbl.add tbl (c, t) tm;
               tm
-          | Rec (t0, t1, t2, t3, t4, t5, t6) ->
+          | Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)) ->
+              Ctx.check_walking_equiv c;
               let t0_checked = check c t0 in
               let _, x, y = Ty.retrieve_arrow t0_checked.ty in
               let t1_checked = check c ~ty:(Ty.morphism y x) t1 in
@@ -669,8 +743,24 @@ end = struct
               let t4_checked =
                 check c ~ty:(runit_ty c t0_checked t1_checked) t4
               in
-              let t5_checked = check c ~ty:(Ty.check c (Inv t3)) t5 in
-              let t6_checked = check c ~ty:(Ty.check c (Inv t4)) t6 in
+              let ih v w =
+                Ctx.extend
+                  (Ctx.extend c ~expl:true v
+                     (Unchecked.ty_apply_sub
+                        (Unchecked.suspend_ty (Ty.forget (Ty.inv t0_checked)))
+                        (Ctx.l_equiv_incl c)))
+                  ~expl:true w
+                  (Unchecked.ty_apply_sub
+                     (Unchecked.suspend_ty (Ty.forget (Ty.inv t0_checked)))
+                     (Ctx.r_equiv_incl c))
+              in
+              let weaken v w =
+                Sub.check (ih v w) (Unchecked.identity (Ctx.forget c)) c
+              in
+              let ty5 = Ty.apply_sub (Ty.inv t3_checked) (weaken v0 v1) in
+              let t5_checked = check (ih v0 v1) ~ty:ty5 t5 in
+              let ty6 = Ty.apply_sub (Ty.inv t4_checked) (weaken v2 v3) in
+              let t6_checked = check (ih v2 v3) ~ty:ty6 t6 in
               let e =
                 Rec
                   ( t0_checked,
@@ -681,7 +771,7 @@ end = struct
                     t5_checked,
                     t6_checked )
               in
-              let ty = Ty.check c (Inv t0) in
+              let ty = Ty.inv t0_checked in
               let tm = { ty; e; unchecked = t; developped = Some t; name } in
               Hashtbl.add tbl (c, t) tm;
               tm)
@@ -989,6 +1079,15 @@ and Constr : sig
     Unchecked_types(Coh)(Tm).constr
 
   val id : Unchecked_types(Coh)(Tm).constr -> Unchecked_types(Coh)(Tm).constr
+
+  val src :
+    int -> Unchecked_types(Coh)(Tm).constr -> Unchecked_types(Coh)(Tm).constr
+
+  val tgt :
+    int -> Unchecked_types(Coh)(Tm).constr -> Unchecked_types(Coh)(Tm).constr
+
+  val characteristic_sub_ps :
+    Unchecked_types(Coh)(Tm).constr -> Unchecked_types(Coh)(Tm).sub_ps
 end = struct
   open Unchecked_types (Coh) (Tm)
   open Unchecked (Coh) (Tm)

@@ -20,7 +20,44 @@ coind 2of6
         comp h (right (e')) ,
         comp (assoc (left (e)) f g) (ε (e)) ,
         comp (assoc- g h (right (e'))) (η (e')) ,
-        can (comp (assoc (left (e)) f g) (ε (e))  { can (assoc (left (e)) f g {}) , Iε (e) } ) ,
-        can (
-        comp (assoc- g h (right (e'))) (η (e')) { can (assoc- g h (right (e')) {}) , Iη (e') } )
+        can (_ { can (assoc (left (e)) f g {}) , Iε (e) } ) ,
+        can (_ { can (assoc- g h (right (e')) {}) , Iη (e') } )
 }
+
+coh unit- (x(f)y) : f -> comp f (id _)
+coh assoc-pair (x(f)y(g)z(h)w(k)v) : comp (comp f g) (comp h k) -> comp f (comp g h) k
+coh unit3 (x(f)y(g)z) : comp f (id _) g -> comp f g
+
+let linv-rcancel (x : *) (y : *) (f : x -> y) (e : Inv(f))
+: comp f (left (e)) -> id x
+= comp (unit- (comp f (left (e))))
+       (comp (comp f (left (e))) [left (Iη (e))])
+       (assoc-pair f (left(e)) f (right(e)))
+       (comp f [ε (e)] (right (e)))
+       (unit3 f (right (e)))
+       (η (e))
+
+let linv-rcancelU-aux (x : *) (y : *) (f : x -> y) (e : Inv(f)) (e' : Inv (left (Iη (e))))
+: Inv (linv-rcancel e)
+= can (linv-rcancel e {
+        can (unit- (comp f (left (e))) {}) ,
+        can ((comp (comp f (left (e))) [left (Iη (e))]) { e' }) ,
+        can (assoc-pair f (left(e)) f (right(e)) {}) ,
+        can (comp f [ε (e)] (right (e)) { Iε (e) }) ,
+        can (unit3 f (right (e)) {}) ,
+        Iη (e)
+})
+
+rec left-inv (x : *) (y : *) (f : x -> y) (e : Inv(f))
+= { left(e) ,
+    f ,
+    f ,
+    linv-rcancel e ,
+    ε (e) ,
+    linv-rcancelU-aux IHη ,
+    Iε (e)
+}
+
+let linv-rcancelU (x : *) (y : *) (f : x -> y) (e : Inv(f))
+: Inv (linv-rcancel e)
+= linv-rcancelU-aux (left-inv Iη (e))

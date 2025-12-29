@@ -232,4 +232,4 @@ let witness constr =
   in
   (Inverse.compute_witness tm, ty)
 
-let develop (tm, ty) = (Unchecked.develop_tm tm, Unchecked.develop_ty ty)
+let develop c (tm, ty) = (Unchecked.develop_tm c tm, Unchecked.develop_ty c ty)

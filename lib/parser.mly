@@ -35,6 +35,7 @@
 %token COH OBJ MOR WILD IGNORE
 %token INVTY LEFT RIGHT LUNIT RUNIT LWITNESS RWITNESS CAN COIND REC
 %token LPAR RPAR LBRA RBRA LCUR RCUR COL BANG OP AT COMMA
+%token INDHYPLEFT INDHYPRIGHT
 %token <string> BUILTIN
 %token <int*int*int> CONECOMP
 %token <int*int*int> CYLCOMP
@@ -135,6 +136,8 @@ simple_tmexpr:
   | CAN LPAR tmexpr LCUR tmexpr_list RCUR RPAR { CanR($3, $5) }
   | IDENT { VarR (Var.make_var $1) }
   | builtin_tm { $1 }
+  | INDHYPLEFT { LIH }
+  | INDHYPRIGHT { RIH }
 
 nonempty_tmexpr_list:
   | tmexpr_list COMMA  tmexpr { $3::$1 }

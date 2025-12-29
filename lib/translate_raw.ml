@@ -1,6 +1,7 @@
 open Kernel
 open Unchecked_types.Unchecked_types (Coh) (Tm)
 open Raw_types
+open Common
 
 exception WrongNumberOfArguments
 
@@ -10,7 +11,27 @@ let rec head_susp = function
   | Sub (_, _, Some susp, _) -> susp
   | Op (_, t) | Inverse t | Unit t | ISR (_, t) -> head_susp t
   | Meta | BuiltinR _ | Letin_tm _ -> Error.fatal "ill-formed term"
-  | CoindR _ | RecR _ | CanR _ ->
+  | CoindR _ | RecR _ | CanR _ | LIH | RIH ->
+      Error.fatal "no need to suspend invertibility structures"
+
+let rec replace_ih v0 v1 tm =
+  match tm with
+  | LIH -> VarR v0
+  | RIH -> VarR v1
+  | VarR _ -> tm
+  | Sub (tm, sub, susp, f) ->
+      Sub
+        ( replace_ih v0 v1 tm,
+          List.map (fun (t, i) -> (replace_ih v0 v1 t, i)) sub,
+          susp,
+          f )
+  | Op (op, t) -> Op (op, replace_ih v0 v1 t)
+  | Inverse t -> Inverse (replace_ih v0 v1 t)
+  | Unit t -> Unit (replace_ih v0 v1 t)
+  | ISR (inv, t) -> ISR (inv, replace_ih v0 v1 t)
+  | CanR (t, tms) -> CanR (replace_ih v0 v1 t, List.map (replace_ih v0 v1) tms)
+  | Meta | BuiltinR _ | Letin_tm _ -> Error.fatal "ill-formed term"
+  | CoindR _ | RecR _ ->
       Error.fatal "no need to suspend invertibility structures"
 
 (* inductive translation on terms and types without let_in *)
@@ -105,11 +126,16 @@ let rec tm t =
       let t2, meta_2 = tm t2 in
       let t3, meta_3 = tm t3 in
       let t4, meta_4 = tm t4 in
-      let t5, meta_5 = tm t5 in
-      let t6, meta_6 = tm t6 in
-      ( Rec (t0, t1, t2, t3, t4, t5, t6),
+      let v0 = Var.fresh () in
+      let v1 = Var.fresh () in
+      let t5, meta_5 = tm (replace_ih v0 v1 t5) in
+      let v2 = Var.fresh () in
+      let v3 = Var.fresh () in
+      let t6, meta_6 = tm (replace_ih v2 v3 t6) in
+      ( Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)),
         List.concat [ meta_0; meta_1; meta_2; meta_3; meta_4; meta_5; meta_6 ]
       )
+  | LIH | RIH -> assert false
   | Meta ->
       let m, meta_type = Meta.new_tm () in
       (m, [ meta_type ])
@@ -123,6 +149,8 @@ let rec tm t =
   | Sub (CanR _, _, _, _)
   | Sub (CoindR _, _, _, _)
   | Sub (RecR _, _, _, _)
+  | Sub (LIH, _, _, _)
+  | Sub (RIH, _, _, _)
   | BuiltinR _ | Letin_tm _ ->
       Error.fatal "ill-formed term"
 
@@ -186,7 +214,7 @@ let ty ty =
   | Letin_ty _ -> Error.fatal "letin_ty constructor cannot appear here"
   | InvR u ->
       let tu, meta_ctx = tm u in
-      (Inv tu, meta_ctx)
+      (Inv (Meta.new_ty (), tu), meta_ctx)
 
 let ty t =
   try ty t

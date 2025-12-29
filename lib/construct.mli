@@ -38,4 +38,4 @@ val witness : constr -> constr
 val glue_subs_along : int -> 'a list list -> 'a list
 val wcomp_n : int -> constr list -> constr
 val characteristic_sub_ps_composite : constr list -> sub_ps
-val develop : constr -> constr
+val develop : ctx -> constr -> constr

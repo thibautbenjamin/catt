@@ -11,6 +11,8 @@ rule token = parse
   | "right" { RIGHT }
   | "Iε" { LWITNESS }
   | "Iη" { RWITNESS }
+  | "IHε" { INDHYPLEFT }
+  | "IHη" { INDHYPRIGHT }
   | "ε" { LUNIT }
   | "η" { RUNIT }
   | "can" { CAN }

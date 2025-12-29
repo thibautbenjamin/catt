@@ -8,7 +8,7 @@ module type Unchecked_types_sig = functor
      type t
    end)
   -> sig
-  type ty = Meta_ty of int | Obj | Arr of ty * tm * tm | Inv of tm
+  type ty = Meta_ty of int | Obj | Arr of ty * tm * tm | Inv of (ty * tm)
 
   and tm =
     | Var of Var.t
@@ -18,7 +18,8 @@ module type Unchecked_types_sig = functor
     | IS of inv * tm
     | Can of tm * tm list
     | Coind of tm * tm * tm * tm * tm * tm * tm
-    | Rec of tm * tm * tm * tm * tm * tm * tm
+    | Rec of
+        tm * tm * tm * tm * tm * (Var.t * Var.t * tm) * (Var.t * Var.t * tm)
 
   and sub_ps = (tm * bool) list
   and sub = (Var.t * (tm * bool)) list
@@ -34,7 +35,7 @@ end) (Tm : sig
   type t
 end) =
 struct
-  type ty = Meta_ty of int | Obj | Arr of ty * tm * tm | Inv of tm
+  type ty = Meta_ty of int | Obj | Arr of ty * tm * tm | Inv of (ty * tm)
 
   and tm =
     | Var of Var.t
@@ -44,7 +45,8 @@ struct
     | IS of inv * tm
     | Can of tm * tm list
     | Coind of tm * tm * tm * tm * tm * tm * tm
-    | Rec of tm * tm * tm * tm * tm * tm * tm
+    | Rec of
+        tm * tm * tm * tm * tm * (Var.t * Var.t * tm) * (Var.t * Var.t * tm)
 
   and sub_ps = (tm * bool) list
   and sub = (Var.t * (tm * bool)) list

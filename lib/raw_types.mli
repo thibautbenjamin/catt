@@ -26,5 +26,7 @@ and tmR =
   | CanR of tmR * tmR list
   | CoindR of tmR * tmR * tmR * tmR * tmR * tmR * tmR
   | RecR of tmR * tmR * tmR * tmR * tmR * tmR * tmR
+  | LIH
+  | RIH
 
 and subR = (tmR * int) list
