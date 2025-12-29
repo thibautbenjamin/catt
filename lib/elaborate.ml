@@ -43,6 +43,9 @@ module Constraints = struct
           (NotUnifiable (Unchecked.ty_to_string ty1, Unchecked.ty_to_string ty2))
 
   and unify_tm cst tm1 tm2 =
+    (* Io.debug "unify_tm  %s and %s" *)
+    (*   (Unchecked.tm_to_string tm1) *)
+    (*   (Unchecked.tm_to_string tm2); *)
     if tm1 == tm2 then ()
     else
       match (tm1, tm2) with
@@ -215,6 +218,12 @@ module Constraints = struct
         aux c knowns
     in
     aux c { uty = []; utm = [] }
+
+  let find_value cst i =
+    Queue.find_map cst.tm ~f:(fun (tm1, tm2) ->
+        if tm1 = Meta_tm i then Some tm2
+        else if tm2 = Meta_tm i then Some tm1
+        else None)
 end
 
 let inverse_ty ty =
@@ -262,8 +271,27 @@ let r_equiv_incl ctx =
       res
   | _ -> assert false
 
+let args_max_coh c t =
+  let t = Unchecked.develop_tm c t in
+  match t with
+  | Var _ | App _ | Coind _ | Rec _ | Can _ | IS _ | Meta_tm _ ->
+      Error.fatal
+        (Printf.sprintf "args_max_coh, tm: %s" (Unchecked.tm_to_string t))
+  | Coh (c, sub) ->
+      let n = Coh.dim c in
+      let ps, _, _ = Coh.forget c in
+      let rec find_args ctx (sub : sub_ps) =
+        match (ctx, sub) with
+        | [], [] -> []
+        | (_, (ty, _)) :: ctx, (tm, _) :: s when Unchecked.dim_ty ty == n ->
+            tm :: find_args ctx s
+        | _ :: ctx, _ :: s -> find_args ctx s
+        | _, _ -> assert false
+      in
+      find_args (Unchecked.ps_to_ctx ps) sub
+
 module Constraints_typing = struct
-  let rec tm ctx meta_ctx t cst =
+  let rec tm ctx meta_ctx t cst delegated =
     Io.info ~v:5
       (lazy
         (Printf.sprintf "constraint typing term %s in ctx %s, meta_ctx %s"
@@ -272,31 +300,30 @@ module Constraints_typing = struct
            (Unchecked.meta_ctx_to_string meta_ctx)));
     match t with
     | Var v -> (
-        try (t, fst (List.assoc v ctx))
+        try (t, fst (List.assoc v ctx), delegated)
         with Not_found ->
           Error.fatal
             (Printf.sprintf "variable %s not found in context" (Var.to_string v))
         )
-    | Meta_tm i -> (t, List.assoc i meta_ctx)
+    | Meta_tm i -> (t, List.assoc i meta_ctx, delegated)
     | Coh (c, s) ->
         let ps, ty, _ = Coh.forget c in
         let tgt = Unchecked.ps_to_ctx ps in
         let s1 = Unchecked.sub_ps_to_sub s in
-        let s1 = sub ctx meta_ctx s1 tgt cst in
+        let s1, delegated = sub ctx meta_ctx s1 tgt cst delegated in
         ( Coh (c, List.map (fun (_, (t, expl)) -> (t, expl)) s1),
-          Unchecked.ty_apply_sub ty s1 )
+          Unchecked.ty_apply_sub ty s1,
+          delegated )
     | App (t, s) ->
         let tgt = Tm.ctx t in
         let ty = Ty.forget (Tm.typ t) in
-        let s = sub ctx meta_ctx s tgt cst in
-        (App (t, s), Unchecked.ty_apply_sub ty s)
+        let s, delegated = sub ctx meta_ctx s tgt cst delegated in
+        (App (t, s), Unchecked.ty_apply_sub ty s, delegated)
     | Can (t, tms) ->
-        let t, a = tm ctx meta_ctx t cst in
-        let tms = List.map (fun t -> fst (tm ctx meta_ctx t cst)) tms in
-        (* ignore the constraints on tms : no elaboration *)
-        (Can (t, tms), Inv (a, t))
+        let t, a, delegated = tm ctx meta_ctx t cst delegated in
+        (Can (t, tms), Inv (a, t), (ctx, t, tms) :: delegated)
     | IS (inv, e) ->
-        let e, te = tm ctx meta_ctx e cst in
+        let e, te, delegated = tm ctx meta_ctx e cst delegated in
         let u, tu = match te with Inv (a, u) -> (u, a) | _ -> assert false in
         let tui = inverse_ty tu in
         let ty =
@@ -308,28 +335,28 @@ module Constraints_typing = struct
           | Lwit -> Inv (lunit_ty (u, tu) (IS (LInv, e), tui), IS (Lunit, e))
           | Rwit -> Inv (runit_ty (u, tu) (IS (RInv, e), tui), IS (Runit, e))
         in
-        (IS (inv, e), ty)
+        (IS (inv, e), ty, delegated)
     | Coind (t0, t1, t2, t3, t4, t5, t6) ->
-        let t0, ty0 = tm ctx meta_ctx t0 cst in
-        let t1, ty1 = tm ctx meta_ctx t1 cst in
-        let t2, ty2 = tm ctx meta_ctx t2 cst in
-        let t3, ty3 = tm ctx meta_ctx t3 cst in
-        let t4, ty4 = tm ctx meta_ctx t4 cst in
-        let t5, ty5 = tm ctx meta_ctx t5 cst in
-        let t6, ty6 = tm ctx meta_ctx t6 cst in
+        let t0, ty0, delegated = tm ctx meta_ctx t0 cst delegated in
+        let t1, ty1, delegated = tm ctx meta_ctx t1 cst delegated in
+        let t2, ty2, delegated = tm ctx meta_ctx t2 cst delegated in
+        let t3, ty3, delegated = tm ctx meta_ctx t3 cst delegated in
+        let t4, ty4, delegated = tm ctx meta_ctx t4 cst delegated in
+        let t5, ty5, delegated = tm ctx meta_ctx t5 cst delegated in
+        let t6, ty6, delegated = tm ctx meta_ctx t6 cst delegated in
         Constraints.unify_ty cst (inverse_ty ty0) ty1;
         Constraints.unify_ty cst (inverse_ty ty0) ty2;
         Constraints.unify_ty cst (lunit_ty (t0, ty0) (t1, ty1)) ty3;
         Constraints.unify_ty cst (runit_ty (t0, ty0) (t2, ty2)) ty4;
         Constraints.unify_ty cst (Inv (ty3, t3)) ty5;
         Constraints.unify_ty cst (Inv (ty4, t4)) ty6;
-        (Coind (t0, t1, t2, t3, t4, t5, t6), Inv (ty0, t0))
+        (Coind (t0, t1, t2, t3, t4, t5, t6), Inv (ty0, t0), delegated)
     | Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)) ->
-        let t0, ty0 = tm ctx meta_ctx t0 cst in
-        let t1, ty1 = tm ctx meta_ctx t1 cst in
-        let t2, ty2 = tm ctx meta_ctx t2 cst in
-        let t3, ty3 = tm ctx meta_ctx t3 cst in
-        let t4, ty4 = tm ctx meta_ctx t4 cst in
+        let t0, ty0, delegated = tm ctx meta_ctx t0 cst delegated in
+        let t1, ty1, delegated = tm ctx meta_ctx t1 cst delegated in
+        let t2, ty2, delegated = tm ctx meta_ctx t2 cst delegated in
+        let t3, ty3, delegated = tm ctx meta_ctx t3 cst delegated in
+        let t4, ty4, delegated = tm ctx meta_ctx t4 cst delegated in
         let ih v w =
           ( w,
             ( Unchecked.ty_apply_sub
@@ -343,17 +370,19 @@ module Constraints_typing = struct
                  true ) )
           :: ctx
         in
-        let t5, ty5 = tm (ih v0 v1) meta_ctx t5 cst in
-        let t6, ty6 = tm (ih v2 v3) meta_ctx t6 cst in
+        let t5, ty5, delegated = tm (ih v0 v1) meta_ctx t5 cst delegated in
+        let t6, ty6, delegated = tm (ih v2 v3) meta_ctx t6 cst delegated in
         Constraints.unify_ty cst (inverse_ty ty0) ty1;
         Constraints.unify_ty cst (inverse_ty ty0) ty2;
         Constraints.unify_ty cst (lunit_ty (t0, ty0) (t1, ty1)) ty3;
         Constraints.unify_ty cst (runit_ty (t0, ty0) (t2, ty2)) ty4;
         Constraints.unify_ty cst (Inv (ty3, t3)) ty5;
         Constraints.unify_ty cst (Inv (ty4, t4)) ty6;
-        (Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)), Inv (ty0, t0))
+        ( Rec (t0, t1, t2, t3, t4, (v0, v1, t5), (v2, v3, t6)),
+          Inv (ty0, t0),
+          delegated )
 
-  and sub src meta_ctx s tgt cst =
+  and sub src meta_ctx s tgt cst delegated =
     Io.info ~v:5
       (lazy
         (Printf.sprintf
@@ -363,15 +392,15 @@ module Constraints_typing = struct
            (Unchecked.ctx_to_string tgt)
            (Unchecked.meta_ctx_to_string meta_ctx)));
     match (s, tgt) with
-    | [], [] -> []
+    | [], [] -> ([], delegated)
     | (x, (u, e)) :: s, (_, (t, _)) :: c ->
-        let u, ty = tm src meta_ctx u cst in
-        let s = sub src meta_ctx s c cst in
+        let u, ty, delegated = tm src meta_ctx u cst delegated in
+        let s, delegated = sub src meta_ctx s c cst delegated in
         Constraints.unify_ty cst ty (Unchecked.ty_apply_sub t s);
-        (x, (u, e)) :: s
+        ((x, (u, e)) :: s, delegated)
     | [], _ :: _ | _ :: _, [] -> Error.fatal "wrong number of arguments"
 
-  and ty ctx meta_ctx t cst =
+  and ty ctx meta_ctx t cst delegated =
     Io.info ~v:5
       (lazy
         (Printf.sprintf "constraint typing type %s in ctx %s, meta_ctx %s"
@@ -379,34 +408,83 @@ module Constraints_typing = struct
            (Unchecked.ctx_to_string ctx)
            (Unchecked.meta_ctx_to_string meta_ctx)));
     match t with
-    | Obj -> Obj
+    | Obj -> (Obj, delegated)
     | Arr (a, u, v) ->
-        let u, tu = tm ctx meta_ctx u cst in
-        let v, tv = tm ctx meta_ctx v cst in
-        let a = ty ctx meta_ctx a cst in
+        let u, tu, delegated = tm ctx meta_ctx u cst delegated in
+        let v, tv, delegated = tm ctx meta_ctx v cst delegated in
+        let a, delegated = ty ctx meta_ctx a cst delegated in
         Constraints.unify_ty cst a tu;
         Constraints.unify_ty cst a tv;
-        Arr (a, u, v)
-    | Meta_ty _ -> t
+        (Arr (a, u, v), delegated)
+    | Meta_ty _ -> (t, delegated)
     | Inv (a, u) ->
-        let a = ty ctx meta_ctx a cst in
-        let u, tu = tm ctx meta_ctx u cst in
+        let a, delegated = ty ctx meta_ctx a cst delegated in
+        let u, tu, delegated = tm ctx meta_ctx u cst delegated in
         Constraints.unify_ty cst a tu;
-        Inv (a, u)
+        (Inv (a, u), delegated)
 
-  let tm ctx meta_ctx t cst = fst (tm ctx meta_ctx t cst)
+  let do_delegated cst meta_ctx (delegated : (ctx * tm * tm list) list) =
+    let do_next (ctx, t, tms) (delegated : (ctx * tm * tm list) list) =
+      let u =
+        match t with Meta_tm i -> Constraints.find_value cst i | _ -> Some t
+      in
+      match u with
+      | Some u ->
+          let args = args_max_coh ctx u in
+          let rec check_next args invs : (ctx * tm * tm list) list =
+            match (args, invs) with
+            | t :: args, e :: invs ->
+                let (delegated : (ctx * tm * tm list) list) =
+                  check_next args invs
+                in
+                let _, te, delegated = tm ctx meta_ctx e cst delegated in
+                let _, tt, delegated = tm ctx meta_ctx t cst delegated in
+                Constraints.unify_ty cst te (Inv (tt, t));
+                delegated
+            | [], [] -> delegated
+            | _ ->
+                Error.fatal "wrong number of arguments in canonical structure"
+          in
+          check_next args tms
+      | None ->
+          Io.debug "did not find the constraint for %s"
+            (Unchecked.tm_to_string t);
+          let rec check_next args =
+            match args with
+            | [] -> delegated
+            | e :: invs ->
+                let delegated = check_next invs in
+                let _, _, delegated = tm ctx meta_ctx e cst delegated in
+                delegated
+          in
+          check_next tms
+    in
+    let rec do_all list delegated =
+      match list with
+      | [] -> delegated
+      | t :: list ->
+          let delegated = do_next t delegated in
+          do_all list delegated
+    in
+    do_all delegated []
 
-  let rec ctx c meta_ctx =
+  let tm ctx meta_ctx t cst =
+    let t, _, delegated = tm ctx meta_ctx t cst [] in
+    (t, delegated)
+
+  let rec ctx c meta_ctx delegated =
     match c with
-    | [] -> ([], { Constraints.uty = []; utm = [] })
+    | [] -> ([], { Constraints.uty = []; utm = [] }, delegated)
     | (x, (t, expl)) :: c ->
-        let c, known_mgu = ctx c meta_ctx in
+        let c, known_mgu, delegated = ctx c meta_ctx delegated in
         let t = Constraints.substitute_ty known_mgu t in
         let cstt = Constraints.create () in
-        let t = ty c meta_ctx t cstt in
+        let t, delegated = ty c meta_ctx t cstt delegated in
         let new_mgu = Constraints.resolve cstt in
         let t = Constraints.substitute_ty new_mgu t in
-        ((x, (t, expl)) :: c, Constraints.combine_mgu known_mgu new_mgu)
+        ( (x, (t, expl)) :: c,
+          Constraints.combine_mgu known_mgu new_mgu,
+          delegated )
 end
 
 let preprocess_ty ctx ty =
@@ -434,26 +512,37 @@ let solve_cst ~elab_fn ~print_fn ~kind x =
     Error.unsatisfiable_constraints name
       (Printf.sprintf "could not unify %s and %s" a b)
 
+let finish_delegated cst meta_ctx delegated =
+  let delegated = ref delegated in
+  while !delegated != [] do
+    delegated := Constraints_typing.do_delegated cst meta_ctx !delegated
+  done
+
 let ctx c =
   let c, meta_ctx = Translate_raw.ctx c in
-  let elab_fn c = fst (Constraints_typing.ctx c meta_ctx) in
+  let elab_fn c =
+    let c, _, _ = Constraints_typing.ctx c meta_ctx [] in
+    c
+  in
   solve_cst ~elab_fn ~print_fn:Unchecked.ctx_to_string ~kind:"context" c
 
 let elab_ty ctx meta_ctx ty =
   let cst = Constraints.create () in
-  let x = Constraints_typing.ty ctx meta_ctx ty cst in
+  let x, delegated = Constraints_typing.ty ctx meta_ctx ty cst [] in
   Io.info ~v:4
     (lazy
       (Printf.sprintf "inferred constraints:%s" (Constraints._to_string cst)));
+  finish_delegated cst meta_ctx delegated;
   let x = Constraints.substitute_ty (Constraints.resolve cst) x in
   x
 
 let elab_tm ctx meta_ctx tm =
   let cst = Constraints.create () in
-  let x = Constraints_typing.tm ctx meta_ctx tm cst in
+  let x, delegated = Constraints_typing.tm ctx meta_ctx tm cst in
   Io.info ~v:4
     (lazy
       (Printf.sprintf "inferred constraints:%s" (Constraints._to_string cst)));
+  finish_delegated cst meta_ctx delegated;
   let x = Constraints.substitute_tm (Constraints.resolve cst) x in
   x
 

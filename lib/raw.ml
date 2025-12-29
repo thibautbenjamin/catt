@@ -80,7 +80,7 @@ and string_of_tm e =
 and string_of_tms list =
   match list with
   | [] -> ""
-  | tm :: tms -> Printf.sprintf "%s %s" (string_of_tm tm) (string_of_tms tms)
+  | tm :: tms -> Printf.sprintf "%s %s" (string_of_tms tms) (string_of_tm tm)
 
 and string_of_sub s =
   match s with

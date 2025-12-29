@@ -515,7 +515,7 @@ struct
         match list with
         | [] -> ""
         | tm :: tms ->
-            Printf.sprintf "%s %s" (tm_to_string tm) (tms_to_string tms)
+            Printf.sprintf "%s %s" (tms_to_string tms) (tm_to_string tm)
 
       and sub_ps_to_string ?(func = []) s =
         match func with
