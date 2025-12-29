@@ -61,3 +61,23 @@ rec left-inv (x : *) (y : *) (f : x -> y) (e : Inv(f))
 let linv-rcancelU (x : *) (y : *) (f : x -> y) (e : Inv(f))
 : Inv (linv-rcancel e)
 = linv-rcancelU-aux (left-inv Iη (e))
+
+coind sphereify (x : *) (y : *) (f : x -> y) (e : Inv(f))
+= { f ,
+    left (e) ,
+    left (e) ,
+    ε (e) ,
+    linv-rcancel e ,
+    Iε (e) ,
+    linv-rcancelU e }
+
+coind equiv-transport (x : *) (y : *) (f : x -> y) (e : Inv (f))
+                                      (g : x -> y) (a : f -> g) (e' : Inv (a))
+= {g ,
+   left (e) ,
+   right (e) ,
+   comp (comp (left (e)) [ left (e') ]) (ε (e)) ,
+   comp (comp [ left (e') ] (right (e))) (η (e)) ,
+   can (_ {can (_ { left-inv e' }) , Iε (e)}) ,
+   can (_ {can (_ { left-inv e' }) , Iη (e)})
+}
