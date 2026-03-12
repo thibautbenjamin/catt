@@ -93,12 +93,10 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
               ; Req_wrapping_ast_node.capability
               ; Dune.view_promotion_capability
               ; Req_hover_extended.capability
-              ; Req_merlin_call_compatible.capability
               ; Req_type_enclosing.capability
               ; Req_get_documentation.capability
               ; Req_construct.capability
               ; Req_type_search.capability
-              ; Req_merlin_jump.capability
               ] )
         ]
     in
@@ -114,7 +112,6 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
           :: Action_open_related.command_name
           :: Action_jump.command_name
           :: Document_text_command.command_name
-          :: Merlin_config_command.command_name
           :: Dune.commands
         else Dune.commands
       in
@@ -167,46 +164,8 @@ let initialize_info (client_capabilities : ClientCapabilities.t) : InitializeRes
   InitializeResult.create ~capabilities ~serverInfo ()
 ;;
 
-let ocamlmerlin_reason = "ocamlmerlin-reason"
-
 let set_diagnostics detached diagnostics doc =
-  let uri = Document.uri doc in
-  match Document.kind doc with
-  | `Other -> Fiber.return ()
-  | `Merlin merlin ->
-    let async send =
-      let+ () =
-        task_if_running detached ~f:(fun () ->
-          let timer = Document.Merlin.timer merlin in
-          let* () = Lev_fiber.Timer.Wheel.cancel timer in
-          let* () = Lev_fiber.Timer.Wheel.reset timer in
-          let* res = Lev_fiber.Timer.Wheel.await timer in
-          match res with
-          | `Cancelled -> Fiber.return ()
-          | `Ok -> send ())
-      in
-      ()
-    in
-    (match Document.syntax doc with
-     | Dune | Cram | Menhir | Ocamllex -> Fiber.return ()
-     | Reason when Option.is_none (Bin.which ocamlmerlin_reason) ->
-       let no_reason_merlin =
-         let message =
-           `String
-             (sprintf "Could not detect %s. Please install reason" ocamlmerlin_reason)
-         in
-         Diagnostic.create
-           ~source:Diagnostics.ocamllsp_source
-           ~range:Range.first_line
-           ~message
-           ()
-       in
-       Diagnostics.set diagnostics (`Merlin (uri, [ no_reason_merlin ]));
-       async (fun () -> Diagnostics.send diagnostics (`One uri))
-     | Reason | Ocaml ->
-       async (fun () ->
-         let* () = Diagnostics.merlin_diagnostics diagnostics merlin in
-         Diagnostics.send diagnostics (`One uri)))
+  let uri = Document.uri doc in failwith "TODO"
 ;;
 
 let on_initialize server (ip : InitializeParams.t) =
@@ -216,12 +175,9 @@ let on_initialize server (ip : InitializeParams.t) =
     let report_dune_diagnostics =
       Configuration.report_dune_diagnostics state.configuration
     in
-    let shorten_merlin_diagnostics =
-      Configuration.shorten_merlin_diagnostics state.configuration
     in
     Diagnostics.create
       ~report_dune_diagnostics
-      ~shorten_merlin_diagnostics
       (let open Option.O in
        let* td = ip.capabilities.textDocument in
        td.publishDiagnostics)
@@ -319,24 +275,6 @@ module Formatter = struct
   let run rpc doc =
     let state : State.t = Server.state rpc in
     match Document.kind doc with
-    | `Merlin _ ->
-      let* res =
-        let* cancel = Server.cancel_token () in
-        Ocamlformat.run doc cancel
-      in
-      (match res with
-       | Ok result -> Fiber.return (Some result)
-       | Error e ->
-         let+ () =
-           let state : State.t = Server.state rpc in
-           let msg =
-             let message = Ocamlformat.message e in
-             ShowMessageParams.create ~message ~type_:Warning
-           in
-           task_if_running state.detached ~f:(fun () ->
-             Server.notification rpc (ShowMessage msg))
-         in
-         Jsonrpc.Response.Error.raise (jsonrpc_error e))
     | `Other ->
       (match Dune.for_doc (State.dune state) doc with
        | [] ->
@@ -372,27 +310,6 @@ let text_document_lens
   let doc = Document_store.get store uri in
   match Document.kind doc with
   | `Other -> Fiber.return []
-  | `Merlin m when Document.Merlin.kind m = Intf -> Fiber.return []
-  | `Merlin doc ->
-    let+ outline = Document.Merlin.dispatch_exn ~name:"outline" doc Outline in
-    let rec symbol_info_of_outline_item (item : Query_protocol.item) =
-      let children =
-        if for_nested_bindings
-        then List.concat_map item.children ~f:symbol_info_of_outline_item
-        else []
-      in
-      match item.outline_type with
-      | None -> children
-      | Some typ ->
-        let loc = item.location in
-        let info =
-          let range = Range.of_loc loc in
-          let command = Command.create ~title:typ ~command:"" () in
-          CodeLens.create ~range ~command ()
-        in
-        info :: children
-    in
-    List.concat_map ~f:symbol_info_of_outline_item outline
 ;;
 
 let selection_range
@@ -402,30 +319,6 @@ let selection_range
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
   | `Other -> Fiber.return []
-  | `Merlin merlin ->
-    let selection_range_of_enclosings (enclosings : Warnings.loc list)
-      : SelectionRange.t option
-      =
-      let ranges_of_enclosing parent (enclosing : Warnings.loc) =
-        let range = Range.of_loc enclosing in
-        { SelectionRange.range; parent }
-      in
-      List.fold_left
-        ~f:(fun parent enclosing -> Some (ranges_of_enclosing parent enclosing))
-        ~init:None
-      @@ List.rev enclosings
-    in
-    let+ ranges =
-      Fiber.sequential_map positions ~f:(fun x ->
-        let+ enclosings =
-          Document.Merlin.dispatch_exn
-            ~name:"shape"
-            merlin
-            (Enclosing (Position.logical x))
-        in
-        selection_range_of_enclosings enclosings)
-    in
-    List.filter_opt ranges
 ;;
 
 let references
@@ -435,46 +328,7 @@ let references
   =
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
-  | `Other -> Fiber.return None
-  | `Merlin doc ->
-    let* occurrences, synced =
-      Document.Merlin.dispatch_exn
-        ~name:"occurrences"
-        doc
-        (Occurrences (`Ident_at (Position.logical position), `Project))
-    in
-    let+ () =
-      match synced with
-      | `Out_of_sync _ ->
-        let msg =
-          let message =
-            "The index might be out-of-sync.  If you use Dune you can build the target \
-             `@ocaml-index` to refresh the index."
-          in
-          ShowMessageParams.create ~message ~type_:Warning
-        in
-        task_if_running state.detached ~f:(fun () ->
-          Server.notification rpc (ShowMessage msg))
-      | _ -> Fiber.return ()
-    in
-    Some
-      (List.filter_map occurrences ~f:(function
-         | { loc = _; is_stale = true } -> None
-         | { loc; is_stale = false } ->
-           let range = Range.of_loc loc in
-           let uri =
-             match loc.loc_start.pos_fname with
-             | "" -> uri
-             | path -> Uri.of_path path
-           in
-           Log.log ~section:"debug" (fun () ->
-             Log.msg
-               "merlin returned fname %a"
-               [ "pos_fname", `String loc.loc_start.pos_fname
-               ; "uri", `String (Uri.to_string uri)
-               ]);
-           Some { Location.uri; range }))
-;;
+  | `Other -> Fiber.return None;;
 
 let highlight
       (state : State.t)
@@ -483,29 +337,7 @@ let highlight
   let store = state.store in
   let doc = Document_store.get store uri in
   match Document.kind doc with
-  | `Other -> Fiber.return None
-  | `Merlin m ->
-    let+ occurrences, _synced =
-      Document.Merlin.dispatch_exn
-        ~name:"occurrences"
-        m
-        (Occurrences (`Ident_at (Position.logical position), `Buffer))
-    in
-    let lsp_locs =
-      List.filter_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
-        let loc = occurrence.loc in
-        let range = Range.of_loc loc in
-        (* filter out multi-line ranges, since those are very noisy and happen
-           a lot with certain PPXs *)
-        match range.start.line = range.end_.line with
-        | true ->
-          (* using the default kind as we are lacking info to make a
-             difference between assignment and usage. *)
-          Some (DocumentHighlight.create ~range ~kind:DocumentHighlightKind.Text ())
-        | false -> None)
-    in
-    Some lsp_locs
-;;
+  | `Other -> Fiber.return None;;
 
 let document_symbol (state : State.t) uri =
   let doc =
@@ -542,10 +374,8 @@ let on_request
        ; Req_infer_intf.meth, Req_infer_intf.on_request
        ; Req_typed_holes.meth, Req_typed_holes.on_request
        ; Req_jump_to_typed_hole.meth, Req_jump_to_typed_hole.on_request
-       ; Req_merlin_call_compatible.meth, Req_merlin_call_compatible.on_request
        ; Req_type_enclosing.meth, Req_type_enclosing.on_request
        ; Req_get_documentation.meth, Req_get_documentation.on_request
-       ; Req_merlin_jump.meth, Req_merlin_jump.on_request
        ; Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request
        ; Req_type_search.meth, Req_type_search.on_request
        ; Req_construct.meth, Req_construct.on_request
@@ -582,15 +412,7 @@ let on_request
     later (fun state () -> Workspace_symbol.run server state req) ()
   | CodeActionResolve ca -> now ca
   | ExecuteCommand command ->
-    if String.equal command.command Merlin_config_command.command_name
-    then
-      later
-        (fun state server ->
-           let store = state.store in
-           let+ () = Merlin_config_command.command_run server store in
-           `Null)
-        server
-    else if String.equal command.command Document_text_command.command_name
+      if String.equal command.command Document_text_command.command_name
     then
       later
         (fun state server ->
@@ -633,13 +455,6 @@ let on_request
            in
            (match Document.kind doc with
             | `Other -> Fiber.return ci
-            | `Merlin doc ->
-              Compl.resolve
-                doc
-                ci
-                resolve
-                (Document.Merlin.doc_comment ~name:"completion-resolve")
-                ~markdown))
       ()
   | CodeAction params -> Code_actions.compute server params
   | InlayHint params -> later (fun state () -> Inlay_hints.compute state params) ()
@@ -676,23 +491,7 @@ let on_request
       (fun _ () ->
          let doc = Document_store.get store uri in
          match Document.kind doc with
-         | `Other -> Fiber.return None
-         | `Merlin doc ->
-           let+ occurrences, _synced =
-             Document.Merlin.dispatch_exn
-               ~name:"occurrences"
-               doc
-               (Occurrences (`Ident_at (Position.logical position), `Buffer))
-           in
-           let loc =
-             List.find_map occurrences ~f:(fun (occurrence : Query_protocol.occurrence) ->
-               let loc = occurrence.loc in
-               let range = Range.of_loc loc in
-               match occurrence.is_stale, Position.compare_inclusion position range with
-               | false, `Inside -> Some loc
-               | true, _ | _, `Outside _ -> None)
-           in
-           Option.map loc ~f:Range.of_loc)
+         | `Other -> Fiber.return None)
       ()
   | TextDocumentRename req -> later Rename.rename req
   | TextDocumentFoldingRange req -> later Folding_range.compute req
@@ -743,8 +542,6 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
       Document.make
         ~position_encoding
         (State.wheel state)
-        state.merlin_config
-        state.merlin
         params
     in
     let* () = Document_store.open_document store doc in
@@ -752,7 +549,7 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
     state
   | TextDocumentDidClose { textDocument = { uri } } ->
     let+ () =
-      Diagnostics.remove (State.diagnostics state) (`Merlin uri);
+      Diagnostics.remove (State.diagnostics state);
       let* () = Document_store.close_document store uri in
       task_if_running state.detached ~f:(fun () ->
         Diagnostics.send (State.diagnostics state) (`One uri))
@@ -772,14 +569,6 @@ let on_notification server (notification : Client_notification.t) : State.t Fibe
       let report_dune_diagnostics = Configuration.report_dune_diagnostics configuration in
       Diagnostics.set_report_dune_diagnostics
         ~report_dune_diagnostics
-        (State.diagnostics state)
-    in
-    let+ () =
-      let shorten_merlin_diagnostics =
-        Configuration.shorten_merlin_diagnostics configuration
-      in
-      Diagnostics.set_shorten_merlin_diagnostics
-        ~shorten_merlin_diagnostics
         (State.diagnostics state)
     in
     { state with configuration }
@@ -831,7 +620,6 @@ let start stream =
   let ocamlformat_rpc = Ocamlformat_rpc.create () in
   let* configuration = Configuration.default () in
   let wheel = Configuration.wheel configuration in
-  let* merlin = Lev_fiber.Thread.create () in
   let server =
     let symbols_thread = Lazy_fiber.create Lev_fiber.Thread.create in
     Fdecl.set
@@ -841,7 +629,6 @@ let start stream =
          stream
          (State.create
             ~store
-            ~merlin
             ~ocamlformat_rpc
             ~configuration
             ~detached
@@ -885,16 +672,13 @@ let start stream =
     Fiber.all_concurrently_unit
       [ with_log_errors "detached" (fun () -> Fiber.Pool.run detached)
       ; Lev_fiber.Timer.Wheel.run wheel
-      ; with_log_errors "merlin" (fun () -> Merlin_config.DB.run state.merlin_config)
       ; (let* () = Server.start server in
          let finalize =
            [ Document_store.close_all store
            ; Fiber.Pool.stop detached
            ; Ocamlformat_rpc.stop ocamlformat_rpc
            ; Lev_fiber.Timer.Wheel.stop wheel
-           ; Merlin_config.DB.stop state.merlin_config
            ; Fiber.of_thunk (fun () ->
-               Lev_fiber.Thread.close merlin;
                Fiber.return ())
            ]
          in
@@ -940,68 +724,7 @@ let stream_of_channel : Lsp.Cli.Channel.t -> _ = function
     socket sockaddr
 ;;
 
-(* Merlin uses [Sys.command] to run preprocessors and ppxes. We provide an
-   alternative version using the Spawn library for unixes.
-
-   TODO: Currently PPX config is passed to Merlin in the form of a quoted shell
-   command. The [prog_is_quoted] argument in Merlin's API is meant to allow
-   supporting a way to launch ppx executables without using the shell.
-
-   This will require additionnal changes of the API so there is no need to deal
-   with the [prog_is_quoted] argument until this happen. *)
-let run_in_directory ~prog ~prog_is_quoted:_ ~args ~cwd ?stdin ?stdout ?stderr () =
-  (* Currently we assume that [prog] is always quoted and might contain
-     arguments such as [-as-ppx]. This is due to the way Merlin gets its
-     configuration. Thus we cannot rely on [Filename.quote_command]. *)
-  let args = String.concat ~sep:" " @@ List.map ~f:Filename.quote args in
-  let cmd = Format.sprintf "%s %s" prog args in
-  let prog = "/bin/sh" in
-  let argv = [ "sh"; "-c"; cmd ] in
-  let stdin =
-    match stdin with
-    | Some file -> Unix.openfile file [ Unix.O_RDONLY ] 0o664
-    | None -> Unix.openfile "/dev/null" [ Unix.O_RDONLY ] 0o777
-  in
-  let stdout, should_close_stdout =
-    match stdout with
-    | Some file -> Unix.openfile file [ Unix.O_WRONLY; Unix.O_CREAT ] 0o664, true
-    | None ->
-      (* Runned programs should never output to stdout since it is the channel
-         used by LSP to communicate with the editor *)
-      Unix.stderr, false
-  in
-  let stderr =
-    Option.map stderr ~f:(fun file ->
-      Unix.openfile file [ Unix.O_WRONLY; Unix.O_CREAT ] 0o664)
-  in
-  let pid =
-    let cwd : Spawn.Working_dir.t = Path cwd in
-    Spawn.spawn ~cwd ~prog ~argv ~stdin ~stdout ?stderr ()
-  in
-  let _, status = Unix.waitpid [] pid in
-  let res =
-    match (status : Unix.process_status) with
-    | WEXITED n -> n
-    | WSIGNALED _ -> -1
-    | WSTOPPED _ -> -1
-  in
-  Unix.close stdin;
-  if should_close_stdout then Unix.close stdout;
-  Option.iter stderr ~f:Unix.close;
-  `Finished res
-;;
-
-let run_in_directory =
-  (* Merlin has specific stubs for Windows, we reuse them *)
-  let for_windows = !Merlin_utils.Std.System.run_in_directory in
-  fun () -> if Sys.win32 then for_windows else run_in_directory
-;;
-
-let run channel ~read_dot_merlin () =
-  Merlin_utils.Lib_config.set_program_name "ocamllsp";
-  Merlin_utils.Lib_config.System.set_run_in_directory (run_in_directory ());
-  Merlin_config.should_read_dot_merlin := read_dot_merlin;
-  Unix.putenv "__MERLIN_MASTER_PID" (string_of_int (Unix.getpid ()));
+let run channel () =
   Lev_fiber.run ~sigpipe:`Ignore (fun () ->
     let* input, output = stream_of_channel channel in
     start (Lsp_fiber.Fiber_io.make input output))
