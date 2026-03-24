@@ -12,14 +12,6 @@ let run_catt_on_file f =
   | Ok f -> Command.exec ~loop_fn:Prover.loop f
   | Error () -> ()
 
-let rec catt_var_to_coq_name v =
-  match v with
-  | Var.Db i -> "catt_db_" ^ string_of_int i
-  | Var.Name s -> "catt_name_" ^ s
-  | Var.New i -> "catt_new_" ^ string_of_int i
-  | Var.Plus v -> catt_var_to_coq_name v ^ "_plus"
-  | Var.Bridge v -> catt_var_to_coq_name v ^ "_bridge"
-
 let counter = ref 0
 
 let anon () =
@@ -27,11 +19,11 @@ let anon () =
   Printf.sprintf "anonymous_term_%d" !counter
 
 let c_Q env sigma =
-  let gr = Coqlib.lib_ref "core.eq.type" in
+  let gr = Rocqlib.lib_ref "core.eq.type" in
   Evd.fresh_global env sigma gr
 
 let c_R env sigma =
-  let gr = Coqlib.lib_ref "core.eq.refl" in
+  let gr = Rocqlib.lib_ref "core.eq.refl" in
   Evd.fresh_global env sigma gr
 
 let rec find_db ctx x =
@@ -62,7 +54,7 @@ end = struct
 
   let retrieve_lambda value sigma =
     let build_econstr name =
-      let gr = Coqlib.lib_ref ("catt_" ^ name) in
+      let gr = Rocqlib.lib_ref ("catt_" ^ name) in
       let env = Global.env () in
       let sigma, econstr = Evd.fresh_global env sigma gr in
       (env, sigma, econstr)
@@ -74,12 +66,12 @@ end = struct
     let body = Evarutil.nf_evar sigma body in
     let info = Declare.Info.make () in
     let cinfo =
-      Declare.CInfo.make ~name:Id.(of_string ("catt_" ^ name)) ~typ:None ()
+      Declare.CInfo.make ~name:(Id.of_string ("catt_" ^ name)) ~typ:None ()
     in
     let gr =
       Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
     in
-    Coqlib.register_ref ("catt_" ^ name) gr;
+    Rocqlib.register_ref Local ("catt_" ^ name) gr;
     let env = Global.env () in
     let sigma, econstr = Evd.fresh_global env sigma gr in
     let _ = Hashtbl.add tbl value name in
@@ -138,16 +130,12 @@ end = struct
   (* translate a catt context into a coq lambda abstraction *)
   let rec ctx_to_lambda env sigma obj_type eq_type refl ctx inner_tm =
     match ctx with
-    | [] ->
-        ( sigma,
-          EConstr.mkLambda
-            (nameR (Names.Id.of_string "catt_Obj"), obj_type, inner_tm) )
+    | [] -> (sigma, EConstr.mkLambda (anonR, obj_type, inner_tm))
     | (x, (ty, _)) :: ctx ->
         let env, sigma, ty =
           ty_to_econstr env sigma obj_type eq_type refl ctx ty
         in
-        let id_lambda = Names.Id.of_string (catt_var_to_coq_name x) in
-        let lambda = EConstr.mkLambda (nameR id_lambda, ty, inner_tm) in
+        let lambda = EConstr.mkLambda (anonR, ty, inner_tm) in
         ctx_to_lambda env sigma obj_type eq_type refl ctx lambda
 
   (* translate a catt type into a coq type *)

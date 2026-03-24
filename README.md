@@ -17,9 +17,9 @@ Make sure `opam` is installed, clone the project and move to the directory where
 ```
 opam install ./catt.opam
 ```
-The Coq plugin can be installed with the following command
+The Rocq plugin can be installed with the following command
 ```
-opam install ./coq-catt-plugin.opam
+opam install ./rocq-catt-plugin.opam
 ```
 
 ### Building from source with dune and opam
@@ -31,15 +31,15 @@ opam install --deps-only ./catt.opam
 dune build catt.install
 ```
 
-To build the Coq plugin, run the following commands:
+To build the Rocq plugin, run the following commands:
 ```
-opam install --deps-only ./coq-catt-plugin.opam
-dune build coq-catt-plugin.install
+opam install --deps-only ./rocq-catt-plugin.opam
+dune build rocq-catt-plugin.install
 ```
 
 ### Using nix
 
-This repository contains a `flake.nix` file that defines the packages `catt` and `coq-catt-plugin`, as well as `catt-mode`, an editing mode for catt in emacs.
+This repository contains a `flake.nix` file that defines the packages `catt` and `rocq-catt-plugin`, as well as `catt-mode`, an editing mode for catt in emacs.
 
 ## Syntax
 There are two keywords to define a new operation:
@@ -281,16 +281,16 @@ Calling `catt --no-builtin [FILE]` will deactivate the use of the built-in ident
 Calling `catt --keep-going [FILE]` will make it so that `catt` will report errors but will keep running on the file and exit with a success even if the file does not typecheck properly. This is not the default behaviour, as in a typical use case, later definitions depend on earlier ones, so if a defined coherence or term is invalid, all further coherences and terms depending on it also fail. This option is useful for scripting and testing.
 
 
-## Coq plugin
-`catt` also provide a plugin for the proof assistant `coq` (packaged separately, called `coq-catt-plugin`), that allows one to export any defined term in `catt` into a function computing higher identity witnesses in `coq`. Once the plugin is installed, write the following to load it at the head of a `coq` file:
+## Rocq plugin
+`catt` also provide a plugin for the proof assistant `rocq` (packaged separately, called `rocq-catt-plugin`), that allows one to export any defined term in `catt` into a function computing higher identity witnesses in `rocq`. Once the plugin is installed, write the following to load it at the head of a `rocq` file:
 ```
 From Catt Require Import Loader.
 ```
-You can then use the `Catt` command in `coq` as follows:
+You can then use the `Catt` command in `rocq` as follows:
 ```
 Catt [NAMES] FROM FILE [PATH].
 ```
-where `[NAMES]` is a list of names of `catt` terms and `[PATH]` is a file containing the definition of those `catt` terms. Upon evaluation of this line, `coq` will call `catt` on the given file and export the listed terms into `coq` terms, whose names will be given as `catt_[NAME]`. For instance, one can write the following:
+where `[NAMES]` is a list of names of `catt` terms and `[PATH]` is a file containing the definition of those `catt` terms. Upon evaluation of this line, `rocq` will call `catt` on the given file and export the listed terms into `rocq` terms, whose names will be given as `catt_[NAME]`. For instance, one can write the following:
 ```
 Catt "whiskr" From File "../example/file.catt".
 

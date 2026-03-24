@@ -4,7 +4,7 @@ module Dom = Js_of_ocaml.Dom
 module Sys_js = Js_of_ocaml.Sys_js
 module Html = Js_of_ocaml.Dom_html
 module Js = Js_of_ocaml.Js
-module Firebug = Js_of_ocaml.Firebug
+module Console = Js_of_ocaml.Console
 
 let doc = Html.document
 
@@ -19,7 +19,7 @@ let button ~id txt action =
   b##.id := Js.string id;
   b
 
-let _debug s = Firebug.console##debug (Js.string s)
+let _debug s = Console.console##debug (Js.string s)
 
 let run_action s =
   try
