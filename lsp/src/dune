@@ -7,15 +7,15 @@
   dune-build-info
   fiber
   chrome-trace
-  lev
-  lev_fiber
-  lev_fiber_csexp
+  ; lev
+  ; lev_fiber
+  ; lev_fiber_csexp
   jsonrpc
   spawn
   lsp
-  lsp_fiber
+  ; lsp_fiber
   cmarkit
-  odoc_parser
+  ; odoc_parser
   ppx_yojson_conv_lib
   re
   stdune

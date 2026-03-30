@@ -25,13 +25,13 @@ let () =
   let version = !version in
   if version
   then (
-    let version = Ocaml_lsp_server.Version.get () in
+    let version = Catt_lsp_server.Version.get () in
     print_endline version)
   else
     let module Exn_with_backtrace = Stdune.Exn_with_backtrace in
     match
       Exn_with_backtrace.try_with
-        (Ocaml_lsp_server.run channel)
+        (Catt_lsp_server.run channel)
     with
     | Ok () -> ()
     | Error exn ->

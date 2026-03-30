@@ -1,10 +1,10 @@
 open Import
 module Version = Version
-module Diagnostics = Diagnostics
+(* module Diagnostics = Diagnostics
 module Position = Position
 module Doc_to_md = Doc_to_md
 module Diff = Diff
-module Testing = Testing
+module Testing = Testing *)
 open Fiber.O
 
 let make_error = Jsonrpc.Response.Error.make
@@ -19,7 +19,7 @@ let view_metrics_command_name = "ocamllsp/view-metrics"
 let view_metrics server =
   let* json = Metrics.dump () in
   let uri, chan =
-    Filename.open_temp_file (sprintf "lsp-metrics.%d" (Unix.getpid ())) ".json"
+    Filename.open_temp_file (Printf.sprintf "lsp-metrics.%d" (Unix.getpid ())) ".json"
   in
   output_string chan json;
   close_out_noerr chan;
@@ -174,7 +174,6 @@ let on_initialize server (ip : InitializeParams.t) =
   let diagnostics =
     let report_dune_diagnostics =
       Configuration.report_dune_diagnostics state.configuration
-    in
     in
     Diagnostics.create
       ~report_dune_diagnostics
@@ -402,114 +401,40 @@ let on_request
   | Initialize ip ->
     let+ res, state = on_initialize server ip in
     res, state
-  | DebugTextDocumentGet { textDocument = { uri }; position = _ } ->
-    (match Document_store.get_opt store uri with
-     | None -> now None
-     | Some doc -> now (Some (Msource.text (Document.source doc))))
-  | DebugEcho params -> now params
+  | DebugTextDocumentGet { textDocument = { uri }; position = _ } -> not_supported ()
+  | DebugEcho params -> not_supported ()
   | Shutdown -> Fiber.return (Reply.now (), state)
-  | WorkspaceSymbol req ->
-    later (fun state () -> Workspace_symbol.run server state req) ()
-  | CodeActionResolve ca -> now ca
-  | ExecuteCommand command ->
-      if String.equal command.command Document_text_command.command_name
-    then
-      later
-        (fun state server ->
-           let store = state.store in
-           let+ () = Document_text_command.command_run server store command.arguments in
-           `Null)
-        server
-    else if String.equal command.command view_metrics_command_name
-    then later (fun _state server -> view_metrics server) server
-    else if String.equal command.command Action_open_related.command_name
-    then
-      later (fun _state server -> Action_open_related.command_run server command) server
-    else if String.equal command.command Action_jump.command_name
-    then later (fun _state server -> Action_jump.command_run server command) server
-    else
-      later
-        (fun state () ->
-           let dune = State.dune state in
-           Dune.on_command dune command)
-        ()
-  | CompletionItemResolve ci ->
-    later
-      (fun state () ->
-         let markdown =
-           ClientCapabilities.markdown_support
-             (State.client_capabilities state)
-             ~field:(fun d ->
-               let open Option.O in
-               let+ completion = d.completion in
-               let* completion_item = completion.completionItem in
-               completion_item.documentationFormat)
-         in
-         let resolve = Compl.Resolve.of_completion_item ci in
-         match resolve with
-         | None -> Fiber.return ci
-         | Some resolve ->
-           let doc =
-             let uri = Compl.Resolve.uri resolve in
-             Document_store.get state.store uri
-           in
-           (match Document.kind doc with
-            | `Other -> Fiber.return ci
-      ()
-  | CodeAction params -> Code_actions.compute server params
-  | InlayHint params -> later (fun state () -> Inlay_hints.compute state params) ()
-  | TextDocumentColor _ -> now []
-  | TextDocumentColorPresentation _ -> now []
-  | TextDocumentHover req ->
-    (match state.configuration.data.standard_hover with
-     | Some { enable = false } -> now None
-     | Some { enable = true } | None ->
-       let mode =
-         match state.configuration.data.extended_hover with
-         | Some { enable = true } -> Hover_req.Extended_variable
-         | Some _ | None -> Hover_req.Default
-       in
-       later (fun (_ : State.t) () -> Hover_req.handle rpc req mode) ())
-  | TextDocumentReferences req -> later (references rpc) req
-  | TextDocumentCodeLensResolve codeLens -> now codeLens
-  | TextDocumentCodeLens req ->
-    (match state.configuration.data.codelens with
-     | Some { enable = true; for_nested_bindings } ->
-       later (text_document_lens ~for_nested_bindings) req
-     | _ -> now [])
+  | WorkspaceSymbol _ -> not_supported ()
+  | CodeActionResolve _ -> not_supported ()
+  | ExecuteCommand command -> not_supported ()
+  | CompletionItemResolve ci -> not_supported ()
+  | CodeAction params -> not_supported ()
+  | InlayHint _ -> not_supported ()
+  | TextDocumentColor _ -> not_supported ()
+  | TextDocumentColorPresentation _ -> not_supported ()
+  | TextDocumentHover _ -> not_supported ()
+  | TextDocumentReferences _ -> not_supported ()
+  | TextDocumentCodeLensResolve _ -> not_supported ()
+  | TextDocumentCodeLens _ -> not_supported ()
   | TextDocumentHighlight req -> later highlight req
-  | DocumentSymbol { textDocument = { uri }; _ } -> later document_symbol uri
-  | TextDocumentDeclaration { textDocument = { uri }; position } ->
-    later (fun state () -> Definition_query.run `Declaration state uri position) ()
-  | TextDocumentDefinition { textDocument = { uri }; position; _ } ->
-    later (fun state () -> Definition_query.run `Definition state uri position) ()
-  | TextDocumentTypeDefinition { textDocument = { uri }; position; _ } ->
-    later (fun state () -> Definition_query.run `Type_definition state uri position) ()
-  | TextDocumentCompletion params -> later (fun _ () -> Compl.complete state params) ()
-  | TextDocumentPrepareRename { textDocument = { uri }; position; workDoneToken = _ } ->
-    later
-      (fun _ () ->
-         let doc = Document_store.get store uri in
-         match Document.kind doc with
-         | `Other -> Fiber.return None)
-      ()
-  | TextDocumentRename req -> later Rename.rename req
-  | TextDocumentFoldingRange req -> later Folding_range.compute req
-  | SignatureHelp req -> later Signature_help.run req
-  | TextDocumentLinkResolve l -> now l
-  | TextDocumentLink _ -> now None
-  | WillSaveWaitUntilTextDocument _ -> now None
-  | TextDocumentFormatting { textDocument = { uri }; options = _; _ } ->
-    later
-      (fun _ () ->
-         let doc = Document_store.get store uri in
-         Formatter.run rpc doc)
-      ()
-  | TextDocumentOnTypeFormatting _ -> now None
-  | SelectionRange req -> later selection_range req
+  | DocumentSymbol _ -> not_supported ()
+  | TextDocumentDeclaration _ -> not_supported ()
+  | TextDocumentDefinition _ -> not_supported ()
+  | TextDocumentTypeDefinition _ -> not_supported ()
+  | TextDocumentCompletion params -> not_supported ()
+  | TextDocumentPrepareRename _ -> not_supported ()
+  | TextDocumentRename _ -> not_supported ()
+  | TextDocumentFoldingRange _ -> not_supported ()
+  | SignatureHelp _ -> not_supported ()
+  | TextDocumentLinkResolve _ -> not_supported ()
+  | TextDocumentLink _ -> not_supported ()
+  | WillSaveWaitUntilTextDocument _ -> not_supported ()
+  | TextDocumentFormatting _ -> not_supported ()
+  | TextDocumentOnTypeFormatting _ -> not_supported ()
+  | SelectionRange _ -> not_supported ()
   | TextDocumentImplementation _ -> not_supported ()
-  | SemanticTokensFull p -> later Semantic_highlighting.on_request_full p
-  | SemanticTokensDelta p -> later Semantic_highlighting.on_request_full_delta p
+  | SemanticTokensFull p -> not_supported ()
+  | SemanticTokensDelta p -> not_supported ()
   | TextDocumentMoniker _ -> not_supported ()
   | TextDocumentPrepareCallHierarchy _ -> not_supported ()
   | TextDocumentRangeFormatting _ -> not_supported ()

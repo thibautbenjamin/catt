@@ -41,3 +41,9 @@
   (allow_empty)
   (tags
     (higher-categories dependent-type-theory)))
+
+(package
+ (name catt-lsp-server)
+)
+
+ (warnings (deprecated_coq_lang disabled))
