@@ -1,40 +1,103 @@
-open Stdune
-module Cli = Lsp.Cli
+(* This file is free software, part of linol. See file "LICENSE" for more information *)
 
-let () =
-  Printexc.record_backtrace true;
-  let version = ref false in
-  let arg = Lsp.Cli.Arg.create () in
-  let spec =
-    [ "--version", Arg.Set version, "print version"]
-    @ Cli.Arg.spec arg
+(* Some user code
+
+   The code here is just a placeholder to make this file compile, it is expected
+   that users have an implementation of a processing function for input contents.
+
+   Here we expect a few things:
+   - a type to represent a state/environment that results from processing an
+     input file
+   - a function procdessing an input file (given the file contents as a string),
+     which return a state/environment
+   - a function to extract a list of diagnostics from a state/environment.
+     Diagnostics includes all the warnings, errors and messages that the processing
+     of a document are expected to be able to return.
+*)
+
+module Lsp = Linol.Lsp
+
+type state_after_processing = Catt.Environment.t
+
+let process_some_input_file (file_contents : string) : state_after_processing =
+  let () = 
+    match Catt.Prover.parse_file file_contents with 
+    | Ok cmds -> 
+      Catt.Command.exec ~loop_fn:Catt.Prover.loop cmds
+    | Error () -> ()
+  in Catt.Environment.get ()
+
+let diagnostics (_state : state_after_processing) : Lsp.Types.Diagnostic.t list
+    =
+  []
+
+(* Lsp server class
+
+   This is the main point of interaction beetween the code checking documents
+   (parsing, typing, etc...), and the code of linol.
+
+   The [Linol_lwt.Jsonrpc2.server] class defines a method for each of the action
+   that the lsp server receives, such as opening of a document, when a document
+   changes, etc.. By default, the method predefined does nothing (or errors out ?),
+   so that users only need to override methods that they want the server to
+   actually meaningfully interpret and respond to.
+*)
+class lsp_server =
+  object (self)
+    inherit Linol_lwt.Jsonrpc2.server
+
+    (* one env per document *)
+    val buffers : (Lsp.Types.DocumentUri.t, state_after_processing) Hashtbl.t =
+      Hashtbl.create 32
+
+    method spawn_query_handler f = Linol_lwt.spawn f
+
+    (* We define here a helper method that will:
+       - process a document
+       - store the state resulting from the processing
+       - return the diagnostics from the new state
+    *)
+    method private _on_doc ~(notify_back : Linol_lwt.Jsonrpc2.notify_back)
+        (uri : Lsp.Types.DocumentUri.t) (contents : string) =
+      let new_state = process_some_input_file contents in
+      Hashtbl.replace buffers uri new_state;
+      let diags = diagnostics new_state in
+      notify_back#send_diagnostic diags
+
+    (* We now override the [on_notify_doc_did_open] method that will be called
+       by the server each time a new document is opened. *)
+    method on_notif_doc_did_open ~notify_back d ~content : unit Linol_lwt.t =
+      self#_on_doc ~notify_back d.uri content
+
+    (* Similarly, we also override the [on_notify_doc_did_change] method that will be called
+       by the server each time a new document is opened. *)
+    method on_notif_doc_did_change ~notify_back d _c ~old_content:_old
+        ~new_content =
+      self#_on_doc ~notify_back d.uri new_content
+
+    (* On document closes, we remove the state associated to the file from the global
+       hashtable state, to avoid leaking memory. *)
+    method on_notif_doc_did_close ~notify_back:_ d : unit Linol_lwt.t =
+      Hashtbl.remove buffers d.uri;
+      Linol_lwt.return ()
+  end
+
+(* Main code
+   This is the code that creates an instance of the lsp server class
+   and runs it as a task. *)
+let run () =
+  let s = new lsp_server in
+  let server = Linol_lwt.Jsonrpc2.create_stdio ~env:() s in
+  let task =
+    let shutdown () = s#get_status = `ReceivedExit in
+    Linol_lwt.Jsonrpc2.run ~shutdown server
   in
-  let usage =
-    "ocamllsp [ --stdio | --socket PORT | --port PORT | --pipe PIPE ] [ \
-     --clientProcessId pid ]"
-  in
-  Arg.parse spec (fun _ -> raise @@ Arg.Bad "anonymous arguments aren't allowed") usage;
-  let channel =
-    match Cli.Arg.channel arg with
-    | Ok c -> c
-    | Error s ->
-      Format.eprintf "%s@.%!" s;
-      Arg.usage spec usage;
-      exit 1
-  in
-  let version = !version in
-  if version
-  then (
-    let version = Catt_lsp_server.Version.get () in
-    print_endline version)
-  else
-    let module Exn_with_backtrace = Stdune.Exn_with_backtrace in
-    match
-      Exn_with_backtrace.try_with
-        (Catt_lsp_server.run channel)
-    with
-    | Ok () -> ()
-    | Error exn ->
-      Format.eprintf "%a@." Exn_with_backtrace.pp_uncaught exn;
-      exit 1
-;;
+  match Linol_lwt.run task with
+  | () -> ()
+  | exception e ->
+    let e = Printexc.to_string e in
+    Printf.eprintf "error: %s\n%!" e;
+    exit 1
+
+(* Finally, we actually run the server *)
+let () = run ()

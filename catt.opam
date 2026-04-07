@@ -16,7 +16,7 @@ homepage: "https://github.com/thibautbenjamin/catt"
 bug-reports: "https://github.com/thibautbenjamin/catt/issues"
 depends: [
   "ocaml" {>= "4.14" & < "5.0"}
-  "dune" {>= "3.20" & >= "3.10"}
+  "dune" {>= "3.21" & >= "3.10"}
   "menhir" {>= "20240715"}
   "base" {>= "0.17.0"}
   "odoc" {with-doc}

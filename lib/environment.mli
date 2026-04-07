@@ -15,3 +15,4 @@ val val_var : Var.t -> value
 val dim_output : Var.t -> int
 val dim_input : Var.t -> int
 val reset : unit -> unit
+val get : unit -> t

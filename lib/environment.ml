@@ -82,3 +82,5 @@ let add_value v value =
 let val_var v = (find v).value
 let dim_output v = (find v).dim_output
 let dim_input v = (find v).dim_input
+
+let get () = env

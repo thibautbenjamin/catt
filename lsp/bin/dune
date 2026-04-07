@@ -2,6 +2,11 @@
  (name main)
  (package catt-lsp-server)
  (public_name cattlsp)
- (libraries dune-build-info stdune lsp catt_lsp_server)
- (instrumentation
-  (backend bisect_ppx)))
+ (libraries
+  catt
+  linol
+  linol-lwt))
+
+(env
+ (dev
+  (flags (:standard -alert -unstable))))
