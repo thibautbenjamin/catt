@@ -15,3 +15,6 @@ type prog = cmd list
 
 val postprocess_fn : (ctx -> tm -> ctx * tm) ref
 val exec : loop_fn:(unit -> unit) -> prog -> unit
+
+val initialise : unit -> unit
+val exec_cmd : cmd -> unit

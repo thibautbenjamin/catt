@@ -13,23 +13,52 @@
    - a function to extract a list of diagnostics from a state/environment.
      Diagnostics includes all the warnings, errors and messages that the processing
      of a document are expected to be able to return.
-*)
+     *)
 
 module Lsp = Linol.Lsp
 
-type state_after_processing = Catt.Environment.t
+type state_after_processing = Catt.Environment.t * (unit, unit) result
 
+let dummy_range = {Lsp.Types.Range.start = {character = 0; line = 0}; end_ = {character = 0; line = 1}}
+
+let exec prog =
+  Catt.Command.initialise ();
+  let rec aux prog diagnostics = 
+    match prog with
+    | [] -> ()
+    | t :: l -> 
+      let diagnostics = 
+      (try
+        Catt.Command.exec_cmd t;
+        diagnostics
+      with
+      | Catt.Error.InvalidEntry -> 
+        {Lsp.Types.Diagnostic.message = `String "Invalid Entry"; range = dummy_range; data = None; code = None; codeDescription = None; relatedInformation = None; severity = None; source = None; tags = None } :: diagnostics
+      | Catt.Error.OptionsError -> failwith "todo"
+      | _ ->
+        {Lsp.Types.Diagnostic.message = `String "Unknown Error"; range = dummy_range; data = None; code = None; codeDescription = None; relatedInformation = None; severity = None; source = None; tags = None } :: diagnostics)
+      in
+      aux l diagnostics
+  in
+  aux prog []
+  
 let process_some_input_file (file_contents : string) : state_after_processing =
-  let () = 
-    match Catt.Prover.parse_file file_contents with 
+  Printf.eprintf "processing file\n%!";
+  let parsing_state = 
+    match Catt.Prover.parse file_contents with 
     | Ok cmds -> 
-      Catt.Command.exec ~loop_fn:Catt.Prover.loop cmds
-    | Error () -> ()
-  in Catt.Environment.get ()
+      Printf.eprintf "ok\n%!";
+      exec cmds;
+      Ok ()
+    | Error () -> 
+      Printf.eprintf "error detected\n%!";
+      Error ()
+  in (Catt.Environment.get (), parsing_state) 
 
-let diagnostics (_state : state_after_processing) : Lsp.Types.Diagnostic.t list
-    =
-  []
+let diagnostics (state : state_after_processing) : Lsp.Types.Diagnostic.t list =
+  match state with 
+  |(_, Ok ()) -> []
+  |(_, Error ()) -> [{Lsp.Types.Diagnostic.message = `String "Parsing error"; range = dummy_range; data = None; code = None; codeDescription = None; relatedInformation = None; severity = None; source = None; tags = None }] 
 
 (* Lsp server class
 
@@ -82,10 +111,15 @@ class lsp_server =
       Linol_lwt.return ()
   end
 
-(* Main code
+
+  (* Main code
    This is the code that creates an instance of the lsp server class
    and runs it as a task. *)
+
+
 let run () =
+  Printf.printf "run beginning\n%!";
+  Printf.eprintf "run beginning\n%!";
   let s = new lsp_server in
   let server = Linol_lwt.Jsonrpc2.create_stdio ~env:() s in
   let task =
@@ -101,3 +135,5 @@ let run () =
 
 (* Finally, we actually run the server *)
 let () = run ()
+
+

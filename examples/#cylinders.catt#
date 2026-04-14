@@ -13,6 +13,7 @@ coh natnatassoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (
 coh nat2assoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (m : g -> h) (n : g -> h) (a : m -> n) (w : *) (k : z -> w) : comp (comp [srca f [[a]] k] (assoc f h k)) (natassoc f n k) -> comp (natassoc f m k) (comp (assoc f g k) [tgta f [[a]] k])
 
 let srcu (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) = comp (comp f g) h
+
 let tgtu (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) = comp f g h
 
 coh unbiase (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : srcu f g h ->  tgtu f g h
