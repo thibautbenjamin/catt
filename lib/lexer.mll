@@ -10,11 +10,17 @@ rule token = parse
   | "left" { LEFT }
   | "right" { RIGHT }
   | "Iε" { LWITNESS }
+  | "ilunit" { LWITNESS }
   | "Iη" { RWITNESS }
+  | "irunit" { RWITNESS }
   | "IHε" { INDHYPLEFT }
   | "IHη" { INDHYPRIGHT }
   | "ε" { LUNIT }
   | "η" { RUNIT }
+  | "IHlunit" { INDHYPLEFT }
+  | "IHrunit" { INDHYPRIGHT }
+  | "lunit" { LUNIT }
+  | "runit" { RUNIT }
   | "can" { CAN }
   | "coind" { COIND }
   | "rec" { REC }

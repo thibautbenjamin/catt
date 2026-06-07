@@ -20,8 +20,8 @@ coind 2of6
         comp h (right (e')) ,
         comp (assoc (left (e)) f g) (ε (e)) ,
         comp (assoc- g h (right (e'))) (η (e')) ,
-        can (_ { can (_ {}) , ilunit (e) } ) ,
-        can (_ { can (_ {}) , irunit (e') } )
+        can (_ { can (_ {}) , Iε (e) } ) ,
+        can (_ { can (_ {}) , Iη (e') } )
 }
 
 coh unit- (x(f)y) : f -> comp f (id _)
@@ -33,9 +33,9 @@ let linv-rcancel (x : *) (y : *) (f : x -> y) (e : Inv(f))
 = comp (unit- (comp f (left (e))))
        (comp (comp f (left (e))) [left (Iη (e))])
        (assoc-pair f (left(e)) f (right(e)))
-       (comp f [lunit (e)] (right (e)))
+       (comp f [ε (e)] (right (e)))
        (unit3 f (right (e)))
-       (runit (e))
+       (η (e))
 
 let linv-rcancelU-aux (x : *) (y : *) (f : x -> y) (e : Inv(f)) (e' : Inv (left (Iη (e))))
 : Inv (linv-rcancel e)
@@ -43,9 +43,9 @@ let linv-rcancelU-aux (x : *) (y : *) (f : x -> y) (e : Inv(f)) (e' : Inv (left 
         can (_ {}) ,
         can (_ { e' }) ,
         can (_ {}) ,
-        can (_ { ilunit (e) }) ,
+        can (_ { Iε (e) }) ,
         can (_ {}) ,
-        irunit (e)
+        Iη (e)
 })
 
 rec left-inv (x : *) (y : *) (f : x -> y) (e : Inv(f))
@@ -53,22 +53,22 @@ rec left-inv (x : *) (y : *) (f : x -> y) (e : Inv(f))
     f ,
     f ,
     linv-rcancel e ,
-    lunit (e) ,
-    linv-rcancelU-aux IHrunit,
-    ilunit (e)
+    ε (e) ,
+    linv-rcancelU-aux IHη ,
+    Iε (e)
 }
 
 let linv-rcancelU (x : *) (y : *) (f : x -> y) (e : Inv(f))
 : Inv (linv-rcancel e)
-= linv-rcancelU-aux (left-inv irunit (e))
+= linv-rcancelU-aux (left-inv Iη (e))
 
 coind sphereify (x : *) (y : *) (f : x -> y) (e : Inv(f))
 = { f ,
     left (e) ,
     left (e) ,
-    lunit (e) ,
+    ε (e) ,
     linv-rcancel e ,
-    ilunit (e) ,
+    Iε (e) ,
     linv-rcancelU e }
 
 coind equiv-transport (x : *) (y : *) (f : x -> y) (e : Inv (f))
@@ -76,9 +76,8 @@ coind equiv-transport (x : *) (y : *) (f : x -> y) (e : Inv (f))
 = {g ,
    left (e) ,
    right (e) ,
-   comp (comp (left (e)) [ left (e') ]) (lunit (e)) ,
-   comp (comp [ left (e') ] (right (e))) (runit (e)) ,
-   can (_ {can (_ { left-inv e' }) , ilunit (e)}) ,
-   can (_ {can (_ { left-inv e' }) , irunit (e)})
+   comp (comp (left (e)) [ left (e') ]) (ε (e)) ,
+   comp (comp [ left (e') ] (right (e))) (η (e)) ,
+   can (_ {can (_ { left-inv e' }) , Iε (e)}) ,
+   can (_ {can (_ { left-inv e' }) , Iη (e)})
 }
-
