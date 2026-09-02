@@ -2,7 +2,7 @@
 
 Catt is an implementation of a type system checking coherences in [Grothendieck-Maltsiotis ω-categories](https://arxiv.org/abs/1009.2331). The underlying type theoretical translation is described by [Finster-Mimram](https://arxiv.org/abs/1706.02866).
 
-This is my personnal implementation of this theory. For a more complete implementation, which also accounts for different flavours of semi-strict ω-categories, check out [catt.io](https://github.com/ericfinster/catt.io). Other implementations that are now superseeded are [Samuel Mimram's OCaml version](https://github.com/smimram/catt), and [Eric Finster's Haskell version](https://github.com/ericfinster/catt).
+This is my personal implementation of this theory. For a more complete implementation, which also accounts for different flavours of semi-strict ω-categories, check out [catt.io](https://github.com/ericfinster/catt.io). Other implementations that are now superseded are [Samuel Mimram's OCaml version](https://github.com/smimram/catt), and [Eric Finster's Haskell version](https://github.com/ericfinster/catt).
 
 There is an [online version](https://thibautbenjamin.github.io/catt/) of this implementation.
 
@@ -67,17 +67,17 @@ Similarly, the identity cell can be defined as follows:
 ```
 coh identity (x : *) : x -> x
 ```
-Higher-dimensional cells witnessing weak laws involving the composites and the identities cells, such as unitors and associators, can then be defined as follows:
+Higher-dimensional cells witnessing weak laws involving the composites and the identity cells, such as unitors and associators, can then be defined as follows:
 ```
 coh unit (x : *) (y : *) (f : x -> y) : binarycomp f (identity y) -> f
 coh assoc (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : binarycomp (binarycomp f g) h -> binarycomp f (binarycomp g h)
 ```
 More composition operations exist for higher-dimensional cells: for instance for 2-cells we can define the vertical composition, the horizontal compositions and the left and right whiskerings:
 ```
-coh vert (x : *) (y : *) (f : x -> y) (g : x -> y) (h : x -> y) (a : f -> g) (b : g -> h) : f -> h
+coh vert (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h) : f -> h
 coh horiz (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y -> z) (k : y -> z) (b : h -> k) : binarycomp f h -> binarycomp g k
 coh whiskl (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (h : y -> z) (a : g -> h) : binarycomp f g -> binarycomp f h
-coh whiskr (x : *) (y : *) (f : x -> y) (g : x -> z) (a : f -> g) (z : *) (h : y -> z) : binarycomp f h -> binarycomp g h
+coh whiskr (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (z : *) (h : y -> z) : binarycomp f h -> binarycomp g h
 ```
 
 These coherences can be combined together to define terms in arbitrary contexts. For instance, the square of an endomorphism can be defined using the binary composite as follows:
@@ -86,7 +86,7 @@ let sq (x : *) (f : x -> x) : x -> x = binarycomp f f
 ```
 while the following defines a biased ternary composite built from combining binary composites:
 ```
-let ternarycomp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : x -> w = binarycomp (binarycomp f g)
+let ternarycomp (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : x -> w = binarycomp (binarycomp f g) h
 ```
 
 ## Additional features
@@ -112,7 +112,7 @@ set explicit_substitutions = f
 
 The notation `@` before the name of an operation is a way to indicate that all arguments are going to be specified for this operation. It provides a local way of turning off the implicit arguments. For instance, one may define the associator as follows:
 ```
-coh assoc (x(f)y(g)z(h)w) : @binarycomp x y f w (binarycomp g h) -> binarycomp (binarycomp f g) h
+coh assoc (x(f)y(g)z(h)w) : binarycomp (binarycomp f g) h -> @binarycomp x y f w (binarycomp g h)
 ```
 
 ### Wildcards
@@ -122,7 +122,7 @@ coh unit_wild (x : *) (y : *) (f : x -> y) : binarycomp f (identity _) -> f
 ```
 
 ### Reduced syntax for coherence
-This feature has been taken from [catt.io](https://github.com/ericfinster/catt.io). One can exploit the fact that pasting schemes are equivalent to well-parenthesised expressions to give a more concise syntax for them. For instance, one, can define the composition of two 1-cells as follows:
+This feature has been taken from [catt.io](https://github.com/ericfinster/catt.io). One can exploit the fact that pasting schemes are equivalent to well-parenthesised expressions to give a more concise syntax for them. For instance, one can define the composition of two 1-cells as follows:
 ```
 coh binarycomp (x(f)y(g)z) : x -> z
 ```
@@ -130,11 +130,11 @@ Internally, these parenthesised expressions are reduced to contexts and are trea
 
 This syntax can also be used in let definitions, for instance:
 ```
-let comp2-bis (x(f)y(g)z) = comp2 f g
+let comp2-bis (x(f)y(g)z) = binarycomp f g
 ```
 
 ### Built-in compositions and identities
-Some useful coherences are built-in. This allows for two things: first, it is not necessary as a user to define those coherences that already exist, and, secondly, it allows to have an internal hardcoded mechanism to manage coherence schemes instead of single coherences. The built-ins can be deactivated via the command-line as follows `catt --no-builtins [FILE]` or `dune exec -- catt --no-builtin [FILE]`. When built-ins are activated, the user is prevented from defining terms or operations that have the same name as a built-in.
+Some useful coherences are built-in. This allows for two things: first, it is not necessary as a user to define those coherences that already exist, and, secondly, it allows to have an internal hardcoded mechanism to manage coherence schemes instead of single coherences. The built-ins can be deactivated via the command-line as follows `catt --no-builtins [FILE]` or `dune exec -- catt --no-builtins [FILE]`. When built-ins are activated, the user is prevented from defining terms or operations that have the same name as a built-in.
 
 #### Identity
 The identity coherence previously defined is also saved as a built-in under the name `id`. Thus one can always just use `id` without the need to define it first.
@@ -148,7 +148,7 @@ where here the same name `comp` is used for the binary composition and the terna
 
 
 #### Example
-The unitor defined above can be defined directly using the the built-ins, not requiring to introduce coherences for the composition and identity before
+The unitor defined above can be defined directly using the built-ins, without requiring coherences for composition and identity to be introduced first:
 ```
 coh unit (x(f)y) : comp f (id _) -> f
 ```
@@ -165,7 +165,7 @@ Every definition can be automatically raised to a higher dimension by suspension
 coh identity1cells (x(f)y) : f -> f
 let identity1cells (x : *) (y : *) (f : x -> y) : f -> f = !id f
 ```
-By default, the suspensions can be left implicit and the system will automatically insert the suspension at the right places. For instance, one can define the vertical composition of 2-cells, which is the suspension of the composition of 0-cells as follows
+By default, the suspensions can be left implicit and the system will automatically insert the suspension at the right places. For instance, one can define the vertical composition of 2-cells, which is the suspension of the composition of 1-cells, as follows:
 ```
 let vertical_comp (x : *) (y : *) (f : x -> y) (g : x -> y) (a : f -> g) (h : x -> y) (b : g -> h)
                   : f -> h = comp a b
@@ -182,7 +182,7 @@ The language of `catt` is invariant under the operation of formally reversing al
 ```
 op { [NUMBERS] } (TERM)
 ```
-where the numbers indicate in which dimensions one is taking the opposite. For instance, consider the folloiwng example:
+where the numbers indicate in which dimensions one is taking the opposite. For instance, consider the following example:
 ```
 let opwhiskl (x : *) (y : *) (z : *) (f : x -> y) (f' : x -> y) (a : f -> f') (g : y -> z)
     = op { 1 } (whiskl g a)
@@ -199,7 +199,7 @@ In the presence of a suspension, the opposite is always computed first, then the
 ```
 op { 1 } (whiskl g a)
 ```
-even when `g` is a 2-cell and `a` is a 3-cell. The result will be a 2-dimensional opposite of the suspended term. This allows to keep the suspension silent, but and is justified by the fact that taking a opposites in any dimension less than k of a k suspended term leaves the suspended term invariant, so there is never a reason to write an opposite after a suspension as opposed to before.
+even when `g` is a 2-cell and `a` is a 3-cell. The result will be a 2-dimensional opposite of the suspended term. This allows the suspension to remain implicit and is justified by the fact that taking opposites in any dimension less than `k` of a `k`-times suspended term leaves the suspended term invariant, so there is never a reason to write an opposite after a suspension rather than before it.
 
 
 Semantically, taking the opposite of a term representing an operation of ω-categories amounts to considering the same operation for the ω-categorical structure of the opposite globular set. An account of the algorithm used to compute the opposite and its semantical interpretation is given in [this article](https://arxiv.org/abs/2402.01611).
@@ -212,7 +212,7 @@ Computing a chosen inverse of an invertible term can be done by the following sy
 ```
 I [TERM]
 ```
-For instance the associator and its chosen inverse of the associator can be given as follows:
+For instance, the associator and its chosen inverse can be given as follows:
 ```
 coh assoc (x(f)y(g)z(h)w) :  comp (comp f g) h -> comp f (comp g h)
 let assoc- (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : comp f (comp g h) -> comp (comp f g) h = I (assoc f g h)
@@ -226,11 +226,11 @@ U [TERM]
 ```
 Given an invertible term `t` of type `u -> v`, the cancellation witness `U t` is a cell of type `comp t (I t) -> id (u)`. For instance, here is the cancellation witness for the associator and its inverse:
 ```
-let assocU (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : comp (assoc f g h) (assoc- f g h) -> id (comp (comp f g) h)
+let assocU (x : *) (y : *) (f : x -> y) (z : *) (g : y -> z) (w : *) (h : z -> w) : comp (assoc f g h) (assoc- f g h) -> id (comp (comp f g) h) = U (assoc f g h)
 ```
 In this case, the cancellation witness is a single coherence, but more complex cases are possible, like for the case of a composite of associators, where the cancellation witness successively uses the cancellation witnesses of the associators and reassociates the whole term.
 
-All the rest of the inveritbility data can be obtained by combining `U` and `I` and iterating `U`. Indeed, the procedure computing `U t` always produce a term that is itself invertible, so on which one can call `I` and `U`. Moreover, one can get the other cancellation witness of type `comp (I t) t -> id v` as `U (I t)` since `I` is involutive.
+All the rest of the invertibility data can be obtained by combining `U` and `I` and iterating `U`. Indeed, the procedure computing `U t` always produces a term that is itself invertible and to which one can apply `I` and `U`. Moreover, one can get the other cancellation witness of type `comp (I t) t -> id v` as `U (I t)` since `I` is involutive.
 
 ### Functoriality of coherences and terms
 All the coherences that one can define are functorial in their codimension-0 arguments, and this fact is also part of the implementation. The argument with respect to which the functoriality is applied is specified between square brackets. For instance the right whiskering can be seen as the functoriality of the composition with respect to its first argument, which can be thought of as making the cell `a` act in the context of `comp f g` to change it into `comp f' g`.
@@ -239,20 +239,20 @@ let whiskr (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                    (z : *) (g : y -> z)
 	   : comp f g -> comp f' g = comp [a] g
 ```
-One can also use fuctoriality with respect to multiple variables at the same time. For instance, the horizontal composition of two 2-cells is the functoriality of the composition with respect to both its arguments.
+One can also use functoriality with respect to multiple variables at the same time. For instance, the horizontal composition of two 2-cells is the functoriality of the composition with respect to both its arguments.
 ```
 let horiz (x : *) (y : *) (f : x -> y) (f' : x -> y) (a : f -> f')
                   (z : *) (g : y -> z) (g' : y -> z) (b : g -> g')
  	  : comp f g -> comp f' g' = comp [a] [b]
 ```
-The functorialisation also works recursively for arbitrary terms. Given any term and a variable in that term of the same dimension as the term, `catt` can compute the functorialisation of the term with respect to this argument, which is again specified syntactically by square brackets in the applciation.
+The functorialisation also works recursively for arbitrary terms. Given any term and a variable in that term of the same dimension as the term, `catt` can compute the functorialisation of the term with respect to this argument, which is again specified syntactically by square brackets in the application.
 
 This is partially described in [this thesis](https://hal.science/tel-03106197). A more complete account is in preparation.
 
 ### Naturality of the coherences and terms
-Given a coherence or a term and an upwards closed subset of variables of codimension at most 1 in it, `catt` can compute the witness of naturality of this term with respect to that set of variables. This is again indicated with square bracket around the corresponding arguments of the applciation. In order to mark implicit arguements, we provide the construct `@`, which when given before a name indicates that the substitution in this case is explicit. This for instance lets us define the square composite as follows:
+Given a coherence or a term and an upwards closed subset of variables of codimension at most 1 in it, `catt` can compute the witness of naturality of this term with respect to that set of variables. This is again indicated with square brackets around the corresponding arguments of the application. In order to mark implicit arguments, we provide the construct `@`, which when given before a name indicates that the substitution in this case is explicit. This for instance lets us define the square composite as follows:
 ```
-let sqcomp (x : *) (y : *) (z : *) (x' : *) (y' : *) (z ' : *)
+let sqcomp (x : *) (y : *) (z : *) (x' : *) (y' : *) (z' : *)
            (f : x -> y) (g : y -> z) (f' : x' -> y') (g' : y' -> z')
            (xx : x -> x') (yy : y -> y') (zz : z -> z')
            (a : comp f yy -> comp xx f') (b : comp g zz -> comp yy g')
@@ -261,7 +261,7 @@ let sqcomp (x : *) (y : *) (z : *) (x' : *) (y' : *) (z ' : *)
 ```
 It also lets us define the composite of a square with a triangle as follows:
 ```
-let trcomp (x : *) (y : *) (z : *) (y' : *) (z ' : *)
+let trcomp (x : *) (y : *) (z : *) (y' : *) (z' : *)
            (f : x -> y) (g : y -> z) (f' : x -> y') (g' : y' -> z')
            (yy : y -> y') (zz : z -> z')
            (a : comp f yy -> f') (b : comp g zz -> comp yy g')
@@ -275,7 +275,7 @@ A formal account of this principle is in preparation.
 Calling `catt --debug [FILE]` will make it so that if there is an error in the file, the program will not abort, but show a menu where the user can either abort the program, ignore the error and keep checking the file, or drop in an interactive mode. For the last option, the environment of the interactive is that at the point of failure, so any coherence defined in the file causing the failure before that point is directly accessible and usable.
 
 ### The --no-builtins flag
-Calling `catt --no-builtin [FILE]` will deactivate the use of the built-in identities and composition, allowing the user to define their own coherences or terms named `id` and `comp`.
+Calling `catt --no-builtins [FILE]` will deactivate the use of the built-in identities and composition, allowing the user to define their own coherences or terms named `id` and `comp`.
 
 ### The --keep-going flag
 Calling `catt --keep-going [FILE]` will make it so that `catt` will report errors but will keep running on the file and exit with a success even if the file does not typecheck properly. This is not the default behaviour, as in a typical use case, later definitions depend on earlier ones, so if a defined coherence or term is invalid, all further coherences and terms depending on it also fail. This option is useful for scripting and testing.
