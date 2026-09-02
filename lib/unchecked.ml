@@ -582,6 +582,15 @@ struct
             s
       | Meta_tm _ -> Error.fatal "meta-variables should be resolved"
 
+    let rec ty_contains_var a x =
+      match a with
+      | Obj -> false
+      | Arr (a, t, u) ->
+          tm_contains_var t x || tm_contains_var u x || ty_contains_var a x
+      | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
+
+    let tm_contains_vars t l = List.exists (tm_contains_var t) l
+
     let rec check_equal_ps ps1 ps2 =
       match (ps1, ps2) with
       | Br [], Br [] -> ()
@@ -663,15 +672,6 @@ struct
 
     let check_equal_ctx ctx1 ctx2 =
       if ctx1 == ctx2 then () else check_equal_ctx ctx1 ctx2
-
-    let rec ty_contains_var a x =
-      match a with
-      | Obj -> false
-      | Arr (a, t, u) ->
-          tm_contains_var t x || tm_contains_var u x || ty_contains_var a x
-      | Meta_ty _ -> Error.fatal "meta-variables should be resolved"
-
-    let tm_contains_vars t l = List.exists (tm_contains_var t) l
 
     let rec list_to_sub s ctx =
       match (s, ctx) with
